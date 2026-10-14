@@ -6,7 +6,7 @@
 
 | | |
 |---|---|
-| **Public site** | Server-rendered, edge-cached, ≈ 4 KB of JavaScript. The 26 launch classes with the owner’s prices, class pages with structured data, blog, certificate verification. Lighthouse (mobile): accessibility / best practices / SEO **100**, performance **92–99** |
+| **Public site** | Server-rendered, edge-cached, ≈ 4 KB of JavaScript. The 26 launch classes with the owner’s prices, class pages with structured data, blog, certificate verification. Lighthouse (mobile): accessibility / best practices / SEO **100**, performance **91–99** |
 | **Student app** (`/app`) | Register, buy (SSLCommerz · bKash · Nagad · Rocket · cards · manual send-money · free), watch lessons (Stream video with signed tokens), track progress, ask questions, review (enrolled students only), earn **verifiable certificates**, invoices |
 | **Admin** (`/admin`) | Health check and “needs attention today” first, then classes + curriculum builder, orders (verify / refund), students, reviews, Q&A, coupons, bundles, certificates, Coming-Soon notify lists, reports, team with **roles**, audit log, AI chatbot settings — CSV export everywhere |
 | **AI chatbot** | Workers AI by default, Gemini switchable in the admin (no code change), grounded in your live catalogue, honest “I’m not sure” with hand-off to the team |
