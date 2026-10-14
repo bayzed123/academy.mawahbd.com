@@ -1,0 +1,35 @@
+{
+  "name": "mawah-academy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MAWAH Academy — premium bilingual online cooking & baking course platform on Cloudflare Workers (Hono), D1, KV, R2 and Stream.",
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "worker",
+    "app",
+    "admin"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "setup:cloudflare": "node scripts/setup-cloudflare.mjs",
+    "build:marketing": "node scripts/build-marketing.mjs",
+    "build:app": "npm run build -w app",
+    "build:admin": "npm run build -w admin",
+    "build": "npm run build:marketing && npm run build:app && npm run build:admin",
+    "dev": "node scripts/dev.mjs",
+    "typecheck": "npm run typecheck -w shared && npm run typecheck -w worker && npm run typecheck -w app && npm run typecheck -w admin",
+    "test": "npm run build:marketing && npm run test -w worker",
+    "test:e2e": "playwright test",
+    "db:migrate:local": "npm run build:marketing && npm run db:migrate:local -w worker",
+    "db:seed:dev": "npm run db:seed:dev -w worker",
+    "db:migrate:remote": "npm run db:migrate:remote -w worker",
+    "deploy": "npm run build && npm run deploy -w worker"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "typescript": "^7.0.2"
+  }
+}

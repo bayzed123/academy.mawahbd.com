@@ -1,0 +1,32 @@
+{
+  "name": "@mawah/worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "gen:devconfig": "node ../scripts/gen-dev-config.mjs",
+    "dev": "npm run gen:devconfig && wrangler dev -c .wrangler.dev.toml --persist-to ../.wrangler/state",
+    "typecheck": "wrangler types --include-runtime false >/dev/null 2>&1; tsc -p tsconfig.json",
+    "test": "npm run gen:devconfig && vitest run",
+    "test:watch": "npm run gen:devconfig && vitest",
+    "db:migrate:local": "npm run gen:devconfig && wrangler d1 migrations apply DB --local -c .wrangler.dev.toml --persist-to ../.wrangler/state",
+    "db:seed:dev": "wrangler d1 execute DB --local -c .wrangler.dev.toml --persist-to ../.wrangler/state --file ./seed/dev-demo.sql",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@mawah/shared": "*",
+    "hono": "^4.13.13",
+    "qrcode-generator": "^2.0.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.2",
+    "@cloudflare/workers-types": "^5.20261014.1",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.151.0"
+  }
+}

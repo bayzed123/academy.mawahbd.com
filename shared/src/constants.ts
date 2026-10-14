@@ -1,0 +1,118 @@
+export const ROLES = ["super_admin", "content_manager", "support", "viewer"] as const;
+export type Role = (typeof ROLES)[number];
+
+export const ROLE_LABELS: Record<Role, { bn: string; en: string }> = {
+  super_admin: { bn: "সুপার অ্যাডমিন", en: "Super Admin" },
+  content_manager: { bn: "কনটেন্ট ম্যানেজার", en: "Content Manager" },
+  support: { bn: "সাপোর্ট", en: "Support" },
+  viewer: { bn: "শুধু দেখার অনুমতি", en: "Read-only Viewer" },
+};
+
+export const COURSE_STATUSES = ["draft", "coming_soon", "published", "archived"] as const;
+export type CourseStatus = (typeof COURSE_STATUSES)[number];
+
+export const ORDER_STATUSES = ["pending", "awaiting_verification", "paid", "failed", "cancelled", "refunded"] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+export const PAYMENT_METHODS = ["bkash", "nagad", "rocket", "card", "manual", "free", "mock"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export const LESSON_TYPES = ["video", "external", "text", "resource"] as const;
+export type LessonType = (typeof LESSON_TYPES)[number];
+
+/** Per-category accent tag — used consistently on cards, banners and pages (wayfinding, not a re-theme). */
+export const ACCENTS = ["snack", "cake", "dessert", "cook", "sweet", "frozen"] as const;
+export type Accent = (typeof ACCENTS)[number];
+
+/**
+ * Role-based access control matrix. The Worker enforces it on every admin route and the admin UI
+ * reads the very same table to hide actions a role cannot perform — one source of truth.
+ */
+const ALL: readonly Role[] = ROLES;
+const SA: readonly Role[] = ["super_admin"];
+const SA_CM: readonly Role[] = ["super_admin", "content_manager"];
+const SA_SP: readonly Role[] = ["super_admin", "support"];
+const SA_CM_SP: readonly Role[] = ["super_admin", "content_manager", "support"];
+const SA_SP_VW: readonly Role[] = ["super_admin", "support", "viewer"];
+const SA_VW: readonly Role[] = ["super_admin", "viewer"];
+
+export const PERMISSIONS = {
+  "dashboard:read": ALL,
+  "courses:read": ALL,
+  "courses:write": SA_CM,
+  "courses:delete": SA_CM,
+  "courses:publish": SA_CM,
+  "instructors:read": ALL,
+  "instructors:write": SA_CM,
+  "categories:read": ALL,
+  "categories:write": SA_CM,
+  "blog:read": ALL,
+  "blog:write": SA_CM,
+  "bundles:read": ALL,
+  "bundles:write": SA_CM,
+  "coupons:read": ALL,
+  "coupons:write": SA_CM,
+  "media:write": SA_CM,
+  "orders:read": SA_SP_VW,
+  "orders:verify": SA_SP,
+  "orders:refund": SA,
+  "students:read": SA_SP_VW,
+  "students:write": SA_SP,
+  "reviews:read": ALL,
+  "reviews:moderate": SA_SP,
+  "questions:read": ALL,
+  "questions:answer": SA_CM_SP,
+  "certificates:read": ALL,
+  "certificates:write": SA_SP,
+  "signups:read": ALL,
+  "signups:write": SA_CM_SP,
+  "messages:read": ALL,
+  "messages:write": SA_CM_SP,
+  "chatbot:read": ["super_admin", "content_manager", "viewer"],
+  "chatbot:write": SA,
+  "reports:learning": ALL,
+  "reports:revenue": SA_VW,
+  "staff:read": SA,
+  "staff:write": SA,
+  "settings:read": ALL,
+  "settings:write": SA,
+  "activity:read": SA_VW,
+} as const satisfies Record<string, readonly Role[]>;
+
+export type Permission = keyof typeof PERMISSIONS;
+
+export function can(role: Role | undefined | null, permission: Permission): boolean {
+  if (!role) return false;
+  return (PERMISSIONS[permission] as readonly Role[]).includes(role);
+}
+
+/** Admin-facing sidebar order (matches the spec). */
+export const ADMIN_NAV = [
+  { key: "dashboard", path: "", perm: "dashboard:read" },
+  { key: "courses", path: "courses", perm: "courses:read" },
+  { key: "instructors", path: "instructors", perm: "instructors:read" },
+  { key: "orders", path: "orders", perm: "orders:read" },
+  { key: "students", path: "students", perm: "students:read" },
+  { key: "reviews", path: "reviews", perm: "reviews:read" },
+  { key: "questions", path: "questions", perm: "questions:read" },
+  { key: "blog", path: "blog", perm: "blog:read" },
+  { key: "coupons", path: "coupons", perm: "coupons:read" },
+  { key: "bundles", path: "bundles", perm: "bundles:read" },
+  { key: "certificates", path: "certificates", perm: "certificates:read" },
+  { key: "signups", path: "signups", perm: "signups:read" },
+  { key: "messages", path: "messages", perm: "messages:read" },
+  { key: "chatbot", path: "chatbot", perm: "chatbot:read" },
+  { key: "reports", path: "reports", perm: "reports:learning" },
+  { key: "staff", path: "staff", perm: "staff:read" },
+  { key: "settings", path: "settings", perm: "settings:read" },
+  { key: "activity", path: "activity", perm: "activity:read" },
+  { key: "help", path: "help", perm: "dashboard:read" },
+] as const satisfies readonly { key: string; path: string; perm: Permission }[];
+
+/** Icons available for category tags and generated class banners (see marketing/public/sprite.svg). */
+export const CLASS_ICONS = ["cake", "snack", "glass", "bowl", "sweet", "snowflake", "cupcake", "brownie", "pastry", "pot", "crescent", "tiffin", "mango"] as const;
+export type ClassIcon = (typeof CLASS_ICONS)[number];
+
+export const MAX_UPLOAD_IMAGE_BYTES = 5 * 1024 * 1024;
+export const MAX_UPLOAD_RESOURCE_BYTES = 25 * 1024 * 1024;
+export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"] as const;

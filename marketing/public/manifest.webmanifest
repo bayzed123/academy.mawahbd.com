@@ -1,0 +1,10 @@
+{
+  "name": "MAWAH Academy",
+  "short_name": "MAWAH",
+  "description": "Premium online cooking & baking classes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fbf7ee",
+  "theme_color": "#073b2c",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
