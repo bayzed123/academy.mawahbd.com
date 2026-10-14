@@ -5,6 +5,7 @@ import type { AppEnv, Ctx } from "./env";
 import { HttpError } from "./lib/http";
 import { langFromPath, pageCtxFor } from "./lib/pagectx";
 import { renderHtml } from "./lib/render";
+import { publicAddress } from "./middleware/host";
 import { baseSecurity } from "./middleware/security";
 import { api } from "./routes/api";
 import { mediaRoutes } from "./routes/media";
@@ -22,6 +23,7 @@ app.use("*", async (c, next) => {
   await next();
 });
 app.use("*", baseSecurity);
+app.use("*", publicAddress); // after the security headers, so even a redirect carries them
 
 app.route("/api", api);
 app.route("/media", mediaRoutes);
