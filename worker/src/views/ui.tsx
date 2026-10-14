@@ -1,0 +1,228 @@
+import { raw } from "hono/html";
+import type { Accent, CategoryDTO, CourseCardDTO } from "@mawah/shared";
+import { formatMoney, formatNumber, loc } from "@mawah/shared";
+import type { PageCtx } from "./ctx";
+
+/* ------------------------------------------------------------------ icons & brand */
+export const Icon = ({ name, class: cls = "" }: { name: string; class?: string }) => (
+  <svg class={`icon ${cls}`.trim()} aria-hidden="true" focusable="false">
+    <use href={`/sprite.svg#i-${name}`} />
+  </svg>
+);
+
+/** The arch-and-"M" monogram: an emerald arch (a doorway into the kitchen) with a gold pearl above. */
+export const LogoMark = ({ class: cls = "brand-mark" }: { class?: string }) => (
+  <svg class={cls} viewBox="0 0 64 64" role="img" aria-label="MAWAH Academy">
+    <rect width="64" height="64" rx="15" fill="#073b2c" />
+    <path d="M32 9c-10 0-17.5 7.4-17.5 17.2V55h35V26.2C49.5 16.4 42 9 32 9z" fill="#0b4d3a" stroke="#c9a24b" stroke-width="2.4" />
+    <path d="M21 46V28.5L32 40l11-11.5V46" fill="none" stroke="#e8cf94" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="32" cy="19" r="2.6" fill="#c9a24b" />
+  </svg>
+);
+
+export const Brand = ({ ctx }: { ctx: PageCtx }) => (
+  <a class="brand" href={ctx.href("/")} aria-label={ctx.t("brand.name")}>
+    <LogoMark />
+    <span class="brand-text">
+      <span class="brand-name">{ctx.lang === "bn" ? ctx.t("brand.name") : "MAWAH"}</span>
+      <span class="brand-sub">Academy</span>
+    </span>
+  </a>
+);
+
+/* ------------------------------------------------------------------ small pieces */
+export const Stars = ({ value }: { value: number }) => (
+  <span class="stars" role="img" aria-label={`${value.toFixed(1)} / 5`}>
+    {[1, 2, 3, 4, 5].map((i) => (
+      <svg class={`icon${value + 0.25 >= i ? "" : " off"}`} aria-hidden="true">
+        <use href="/sprite.svg#i-star" />
+      </svg>
+    ))}
+  </span>
+);
+
+export const SectionHead = ({
+  eyebrow,
+  title,
+  sub,
+  center,
+}: {
+  eyebrow?: string;
+  title: string;
+  sub?: string;
+  center?: boolean;
+}) => (
+  <header class={`sec-head${center ? " center" : ""}`}>
+    {eyebrow && <span class="eyebrow">{eyebrow}</span>}
+    <h2>{title}</h2>
+    {sub && <p>{sub}</p>}
+  </header>
+);
+
+export const Flash = ({ ctx, flag }: { ctx: PageCtx; flag: string | undefined }) => {
+  if (!flag) return null;
+  const map: Record<string, [string, string]> = {
+    notify_ok: ["ok", ctx.t("notify.ok")],
+    news_ok: ["ok", ctx.t("news.ok")],
+    contact_ok: ["ok", ctx.t("contact.ok")],
+    err: ["err", ctx.t("err.validation")],
+  };
+  const hit = map[flag];
+  return hit ? (
+    <p id="form-status" class={`flash ${hit[0]}`} role="status">
+      {hit[1]}
+    </p>
+  ) : null;
+};
+
+export const Crumbs = ({ items }: { items: { label: string; href?: string }[] }) => (
+  <ol class="crumbs" aria-label="breadcrumb">
+    {items.map((it) => (
+      <li>{it.href ? <a href={it.href}>{it.label}</a> : <span aria-current="page">{it.label}</span>}</li>
+    ))}
+  </ol>
+);
+
+export const Pager = ({
+  ctx,
+  page,
+  pages,
+  hrefFor,
+}: {
+  ctx: PageCtx;
+  page: number;
+  pages: number;
+  hrefFor: (p: number) => string;
+}) =>
+  pages <= 1 ? null : (
+    <nav class="pager" aria-label="pagination">
+      {page > 1 ? (
+        <a class="btn btn-outline btn-sm" rel="prev" href={hrefFor(page - 1)}>
+          {ctx.t("pager.prev")}
+        </a>
+      ) : null}
+      <span>{ctx.t("pager.page", { n: ctx.lang === "bn" ? formatNumber(page, "bn") : page, total: ctx.lang === "bn" ? formatNumber(pages, "bn") : pages })}</span>
+      {page < pages ? (
+        <a class="btn btn-outline btn-sm" rel="next" href={hrefFor(page + 1)}>
+          {ctx.t("pager.next")}
+        </a>
+      ) : null}
+    </nav>
+  );
+
+/* ------------------------------------------------------------------ course card + banner */
+type CardCat = NonNullable<CourseCardDTO["category"]> | CategoryDTO;
+
+export const Banner = ({ course, ctx, eager = false }: { course: CourseCardDTO; ctx: PageCtx; eager?: boolean }) => {
+  const href = ctx.href(`/courses/${course.slug}`);
+  if (course.banner_key) {
+    return (
+      <a class="banner" href={href} tabindex={-1} aria-hidden="true">
+        <img src={`/media/${course.banner_key}`} alt="" width="640" height="400" loading={eager ? "eager" : "lazy"} decoding="async" />
+      </a>
+    );
+  }
+  const cat = course.category;
+  return (
+    <a class="banner banner-art" href={href} tabindex={-1} aria-hidden="true">
+      <span class="frame" />
+      <Icon name={course.icon ?? cat?.icon ?? "cake"} />
+    </a>
+  );
+};
+
+/** The price as shown on buttons and the buy box: "৳১,৮৫০" (or "ফ্রি" for free classes). */
+export const priceLabel = (ctx: PageCtx, price: number) => (price === 0 ? ctx.t("label.free") : formatMoney(price, ctx.lang));
+
+export const NotifyForm = ({ ctx, slug, compact = false }: { ctx: PageCtx; slug: string; compact?: boolean }) => (
+  <form
+    class="form-inline"
+    method="post"
+    action="/api/notify"
+    data-ajax
+    data-ok={ctx.t("notify.ok")}
+    data-err={ctx.t("notify.fail")}
+    data-limit={ctx.t("err.rate_limited")}
+  >
+    <input type="hidden" name="course" value={slug} />
+    <input type="hidden" name="lang" value={ctx.lang} />
+    <label class="vh" for={`nf-${slug}${compact ? "-c" : ""}`}>
+      {ctx.t("notify.ph")}
+    </label>
+    <input class="input" id={`nf-${slug}${compact ? "-c" : ""}`} type="email" name="email" required autocomplete="email" placeholder={ctx.t("notify.ph")} />
+    <button class="btn btn-emerald btn-sm" type="submit">
+      {ctx.t("notify.btn")}
+    </button>
+    <p class="status-line full" data-status role="status" />
+  </form>
+);
+
+export const CourseCard = ({ course, ctx, eager = false, headingLevel = 3 }: { course: CourseCardDTO; ctx: PageCtx; eager?: boolean; headingLevel?: 2 | 3 }) => {
+  const Heading = headingLevel === 2 ? "h2" : "h3"; // 2 when the grid sits right under the page's h1, 3 under a section heading
+  const soon = course.status === "coming_soon";
+  const cat = course.category as (CardCat & { accent: Accent }) | null;
+  const detail = ctx.href(`/courses/${course.slug}`);
+  return (
+    <article class={`card a-${cat?.accent ?? "snack"}`}>
+      <Banner course={course} ctx={ctx} eager={eager} />
+      {cat && <span class="chip-cat">{loc(cat, "name", ctx.lang)}</span>}
+      {soon && <span class="ribbon">{ctx.t("btn.comingSoon")}</span>}
+      <div class="card-body">
+        <Heading class="card-title">
+          <a href={detail}>{loc(course, "title", ctx.lang)}</a>
+        </Heading>
+        <p class="card-desc">{loc(course, "short", ctx.lang)}</p>
+        <div class="card-meta">
+          {course.level && (
+            <span>
+              <Icon name="layers" />
+              {ctx.t(`label.${course.level}` as never)}
+            </span>
+          )}
+          {course.lesson_count > 0 && (
+            <span>
+              <Icon name="play" />
+              {ctx.t("card.lessons", { n: ctx.lang === "bn" ? formatNumber(course.lesson_count, "bn") : course.lesson_count })}
+            </span>
+          )}
+          {course.rating_count > 0 && (
+            <span>
+              <Stars value={course.rating_avg} />
+              {ctx.lang === "bn" ? formatNumber(course.rating_avg, "bn") : course.rating_avg.toFixed(1)}
+            </span>
+          )}
+        </div>
+        <div class="card-foot">
+          <a class="btn btn-outline btn-sm" href={detail}>
+            {ctx.t("btn.readMore")}
+            <span class="vh"> — {loc(course, "title", ctx.lang)}</span>
+          </a>
+          {soon ? (
+            <span class="badge-soon">
+              <Icon name="clock" />
+              {ctx.t("btn.comingSoon")}
+            </span>
+          ) : (
+            <a class="btn btn-gold btn-sm" href={`/app/checkout?c=${encodeURIComponent(course.slug)}`}>
+              {ctx.t("btn.enrollNow")}
+              <span class="btn-price">{priceLabel(ctx, course.price)}</span>
+            </a>
+          )}
+        </div>
+        {soon && (
+          <details class="notify">
+            <summary>
+              <Icon name="bell" />
+              {ctx.t("card.notify_hint")}
+            </summary>
+            <NotifyForm ctx={ctx} slug={course.slug} compact />
+          </details>
+        )}
+      </div>
+    </article>
+  );
+};
+
+/** Escape a JSON-LD payload so it can never close the surrounding <script> tag. */
+export const jsonLd = (data: unknown) =>
+  raw(JSON.stringify(data).replace(/</g, "\\u003c").replace(new RegExp("\\u2028", "g"), "\\\\u2028").replace(new RegExp("\\u2029", "g"), "\\\\u2029"));

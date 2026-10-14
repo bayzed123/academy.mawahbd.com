@@ -1,0 +1,115 @@
+export type Lang = "bn" | "en";
+
+const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
+
+/** Replace ASCII digits with Bengali digits. */
+export function toBnDigits(input: string | number): string {
+  return String(input).replace(/\d/g, (d) => BN_DIGITS[Number(d)]);
+}
+
+/** Group digits the South-Asian way (12,34,567) — the convention used for BDT. */
+function groupIndian(intPart: string): string {
+  if (intPart.length <= 3) return intPart;
+  const last3 = intPart.slice(-3);
+  const rest = intPart.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+  return `${rest},${last3}`;
+}
+
+export function formatNumber(n: number, lang: Lang): string {
+  const negative = n < 0;
+  const [int, frac] = Math.abs(n).toString().split(".");
+  const grouped = groupIndian(int) + (frac ? `.${frac}` : "");
+  const out = (negative ? "-" : "") + grouped;
+  return lang === "bn" ? toBnDigits(out) : out;
+}
+
+/** "৳১,৮৫০" in Bangla, "৳1,850" in English. Whole taka only. */
+export function formatMoney(amount: number, lang: Lang): string {
+  return `৳${formatNumber(Math.round(amount), lang)}`;
+}
+
+const MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS_BN = [
+  "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন",
+  "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর",
+];
+const DHAKA_OFFSET_MS = 6 * 60 * 60 * 1000;
+
+/** Convert an ISO/UTC timestamp to a Date whose UTC fields are the Asia/Dhaka wall-clock (UTC+6, no DST). */
+export function toDhaka(iso: string | Date): Date {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  return new Date(d.getTime() + DHAKA_OFFSET_MS);
+}
+
+/** "14 Oct 2026" / "১৪ অক্টোবর ২০২৬" (Bangladesh time). */
+export function formatDate(iso: string | null | undefined, lang: Lang): string {
+  if (!iso) return "";
+  const d = toDhaka(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const day = d.getUTCDate();
+  const month = (lang === "bn" ? MONTHS_BN : MONTHS_EN)[d.getUTCMonth()];
+  const year = d.getUTCFullYear();
+  const out = `${day} ${month} ${year}`;
+  return lang === "bn" ? toBnDigits(out) : out;
+}
+
+export function formatDateTime(iso: string | null | undefined, lang: Lang): string {
+  if (!iso) return "";
+  const d = toDhaka(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const h24 = d.getUTCHours();
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  const ampm = h24 < 12 ? (lang === "bn" ? "সকাল" : "AM") : lang === "bn" ? "বিকাল" : "PM";
+  const time = `${h12}:${mm} ${ampm}`;
+  return `${formatDate(iso, lang)}, ${lang === "bn" ? toBnDigits(time) : time}`;
+}
+
+/** Today's date in Dhaka as YYYYMMDD (used for invoice numbers). */
+export function dhakaDayStamp(date: Date = new Date()): string {
+  const d = toDhaka(date);
+  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+/** "1 h 20 min" / "১ ঘণ্টা ২০ মিনিট". */
+export function formatDuration(seconds: number, lang: Lang): string {
+  const total = Math.max(0, Math.round(seconds));
+  const h = Math.floor(total / 3600);
+  const m = Math.round((total % 3600) / 60);
+  if (h === 0 && m === 0) return "";
+  const parts: string[] = [];
+  if (lang === "bn") {
+    if (h) parts.push(`${toBnDigits(h)} ঘণ্টা`);
+    if (m) parts.push(`${toBnDigits(m)} মিনিট`);
+  } else {
+    if (h) parts.push(`${h} h`);
+    if (m) parts.push(`${m} min`);
+  }
+  return parts.join(" ");
+}
+
+/** Pick the localized value of a bilingual record: obj[`${key}_bn`] / obj[`${key}_en`] with fallback. */
+export function loc(obj: object, key: string, lang: Lang): string {
+  const rec = obj as Record<string, unknown>;
+  const primary = rec[`${key}_${lang}`];
+  const other = rec[`${key}_${lang === "bn" ? "en" : "bn"}`];
+  const val = typeof primary === "string" && primary.trim() ? primary : other;
+  return typeof val === "string" ? val : "";
+}
+
+export function pick<T>(lang: Lang, bn: T, en: T): T {
+  return lang === "bn" ? bn : en;
+}
+
+/** Bangladesh mobile number normaliser: returns 01XXXXXXXXX or null. */
+export function normalizeBdPhone(input: string): string | null {
+  const digits = input.replace(/[^\d+]/g, "");
+  const m = digits.match(/^(?:\+?880|0)?(1[3-9]\d{8})$/);
+  return m ? `0${m[1]}` : null;
+}
+
+export function maskEmail(email: string): string {
+  const [user, domain] = email.split("@");
+  if (!domain) return "***";
+  return `${user.slice(0, 2)}${"•".repeat(Math.max(1, Math.min(6, user.length - 2)))}@${domain}`;
+}

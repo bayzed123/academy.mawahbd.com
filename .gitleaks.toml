@@ -1,0 +1,19 @@
+# Secret scanning (run by CI with gitleaks). The default rules stay ON; this file only teaches it which values in this
+# repository are deliberately fake, so a real key can never hide among them.
+title = "MAWAH Academy"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fake values that exist only in the local-development example and in tests"
+regexes = [
+  '''dev-only-secret-change-me[A-Za-z0-9-]*''',   # worker/.dev.vars.example (never used in production)
+  '''test-app-secret-[0-9a-f]{16,}''',              # worker/vitest.config.ts
+  '''fake-[a-z0-9-]*-not-a-secret[a-z0-9-]*''',     # fixtures that prove a saved key is masked and never echoed
+  '''dev-setup-token''',                            # local first-admin setup token
+]
+paths = [
+  '''worker/\.dev\.vars\.example$''',
+  '''package-lock\.json$''',
+]

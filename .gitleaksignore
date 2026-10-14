@@ -1,0 +1,3 @@
+# Two throwaway test passwords committed in 0b53cfd (replaced by per-run random passwords in the next commit).
+0b53cfd2514814e727b62abc40041c8a37acad48:e2e/helpers.ts:generic-api-key:3
+0b53cfd2514814e727b62abc40041c8a37acad48:e2e/02-admin.spec.ts:generic-api-key:25

@@ -1,0 +1,95 @@
+#:schema node_modules/wrangler/config-schema.json
+# =============================================================================
+#  MAWAH Academy — Cloudflare Worker configuration
+#  Run `npm run setup:cloudflare` once: it creates the D1 database, KV namespace
+#  and R2 bucket for you and fills in the IDs below. No secrets live in this file —
+#  every key (payments, e-mail, AI) is set with `wrangler secret put` (docs/deployment.md).
+# =============================================================================
+name = "mawah-academy"
+main = "src/index.ts"
+compatibility_date = "2026-10-14"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+upload_source_maps = true
+
+# --- Custom domain ----------------------------------------------------------
+# Uncomment once mawahbd.com is on this Cloudflare account (setup script can do it):
+# routes = [{ pattern = "academy.mawahbd.com", custom_domain = true }]
+
+# --- Static assets: React apps (/app, /admin) + fonts/css/js (/assets) -------
+# Hashed assets are served straight from Cloudflare's asset layer (no Worker run).
+# The Worker runs first only where it must add security headers / SPA fallback.
+[assets]
+directory = "../dist/static"
+binding = "ASSETS"
+run_worker_first = [
+  "/api/*",
+  "/app", "/app/*", "!/app/assets/*",
+  "/admin", "/admin/*", "!/admin/assets/*",
+]
+
+# --- Public (non-secret) configuration ---------------------------------------
+[vars]
+ENVIRONMENT = "production"            # production | development
+SITE_URL = "https://academy.mawahbd.com"
+BRAND_CODE = "MWH"                    # used in invoice numbers: INV-MWH-YYYYMMDD-0001
+DEFAULT_LANG = "bn"                   # bn | en
+PAYMENT_MODE = "live"                 # live | sandbox (gateway sandbox endpoints)
+MAIL_FROM = "MAWAH Academy <no-reply@mawahbd.com>"
+STREAM_CUSTOMER_CODE = ""             # e.g. "abcd1234efgh" from customer-<code>.cloudflarestream.com
+TURNSTILE_SITE_KEY = ""               # optional Cloudflare Turnstile (public site key)
+
+# --- Data stores ---------------------------------------------------------------
+[[d1_databases]]
+binding = "DB"
+database_name = "mawah-academy-db"
+database_id = "REPLACE_WITH_D1_ID"
+migrations_dir = "migrations"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_KV_ID"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "mawah-academy-media"
+
+# --- Cloudflare Stream (video) and Workers AI (chatbot) ---------------------------
+[stream]
+binding = "STREAM"
+
+[ai]
+binding = "AI"
+
+# --- Rate limiting (per Cloudflare location, no extra storage needed) ----------------
+[[ratelimits]]
+name = "RL_AUTH"          # login / register / forgot password
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }
+
+[[ratelimits]]
+name = "RL_CHECKOUT"      # checkout + payment actions
+namespace_id = "1002"
+simple = { limit = 15, period = 60 }
+
+[[ratelimits]]
+name = "RL_CHAT"          # AI chatbot
+namespace_id = "1003"
+simple = { limit = 12, period = 60 }
+
+[[ratelimits]]
+name = "RL_FORM"          # public forms: contact, newsletter, notify-me, certificate lookup
+namespace_id = "1004"
+simple = { limit = 8, period = 60 }
+
+[[ratelimits]]
+name = "RL_API"           # everything else under /api
+namespace_id = "1005"
+simple = { limit = 120, period = 60 }
+
+# --- Housekeeping: expire stale pending orders, tidy tokens, send launch e-mails -------
+[triggers]
+crons = ["0 */6 * * *"]
+
+[observability]
+enabled = true
