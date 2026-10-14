@@ -386,6 +386,20 @@ describe("orders: manual verification, rejection and refunds", () => {
     expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM enrollments WHERE student_id = ? AND course_id = ?").bind(student.id, course.id).first<any>()).n).toBe(1);
   });
 
+  it("sidebar badges count exactly what is waiting for a human, and need a staff session", async () => {
+    expect((await new Client().get("/api/admin/badges")).status).toBe(401);
+    const support = (await loginStaff("support")).client;
+    const before = await json(await support.get("/api/admin/badges"));
+    expect(Object.keys(before).sort()).toEqual(expect.arrayContaining(["messages", "orders", "questions", "reviews"]));
+
+    const course = await makeCourse();
+    const student = await registerStudent();
+    const { orderId } = await buyManual(student.client, course.slug);
+    expect((await json(await support.get("/api/admin/badges"))).orders).toBe(before.orders + 1);
+    expect((await support.post(`/api/admin/orders/${orderId}/approve`)).status).toBe(200);
+    expect((await json(await support.get("/api/admin/badges"))).orders).toBe(before.orders); // handled -> the badge clears
+  });
+
   it("rejecting tells the student and opens nothing", async () => {
     const course = await makeCourse();
     const student = await registerStudent();

@@ -97,7 +97,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
                   <Icon name={x.icon} />
                 </span>
                 <div>
-                  <h3>{x.title}</h3>
+                  <h2>{x.title}</h2>
                   <p>{x.desc}</p>
                 </div>
               </div>

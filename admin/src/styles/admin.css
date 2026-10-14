@@ -88,7 +88,7 @@ select.input{padding-right:2rem}
 .chip.warn{background:#fff4d6;border-color:#f1d78b;color:#8a5a00}
 .chip.bad{background:#fdecec;border-color:#f4c7c7;color:#8a1f1f}
 .chip.info{background:#e8f3fb;border-color:#c5dff2;color:#1d5b8a}
-.chip.gold{background:var(--g-100);border-color:var(--g-300);color:var(--g-700)}
+.chip.gold{background:var(--g-100);border-color:var(--g-300);color:var(--g-800)}
 
 /* ---------- shell: three panes ---------- */
 .admin-shell{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
@@ -141,7 +141,7 @@ html[lang=bn] .rail-in h3{letter-spacing:0;text-transform:none;font-size:.9rem}
 .online small{color:var(--ink-3)}
 .account .me{display:flex;gap:12px;align-items:center;margin-bottom:12px}
 .account .me small{display:block;color:var(--ink-3);word-break:break-all}
-.account .me .gold{color:var(--g-700);font-weight:700}
+.account .me .gold{color:var(--g-800);font-weight:700}
 .scrim{display:none}
 
 /* ---------- page header, panels, tabs ---------- */
@@ -336,7 +336,7 @@ input[type=range]{width:100%;accent-color:var(--e-700)}
 .login-card{width:min(100%,440px);background:var(--paper);border-radius:24px;padding:clamp(22px,4vw,34px);box-shadow:0 30px 80px rgba(0,0,0,.35);border-top:4px solid var(--g-500)}
 .login-brand{display:flex;gap:14px;align-items:center;margin-bottom:1.2rem}
 .login-brand b{display:block;font-family:var(--font-display);font-size:1.3rem;color:var(--e-900);line-height:1.1}
-.login-brand small{color:var(--g-700);font-weight:600}
+.login-brand small{color:var(--g-800);font-weight:600}
 .login-card h1{font-size:1.7rem;margin-bottom:.2em}
 .login-card form{margin-top:1.2rem}
 .login-card .lang-btn{margin-top:1rem}
@@ -356,8 +356,9 @@ input[type=range]{width:100%;accent-color:var(--e-700)}
 }
 @media (max-width:899px){
   .admin-shell,.admin-shell.collapsed{grid-template-columns:minmax(0,1fr)}
-  .side{position:fixed;left:0;top:0;width:min(290px,86vw);transform:translateX(-102%);transition:transform .25s ease;box-shadow:8px 0 30px rgba(0,0,0,.3)}
-  .side.open{transform:none}
+  /* closed: off-screen, no shadow bleeding in, and out of the keyboard/screen-reader order */
+  .side{position:fixed;left:0;top:0;width:min(290px,86vw);transform:translateX(-102%);visibility:hidden;transition:transform .25s ease,visibility 0s linear .25s}
+  .side.open{transform:none;visibility:visible;transition:transform .25s ease;box-shadow:8px 0 30px rgba(0,0,0,.3)}
   .collapsed .side .lbl{display:inline}
   .collapsed .side nav a,.collapsed .side-foot a,.collapsed .side-foot button{justify-content:flex-start;padding-inline:.8rem}
   .collapsed .side .badge{display:grid}
@@ -374,6 +375,6 @@ input[type=file]::file-selector-button{margin-right:.8rem;padding:.55rem 1rem;bo
 input[type=file]::file-selector-button:hover{background:var(--e-800);color:#fff}
 @media (max-width:759px){
   .table-bar .search{flex-basis:100%;max-width:none}
-  .date-range{flex:1 1 100%}
-  .date-range .input{flex:1;width:auto;min-width:0}
+  .date-range{flex:1 1 100%;min-width:0}
+  .date-range .input{flex:1 1 0;width:auto;min-width:0;max-width:100%}
 }

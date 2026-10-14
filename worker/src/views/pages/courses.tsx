@@ -104,7 +104,7 @@ export function CoursesPage({ ctx, data }: { ctx: PageCtx; data: ListData }) {
           ) : (
             <div class="grid">
               {data.courses.map((c, i) => (
-                <CourseCard course={c} ctx={ctx} eager={i < 3} />
+                <CourseCard course={c} ctx={ctx} eager={i < 3} headingLevel={2} />
               ))}
             </div>
           )}

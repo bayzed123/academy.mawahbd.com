@@ -37,7 +37,7 @@ export function Layout(props: LayoutProps) {
   const { t, lang, settings, env } = ctx;
   const chrome = props.chrome !== false;
   const canonical = ctx.abs(props.canonicalPath ?? ctx.href(ctx.path));
-  const image = props.image ?? ctx.abs(HAS_OG_IMAGE ? "/og-default.png" : "/favicon.svg");
+  const image = props.image ?? ctx.abs(HAS_OG_IMAGE ? "/og-default.jpg" : "/favicon.svg");
   const ids = analyticsIds(ctx);
   const tsKey = turnstileEnabled(env) ? env.TURNSTILE_SITE_KEY : "";
   const announcement = lang === "bn" ? settings.announcement.bn || settings.announcement.en : settings.announcement.en || settings.announcement.bn;
@@ -140,6 +140,14 @@ export function Layout(props: LayoutProps) {
                         <Icon name="award" />
                         {t("nav.verify")}
                       </a>
+                      <a class="menu-login" data-guest href="/app/login">
+                        <Icon name="user" />
+                        {t("btn.login")}
+                      </a>
+                      <a class="menu-login" data-user href="/app/" hidden>
+                        <Icon name="book" />
+                        {t("btn.myLearning")}
+                      </a>
                     </div>
                   </details>
                 </div>
@@ -178,7 +186,7 @@ export function Layout(props: LayoutProps) {
                   )}
                 </div>
                 <div>
-                  <h4>{t("footer.classes")}</h4>
+                  <p class="foot-h">{t("footer.classes")}</p>
                   <ul>
                     {ctx.categories.map((c) => (
                       <li>
@@ -188,7 +196,7 @@ export function Layout(props: LayoutProps) {
                   </ul>
                 </div>
                 <div>
-                  <h4>{t("footer.company")}</h4>
+                  <p class="foot-h">{t("footer.company")}</p>
                   <ul>
                     <li>
                       <a href={ctx.href("/about")}>{t("nav.about")}</a>
@@ -203,7 +211,7 @@ export function Layout(props: LayoutProps) {
                       <a href={ctx.href("/verify")}>{t("nav.verify")}</a>
                     </li>
                   </ul>
-                  <h4 class="mt">{t("footer.policies")}</h4>
+                  <p class="foot-h mt">{t("footer.policies")}</p>
                   <ul>
                     <li>
                       <a href={ctx.href("/policies/refund")}>{t("policy.refund")}</a>
@@ -217,7 +225,7 @@ export function Layout(props: LayoutProps) {
                   </ul>
                 </div>
                 <div>
-                  <h4>{t("footer.contact")}</h4>
+                  <p class="foot-h">{t("footer.contact")}</p>
                   <ul>
                     {waHref && (
                       <li>
@@ -237,7 +245,7 @@ export function Layout(props: LayoutProps) {
                       </li>
                     )}
                   </ul>
-                  <h4 class="mt">{t("footer.payments")}</h4>
+                  <p class="foot-h mt">{t("footer.payments")}</p>
                   <div class="pay-list">
                     <span>{t("method.bkash")}</span>
                     <span>{t("method.nagad")}</span>

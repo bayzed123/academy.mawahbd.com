@@ -157,7 +157,8 @@ export const NotifyForm = ({ ctx, slug, compact = false }: { ctx: PageCtx; slug:
   </form>
 );
 
-export const CourseCard = ({ course, ctx, eager = false }: { course: CourseCardDTO; ctx: PageCtx; eager?: boolean }) => {
+export const CourseCard = ({ course, ctx, eager = false, headingLevel = 3 }: { course: CourseCardDTO; ctx: PageCtx; eager?: boolean; headingLevel?: 2 | 3 }) => {
+  const Heading = headingLevel === 2 ? "h2" : "h3"; // 2 when the grid sits right under the page's h1, 3 under a section heading
   const soon = course.status === "coming_soon";
   const cat = course.category as (CardCat & { accent: Accent }) | null;
   const detail = ctx.href(`/courses/${course.slug}`);
@@ -167,9 +168,9 @@ export const CourseCard = ({ course, ctx, eager = false }: { course: CourseCardD
       {cat && <span class="chip-cat">{loc(cat, "name", ctx.lang)}</span>}
       {soon && <span class="ribbon">{ctx.t("btn.comingSoon")}</span>}
       <div class="card-body">
-        <h3 class="card-title">
+        <Heading class="card-title">
           <a href={detail}>{loc(course, "title", ctx.lang)}</a>
-        </h3>
+        </Heading>
         <p class="card-desc">{loc(course, "short", ctx.lang)}</p>
         <div class="card-meta">
           {course.level && (
@@ -194,6 +195,7 @@ export const CourseCard = ({ course, ctx, eager = false }: { course: CourseCardD
         <div class="card-foot">
           <a class="btn btn-outline btn-sm" href={detail}>
             {ctx.t("btn.readMore")}
+            <span class="vh"> — {loc(course, "title", ctx.lang)}</span>
           </a>
           {soon ? (
             <span class="badge-soon">

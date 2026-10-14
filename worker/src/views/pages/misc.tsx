@@ -256,7 +256,7 @@ export function ContactPage({ ctx, flash }: { ctx: PageCtx; flash?: string }) {
           </div>
           {channels.length > 0 && (
             <aside class="buy">
-              <h3>{t("contact.channels")}</h3>
+              <h2>{t("contact.channels")}</h2>
               <ul>
                 {channels.map((ch) => (
                   <li>
