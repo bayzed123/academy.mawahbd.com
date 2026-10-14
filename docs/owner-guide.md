@@ -9,7 +9,7 @@
 
 # বাংলা
 
-> অ্যাডমিন ঠিকানা: **https://academy.mawahbd.com/admin/** — লগইন করে বাঁ পাশের মেনু থেকে সব কাজ করা যায়। ওপরের ডান দিকে **বাংলা / English** বোতামে ভাষা বদলানো যায়। ফোনে বা ট্যাবলেটেও চলে।
+> অ্যাডমিন ঠিকানা: **https://mawahacademy.com/admin/** (সাইটের ঠিকানা **https://mawahacademy.com** — `www.` দিয়ে খুললেও এখানেই চলে আসে; আগের `workers.dev` ঠিকানায় লগইন করা থাকলে নতুন ঠিকানায় একবার আবার লগইন করতে হবে) — লগইন করে বাঁ পাশের মেনু থেকে সব কাজ করা যায়। ওপরের ডান দিকে **বাংলা / English** বোতামে ভাষা বদলানো যায়। ফোনে বা ট্যাবলেটেও চলে।
 
 ![অ্যাডমিন ড্যাশবোর্ড](img/admin-dashboard.jpg)
 
@@ -177,7 +177,7 @@
 
 # English
 
-> Admin address: **https://academy.mawahbd.com/admin/** — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
+> Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
 
 ## 1. What to know first
 

@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import { isProd, type AppEnv } from "../env";
 import { sha256Hex } from "../lib/crypto";
+import { isOtherAddress } from "./host";
 
 /**
  * Baseline hardening for every response (HTML, JSON and static): MIME sniffing off, no framing,
@@ -18,6 +19,8 @@ export const baseSecurity: MiddlewareHandler<AppEnv> = async (c, next) => {
   headers.set("Cross-Origin-Opener-Policy", "same-origin");
   headers.set("X-Request-Id", c.get("reqId"));
   if (isProd(c.env)) headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  // the free workers.dev address (and any other that is not the public one) works, but search engines must only list the real address
+  if (isOtherAddress(c.env, c.req.url)) headers.set("X-Robots-Tag", "noindex, nofollow");
   headers.delete("X-Powered-By");
   c.res = new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 };

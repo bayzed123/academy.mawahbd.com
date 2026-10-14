@@ -46,7 +46,7 @@ Everything else: `npm run typecheck` · `npm test` · `npm run build && npm run 
 
 You need a Cloudflare account with **R2** (file storage) switched on once in the dashboard (*R2 → Overview*; it asks for a payment method but the free allowance is generous).
 
-The site starts on the free Cloudflare address that is written in `worker/wrangler.toml` as `SITE_URL` — `https://academy-mawahbd-com.mawahacademy.workers.dev`. Moving it to `academy.mawahbd.com` is a separate step for later ([section 7](#7-day-to-day-releases-rollbacks-domains)); that domain’s DNS zone must be on the same Cloudflare account.
+The site’s public address is **`https://mawahacademy.com`** — `SITE_URL` and the `routes` list in `worker/wrangler.toml`; `www.mawahacademy.com` sends visitors on to it. The domain’s DNS zone is on the same Cloudflare account (the domain was bought there), so the deploy attaches both names to the Worker by itself and Cloudflare creates their DNS records and certificates; a brand-new domain needs a few minutes before it answers, and the deploy waits for it. The free address `https://academy-mawahbd-com.mawahacademy.workers.dev` keeps working as a fallback (and for the checks right after a deploy), but it is marked “noindex” so search engines only list the real address. Changing the domain later is [section 7](#7-day-to-day-releases-rollbacks-domains).
 
 ### 2a. From GitHub (recommended — nothing to run on your computer)
 
@@ -64,7 +64,7 @@ Every later deploy is the same run: it finds what already exists and only publis
 ```bash
 npx wrangler login                                      # opens a browser once
 npm run setup:cloudflare -- --dry-run --secrets         # shows what it WOULD do
-npm run setup:cloudflare -- --secrets                   # add  --domain academy.mawahbd.com  once that domain is ready
+npm run setup:cloudflare -- --secrets                   # add  --domain mawahacademy.com --www  to attach the domain from your computer instead
 ```
 
 The script creates (only if missing) the D1 database `mawah-academy-db`, a KV namespace and the R2 bucket `mawah-academy-media`; writes their IDs into `worker/wrangler.toml`; and creates the two secrets `APP_SECRET` (random, never shown) and `SETUP_TOKEN` (random, **shown once** — copy it). With `--domain` it also attaches the custom domain and sets `SITE_URL`. It is safe to run again: nothing existing is changed or deleted. Committing the updated `wrangler.toml` is optional (resource IDs are not secrets); the GitHub deploys work either way.
@@ -77,8 +77,7 @@ npx wrangler login
 npx wrangler d1 create mawah-academy-db            # copy the database_id into wrangler.toml
 npx wrangler kv namespace create KV                # copy the id into wrangler.toml
 npx wrangler r2 bucket create mawah-academy-media
-# later, for the custom domain: uncomment  routes = [{ pattern = "academy.mawahbd.com", custom_domain = true }]
-# in wrangler.toml and set  SITE_URL = "https://academy.mawahbd.com"
+# the custom domain (routes) and SITE_URL are already set in wrangler.toml — change both to move the site (section 7)
 openssl rand -base64 48 | npx wrangler secret put APP_SECRET     # a long random string — keep a copy in a password manager
 npx wrangler secret put SETUP_TOKEN                              # any long random string (used once, then deleted)
 ```
@@ -122,11 +121,11 @@ Open the site address — the public site is live. Continue with [section 5](#5-
 | Variable | Default | Meaning |
 |---|---|---|
 | `ENVIRONMENT` | `production` | `production` turns on HSTS, `__Host-` cookies, the edge page cache and disables the test gateway |
-| `SITE_URL` | `https://academy-mawahbd-com.mawahacademy.workers.dev` | The public address. Used in links, e-mails, payment callbacks and the checks after a deploy — must match where people really open the site. Change it together with `routes` when the custom domain goes live (section 7) |
+| `SITE_URL` | `https://mawahacademy.com` | The public address. Used in links, e-mails, payment callbacks, canonical links, the sitemap and the checks after a deploy — must match where people really open the site and be one of the names in `routes`. Change both together to move the site (section 7) |
 | `BRAND_CODE` | `MWH` | Invoice prefix: `INV-MWH-YYYYMMDD-0001` |
 | `DEFAULT_LANG` | `bn` | Language for visitors with no preference |
 | `PAYMENT_MODE` | `live` | `live` or `sandbox` — selects the gateways’ endpoints |
-| `MAIL_FROM` | `MAWAH Academy <no-reply@mawahbd.com>` | Sender (the domain must be verified in Resend) |
+| `MAIL_FROM` | `MAWAH Academy <no-reply@mawahacademy.com>` | Sender (the domain must be verified in Resend — add the DNS records Resend shows to the `mawahacademy.com` zone in Cloudflare — before any e-mail can be sent) |
 | `STREAM_CUSTOMER_CODE` | *(empty)* | Optional; found automatically when empty |
 | `TURNSTILE_SITE_KEY` | *(empty)* | Optional public key for Turnstile |
 
@@ -143,13 +142,13 @@ Three workflows live in `.github/workflows/`:
 | Workflow | Runs | Does |
 |---|---|---|
 | **CI** (`ci.yml`) | every pull request (and on demand); also reused by Deploy, so `main` is checked before every release | typecheck · unit/integration tests · production build · Playwright end-to-end · Lighthouse gate (Core Web Vitals) · secret scan |
-| **Deploy** (`deploy.yml`) | every push to `main` (and on demand) | runs CI → checks the Cloudflare access → finds or creates the database, KV and file storage → records the database restore point → applies migrations → `wrangler deploy` → gives the Worker its secrets → health check. **Until the two Cloudflare secrets exist it deploys nothing and says so in a notice** (the run stays green); a manual run fails loudly instead |
+| **Deploy** (`deploy.yml`) | every push to `main` (and on demand) | runs CI → checks the Cloudflare access → finds or creates the database, KV and file storage → records the database restore point → applies migrations → `wrangler deploy` → gives the Worker its secrets → health check of the free address → waits for the public address and checks it the way a visitor and a search engine meet it (pages, canonical links, `robots.txt`, sitemap, https and www redirects). **Until the two Cloudflare secrets exist it deploys nothing and says so in a notice** (the run stays green); a manual run fails loudly instead |
 | **Lighthouse (live site)** (`lighthouse.yml`) | after each successful deploy and every Monday | measures the live public pages and fails if a budget is broken |
 
 **One-time GitHub setup** (repository → *Settings*; all of it can be done from a phone):
 
 1. **Secrets and variables → Actions → New repository secret**
-   * `CLOUDFLARE_API_TOKEN` — Cloudflare → *My Profile → API Tokens → Create Token* → the **“Edit Cloudflare Workers”** template. Then check that these *Account* permissions are on (the template lacks D1 and R2, add them): *Workers Scripts · Edit*, *Workers KV Storage · Edit*, *D1 · Edit*, *Workers R2 Storage · Edit*; set *Account resources* to your account. Paste the token with nothing before or after it. (For the custom domain later also add, for the `mawahbd.com` zone: *Workers Routes · Edit* and *DNS · Edit*.)
+   * `CLOUDFLARE_API_TOKEN` — Cloudflare → *My Profile → API Tokens → Create Token* → the **“Edit Cloudflare Workers”** template. Then check that these *Account* permissions are on (the template lacks D1 and R2, add them): *Workers Scripts · Edit*, *Workers KV Storage · Edit*, *D1 · Edit*, *Workers R2 Storage · Edit*; set *Account resources* to your account. Paste the token with nothing before or after it. **For the custom domain** the token also needs, with *Zone resources* set to include `mawahacademy.com` (*Include → All zones* is the simplest): *Zone → Workers Routes → Edit* and *Zone → Zone → Read*. Optional: *Zone → DNS → Read* lets the check before each deploy warn you about a DNS record that would block the domain. A token made without them can be fixed any time — *My Profile → API Tokens → your token → Edit* — and keeps the same text, so the GitHub secret does not change.
    * `CLOUDFLARE_ACCOUNT_ID` — the 32-character ID in the Cloudflare dashboard address (`dash.cloudflare.com/<account id>/…`). It must be the account that owns your Worker: the Deploy workflow refuses to go on when the account’s `workers.dev` address is not the one in `SITE_URL`, so a wrong account can never receive your database and files.
    * `SETUP_TOKEN` *(optional, for the first start)* — any long random text, 12 characters or more; you use it once to create the first admin ([section 5](#5-first-start-your-admin-account)).
    * (optional) a **variable** `SITE_URL` if Lighthouse should measure a different address than the one in `worker/wrangler.toml`.
@@ -164,7 +163,7 @@ Branch strategy: work on a branch → open a pull request (CI runs, Dependabot k
 
 ## 5. First start: your admin account
 
-1. Open `<your site address>/admin/` — until the custom domain is live that is `https://academy-mawahbd-com.mawahacademy.workers.dev/admin/`. While no admin exists the page shows **“Create the first admin”** (if it does not, the Worker has no setup token yet: add the GitHub secret `SETUP_TOKEN` and run Deploy again).
+1. Open `https://mawahacademy.com/admin/` (the free address `https://academy-mawahbd-com.mawahacademy.workers.dev/admin/` opens the same site and works as a fallback). Sign-in cookies belong to one address, so anyone who signed in on the free address signs in again on the new one — the accounts themselves are the same. While no admin exists the page shows **“Create the first admin”** (if it does not, the Worker has no setup token yet: add the GitHub secret `SETUP_TOKEN` and run Deploy again).
 2. Enter your name, e-mail, a strong password (a passphrase of 12+ characters) and the **setup token** (the text you saved as the GitHub secret `SETUP_TOKEN`). The form permanently closes the moment the account exists.
 3. Remove the token — in Cloudflare: your Worker → *Settings → Variables and Secrets* → `SETUP_TOKEN` → *Delete* (or `npx wrangler secret delete SETUP_TOKEN`) — and delete the GitHub secret too. The dashboard’s *Things to fix* list shows a reminder until the Worker’s copy is gone.
 4. Follow **First steps** on the dashboard (contact details, payments, instructor, lessons, refund policy, e-mail, chatbot, team) — see the [owner guide](owner-guide.md).
@@ -193,13 +192,13 @@ The payment adapters were written against the gateways’ public documentation a
 **SSLCommerz (bKash · Nagad · Rocket · cards)**
 
 1. Create an SSLCommerz **sandbox** account; put the sandbox *Store ID* and *Store password* in the secrets `SSLCOMMERZ_STORE_ID` / `SSLCOMMERZ_STORE_PASSWORD`, and deploy with `PAYMENT_MODE = "sandbox"`.
-2. In the SSLCommerz merchant panel set the **IPN URL** to `https://academy.mawahbd.com/api/payments/sslcommerz/ipn` (the app also sends it with every payment, the panel setting is a safety net). The success/fail/cancel return URLs are sent automatically.
+2. In the SSLCommerz merchant panel set the **IPN URL** to `https://mawahacademy.com/api/payments/sslcommerz/ipn` (the app also sends it with every payment, the panel setting is a safety net). The success/fail/cancel return URLs are sent automatically.
 3. As a test student buy a class: **successful** payment → you land on *My Orders* showing *Paid*, the class appears in *My Learning*, an invoice number `INV-MWH-…` exists. Repeat with a **failed** and a **cancelled** payment → the order closes, nothing is granted.
 4. Check *Admin → Orders*: one paid order, correct amount, the gateway transaction ID. Try the **refund** flow.
 5. Resubmit the same IPN (SSLCommerz’s panel can resend): nothing changes (idempotent). A payment SSLCommerz flags as *risky* lands in **Awaiting verification** for a human to decide.
 6. Switch to **live**: put the *live* credentials in the secrets, set `PAYMENT_MODE = "live"` in `wrangler.toml`, deploy, and make one small real purchase with your own wallet/card; refund it from the gateway’s panel and mark the order refunded in the admin.
 
-**Direct bKash** (optional): same idea with `BKASH_*` secrets in sandbox, `PAYMENT_MODE = "sandbox"`, and the callback `https://academy.mawahbd.com/api/payments/bkash/callback` registered with bKash. Enable *Direct bKash* in *Admin → Settings → Payments*.
+**Direct bKash** (optional): same idea with `BKASH_*` secrets in sandbox, `PAYMENT_MODE = "sandbox"`, and the callback `https://mawahacademy.com/api/payments/bkash/callback` registered with bKash. Enable *Direct bKash* in *Admin → Settings → Payments*.
 
 **Manual send-money** (works today with no gateway): enter your receiving bKash/Nagad/Rocket numbers in *Admin → Settings → Payments* (the option appears to students only once a number exists). Buyers first give their own number, then see yours with a 20-minute countdown, send money and submit the TrxID and/or a screenshot (screenshots are kept privately in the R2 bucket, so **R2 must be on**); *Support* staff match the SMS or statement and click **Approve payment**. Put your WhatsApp number in *Settings → Contact & announcement* to give students the ready-written message button.
 
@@ -209,7 +208,7 @@ The payment adapters were written against the gateways’ public documentation a
 
 * **Release**: merge a pull request into `main`. **Rollback the code**: Cloudflare dashboard → *Workers & Pages → academy-mawahbd-com → Deployments → Rollback*, or `npx wrangler rollback` in `worker/`. **Roll back data**: D1 Time Travel (see security.md) — use only for data loss; migrations are forward-only.
 * **See what is happening**: `npx wrangler tail` (live logs) and the in-app *Admin → Activity log*.
-* **Put the site on your own domain** (or change it): in `worker/wrangler.toml` uncomment/edit the `routes` line and change `SITE_URL` to the same address — GitHub’s file editor works on a phone — and commit; the next deploy attaches the domain (its DNS zone must be on the same Cloudflare account, and the API token needs *Workers Routes · Edit* and *DNS · Edit* for that zone). From a computer you can instead run `npm run setup:cloudflare -- --domain academy.mawahbd.com`. Then update the payment gateway return/IPN URLs and the Resend sending domain.
+* **Move the site to another domain** (it lives at `mawahacademy.com` now): the new domain’s DNS zone must be on this Cloudflare account and *Active* (buy it at Cloudflare Registrar, or add the site and switch its name servers). In `worker/wrangler.toml` change the `routes` line (the name and, if you want it, its `www.` twin) and `SITE_URL` to the new name — GitHub’s file editor works on a phone — and merge. The next Deploy first looks at the domain and stops with a plain sentence **before publishing anything** if the zone is missing or inactive, the token may not manage Workers routes for it, another Worker uses the name, or a DNS record is in the way (delete that record in the dashboard: *the domain → DNS → Records*). Otherwise it attaches the names, waits until the address answers and checks the pages, canonical links, `robots.txt`, the sitemap and the https/www redirects; the result is on the run’s summary page. From a computer: `npm run setup:cloudflare -- --domain <name> --www`. Afterwards update the payment gateway return/IPN URLs, the Resend sending domain (`MAIL_FROM`) and any Google Search Console / analytics property; people sign in again on the new address.
 * **A staging copy** (optional, to rehearse payments or migrations without touching live data): add an `[env.staging]` block to `wrangler.toml` with its own `name`, `vars` (`PAYMENT_MODE = "sandbox"`), and its own D1/KV/R2 IDs, then `npx wrangler deploy --env staging`.
 * **Costs to expect**: Workers, D1, KV and R2 have free allowances that cover a small academy; Stream (per minute stored/delivered) and Workers AI (beyond the daily allowance) are the variable costs. Check Cloudflare’s current pricing pages.
 
@@ -223,6 +222,9 @@ The payment adapters were written against the gateways’ public documentation a
 | Deploy is red at **Check the Cloudflare access** | Read the ✗ lines in the run’s summary page: they name the missing token permission, say that R2 must be switched on, or that the account ID belongs to another Cloudflare account. Fix the secret or the token, then *Actions → Deploy → Run workflow* |
 | Deploy is red at **Find or create the database…** or says R2 is not enabled | Enable R2 in the dashboard (*R2 → Overview*) and give the token *D1 · Edit*, *Workers KV Storage · Edit* and *Workers R2 Storage · Edit*; run Deploy again |
 | A red **Workers Builds: academy-mawahbd-com** check on pull requests, or “Failed” entries in the Worker’s *Deployments* list | The Worker is also connected to Git inside Cloudflare, which this project does not use. *Workers & Pages → your Worker → Settings → Builds → Disconnect*. GitHub Actions is the one deployer |
+| Deploy is red at **Check the public address** | The release is published and the free address works; the summary page lists what is wrong. A new domain needs minutes for its DNS record and certificate (the check waits ten, then fails) — run Deploy again after a while. Also look at *Workers & Pages → the Worker → Settings → Domains & Routes*: both names should be listed as active. Some networks remember “no such name” for up to 30 minutes if the name was looked up before it existed |
+| Deploy is red at **Check the Cloudflare access** with a line about the domain | The line says what to fix: the domain must be listed under *Websites* in this account and *Active*; the token needs *Zone → Workers Routes → Edit* and *Zone → Zone → Read* for it; another Worker or an existing A/AAAA/CNAME record on the name blocks it. Nothing was published; fix it and run Deploy again |
+| The new address shows a certificate warning or “can’t reach this site” right after the first deploy | Cloudflare is still issuing the certificate and DNS record for the custom domain — usually a few minutes. If it lasts over 30 minutes, check *Domains & Routes* as above |
 | The `workers.dev` address shows a plain “Hello World” | Cloudflare’s placeholder Worker is still there: no Deploy has succeeded yet. Open *Actions → Deploy* and read the latest run |
 | `/admin/` shows a login form but you never created an admin | The setup form appears only while no admin exists and `SETUP_TOKEN` is set; `npx wrangler secret put SETUP_TOKEN` and reload |
 | Students can pay but are not enrolled | The gateway could not reach the IPN URL: check the *Orders* list for *Pending*, the gateway panel’s IPN log, and that `SITE_URL` is exactly your public address |

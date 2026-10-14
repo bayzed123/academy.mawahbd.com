@@ -1,7 +1,8 @@
 name: Deploy
 
-# Push to main  →  all checks (ci.yml)  →  Cloudflare access check  →  find or create the database, KV and file storage
-# →  database migrations  →  wrangler deploy  →  secrets  →  health check.
+# Push to main  →  all checks (ci.yml)  →  Cloudflare access check (token, R2, and the custom domain's zone)  →  find or create the
+# database, KV and file storage  →  database migrations  →  wrangler deploy (which also attaches the custom domain)  →  secrets
+# →  health check of the free address  →  check of the public address as a visitor and a search engine meet it.
 # One-time setup is two repository secrets (docs/deployment.md, section 4). Nothing else has to be filled in by hand.
 on:
   push:
@@ -60,7 +61,7 @@ jobs:
     # Optional: in GitHub → Settings → Environments → production, add "required reviewers" to approve each release.
     environment:
       name: production
-      url: ${{ steps.deploy.outputs.url }}
+      url: ${{ steps.site.outputs.url }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -72,7 +73,15 @@ jobs:
           node-version: "22"
           cache: npm
 
-      # Read-only. Says in plain words if the token lacks a permission, R2 is off, or the account ID is another account's.
+      # The address the site is meant to open at (SITE_URL), and its www twin when the Worker is attached to that name too.
+      - name: Which address is the site meant to open at?
+        id: site
+        run: |
+          echo "url=$(node scripts/print-site-url.mjs)" >> "$GITHUB_OUTPUT"
+          echo "www=$(node scripts/print-site-url.mjs --www)" >> "$GITHUB_OUTPUT"
+
+      # Read-only. Says in plain words if the token lacks a permission, R2 is off, the account ID is another account's, or a
+      # custom domain cannot be attached (its zone is missing or inactive, the token may not manage routes, a DNS record is in the way).
       - name: Check the Cloudflare access (changes nothing)
         run: node scripts/ci-preflight.mjs
 
@@ -119,7 +128,8 @@ jobs:
           SETUP_TOKEN: ${{ secrets.SETUP_TOKEN }}
         run: node scripts/setup-cloudflare.mjs --ci --no-resources --secrets
 
-      - name: Health check
+      # The free workers.dev address answers as soon as the code is published, whatever state the custom domain is in.
+      - name: Health check (the free address)
         shell: bash
         env:
           URL: ${{ steps.deploy.outputs.url }}
@@ -128,12 +138,6 @@ jobs:
             body="$(curl -fsS --max-time 20 "$URL/api/health" || true)"
             if printf '%s' "$body" | grep -q '"ok":true'; then
               echo "healthy: $URL"
-              {
-                echo "### ✅ Deployed"
-                echo
-                echo "Site: $URL"
-                echo "Admin: $URL/admin/"
-              } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             echo "not ready yet (attempt $attempt) …"
@@ -141,6 +145,28 @@ jobs:
           done
           echo "::error::$URL/api/health did not report healthy after the deploy"
           exit 1
+
+      # A new domain needs a few minutes for its DNS record and certificate, so this waits (up to 10 minutes) and then looks at the
+      # public address the way a visitor and a search engine do: pages, canonical links, robots.txt, sitemap, https and www redirects.
+      - name: Check the public address
+        shell: bash
+        env:
+          SITE: ${{ steps.site.outputs.url }}
+          WWW: ${{ steps.site.outputs.www }}
+          FREE: ${{ steps.deploy.outputs.url }}
+        run: |
+          args=(--free "$FREE")
+          [ -z "$WWW" ] || args+=(--www "$WWW")
+          node scripts/smoke-live.mjs "$SITE" "${args[@]}"
+
+      - name: Where to open it
+        run: |
+          {
+            echo "### ✅ Deployed"
+            echo
+            echo "Site: ${{ steps.site.outputs.url }}"
+            echo "Admin: ${{ steps.site.outputs.url }}/admin/"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: What to check if this failed
         if: failure()
@@ -153,8 +179,10 @@ jobs:
           1. **"Check the Cloudflare access"** failed: follow the ✗ lines (a missing token permission, R2 not switched on, or an account ID that belongs to another Cloudflare account).
           2. **"Find or create the database, KV storage and file storage"** failed: R2 must be switched on once (Cloudflare dashboard → R2 → Overview), and the API token needs *D1 · Edit*, *Workers KV Storage · Edit* and *Workers R2 Storage · Edit* as well as *Workers Scripts · Edit*.
           3. **Migrations or "Deploy the Worker"** failed: read the message. If it mentions Stream, switch Stream on in the Cloudflare dashboard.
-          4. **"Health check"** failed: the code was published but the site answers with an error. Open the address and add `/api/health`.
-          5. Cloudflare's own **Workers Builds** (the Git connection under Worker → Settings → Builds) is not used by this project and fails on it. Disconnect it there.
+          4. **"Health check (the free address)"** failed: the code was published but the site answers with an error. Open the address and add `/api/health`.
+          5. **"Check the public address"** failed: the release is published and the free address works. Read the ❌ lines in the summary. For a new domain the usual causes are a DNS record or certificate that is not ready yet (wait ten minutes and run Deploy again) or a DNS record that already existed on that name (Cloudflare dashboard → the domain → DNS → Records).
+          6. **A domain problem** in "Check the Cloudflare access" or "Deploy the Worker" (the zone is not found or not active, "Workers Routes", "externally managed DNS records"): the API token needs *Zone → Workers Routes → Edit* and *Zone → Zone → Read* for the domain's zone (My Profile → API Tokens → your token → Edit → Zone Resources → Include → All zones), and the domain must be listed under Websites in this account.
+          7. Cloudflare's own **Workers Builds** (the Git connection under Worker → Settings → Builds) is not used by this project and fails on it. Disconnect it there.
 
           More: docs/deployment.md, sections 4 and 8.
           EOF

@@ -38,11 +38,13 @@ The brief asks to **confirm two decisions with the requester before finalizing**
 | **Sign-in** | E-mail + password only (Google sign-in is not built; the database column is reserved) | Roadmap |
 | **Policies** | Empty placeholders — **you must write** refund, privacy and terms | Admin → Settings → Policies |
 | **Logo and colours** | Your **official logo** (`brand/mawah-logo.jpg`) is used in the header, footer, sign-in screens, certificates, invoices, app icons and the share image. The colours — **black, red, gold, ivory** — are measured from it; green appears only in tiny “paid / working / genuine” status markers | Yes — replace `brand/mawah-logo.jpg`, run `npm run brand:assets` |
+| **Web address** | **`https://mawahacademy.com`**; `www.` sends visitors on to it; the free `workers.dev` address stays as a fallback and is hidden from search engines. The Worker keeps its internal name `academy-mawahbd-com` (renaming it would create a second, empty Worker) | Yes — two lines in `wrangler.toml` ([deployment.md §7](deployment.md)) |
+| **Sender of e-mails** | `no-reply@mawahacademy.com` — e-mail works once that domain is verified at Resend | Yes — `MAIL_FROM` in `wrangler.toml` |
 | **Analytics** | Nothing is tracked until you paste GA4 / Clarity / Meta Pixel IDs in Admin → Settings → Analytics | Yes |
 
 ## 4. What we need from you to go live
 
-1. The **Cloudflare account** (and that `mawahbd.com` is on it) — or a developer you trust to run [the setup](deployment.md).
+1. The **Cloudflare account** (the domain `mawahacademy.com` is already on it) — or a developer you trust to run [the setup](deployment.md).
 2. **SSLCommerz** merchant account (sandbox first, then live), and/or your **bKash/Nagad/Rocket numbers** for manual payments.
 3. An **e-mail sending domain** at Resend (so receipts and password resets arrive).
 4. Real **instructor details and photo**, the **refund / privacy / terms** texts, contact numbers and social links.

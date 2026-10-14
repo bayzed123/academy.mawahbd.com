@@ -16,10 +16,12 @@ workers_dev = true
 upload_source_maps = true
 
 # --- Custom domain ----------------------------------------------------------
-# Until then the site answers on the free workers.dev address (SITE_URL below). To move it to academy.mawahbd.com — its
-# DNS zone must be on the same Cloudflare account — uncomment the next line AND change SITE_URL to
-# "https://academy.mawahbd.com", then commit (or run: npm run setup:cloudflare -- --domain academy.mawahbd.com).
-# routes = [{ pattern = "academy.mawahbd.com", custom_domain = true }]
+# The site's public address. Cloudflare creates the DNS records and the certificates for both names by itself (the DNS zone,
+# mawahacademy.com, must be on this Cloudflare account); the www name only sends visitors on to the main one (the Worker does
+# that). The free workers.dev address stays on (workers_dev above) as a fallback: it is marked "noindex" for search engines and
+# is the address the deploy checks first. To use another domain, change both names here AND SITE_URL below — docs/deployment.md,
+# section 7 — or run: npm run setup:cloudflare -- --domain <name> --www
+routes = [{ pattern = "mawahacademy.com", custom_domain = true }, { pattern = "www.mawahacademy.com", custom_domain = true }]
 
 # --- Static assets: React apps (/app, /admin) + fonts/css/js (/assets) -------
 # Hashed assets are served straight from Cloudflare's asset layer (no Worker run).
@@ -36,11 +38,11 @@ run_worker_first = [
 # --- Public (non-secret) configuration ---------------------------------------
 [vars]
 ENVIRONMENT = "production"            # production | development
-SITE_URL = "https://academy-mawahbd-com.mawahacademy.workers.dev"   # the public address: must match where people open the site
+SITE_URL = "https://mawahacademy.com"   # the public address: must match where people open the site (and be one of the routes above)
 BRAND_CODE = "MWH"                    # used in invoice numbers: INV-MWH-YYYYMMDD-0001
 DEFAULT_LANG = "bn"                   # bn | en
 PAYMENT_MODE = "live"                 # live | sandbox (gateway sandbox endpoints)
-MAIL_FROM = "MAWAH Academy <no-reply@mawahbd.com>"
+MAIL_FROM = "MAWAH Academy <no-reply@mawahacademy.com>"   # the domain must be verified at Resend before e-mails can be sent
 STREAM_CUSTOMER_CODE = ""             # e.g. "abcd1234efgh" from customer-<code>.cloudflarestream.com
 TURNSTILE_SITE_KEY = ""               # optional Cloudflare Turnstile (public site key)
 

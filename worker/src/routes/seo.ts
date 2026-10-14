@@ -2,27 +2,31 @@ import { Hono } from "hono";
 import type { AppEnv } from "../env";
 import { all } from "../lib/db";
 import { cachedPage } from "../lib/render";
+import { isOtherAddress } from "../middleware/host";
 import { localizedPath } from "../views/ctx";
 
 export const seoRoutes = new Hono<AppEnv>();
 
 seoRoutes.get("/robots.txt", (c) => {
   const site = c.env.SITE_URL.replace(/\/$/, "");
-  const body = [
-    "User-agent: *",
-    "Allow: /",
-    "Disallow: /app/",
-    "Disallow: /admin/",
-    "Disallow: /api/",
-    "Disallow: /verify",
-    "Disallow: /en/verify",
-    "Disallow: /certificate/",
-    "Disallow: /en/certificate/",
-    "",
-    `Sitemap: ${site}/sitemap.xml`,
-    "",
-  ].join("\n");
-  return new Response(body, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
+  // any address other than the public one (the free workers.dev address) asks crawlers to stay out altogether
+  const lines = isOtherAddress(c.env, c.req.url)
+    ? ["User-agent: *", "Disallow: /", ""]
+    : [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /app/",
+        "Disallow: /admin/",
+        "Disallow: /api/",
+        "Disallow: /verify",
+        "Disallow: /en/verify",
+        "Disallow: /certificate/",
+        "Disallow: /en/certificate/",
+        "",
+        `Sitemap: ${site}/sitemap.xml`,
+        "",
+      ];
+  return new Response(lines.join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
 });
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

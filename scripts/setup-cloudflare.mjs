@@ -12,8 +12,9 @@
  *
  * Options
  *   --dry-run            print what would happen; touches nothing, calls nothing
- *   --domain <host>      e.g. academy.mawahbd.com — enables the custom-domain route and sets SITE_URL
+ *   --domain <host>      e.g. mawahacademy.com — enables the custom-domain route and sets SITE_URL
  *                        (the domain's DNS zone must already be on this Cloudflare account)
+ *   --www                with --domain: also attach www.<host> (the site sends visitors of the www name on to <host>)
  *   --secrets            also create APP_SECRET (random, never printed) and SETUP_TOKEN if absent. By hand the token is random
  *                        and printed ONCE; with --ci it comes from the SETUP_TOKEN environment variable (the GitHub secret of
  *                        that name) — it is never invented and never printed
@@ -42,6 +43,7 @@ const DRY = has("--dry-run");
 const CI = has("--ci");
 const WITH_RESOURCES = !has("--no-resources");
 const domain = valueOf("--domain");
+const WWW = has("--www");
 
 let toml = readFileSync(tomlPath, "utf8");
 
@@ -154,7 +156,7 @@ if (WITH_RESOURCES) {
   }
 
   step("Writing the IDs into worker/wrangler.toml" + (CI ? " (for this run only — nothing is committed)" : ""));
-  const { text, changes } = patchToml(toml, { d1Id, kvId, domain });
+  const { text, changes } = patchToml(toml, { d1Id, kvId, domain, www: WWW });
   if (changes.length === 0) info("nothing to change — the file already has real IDs");
   else {
     for (const c of changes) info(`• ${c}`);
