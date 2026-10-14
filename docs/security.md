@@ -129,6 +129,7 @@ Everything in the *Protect* table above applies to all three surfaces. A few spe
 | Content | How it is protected |
 |---|---|
 | **Video** | Uploaded to Cloudflare Stream with `requireSignedURLs = true`. A raw video id is useless: the Worker mints a **short-lived signed token per request**, only after checking the student’s active enrolment (or that the lesson is a free preview of a *published* class) |
+| **Payment screenshots** (manual payments) | Stored in a **private** R2 path (`proofs/`) that the public `/media` route refuses to serve; read only by staff with the *verify payments* permission, never cached by browsers or the edge |
 | **Lesson files** (recipe cards, PDFs) | Stored in a **private** R2 path (`resources/`) that the public `/media` route refuses to serve; downloaded only through `/api/student/resources/:id/download`, which checks login + enrolment and streams the file with `Content-Disposition: attachment` |
 | **Lesson text** | Returned by the API only to enrolled students (or for previews); the public class page and `/api/courses/:slug` expose **titles only** — a test asserts a lesson’s body never appears there |
 | **Public images** | Banners, instructor photos and blog covers live under `banners/ photos/ blog/` with content-hash names, served immutably, image types only (SVG refused), sandboxed CSP |
@@ -144,7 +145,7 @@ Honest limit: nobody can stop a determined enrolled student from screen-recordin
 * **Webhook-driven, never redirect-driven**: access is granted only by the gateway’s *server-to-server* callback, which the Worker **re-validates with the gateway** (SSLCommerz validator API; bKash execute/query) — posted fields are never trusted. A payment the gateway flags as risky goes to *Awaiting verification* for a human.
 * **Amounts come from the database**: quotes and totals are recomputed server-side from current prices, the coupon and the bundle; the order records the price at purchase time; the validated amount must equal the order total.
 * **Atomic and idempotent**: marking an order paid, issuing the invoice number, enrolling, counting the coupon and the audit entry happen in **one D1 batch** guarded by a random claim token. Replayed webhooks, double clicks and two staff approving at once change nothing the second time (tests cover each).
-* **Manual payments**: the TrxID is unique across orders (partial unique index), the payer’s number is recorded, and approval is a Support/Super Admin action in the audit log.
+* **Manual payments**: the payer’s own number is recorded before the payment window starts; the TrxID is unique across orders (partial unique index); proof is accepted only from the order’s owner and only while the order is open; approval is a Support/Super Admin action in the audit log. **Payment screenshots are private**: uploaded as a raw body with a size cap, accepted by magic bytes only (JPEG/PNG/WebP/AVIF, no SVG), stored in R2 under `proofs/` with an unguessable hash name, opened only through `GET /api/admin/orders/:id/proof-image` (needs `orders:verify` — Support or Super Admin; a Viewer or Content Manager is refused), served `no-store` with `nosniff` and a sandboxing CSP, and deleted 90 days after the order is settled. The countdown is advisory — the server never refuses proof because of the clock, so a wrong phone clock can neither block nor extend anything.
 * **Refunds** are Super Admin only with a mandatory reason; the record and invoice number stay.
 * **Test gateway** is compiled out of production behaviour (environment check), and its “webhook” is HMAC-signed like a real one.
 
@@ -167,7 +168,8 @@ What is stored: students’ **name, e-mail, phone, password hash, language, orde
 |---|---|
 | Expired/used password-reset tokens | Deleted by the 6-hourly cron after 7 days |
 | Unverified payment events | Deleted after 90 days (verified ones are kept for audit) |
-| Abandoned (pending) checkouts | Cancelled after 48 hours (manual verifications are never auto-closed) |
+| Abandoned (pending) checkouts | Cancelled after 48 hours (an unpaid manual order too; one waiting for staff is never auto-closed) |
+| Payment screenshots (manual payments) | Deleted 90 days after the order was settled (paid, refused, cancelled or refunded) — they can show balances and phone numbers |
 | Orders, enrolments, certificates, activity log | Kept (accounting and certificate verification need them) |
 
 Honest limits: there is **no self-service “delete my account”** yet — a student can be *blocked* in the admin, and a data-deletion/anonymisation request has to be handled by a developer with SQL. Add this before you serve people in jurisdictions with strict deletion rights. Write your own privacy policy and terms (*Admin → Settings → Policies*) — the placeholders are not legal advice.

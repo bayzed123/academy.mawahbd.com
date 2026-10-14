@@ -116,3 +116,11 @@ export type ClassIcon = (typeof CLASS_ICONS)[number];
 export const MAX_UPLOAD_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_UPLOAD_RESOURCE_BYTES = 25 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"] as const;
+
+/** Manual (send-money) payments: the student is asked to pay within this many minutes; the owner can change it in Settings → Payments. */
+export const MANUAL_WINDOW_DEFAULT_MIN = 20;
+export const MANUAL_WINDOW_RANGE_MIN = { min: 5, max: 120 } as const;
+/** A payment screenshot is a phone screenshot: after the browser shrinks it, 3 MB is far more than enough. */
+export const MAX_PROOF_IMAGE_BYTES = 3 * 1024 * 1024;
+/** Screenshots show wallet balances and phone numbers, so they are deleted this long after the order is settled. */
+export const PROOF_RETENTION_DAYS = 90;

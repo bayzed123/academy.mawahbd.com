@@ -14,7 +14,7 @@ The brief asks to **confirm two decisions with the requester before finalizing**
 
 ## 2. Local payments at launch (default) — or international cards from day one?
 
-**What was built:** **SSLCommerz** (bKash · Nagad · Rocket · cards on one hosted page), optional **direct bKash**, and **manual send-money** with staff verification. All prices are **BDT** whole-taka. **Stripe (international cards) is not built** — it is roadmap *Phase 3*.
+**What was built:** **SSLCommerz** (bKash · Nagad · Rocket · cards on one hosted page), optional **direct bKash**, and **manual send-money** (the student says which number they pay from, has 20 minutes, then sends a TrxID and/or a screenshot, with an optional WhatsApp message; staff verify and approve in the admin). All prices are **BDT** whole-taka. **Stripe (international cards) is not built** — it is roadmap *Phase 3*.
 
 **Why:** the audience is Bangladesh-first; a second gateway, multi-currency prices, tax/VAT presentation and foreign-card dispute handling add real complexity and cost that is only worthwhile once learners abroad actually show up (the site’s analytics and the “notify me” list will tell you).
 
@@ -30,7 +30,7 @@ The brief asks to **confirm two decisions with the requester before finalizing**
 | **Language** | Bangla at `/`, English at `/en`; the visitor’s choice is remembered | Yes |
 | **Launch status of the 26 classes** | All **Published** (as in your Facebook list) but **with no lessons yet**; the dashboard flags each one. You may prefer to mark classes **Coming Soon** until their lessons exist | Yes — per class in Admin → Classes |
 | **Entry classes** | Unchanged prices from your list (৳350 … ৳3,550). The cheapest are good “first purchase” offers | Yes |
-| **Manual send-money** | Available, but **hidden from students until you enter your receiving numbers** | Yes |
+| **Manual send-money** | Available with no gateway at all, but **hidden from students until you enter your receiving numbers**. Window **20 minutes** (5–120 in Settings → Payments); late proof is still accepted; proof = TrxID and/or screenshot; screenshots private and deleted after 90 days | Yes |
 | **Instructor** | A placeholder profile “MAWAH Academy Team” you replace with real people/photos | Yes — Admin → Instructors |
 | **Certificates** | One elegant template (“classic”); code `MWH-XXXX-XXXX-XXXX` + QR; printable (Save as PDF) | Templates can be added |
 | **Invoices** | `INV-MWH-YYYYMMDD-####`, day = Bangladesh time, gapless; **PDF via the browser’s “Print / Save as PDF”** (so Bangla letters shape correctly) | A server-made PDF is a roadmap item |

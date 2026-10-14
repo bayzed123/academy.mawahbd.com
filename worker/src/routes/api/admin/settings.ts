@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { MANUAL_WINDOW_RANGE_MIN } from "@mawah/shared";
 import type { AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { all } from "../../../lib/db";
@@ -32,6 +33,7 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     manual_numbers: z.object({ bkash: bdNumber, nagad: bdNumber, rocket: bdNumber }),
     manual_note_bn: textSchema(500),
     manual_note_en: textSchema(500),
+    manual_window_min: z.number().int().min(MANUAL_WINDOW_RANGE_MIN.min).max(MANUAL_WINDOW_RANGE_MIN.max).optional(),
   }),
   policies: z.object({ refund_bn: long(20000), refund_en: long(20000), privacy_bn: long(20000), privacy_en: long(20000), terms_bn: long(20000), terms_en: long(20000) }),
   about: z.object({ bn: long(20000), en: long(20000) }),

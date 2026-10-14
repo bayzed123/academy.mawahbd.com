@@ -1,4 +1,4 @@
-import type { Channel } from "@mawah/shared";
+import type { Channel, ManualPayInfo } from "@mawah/shared";
 import { isProd, type Env } from "../../env";
 import { hmacHex, timingSafeEqual } from "../../lib/crypto";
 import type { Settings } from "../../lib/settings";
@@ -19,6 +19,12 @@ export function availableChannels(env: Env, settings: Settings): Channel[] {
   if (settings.payments.manual && Object.values(settings.payments.manual_numbers).some((n) => !!n)) out.push("manual");
   if (mockEnabled(env)) out.push("mock");
   return out;
+}
+
+/** Where a manual (send-money) payment goes and how long the student has — shown in the quote and on the open order. */
+export function manualPayInfo(settings: Settings): ManualPayInfo {
+  const p = settings.payments;
+  return { numbers: p.manual_numbers, note_bn: p.manual_note_bn, note_en: p.manual_note_en, window_min: p.manual_window_min };
 }
 
 /** Plain-language connection status shown on the admin dashboard "Health check" strip. */

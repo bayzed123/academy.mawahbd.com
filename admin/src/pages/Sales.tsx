@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ORDER_STATUSES, PAYMENT_METHODS } from "@mawah/shared";
+import { orderCode, ORDER_STATUSES, PAYMENT_METHODS } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -18,7 +18,7 @@ interface OrderDetailData {
 }
 
 function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
-  const { t, pick, money, dateTime, err } = useI18n();
+  const { t, pick, money, num, dateTime, err } = useI18n();
   const { can } = useAuth();
   const toast = useToast();
   const confirm = useConfirm();
@@ -39,9 +39,15 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
 
   const o = q.data?.order;
   const approve = async () => {
-    const r = await confirm({ title: t("adm.order.approveTitle"), body: t("adm.order.approveBody", { trx: o?.gateway_txn ?? "", amount: money(o?.total ?? 0) }), confirmLabel: t("adm.order.approve") });
+    const body = o?.gateway_txn
+      ? t("adm.order.approveBody", { trx: o.gateway_txn, amount: money(o.total) })
+      : t("adm.order.approveBodyNoTrx", { amount: money(o?.total ?? 0), num: o?.payer_number ?? "—" });
+    const r = await confirm({ title: t("adm.order.approveTitle"), body, confirmLabel: t("adm.order.approve") });
     if (r.ok) act.mutate({ path: "approve" });
   };
+  // a manual order can be approved while it is still "pending" too: the student paid and told you on WhatsApp instead of using the form
+  const approvable = !!o && (o.status === "awaiting_verification" || (o.status === "pending" && o.gateway === "manual"));
+  const sentAfter = o?.proof_at && o.pay_by ? Math.round((Date.parse(o.proof_at) - Date.parse(o.pay_by)) / 60_000) : null;
   const reject = async () => {
     const r = await confirm({ title: t("adm.order.rejectTitle"), body: t("adm.order.rejectBody"), danger: true, confirmLabel: t("adm.order.reject"), reason: { label: t("adm.order.reason") } });
     if (r.ok) act.mutate({ path: "reject", body: { reason: r.reason } });
@@ -52,7 +58,7 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
   };
 
   return (
-    <SlideOver open wide onClose={onClose} title={o ? `${t("adm.order.title")} ${o.invoice_no ?? o.public_id.slice(0, 10)}` : t("adm.order.title")}>
+    <SlideOver open wide onClose={onClose} title={o ? `${t("adm.order.title")} ${o.invoice_no ?? orderCode(o.public_id)}` : t("adm.order.title")}>
       {q.isPending && <Spinner />}
       {q.isError && <ErrorState error={q.error} onRetry={() => q.refetch()} />}
       {q.data && o && (
@@ -60,7 +66,7 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
           <div className="row between">
             <StatusChip status={o.status} />
             <div className="row">
-              {o.status === "awaiting_verification" && can("orders:verify") && (
+              {approvable && can("orders:verify") && (
                 <>
                   <Button className="btn-primary" busy={act.isPending} onClick={approve}>
                     <Icon name="check" /> {t("adm.order.approve")}
@@ -86,6 +92,15 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
               </div>
             </div>
           )}
+          {o.status === "pending" && o.gateway === "manual" && (
+            <div className="notice">
+              <Icon name="clock" />
+              <div>
+                <b>{t("adm.order.waitingTitle")}</b>
+                <p>{t("adm.order.waitingBody", { time: o.pay_by ? dateTime(o.pay_by) : "—" })}</p>
+              </div>
+            </div>
+          )}
           <KV
             items={[
               { label: t("adm.order.invoice"), value: o.invoice_no },
@@ -98,8 +113,28 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
               { label: t("adm.order.payer"), value: o.payer_number },
               { label: t("adm.order.coupon"), value: o.coupon_code },
               { label: t("adm.order.note"), value: o.note || "—" },
+              ...(o.gateway === "manual"
+                ? [
+                    { label: t("adm.order.payBy"), value: o.pay_by ? dateTime(o.pay_by) : "—" },
+                    {
+                      label: t("adm.order.proofAt"),
+                      value: o.proof_at ? `${dateTime(o.proof_at)} · ${sentAfter !== null && sentAfter > 0 ? t("adm.order.late", { min: num(sentAfter) }) : t("adm.order.onTime")}` : "—",
+                    },
+                  ]
+                : []),
             ]}
           />
+          {o.gateway === "manual" && o.has_proof_image ? (
+            <>
+              <h3>{t("adm.order.proofTitle")}</h3>
+              <a className="proof-shot" href={`/api/admin/orders/${o.id}/proof-image`} target="_blank" rel="noopener noreferrer" title={t("adm.order.proofShot")}>
+                <img src={`/api/admin/orders/${o.id}/proof-image`} alt={t("adm.order.proofShotAlt")} loading="lazy" />
+                <small>{t("adm.order.proofShot")}</small>
+              </a>
+            </>
+          ) : (
+            o.gateway === "manual" && o.status !== "paid" && <p className="hint">{t("adm.order.proofNone")}</p>
+          )}
           <h3>{t("adm.order.items")}</h3>
           <table className="table compact">
             <tbody>
@@ -173,7 +208,7 @@ export function Orders() {
           ) : null;
         }}
         columns={[
-          { key: "invoice", label: t("adm.order.invoice"), className: "nowrap", render: (r) => <b>{r.invoice_no ?? r.public_id.slice(0, 8)}</b> },
+          { key: "invoice", label: t("adm.order.invoice"), className: "nowrap", render: (r) => <b>{r.invoice_no ?? orderCode(r.public_id)}</b> },
           { key: "customer", label: t("adm.nav.students"), render: (r) => (<span className="cell-title"><b>{r.customer_name}</b><small>{r.customer_email}</small></span>) },
           { key: "items", label: t("adm.nav.courses"), desktopOnly: true, render: (r) => <span className="clip">{r.items ?? ""}</span> },
           { key: "total", label: t("label.total"), sort: "total", className: "num", render: (r) => money(r.total) },

@@ -53,7 +53,7 @@ The site starts on the free Cloudflare address that is written in `worker/wrangl
 Do the one-time GitHub setup in [section 4](#4-github-actions-tests-and-automatic-deploys) (two repository secrets; it works from a phone). Then merge into `main`, or open *Actions → Deploy → Run workflow*. The Deploy workflow:
 
 1. **checks the Cloudflare access** and says in plain words what is missing (a token permission, R2 switched off, an account ID that belongs to another Cloudflare account);
-2. **creates whatever is missing** on your Cloudflare account — the D1 database `mawah-academy-db`, a KV namespace (`<worker name>-KV`) and the R2 bucket `mawah-academy-media` — and uses their IDs for that run only (nothing is committed; the two placeholders in `wrangler.toml` stay as they are);
+2. **creates whatever is missing** on your Cloudflare account — the D1 database `mawah-academy-db`, a KV namespace (Wrangler names it `KV`; older versions `<worker name>-KV` — a re-run recognises either and never makes a second one) and the R2 bucket `mawah-academy-media` — and uses their IDs for that run only (nothing is committed; the two placeholders in `wrangler.toml` stay as they are);
 3. applies the database migrations (the first run also loads the 26-class catalogue), deploys the Worker, and gives it an `APP_SECRET` (random, never shown) and, if you added the GitHub secret `SETUP_TOKEN`, your setup token;
 4. checks `/api/health` and writes the site’s address into the run’s summary page.
 
@@ -201,7 +201,7 @@ The payment adapters were written against the gateways’ public documentation a
 
 **Direct bKash** (optional): same idea with `BKASH_*` secrets in sandbox, `PAYMENT_MODE = "sandbox"`, and the callback `https://academy.mawahbd.com/api/payments/bkash/callback` registered with bKash. Enable *Direct bKash* in *Admin → Settings → Payments*.
 
-**Manual send-money** (works today with no gateway): enter your receiving bKash/Nagad/Rocket numbers in *Admin → Settings → Payments* (the option appears to students only once a number exists). Buyers send money and submit the TrxID; *Support* staff verify the SMS and click **Approve payment**.
+**Manual send-money** (works today with no gateway): enter your receiving bKash/Nagad/Rocket numbers in *Admin → Settings → Payments* (the option appears to students only once a number exists). Buyers first give their own number, then see yours with a 20-minute countdown, send money and submit the TrxID and/or a screenshot (screenshots are kept privately in the R2 bucket, so **R2 must be on**); *Support* staff match the SMS or statement and click **Approve payment**. Put your WhatsApp number in *Settings → Contact & announcement* to give students the ready-written message button.
 
 ---
 
