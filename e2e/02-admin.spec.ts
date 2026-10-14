@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminLogin, adminSetup, apiGet, apiPost, PDF, PNG, registerStudent, STAFF, uniqueEmail, useLang } from "./helpers";
+import { adminLogin, adminSetup, apiGet, apiPost, PDF, PNG, randomPassword, registerStudent, STAFF, uniqueEmail, useLang } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -22,7 +22,7 @@ test("first run: the one-time setup form creates the owner, then locks itself", 
   await adminSetup(page);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(", Owner");
   // the setup endpoint is now permanently closed
-  const again = await apiPost(page, "/admin/auth/setup", { setup_token: "dev-setup-token", name: "Evil", email: "evil@e2e.test", password: "evil-pass-12345" });
+  const again = await apiPost(page, "/admin/auth/setup", { setup_token: "dev-setup-token", name: "Evil", email: "evil@e2e.test", password: randomPassword() });
   expect(again.status).toBe(409);
   // wrong password is rejected, and does not reveal whether the e-mail exists
   const other = await page.context().browser()!.newContext({ locale: "en-US" });

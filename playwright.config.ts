@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -9,6 +10,10 @@ import { defineConfig, devices } from "@playwright/test";
  * In the sandbox / CI image where Chromium is preinstalled, set CHROMIUM_PATH to use it.
  */
 const PORT = 8788;
+
+// The owner account the tests create gets a random password per run; this is set before Playwright starts its worker
+// process, which inherits it, so every spec file sees the same value (e2e/helpers.ts).
+process.env.E2E_OWNER_PASSWORD ??= `Aa1-${randomBytes(9).toString("base64url")}`;
 
 export default defineConfig({
   testDir: "./e2e",

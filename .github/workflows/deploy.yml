@@ -1,0 +1,86 @@
+name: Deploy
+
+# Push to main  →  all checks (ci.yml)  →  database migrations  →  wrangler deploy  →  health check.
+# One-time setup (repository secrets, environment, Cloudflare resources) is in docs/deployment.md.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never run two deploys at once and never cancel one half way through.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Checks
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Migrate and deploy to Cloudflare
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Optional: in GitHub → Settings → Environments → production, add "required reviewers" to approve each release.
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL || 'https://academy.mawahbd.com' }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SITE: ${{ vars.SITE_URL || 'https://academy.mawahbd.com' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+
+      - name: Check that deployment is configured
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Add the repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (see docs/deployment.md, step 6)."
+            exit 1
+          fi
+          if grep -q "REPLACE_WITH" worker/wrangler.toml; then
+            echo "::error::worker/wrangler.toml still contains placeholder IDs. Run 'npm run setup:cloudflare' and commit the result."
+            exit 1
+          fi
+
+      - name: Build (public site, student app, admin)
+        run: npm run build
+
+      - name: Remember the database restore point
+        working-directory: worker
+        run: |
+          echo "### Database restore point (before this release's migrations)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          npx wrangler d1 time-travel info DB 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "To roll the data back: npx wrangler d1 time-travel restore DB --bookmark <bookmark above>  (docs/security.md → Backup and restore)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply database migrations
+        working-directory: worker
+        run: npx wrangler d1 migrations apply DB --remote
+
+      - name: Deploy the Worker and its static assets
+        working-directory: worker
+        run: npx wrangler deploy
+
+      - name: Health check
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsS "$SITE/api/health" | grep -q '"ok":true'; then
+              echo "healthy: $SITE"
+              exit 0
+            fi
+            echo "not ready yet (attempt $attempt) …"
+            sleep 10
+          done
+          echo "::error::$SITE/api/health did not report healthy after the deploy"
+          exit 1

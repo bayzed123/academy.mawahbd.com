@@ -1,0 +1,15 @@
+{
+  "name": "Create order (start checkout)",
+  "description": "A logged-in student pays for one class. The order starts as 'pending' and the student is sent to the gateway; enrolment only happens when the gateway's signed webhook confirms the payment. ({{course_slug}} is filled in by the test; channel 'mock' is the local test gateway and only works outside production.)",
+  "setup": "student",
+  "request": { "method": "POST", "path": "/api/checkout", "json": { "courses": ["{{course_slug}}"], "channel": "mock" } },
+  "response": {
+    "status": 201,
+    "forbidKeys": ["password_hash", "paid_claim", "gateway_ref"],
+    "shape": {
+      "ok": "boolean",
+      "order": { "public_id": "string", "status": "string", "total": "number" },
+      "redirect_url": "string"
+    }
+  }
+}

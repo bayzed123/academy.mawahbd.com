@@ -1,0 +1,16 @@
+{
+  "name": "Certificate verification",
+  "description": "Anyone can check a certificate code without logging in. It reveals the name, class and date printed on the certificate — nothing else about the student.",
+  "setup": "certificate",
+  "request": { "method": "GET", "path": "/api/certificates/verify/{{code}}" },
+  "response": {
+    "status": 200,
+    "forbidKeys": ["email", "phone", "student_id", "password_hash"],
+    "shape": {
+      "ok": "boolean",
+      "valid": "boolean",
+      "revoked": "boolean",
+      "certificate": { "code": "string", "student_name": "string", "course_title_bn": "string", "course_title_en": "string", "issued_at": "string" }
+    }
+  }
+}

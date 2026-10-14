@@ -1,0 +1,15 @@
+{
+  "name": "Admin login",
+  "description": "A team member signs in. The session lives in an HttpOnly, SameSite=Strict cookie — the response body never contains a token, a password hash or lock-out counters.",
+  "setup": "staff-account",
+  "request": { "method": "POST", "path": "/api/admin/auth/login", "json": { "email": "{{email}}", "password": "{{password}}" } },
+  "response": {
+    "status": 200,
+    "headers": { "set-cookie": "HttpOnly" },
+    "forbidKeys": ["password_hash", "token", "session", "failed_logins", "locked_until", "sessions_valid_after"],
+    "shape": {
+      "ok": "boolean",
+      "staff": { "kind": "string", "id": "number", "name": "string", "email": "string", "role": "string", "must_change_password": "boolean" }
+    }
+  }
+}

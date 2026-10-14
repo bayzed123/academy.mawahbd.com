@@ -15,19 +15,22 @@
   },
   "scripts": {
     "setup:cloudflare": "node scripts/setup-cloudflare.mjs",
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build:marketing && npm run build:app && npm run build:admin",
     "build:marketing": "node scripts/build-marketing.mjs",
     "build:app": "npm run build -w app",
     "build:admin": "npm run build -w admin",
-    "build": "npm run build:marketing && npm run build:app && npm run build:admin",
-    "dev": "node scripts/dev.mjs",
     "typecheck": "npm run typecheck -w shared && npm run typecheck -w worker && npm run typecheck -w app && npm run typecheck -w admin",
-    "test": "npm run check:i18n && npm run build:marketing && npm run test -w worker",
+    "test": "npm run check:i18n && npm run test:scripts && npm run build:marketing && npm run test -w worker",
+    "test:scripts": "node --test scripts/lib/toml-patch.test.mjs",
     "test:e2e": "playwright test",
+    "lighthouse:local": "node scripts/lighthouse-local.mjs",
+    "check:i18n": "node --experimental-strip-types --no-warnings scripts/check-i18n.mjs",
+    "og:image": "node scripts/gen-og-image.mjs",
     "db:migrate:local": "npm run build:marketing && npm run db:migrate:local -w worker",
     "db:seed:dev": "npm run db:seed:dev -w worker",
     "db:migrate:remote": "npm run db:migrate:remote -w worker",
-    "deploy": "npm run build && npm run deploy -w worker",
-    "check:i18n": "node --experimental-strip-types --no-warnings scripts/check-i18n.mjs"
+    "deploy": "npm run build && npm run deploy -w worker"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

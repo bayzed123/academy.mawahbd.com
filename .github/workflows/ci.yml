@@ -1,0 +1,98 @@
+name: CI
+
+# Runs on every pull request and every branch except main. main is built, tested AND deployed by deploy.yml,
+# which calls this very workflow first — so a change can never reach production without passing everything here.
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  CI: "true"
+
+jobs:
+  checks:
+    name: Typecheck, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: TypeScript (shared, worker, student app, admin)
+        run: npm run typecheck
+      - name: Unit and integration tests (Vitest inside the Workers runtime)
+        run: npm test
+      - name: Production build (public site, student app, admin)
+        run: npm run build
+
+  e2e:
+    name: End-to-end (Playwright)
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Playwright (real Worker on local D1/KV/R2 — nothing touches Cloudflare)
+        run: npm run test:e2e
+      - name: Keep the report when something failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  web-vitals:
+    name: Core Web Vitals gate (Lighthouse, mobile)
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Lighthouse on the public pages (budgets in scripts/lighthouse-local.mjs)
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: npm run lighthouse:local
+
+  secrets:
+    name: No secrets in the repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_CONFIG: .gitleaks.toml

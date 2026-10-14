@@ -1,6 +1,9 @@
+import { randomBytes } from "node:crypto";
 import { expect, type BrowserContext, type Page } from "@playwright/test";
 
-export const STAFF = { name: "Owner Test", email: "owner@e2e.test", password: "owner-pass-12345" };
+/** Throwaway owner account for the local test database. The password is generated per run (playwright.config.ts) — nothing is stored. */
+export const randomPassword = () => `Aa1-${randomBytes(9).toString("base64url")}`;
+export const STAFF = { name: "Owner Test", email: "owner@e2e.test", password: process.env.E2E_OWNER_PASSWORD ?? randomPassword() };
 export const SETUP_TOKEN = "dev-setup-token"; // from worker/.dev.vars.example (local only)
 
 /**
@@ -26,7 +29,7 @@ export const PDF = Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\
 
 export async function registerStudent(page: Page, opts: { name?: string; email?: string; password?: string } = {}) {
   const email = opts.email ?? uniqueEmail("student");
-  const password = opts.password ?? "correct-horse-battery";
+  const password = opts.password ?? randomPassword();
   await page.goto("/app/register");
   await page.getByLabel(/Full name|পুরো নাম/).fill(opts.name ?? "Test Student");
   await page.getByLabel(/^Email|^ইমেইল/).fill(email);

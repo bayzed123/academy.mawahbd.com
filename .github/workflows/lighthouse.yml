@@ -1,0 +1,32 @@
+name: Lighthouse (live site)
+
+# Measures the PUBLIC pages of the deployed site on a mobile profile after every successful deploy and once a week,
+# so slow third-party scripts, a heavy image or an accessibility slip shows up as a red run instead of a lost student.
+on:
+  workflow_run:
+    workflows: [Deploy]
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Lighthouse on the live pages
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Lighthouse (budgets in scripts/lighthouse-local.mjs)
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          LH_URL: ${{ vars.SITE_URL || 'https://academy.mawahbd.com' }}
+        run: node scripts/lighthouse-local.mjs

@@ -1,0 +1,38 @@
+{
+  "name": "Class list",
+  "description": "What the public site and the student app read to draw the class grid: cacheable, paginated, cheapest first. Never includes unpublished classes or long descriptions.",
+  "setup": "anonymous",
+  "request": { "method": "GET", "path": "/api/courses?per_page=2&sort=price_asc" },
+  "response": {
+    "status": 200,
+    "headers": { "cache-control": "max-age" },
+    "forbidKeys": ["deleted_at", "long_bn", "long_en", "seo_title_bn", "seo_title_en", "password_hash"],
+    "shape": {
+      "ok": "boolean",
+      "total": "number",
+      "page": "number",
+      "per_page": "number",
+      "courses": {
+        "$array": {
+          "id": "number",
+          "slug": "string",
+          "title_bn": "string",
+          "title_en": "string",
+          "short_bn": "string",
+          "short_en": "string",
+          "banner_key": "string|null",
+          "icon": "string|null",
+          "price": "number",
+          "status": "string",
+          "level": "string|null",
+          "rating_avg": "number",
+          "rating_count": "number",
+          "lesson_count": "number",
+          "featured": "boolean",
+          "category": "object|null"
+        },
+        "$min": 1
+      }
+    }
+  }
+}
