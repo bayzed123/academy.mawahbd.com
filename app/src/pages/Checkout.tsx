@@ -75,7 +75,7 @@ export default function Checkout() {
   if (!slug && !bundle) {
     return (
       <Empty icon="book" title={t("app.checkout.empty")}>
-        <a className="btn btn-gold" href={lang === "en" ? "/en/courses" : "/courses"}>
+        <a className="btn btn-primary" href={lang === "en" ? "/en/courses" : "/courses"}>
           {t("app.nav.browse")}
         </a>
       </Empty>
@@ -87,7 +87,7 @@ export default function Checkout() {
     if (code === "already_enrolled") {
       return (
         <Empty icon="check" title={t("app.checkout.already")}>
-          <Link className="btn btn-gold btn-lg" to={slug ? `/learn/${slug}` : "/"}>
+          <Link className="btn btn-primary btn-lg" to={slug ? `/learn/${slug}` : "/"}>
             {t("app.checkout.goClass")}
           </Link>
         </Empty>
@@ -247,7 +247,7 @@ export default function Checkout() {
             </div>
 
             <div className="mt">
-              <Button className="btn-gold btn-block btn-lg" type="submit" busy={pay.isPending} disabled={!free && (channels.length === 0 || (channel === "manual" && (!trx.trim() || !payer.trim())))}>
+              <Button className="btn-primary btn-block btn-lg" type="submit" busy={pay.isPending} disabled={!free && (channels.length === 0 || (channel === "manual" && (!trx.trim() || !payer.trim())))}>
                 {free ? t("app.checkout.enrollFree") : channel === "manual" ? t("app.checkout.submitManual") : t("app.checkout.place", { amount: money(q.total) })}
               </Button>
             </div>

@@ -62,7 +62,7 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
             <div className="row">
               {o.status === "awaiting_verification" && can("orders:verify") && (
                 <>
-                  <Button className="btn-gold" busy={act.isPending} onClick={approve}>
+                  <Button className="btn-primary" busy={act.isPending} onClick={approve}>
                     <Icon name="check" /> {t("adm.order.approve")}
                   </Button>
                   <Button className="btn-danger" onClick={reject}>
@@ -358,7 +358,7 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
                 {t("btn.cancel")}
               </Button>
               <Button
-                className="btn-gold"
+                className="btn-primary"
                 onClick={() =>
                   void run(() => adm(`/students/${id}`, { method: "PATCH", json: edit }), t("adm.saved")).then(() => setEdit(null))
                 }

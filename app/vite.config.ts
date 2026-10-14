@@ -16,6 +16,6 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    proxy: Object.fromEntries(["/api", "/media", "/fonts", "/chat.js", "/chat.css", "/favicon.svg", "/sprite.svg", "/pattern.svg", "/manifest.webmanifest"].map((p) => [p, WORKER])),
+    proxy: Object.fromEntries(["/api", "/media", "/fonts", "/chat.js", "/chat.css", "/logo.webp", "/logo-sm.webp", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png", "/favicon.ico", "/favicon-32.png", "/sprite.svg", "/pattern.svg", "/manifest.webmanifest"].map((p) => [p, WORKER])),
   },
 });

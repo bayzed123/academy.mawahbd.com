@@ -67,7 +67,7 @@ export function CoursesPage({ ctx, data }: { ctx: PageCtx; data: ListData }) {
                 </option>
               ))}
             </select>
-            <button class="btn btn-emerald" type="submit">
+            <button class="btn btn-dark" type="submit">
               <Icon name="search" />
               {t("btn.search")}
             </button>

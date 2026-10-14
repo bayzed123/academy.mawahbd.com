@@ -78,7 +78,7 @@ export function Staff() {
         title={t("adm.nav.staff")}
         sub={t("adm.staff.sub")}
         actions={
-          <Button className="btn-gold" onClick={() => setOpen(true)}>
+          <Button className="btn-primary" onClick={() => setOpen(true)}>
             + {t("adm.staff.add")}
           </Button>
         }
@@ -162,7 +162,7 @@ export function Staff() {
             <Button className="btn-ghost" onClick={() => setOpen(false)}>
               {t("btn.cancel")}
             </Button>
-            <Button className="btn-gold" busy={create.isPending} onClick={() => create.mutate()}>
+            <Button className="btn-primary" busy={create.isPending} onClick={() => create.mutate()}>
               {t("adm.staff.create")}
             </Button>
           </div>
@@ -208,7 +208,7 @@ export function Staff() {
               >
                 <Icon name="download" /> {t("btn.copy")}
               </Button>
-              <Button className="btn-gold" onClick={() => setSecret(null)}>
+              <Button className="btn-primary" onClick={() => setSecret(null)}>
                 {t("adm.staff.gotIt")}
               </Button>
             </div>

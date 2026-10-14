@@ -42,7 +42,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
             <h1>{t("hero.title")}</h1>
             <p class="hero-sub">{t("hero.sub")}</p>
             <div class="hero-cta">
-              <a class="btn btn-gold btn-lg" href={ctx.href("/courses")}>
+              <a class="btn btn-primary btn-lg" href={ctx.href("/courses")}>
                 {t("hero.cta1")}
                 <Icon name="arrow" />
               </a>
@@ -115,7 +115,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
             ))}
           </div>
           <p class="center cta-row">
-            <a class="btn btn-emerald btn-lg" href={ctx.href("/courses")}>
+            <a class="btn btn-dark btn-lg" href={ctx.href("/courses")}>
               {t("btn.viewAll")}
               <Icon name="arrow" />
             </a>

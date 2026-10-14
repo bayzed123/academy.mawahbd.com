@@ -20,7 +20,7 @@ export function Orders() {
       {q.isError && <ErrorState error={q.error} onRetry={() => q.refetch()} />}
       {q.data?.length === 0 && (
         <Empty icon="wallet" title={t("app.orders.empty")}>
-          <a className="btn btn-gold" href={lang === "en" ? "/en/courses" : "/courses"}>
+          <a className="btn btn-primary" href={lang === "en" ? "/en/courses" : "/courses"}>
             {t("app.nav.browse")}
           </a>
         </Empty>
@@ -83,12 +83,12 @@ export function OrderDetail() {
         {o.status === "pending" && <span className="spinner sm" aria-hidden="true" />}
         <div className="row mt">
           {o.status === "paid" && first?.slug && (
-            <Link className="btn btn-gold btn-lg" to={o.items.length === 1 ? `/learn/${first.slug}` : "/"}>
+            <Link className="btn btn-primary btn-lg" to={o.items.length === 1 ? `/learn/${first.slug}` : "/"}>
               <Icon name="play" /> {t("app.orders.startLearning")}
             </Link>
           )}
           {(o.status === "failed" || o.status === "cancelled") && first?.slug && (
-            <Link className="btn btn-gold btn-lg" to={`/checkout?c=${first.slug}`}>
+            <Link className="btn btn-primary btn-lg" to={`/checkout?c=${first.slug}`}>
               {t("app.orders.tryAgain")}
             </Link>
           )}

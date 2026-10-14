@@ -141,8 +141,8 @@ paymentRoutes.get("/mock/pay/:publicId", async (c) => {
   const form = (status: string, sig: string, label: string, cls: string) =>
     `<form method="post" action="/api/payments/mock/webhook"><input type="hidden" name="order" value="${escapeHtml(order.public_id)}"><input type="hidden" name="status" value="${status}"><input type="hidden" name="sig" value="${sig}"><button class="${cls}" type="submit">${label}</button></form>`;
   const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Test payment</title>
-<style>body{font-family:system-ui,sans-serif;background:#fbf7ee;color:#14211c;display:grid;place-items:center;min-height:100vh;margin:0}main{background:#fff;border:1px solid #e6dfcc;border-radius:16px;padding:32px;max-width:380px;text-align:center}
-h1{font-size:20px;margin:0 0 6px}p{color:#3b4a43}button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:14px 22px;margin:6px;cursor:pointer;min-width:200px}.ok{background:#c9a24b;color:#073b2c}.no{background:#eee;color:#333}</style>
+<style>body{font-family:system-ui,sans-serif;background:#fbf7ee;color:#1b1213;display:grid;place-items:center;min-height:100vh;margin:0}main{background:#fff;border:1px solid #e6dfcc;border-radius:16px;padding:32px;max-width:380px;text-align:center}
+h1{font-size:20px;margin:0 0 6px}p{color:#4a3d3e}button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:14px 22px;margin:6px;cursor:pointer;min-width:200px}.ok{background:#db1718;color:#fff}.no{background:#eee;color:#333}</style>
 <main><h1>Test payment gateway</h1><p>Development only. Order total: <b>${escapeHtml(formatMoney(order.total, "en"))}</b></p>
 ${form("paid", paid, "Simulate successful payment", "ok")}${form("failed", failed, "Simulate failed payment", "no")}</main></html>`;
   return c.html(html, 200, { "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'" });

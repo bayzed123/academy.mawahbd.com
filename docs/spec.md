@@ -44,18 +44,23 @@
 | **Business** | Online **cooking and baking** classes: class sales, the student learning experience, verifiable certificates |
 | **Market** | Bangladesh first (mobile-first, Bangla + English, BDT prices, local payments), with a path to international payments later |
 | **Tagline** | EN *“Learn cooking & baking step by step, from home.”* · BN *“ঘরে বসেই ধাপে ধাপে শিখুন রান্না ও বেকিং।”* |
-| **Positioning** | A *prestige academy*, not a template shop: calm, warm, generous with whitespace, ornament kept to thin gold rules and a faint lattice |
+| **Positioning** | A *prestige academy*, not a template shop: black, red and gold like the logo, calm ivory reading pages generous with whitespace, ornament kept to thin gold rules (with a small red accent) and a faint lattice |
 
-**Logo concept.** An *arched doorway* — a kitchen window and an invitation to step in — holding a gold-stroked **M**; the gold dot above it is the ember (or steam). Emerald stands for growth, gold for achievement, ivory for the paper a good recipe card is printed on. The mark lives in `marketing/public/favicon.svg` and is reused for the app icons and the social-share image (`npm run og:image`).
+**Logo and colours.** The site uses the owner’s **official logo** — gold “MAWAH · HEAVENLY TASTE” lettering with a house-and-cutlery mark on black, over a red banner carrying the Bangla name. The original file is kept as `brand/mawah-logo.jpg`; `npm run brand:assets` (`scripts/gen-brand-assets.mjs` + `scripts/gen-og-image.mjs`) crops it and writes every derived file in `marketing/public/` — the header/footer logo, the favicon and app icons, the manifest’s icons and the social-share image. Dark pixels are lifted to the exact brand black, so the logo melts into the black header and footer with no visible box. The whole palette is **measured from the logo** (warm black, brand red, champagne gold) with ivory paper for reading; the tiny green of the logo’s leaf is used only for “paid / working / genuine” status markers.
 
 **Design language** (one source of truth: `shared/styles/base.css`, shared by the public site, the student app and the admin)
 
+![The brand colours, measured from the official logo](img/brand-palette.jpg)
+
 | Token | Value | Use |
 |---|---|---|
-| Emerald | `#073b2c` → `#157a5b` | Headers, primary buttons, the dark bands |
-| Gold | `#c9a24b` (text uses the darker `#7a5f17` for WCAG AA contrast) | Rules, highlights, the “Enroll” call to action |
+| Black | `#070304` (the logo’s own black, `--k-950`) → `#2c1b1d` | Header, footer, dark bands, the admin sidebar, hero |
+| Red | `#db1718` (the logo’s banner, `--red-600`); hover `#b50f12` | The main call to action (“Enroll Now”), links, the active tab, progress bars |
+| Gold | `#d9cd69` (the logo’s lettering, `--g-400`); text on ivory uses the darker `#665613` for WCAG AA contrast | Rules under headings, step numbers, icons, the header “Log in” button, highlights on dark |
 | Ivory | `#fbf7ee` / `#f4eddc` | Page background |
-| Category accents | snack `#d9772b` · cake `#c2456b` · dessert `#7c4a9e` · cook `#1e7e8c` · sweet `#a4631f` · frozen `#2f86c4` | A coloured dot/tag on cards, banners and pages (wayfinding, not a re-theme) |
+| Success green | `#1b6b40` on `#ecf8f1` | Status markers only: Paid, Working, “This certificate is genuine”, discounts |
+| Category accents | snack red · cake gold `#9a8627` · dessert deep red `#8c0b0e` · cook charcoal `#43292c` · sweet dark gold `#816f1c` · frozen warm grey `#6d5f60` | A dot/tag on cards and the tint of a class banner — kept inside the brand palette (wayfinding, not a re-theme) |
+| Contrast | every text/background pair of the palette ≥ 4.5:1 (icons ≥ 3:1) | Checked by `scripts/lib/brand.test.mjs`, so a future colour tweak cannot quietly make the site hard to read |
 | Type | **Playfair Display** (English display) · **Tiro Bangla** (Bangla display) · **Hind Siliguri** (body, Bangla + Latin) | Self-hosted WOFF2 under the SIL Open Font License (`marketing/public/fonts/LICENSE-*.txt`); Bangla text is never letter-spaced (it breaks conjuncts) |
 | Touch | ≥ 44–48 px targets, plain-language labels | The team and most students are non-technical, on phones |
 
@@ -70,7 +75,7 @@
 
 ## 2. Public website — design and class discovery
 
-Server-rendered by the Worker (Hono + JSX), **no client framework**: each page is plain HTML with the CSS inlined (≈ 31 KB, no render-blocking request) and a ≈ 3.7 KB script for progressive enhancements. The Bangla site lives at `/`, English at `/en` (each with `hreflang` alternates).
+Server-rendered by the Worker (Hono + JSX), **no client framework**: each page is plain HTML with the CSS inlined (≈ 33 KB, no render-blocking request) and a ≈ 3.7 KB script for progressive enhancements. The Bangla site lives at `/`, English at `/en` (each with `hreflang` alternates).
 
 | Route (prefix `/en` for English) | Page |
 |---|---|
@@ -497,10 +502,10 @@ Budgets (`scripts/lighthouse-local.mjs`): performance ≥ 85, accessibility ≥ 
 
 | Layer | Tooling | Count | Covers |
 |---|---|---:|---|
-| Unit + integration | **Vitest inside the real Workers runtime** (`@cloudflare/vitest-plugin`, local D1/KV/R2) | 107 tests | Auth and lock-out, RBAC matrix, every admin module, catalogue, checkout, coupons, bundles, webhooks and idempotency, refunds, enrolment, drip, progress, reviews gating, certificates and verification, invoices, chatbot, cron, uploads, CSV, security headers, rate limits |
+| Unit + integration | **Vitest inside the real Workers runtime** (`@cloudflare/vitest-plugin`, local D1/KV/R2) | 108 tests | Auth and lock-out, RBAC matrix, every admin module, catalogue, checkout, coupons, bundles, webhooks and idempotency, refunds, enrolment, drip, progress, reviews gating, certificates and verification, invoices, chatbot, cron, uploads, CSV, security headers, rate limits |
 | API contract | JSON fixtures in `tests/fixtures/` (`course-list`, `create-order`, `admin-login`, `certificate-verify`) | 8 | Exact response shapes and “never leaks” key lists |
 | Route guards + production mode | `worker/test/hardening.test.ts` (Vitest, same runtime) | 10 | **Every** registered API route is enumerated from the router: admin endpoints refuse anonymous callers and student sessions, a read-only Viewer cannot write anywhere, student/checkout endpoints need a login — so a new endpoint that forgets its check fails immediately. Also flips `ENVIRONMENT=production` to prove HSTS, `__Host-` Secure/HttpOnly cookies (Strict for staff), no test gateway or dev mailbox even with `ALLOW_MOCK_PAYMENTS`, the edge page cache (MISS → HIT, tracking parameters ignored, an admin edit shows on the next request) and that personal responses are never cached |
-| Script tests | `node --test` | 5 | The Cloudflare setup helper |
+| Script tests | `node --test` | 10 | The Cloudflare setup helper; the brand (palette contrast ratios, every CSS variable defined, the logo/icon files the pages point at) |
 | **End-to-end** | **Playwright** against a real Worker on a fresh seeded local database | 33 | **enrol → pay → access → complete → certificate issued → publicly verified**, the admin workflows (first-run setup, instructors with photo upload, settings, class + curriculum + files, manual payment approve/refund, coming-soon notify list, team roles, chatbot key masking, reports, CSV), the owner’s numbers matching what students did, language toggle, password change/reset, **axe accessibility** on every main screen, **360 px phones** |
 | Web vitals | Lighthouse gate | 5 pages | §10 budgets |
 | Types | `tsc` in all four workspaces | — | Required before a deploy |
@@ -542,13 +547,14 @@ academy.mawahbd.com/
 │   ├── seed/dev-demo.sql           LOCAL-ONLY demo data (never run in production)
 │   ├── test/                       Vitest suites + contract fixtures runner
 │   ├── wrangler.toml, .dev.vars.example
-├── marketing/                      public-site CSS/JS, chat widget, static files (fonts, sprite, favicon, OG image)
+├── brand/                          the owner’s original logo (mawah-logo.jpg) — source of every generated logo/icon file
+├── marketing/                      public-site CSS/JS, chat widget, static files (fonts, sprite, logo, icons, OG image)
 ├── app/                            React student app (My Learning, player, checkout, certificates, orders)
 ├── admin/                          React admin CMS
 ├── shared/                         types, RBAC table, formatting, i18n dictionaries (bn + en), design CSS base
 ├── e2e/                            Playwright specs
 ├── tests/                          JSON API fixtures (+ README explaining every test layer)
-├── scripts/                        dev runner, Cloudflare setup, asset build, i18n check, Lighthouse gate, OG image, seed generator
+├── scripts/                        dev runner, Cloudflare setup, asset build, i18n check, Lighthouse gate, logo/icon + OG image generators, seed generator
 ├── docs/                           this specification + guides
 └── .github/                        workflows (ci, deploy, lighthouse), Dependabot, PR template
 ```

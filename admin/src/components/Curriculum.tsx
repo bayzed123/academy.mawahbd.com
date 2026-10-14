@@ -229,7 +229,7 @@ function LessonDrawer({ courseId, modules, lessonId, moduleId, onClose, onSaved 
           <Button className="btn-ghost" onClick={onClose}>
             {t("btn.close")}
           </Button>
-          <Button className="btn-gold" busy={save.isPending} onClick={() => save.mutate(undefined)}>
+          <Button className="btn-primary" busy={save.isPending} onClick={() => save.mutate(undefined)}>
             {t("btn.save")}
           </Button>
         </div>
@@ -359,7 +359,7 @@ function ModuleDrawer({ courseId, module: mod, onClose, onSaved }: { courseId: n
           <Button className="btn-ghost" onClick={onClose}>
             {t("btn.cancel")}
           </Button>
-          <Button className="btn-gold" busy={save.isPending} onClick={() => save.mutate()}>
+          <Button className="btn-primary" busy={save.isPending} onClick={() => save.mutate()}>
             {t("btn.save")}
           </Button>
         </div>
@@ -441,7 +441,7 @@ export function CurriculumBuilder({ courseId }: { courseId: number }) {
       <div className="row between">
         <p className="muted">{t("adm.curr.sub", { n: num(totalLessons), m: num(modules.length) })}</p>
         {canWrite && (
-          <Button className="btn-gold" onClick={() => setModuleEdit({ module: null })}>
+          <Button className="btn-primary" onClick={() => setModuleEdit({ module: null })}>
             + {t("adm.module.add")}
           </Button>
         )}

@@ -43,7 +43,7 @@ export function MyLearning() {
       {courses.data?.length === 0 && (
         <Empty icon="book" title={t("app.learning.empty.title")}>
           <p>{t("app.learning.empty.body")}</p>
-          <a className="btn btn-gold btn-lg" href={`${home}/courses`}>
+          <a className="btn btn-primary btn-lg" href={`${home}/courses`}>
             {t("app.nav.browse")}
           </a>
         </Empty>
@@ -73,7 +73,7 @@ export function MyLearning() {
                   </span>
                 )}
                 <div className="card-foot">
-                  <Link className="btn btn-gold" to={cta}>
+                  <Link className="btn btn-primary" to={cta}>
                     {done ? t("app.learning.review") : m.progress.done > 0 ? t("app.learning.continue") : t("app.learning.start")}
                   </Link>
                 </div>

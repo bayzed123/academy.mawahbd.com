@@ -11,7 +11,8 @@ interface Props {
   label: string;
 }
 
-const PALETTE = ["#0f6148", "#c9a24b", "#c2456b", "#1e7e8c", "#7c4a9e", "#d9772b", "#2f86c4"];
+/** brand colours first (red, gold, black, deep red, dark gold, grey), then neutral extras for long lists */
+const PALETTE = ["#db1718", "#c4b14a", "#1b0f10", "#8c0b0e", "#9a8627", "#6d5f60", "#e6dc8c", "#1e7e8c", "#7c4a9e"];
 
 /**
  * Chart.js is loaded on demand (it is the heaviest dependency of the admin) and only on screens that draw a chart.
@@ -26,7 +27,7 @@ export function Chart({ type, labels, datasets, height = 240, format, label }: P
       if (dead || !canvas.current) return;
       C.register(...registerables);
       C.defaults.font.family = getComputedStyle(document.body).fontFamily;
-      C.defaults.color = "#5b6a62";
+      C.defaults.color = "#6d5f60";
       const fmt = format ?? ((n: number) => String(n));
       const isRound = type === "doughnut";
       chart = new C(canvas.current, {

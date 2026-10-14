@@ -107,7 +107,7 @@ export function Reviews() {
             <Button className="btn-ghost" onClick={() => setReply(null)}>
               {t("btn.cancel")}
             </Button>
-            <Button className="btn-gold" onClick={async () => { if (reply && (await act(() => adm(`/reviews/${reply.id}/reply`, { json: { reply: text } })))) setReply(null); }}>
+            <Button className="btn-primary" onClick={async () => { if (reply && (await act(() => adm(`/reviews/${reply.id}/reply`, { json: { reply: text } })))) setReply(null); }}>
               {t("btn.save")}
             </Button>
           </div>
@@ -186,7 +186,7 @@ export function Questions() {
                 {open.status === "hidden" ? t("adm.questions.unhide") : t("adm.questions.hide")}
               </Button>
             )}
-            <Button className="btn-gold" disabled={text.trim().length === 0} onClick={async () => { if (open && (await act(() => adm(`/questions/${open.id}/answer`, { json: { answer: text } })))) setOpen(null); }}>
+            <Button className="btn-primary" disabled={text.trim().length === 0} onClick={async () => { if (open && (await act(() => adm(`/questions/${open.id}/answer`, { json: { answer: text } })))) setOpen(null); }}>
               {t("adm.questions.send")}
             </Button>
           </div>

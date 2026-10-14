@@ -9,20 +9,19 @@ function Card({ title, sub, children }: { title: string; sub?: string; children:
   const { t, lang, setLang } = useI18n();
   return (
     <div className="login-page">
-      <div className="login-card">
+      <div className="login-wrap">
         <div className="login-brand">
-          <img src="/favicon.svg" alt="" width={54} height={54} />
-          <div>
-            <b>{lang === "bn" ? t("brand.name") : "MAWAH Academy"}</b>
-            <small>{t("adm.title")}</small>
-          </div>
+          <img src="/logo.webp" alt={t("brand.name")} width={260} height={141} />
+          <span className="login-sub">{t("adm.title")}</span>
         </div>
-        <h1>{title}</h1>
-        {sub && <p className="muted">{sub}</p>}
-        {children}
-        <button type="button" className="lang-btn" lang={lang === "bn" ? "en" : "bn"} onClick={() => setLang(lang === "bn" ? "en" : "bn")}>
-          {t("lang.switch")}
-        </button>
+        <div className="login-card">
+          <h1>{title}</h1>
+          {sub && <p className="muted">{sub}</p>}
+          {children}
+          <button type="button" className="lang-btn" lang={lang === "bn" ? "en" : "bn"} onClick={() => setLang(lang === "bn" ? "en" : "bn")}>
+            {t("lang.switch")}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -98,7 +97,7 @@ export function Login() {
           <Field id="s-pass" label={t("label.password")} hint={t("adm.password.hint")} error={fields.password}>
             <TextInput id="s-pass" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} error={fields.password} />
           </Field>
-          <Button className="btn-gold btn-block" type="submit" busy={busy}>
+          <Button className="btn-primary btn-block" type="submit" busy={busy}>
             {t("adm.setup.create")}
           </Button>
         </form>
@@ -122,7 +121,7 @@ export function Login() {
         <Field id="l-pass" label={t("label.password")} error={fields.password}>
           <TextInput id="l-pass" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} error={fields.password} />
         </Field>
-        <Button className="btn-gold btn-block" type="submit" busy={busy}>
+        <Button className="btn-primary btn-block" type="submit" busy={busy}>
           {t("btn.login")}
         </Button>
       </form>
@@ -157,7 +156,7 @@ export function ForcePasswordChange() {
           <TextInput id="c-new" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} error={fields.next} />
         </Field>
         <div className="row">
-          <Button className="btn-gold" type="submit" busy={busy}>
+          <Button className="btn-primary" type="submit" busy={busy}>
             {t("btn.save")}
           </Button>
           <Button className="btn-ghost" onClick={() => void logout()}>

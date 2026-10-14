@@ -3,6 +3,7 @@ const en = {
   "brand.name": "MAWAH Academy",
   "brand.tagline": "Where home cooks become masters.",
   "brand.short": "MAWAH",
+  "brand.academy": "Academy",
 
   "lang.switch": "বাংলা",
   "lang.current": "English",
@@ -117,6 +118,7 @@ const bn: Record<keyof typeof en, string> = {
   "brand.name": "মাওয়াহ একাডেমি",
   "brand.tagline": "ঘরের রাঁধুনি থেকে মাস্টার হওয়ার যাত্রা।",
   "brand.short": "মাওয়াহ",
+  "brand.academy": "একাডেমি",
 
   "lang.switch": "English",
   "lang.current": "বাংলা",

@@ -36,18 +36,19 @@ Requires **Node.js ≥ 20.19** (22 recommended). Local D1/KV/R2 run on your mach
 |---|---|
 | `npm run dev` | Everything for local work: builds, migrates a local database, runs the Worker (8787) and hot-reload servers for the student app (5173) and admin (5174) |
 | `npm run typecheck` | `tsc` in all four workspaces (required before any deploy) |
-| `npm test` | i18n completeness, script tests, and **125 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) |
+| `npm test` | i18n completeness, script tests, and **126 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
 | `npm run build && npm run test:e2e` | **33 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows, accessibility (axe), 360 px phones |
 | `npm run lighthouse:local` | Core Web Vitals gate on the public pages (mobile profile) |
 | `npm run setup:cloudflare -- --domain academy.mawahbd.com --secrets` | One-time: creates D1/KV/R2, fills `wrangler.toml`, sets the domain and secrets (`--dry-run` first) |
 | `npm run db:migrate:remote` · `npm run deploy` | Apply migrations / build and deploy (normally done by GitHub Actions on push to `main`) |
-| `npm run check:i18n` · `npm run og:image` | Bangla/English dictionary check · regenerate the social-share image |
+| `npm run check:i18n` · `npm run brand:assets` | Bangla/English dictionary check · rebuild every logo, icon and social-share file from `brand/mawah-logo.jpg` |
 
 ## Project layout
 
 ```
 worker/      Cloudflare Worker: public pages (Hono + JSX), JSON API, payments, chatbot, cron, D1 migrations, tests
-marketing/   public-site CSS/JS, chat widget, fonts, sprite, favicon, social image
+brand/       the owner’s original logo (source of the generated logo/icon files)
+marketing/   public-site CSS/JS, chat widget, fonts, sprite, logo, icons, social image
 app/         React student app          admin/   React admin CMS          shared/  types, RBAC table, i18n, design tokens
 e2e/         Playwright specs           tests/   API fixtures + test guide  scripts/ dev runner, setup, builds, Lighthouse gate
 docs/        specification and guides   .github/ CI, deploy and Lighthouse workflows

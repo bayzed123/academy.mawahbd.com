@@ -23,7 +23,7 @@ for (const dir of ["assets", "fonts"]) rmSync(resolve(out, dir), { recursive: tr
 mkdirSync(resolve(out, "assets"), { recursive: true });
 mkdirSync(gen, { recursive: true });
 
-// static public files (fonts, sprite, favicon, pattern, manifest, og image …)
+// static public files (fonts, sprite, logo + icons, pattern, manifest, og image …)
 cpSync(resolve(root, "marketing/public"), out, { recursive: true });
 
 const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("marketing/site.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
@@ -61,7 +61,15 @@ writeFileSync(
   Cache-Control: public, max-age=31536000, immutable
 /sprite.svg
   Cache-Control: public, max-age=86400
-/favicon.svg
+/logo.webp
+  Cache-Control: public, max-age=86400
+/logo-sm.webp
+  Cache-Control: public, max-age=86400
+/icon-*
+  Cache-Control: public, max-age=86400
+/apple-touch-icon.png
+  Cache-Control: public, max-age=86400
+/favicon*
   Cache-Control: public, max-age=86400
 /pattern.svg
   Cache-Control: public, max-age=86400

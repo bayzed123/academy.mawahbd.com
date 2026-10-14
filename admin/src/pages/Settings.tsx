@@ -50,7 +50,7 @@ function Group<K extends Key>({ name, data, canWrite, children }: { name: K; dat
     >
       {children(v, (patch) => setV((s) => ({ ...s, ...patch })), errors)}
       {canWrite ? (
-        <Button className="btn-gold" type="submit" busy={save.isPending}>
+        <Button className="btn-primary" type="submit" busy={save.isPending}>
           {t("btn.save")}
         </Button>
       ) : (

@@ -88,7 +88,7 @@ export function LessonPlayer() {
         <LessonMedia lesson={l} />
         <div className="player-bar">
           <h1 className="player-title">{pick(l, "title")}</h1>
-          <Button className={l.completed ? "btn-outline" : "btn-gold"} busy={toggle.isPending} onClick={() => toggle.mutate(!l.completed)}>
+          <Button className={l.completed ? "btn-outline" : "btn-primary"} busy={toggle.isPending} onClick={() => toggle.mutate(!l.completed)}>
             <Icon name="check" /> {l.completed ? t("app.lesson.done") : t("app.lesson.markDone")}
           </Button>
         </div>
@@ -103,7 +103,7 @@ export function LessonPlayer() {
           )}
           {l.next_id ? (
             <Link
-              className="btn btn-emerald"
+              className="btn btn-dark"
               to={`/learn/${slug}/${l.next_id}`}
               onClick={(e) => {
                 // "next" also counts the lesson as done, so progress follows the student without extra taps
@@ -160,7 +160,7 @@ export function Preview() {
       <LessonBody lesson={l} />
       <div className="panel tc">
         <h2>{t("app.preview.cta")}</h2>
-        <Link className="btn btn-gold btn-lg" to={course ? `/checkout?c=${course}` : "/"}>
+        <Link className="btn btn-primary btn-lg" to={course ? `/checkout?c=${course}` : "/"}>
           {t("btn.enrollNow")}
         </Link>
       </div>

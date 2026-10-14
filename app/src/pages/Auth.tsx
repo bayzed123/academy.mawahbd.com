@@ -98,7 +98,7 @@ export function Login() {
           <TextInput id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} error={fields.password} />
         </Field>
         {site.data?.turnstile_site_key && <Turnstile siteKey={site.data.turnstile_site_key} onToken={setToken} resetKey={bump} />}
-        <Button className="btn-gold btn-block btn-lg" type="submit" busy={busy}>
+        <Button className="btn-primary btn-block btn-lg" type="submit" busy={busy}>
           {t("btn.login")}
         </Button>
         <p className="tc small mt">
@@ -177,7 +177,7 @@ export function Register() {
         </label>
         <div className="mt">
           {site.data?.turnstile_site_key && <Turnstile siteKey={site.data.turnstile_site_key} onToken={setToken} resetKey={bump} />}
-          <Button className="btn-gold btn-block btn-lg" type="submit" busy={busy}>
+          <Button className="btn-primary btn-block btn-lg" type="submit" busy={busy}>
             {t("btn.register")}
           </Button>
         </div>
@@ -224,7 +224,7 @@ export function Forgot() {
             <TextInput id="email" type="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} error={fields.email} />
           </Field>
           {site.data?.turnstile_site_key && <Turnstile siteKey={site.data.turnstile_site_key} onToken={setToken} />}
-          <Button className="btn-gold btn-block btn-lg" type="submit" busy={busy}>
+          <Button className="btn-primary btn-block btn-lg" type="submit" busy={busy}>
             {t("app.forgot.send")}
           </Button>
         </form>
@@ -259,7 +259,7 @@ export function Reset() {
               <b>{t("app.reset.done")}</b>
             </div>
           </div>
-          <Link className="btn btn-gold btn-block btn-lg" to="/login">
+          <Link className="btn btn-primary btn-block btn-lg" to="/login">
             {t("btn.login")}
           </Link>
         </>
@@ -273,7 +273,7 @@ export function Reset() {
           <Field id="password" label={t("app.reset.newPassword")} error={fields.password} hint={t("app.register.passwordHint")}>
             <TextInput id="password" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} error={fields.password} />
           </Field>
-          <Button className="btn-gold btn-block btn-lg" type="submit" busy={busy}>
+          <Button className="btn-primary btn-block btn-lg" type="submit" busy={busy}>
             {t("btn.save")}
           </Button>
         </form>
