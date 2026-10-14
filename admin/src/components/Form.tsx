@@ -268,6 +268,8 @@ function parseLinks(raw: unknown): { label: string; url: string }[] {
 
 export function useFormState(fields: FieldDef[], row: Values | null, defaults: Values) {
   const [values, setValues] = useState<Values>(() => initialValues(fields, row, defaults));
-  useEffect(() => setValues(initialValues(fields, row, defaults)), [row]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setValues(initialValues(fields, row, defaults));
+  }, [row]); // eslint-disable-line react-hooks/exhaustive-deps
   return [values, (key: string, value: unknown) => setValues((v) => ({ ...v, [key]: value })), setValues] as const;
 }

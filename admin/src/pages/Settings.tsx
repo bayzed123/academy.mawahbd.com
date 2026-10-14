@@ -25,7 +25,9 @@ function Group<K extends Key>({ name, data, canWrite, children }: { name: K; dat
   const fieldErrors = useFieldErrors();
   const [v, setV] = useState<S[K]>(data);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  useEffect(() => setV(data), [data]);
+  useEffect(() => {
+    setV(data);
+  }, [data]);
   const save = useMutation({
     mutationFn: () => adm(`/settings/${name}`, { method: "PUT", json: v }),
     onSuccess: () => {

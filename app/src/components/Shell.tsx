@@ -18,7 +18,10 @@ export function Shell() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  useEffect(() => window.scrollTo({ top: 0 }), [pathname]);
+  // a block body on purpose: newer browsers return a Promise from scrollTo(), and React would take it for a cleanup function
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [pathname]);
 
   // keep the saved preference in step with the toggle for signed-in students (best effort)
   const switchLang = () => {
