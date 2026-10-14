@@ -6,12 +6,15 @@
  * Needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID. Exit code 1 means something has to be fixed before a deploy can work.
  * It catches the usual first-time slips early: a token pasted with a space, a token without D1 or R2, R2 not switched on,
  * and — most importantly — an account ID that belongs to a different Cloudflare account than the one the site is meant for
- * (the deploy would otherwise quietly create its database and storage there).
+ * (the deploy would otherwise quietly create its database and storage there). When the site has custom domains it also
+ * looks at each one: is its DNS zone on this account and active, may the token attach a Worker to it, is the name already
+ * taken by another Worker or by a DNS record that would block Cloudflare — so a domain problem stops the run here, before
+ * anything is published, instead of half way through a deploy.
  */
 import { appendFileSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readSiteUrl, readWorkerName } from "./lib/toml-patch.mjs";
+import { readCustomDomains, readSiteUrl, readWorkerName } from "./lib/toml-patch.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const toml = readFileSync(resolve(root, "worker/wrangler.toml"), "utf8");
@@ -98,6 +101,86 @@ if (subdomain) {
   }
   if (host.endsWith(".workers.dev") && host !== expected) {
     row(false, `worker/wrangler.toml says the site lives at https://${host}, but on this Cloudflare account it would be https://${expected}. Either CLOUDFLARE_ACCOUNT_ID belongs to a different Cloudflare account than you expect (nothing has been created there), or SITE_URL in worker/wrangler.toml needs to be updated.`);
+  }
+}
+
+// 4. the custom domains: is everything in place for Cloudflare to attach this Worker to them?
+const domains = readCustomDomains(toml);
+let siteHostName = "";
+try {
+  siteHostName = new URL(siteUrl ?? "").hostname;
+} catch {
+  /* SITE_URL missing or not a URL */
+}
+const onWorkersDev = siteHostName.endsWith(".workers.dev");
+if (siteHostName && !onWorkersDev && !domains.includes(siteHostName)) {
+  row(false, `worker/wrangler.toml says the site lives at https://${siteHostName}, but that name is not in the \`routes\` list as a custom domain, so the Worker would never answer there. Add { pattern = "${siteHostName}", custom_domain = true } to \`routes\` (or point SITE_URL at the free workers.dev address).`);
+}
+if (domains.length) await checkDomains();
+
+async function checkDomains() {
+  const refused = (a) => a.status === 401 || a.status === 403;
+  // which zone owns a name: try the name itself, then its parents (www.example.com → example.com)
+  const looked = new Map();
+  async function findZone(host) {
+    const labels = host.split(".");
+    for (let i = 0; i <= labels.length - 2; i++) {
+      const zoneName = labels.slice(i).join(".");
+      if (!looked.has(zoneName)) {
+        const a = await get(`/zones?name=${encodeURIComponent(zoneName)}&account.id=${account}`);
+        looked.set(zoneName, { a, zone: a.ok && Array.isArray(a.result) ? a.result.find((z) => z?.name === zoneName) : undefined });
+      }
+      const hit = looked.get(zoneName);
+      if (!hit.a.ok) return { failed: hit.a };
+      if (hit.zone) return { zone: hit.zone };
+    }
+    return {};
+  }
+
+  const listed = await get(`/accounts/${account}/workers/domains`);
+  const attached = listed.ok && Array.isArray(listed.result) ? listed.result : [];
+
+  for (const host of domains) {
+    const { zone, failed } = await findZone(host);
+    if (failed) {
+      row(null, refused(failed) ? `${host}: could not look up its DNS zone because the token has no Zone → Zone → Read permission. Skipped here; if attaching the domain fails, add that permission.` : `${host}: could not look up its DNS zone (Cloudflare answered ${failed.status || failed.message}). Skipped here.`);
+      continue;
+    }
+    if (!zone) {
+      row(false, `The domain ${host} cannot be used by this deploy: its DNS zone was not found. Check that the domain is listed under “Websites” in THIS Cloudflare account, and that the token's Zone Resources include it (edit the token: Zone Resources → Include → All zones), with the permissions Zone → Zone → Read and Zone → Workers Routes → Edit.`);
+      continue;
+    }
+    if (zone.status !== "active" || zone.paused) {
+      row(false, `The domain ${zone.name} is not active on Cloudflare yet (status “${zone.status}”${zone.paused ? ", paused" : ""}). Wait until the dashboard shows it as Active (a new domain's name servers can take a while), then run Deploy again.`);
+      continue;
+    }
+    row(true, `${host}: its DNS zone “${zone.name}” is on this account and active`);
+
+    const routes = await get(`/zones/${zone.id}/workers/routes`);
+    if (refused(routes)) {
+      row(false, `${host}: Cloudflare refused to let this token change Workers routes and custom domains for ${zone.name}. Give the token: Zone → Workers Routes → Edit (and make its Zone Resources include ${zone.name}).`);
+      continue;
+    }
+    if (routes.ok) row(true, `${host}: the token may attach a Worker to it`);
+
+    const taken = attached.find((d) => d?.hostname === host);
+    if (taken) {
+      if (taken.service === name) row(null, `${host}: already attached to this Worker.`);
+      else row(false, `${host} is already attached to a different Worker (“${taken.service}”) on this account. Remove it there first (Workers & Pages → that Worker → Settings → Domains & Routes), or choose another name.`);
+      continue;
+    }
+    // not attached yet: Cloudflare creates the DNS record itself, and refuses when the name already has an address record
+    const dns = await get(`/zones/${zone.id}/dns_records?name=${encodeURIComponent(host)}`);
+    if (refused(dns)) {
+      row(null, `${host}: not attached yet. Could not look for a DNS record that would block it (the token has no DNS Read); the deploy will say if there is one.`);
+      continue;
+    }
+    const clash = dns.ok && Array.isArray(dns.result) ? dns.result.filter((r) => ["A", "AAAA", "CNAME"].includes(r?.type)) : [];
+    if (clash.length) {
+      row(false, `${host} already has a DNS record (${clash.map((r) => `${r.type} → ${r.content}`).join(", ")}). Cloudflare can only attach a Worker to a name that has none. In the dashboard open ${zone.name} → DNS → Records, delete that record, then run Deploy again.`);
+    } else {
+      row(null, `${host}: not attached yet — this deploy attaches it. Cloudflare creates the DNS record and the certificate itself; the first visit can take a few minutes.`);
+    }
   }
 }
 

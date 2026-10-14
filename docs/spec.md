@@ -40,7 +40,7 @@
 
 | | |
 |---|---|
-| **Brand** | MAWAH Academy · মাওয়াহ একাডেমি · short code `MWH` (invoice prefix) · `academy.mawahbd.com` |
+| **Brand** | MAWAH Academy · মাওয়াহ একাডেমি · short code `MWH` (invoice prefix) · `mawahacademy.com` |
 | **Business** | Online **cooking and baking** classes: class sales, the student learning experience, verifiable certificates |
 | **Market** | Bangladesh first (mobile-first, Bangla + English, BDT prices, local payments), with a path to international payments later |
 | **Tagline** | EN *“Learn cooking & baking step by step, from home.”* · BN *“ঘরে বসেই ধাপে ধাপে শিখুন রান্না ও বেকিং।”* |
@@ -240,6 +240,8 @@ flowchart LR
 
 **Edge page cache.** Public pages are identical for every visitor, so each is rendered once per data centre and served from the Cache API. The cache key is *path + the few query parameters that change the page + a “content version”* kept in KV; **any admin edit bumps the version**, which invalidates every cached page — immediately in the data centre that handled the edit and within about a minute everywhere else (KV is eventually consistent). Marketing parameters (`?fbclid`, `?utm_*`) never fragment the cache. Cached HTML is anonymous; a non-secret cookie flag lets the script swap “Log in” for “My Learning”.
 
+**One public address.** The site lives at `SITE_URL` (`https://mawahacademy.com`); Cloudflare attaches that name and `www.` to the Worker as custom domains (it creates their DNS records and certificates). In production the Worker sends plain http to https and `www.` to the main name with permanent redirects that keep path and query, and answers on any other address — the free `workers.dev` one, used for the checks right after a deploy — with `X-Robots-Tag: noindex` and a `robots.txt` that closes the door, so search engines only ever list the real address. Canonical links, `hreflang`, the sitemap, e-mail links and payment callbacks are all built from `SITE_URL`. Sign-in cookies are `__Host-` cookies, so they belong to one address.
+
 **Storage.** D1 = relational data · KV = sessions (only a SHA-256 of the token is stored), content version, chat/day counters, dev mail outbox · R2 = public images (`banners/ photos/ blog/`, content-hash names), **private** lesson files (`resources/`, downloaded only through an authenticated, enrolment-checked route) and **private payment screenshots** (`proofs/`, opened only by staff who may verify payments) · Stream = video.
 
 **Scheduled work** (cron, every 6 h; every step independent and idempotent): cancel checkouts abandoned for 48 h (an unpaid manual order too — one waiting for staff is never auto-closed) · delete payment screenshots 90 days after their order was settled · purge used/expired tokens · drop old unverified payment events · finish interrupted launch e-mails.
@@ -251,13 +253,14 @@ flowchart LR
   DEV["Developer"] -->|"pull request"| GH["GitHub"]
   GH --> CI["CI: typecheck, unit tests, E2E, Lighthouse, secret scan"]
   CI -->|"green, merged to main"| DEP["Deploy workflow"]
-  DEP --> PRE["Access check + find or create D1 / KV / R2"]
+  DEP --> PRE["Access check (token, R2, the domain's zone) + find or create D1 / KV / R2"]
   PRE --> MIG["D1 migrations apply --remote"]
   MIG --> WD["wrangler deploy"]
   WD --> CF["Cloudflare: Worker + static assets"]
   CF --> SEC["Secrets (APP_SECRET, SETUP_TOKEN) if missing"]
-  SEC --> HC["Health check: /api/health"]
-  HC --> LH["Lighthouse on the live pages"]
+  SEC --> HC["Health check of the free address: /api/health"]
+  HC --> PUB["Public address check: pages, canonical links, robots.txt, sitemap, https + www redirects"]
+  PUB --> LH["Lighthouse on the live pages"]
 ```
 
 ---
@@ -537,9 +540,10 @@ Budgets (`scripts/lighthouse-local.mjs`): performance ≥ 85, accessibility ≥ 
 | Unit + integration | **Vitest inside the real Workers runtime** (`@cloudflare/vitest-plugin`, local D1/KV/R2) | 130 tests | Auth and lock-out, RBAC matrix, every admin module, catalogue, checkout, coupons, bundles, webhooks and idempotency, refunds, enrolment, drip, progress, reviews gating, certificates and verification, invoices, chatbot, cron, uploads, CSV, security headers, rate limits |
 | API contract | JSON fixtures in `tests/fixtures/` (`course-list`, `create-order`, `admin-login`, `certificate-verify`) | 8 | Exact response shapes and “never leaks” key lists |
 | Route guards + production mode | `worker/test/hardening.test.ts` (Vitest, same runtime) | 10 | **Every** registered API route is enumerated from the router: admin endpoints refuse anonymous callers and student sessions, a read-only Viewer cannot write anywhere, student/checkout endpoints need a login — so a new endpoint that forgets its check fails immediately. Also flips `ENVIRONMENT=production` to prove HSTS, `__Host-` Secure/HttpOnly cookies (Strict for staff), no test gateway or dev mailbox even with `ALLOW_MOCK_PAYMENTS`, the edge page cache (MISS → HIT, tracking parameters ignored, an admin edit shows on the next request) and that personal responses are never cached |
-| Script tests | `node --test` | 31 | The Cloudflare setup script (run against a stand-in Wrangler that behaves like the real one — it titles the KV namespace just “KV” and refuses a duplicate title: a fresh account, a second run, secrets never printed or invented, R2 off) and the deploy access check (run against a pretend Cloudflare API: missing permissions, R2 off, a pasted-with-a-space token, an account ID that belongs to another account); the brand (palette contrast ratios, every CSS variable defined, the logo/icon files the pages point at); React effects must not return a value by accident (newer Chrome returns a Promise from `scrollTo()`, which React would call as a cleanup function and blank the app) |
+| Script tests | `node --test` | 57 | The Cloudflare setup script (run against a stand-in Wrangler that behaves like the real one — it titles the KV namespace just “KV” and refuses a duplicate title: a fresh account, a second run, secrets never printed or invented, R2 off) and the deploy access check (run against a pretend Cloudflare API: missing permissions, R2 off, a pasted-with-a-space token, an account ID that belongs to another account, and for the custom domain a missing or inactive zone, a token that may not manage Workers routes, a name another Worker uses, a DNS record in the way); the check of the public address after a deploy (run against stand-in sites: a clean one, one that comes up late, and one for each way it can go wrong — wrong canonical link, closed robots.txt, workers.dev in the sitemap, missing redirects or headers, Rocket Loader); the brand (palette contrast ratios, every CSS variable defined, the logo/icon files the pages point at); React effects must not return a value by accident (newer Chrome returns a Promise from `scrollTo()`, which React would call as a cleanup function and blank the app) |
 | **End-to-end** | **Playwright** against a real Worker on a fresh seeded local database | 35 | **enrol → pay → access → complete → certificate issued → publicly verified**, the admin workflows (first-run setup, instructors with photo upload, settings, class + curriculum + files, manual payment (own number → countdown → TrxID/screenshot → WhatsApp message → approve), refund, coming-soon notify list, team roles, chatbot key masking, reports, CSV), the owner’s numbers matching what students did, language toggle, password change/reset, **axe accessibility** on every main screen, **360 px phones** |
-| Web vitals | Lighthouse gate | 5 pages | §10 budgets |
+| Public address | `worker/test/domain.test.ts` (Vitest, same runtime) | 8 | http → https and `www.` → main name keep path and query; the free address works but is `noindex` with a closed `robots.txt`; nothing happens in development or with a broken `SITE_URL` |
+| Web vitals | Lighthouse gate | 5 pages (measured again up to 3 times when a budget is missed) | §10 budgets |
 | Types | `tsc` in all four workspaces | — | Required before a deploy |
 
 The suites found real defects while they were being written — an edit form that sent empty values the API rejected, free enrolments counted as sales in the reports, pages that scrolled sideways on a 360 px phone, unnamed progress bars — all fixed in this repository.

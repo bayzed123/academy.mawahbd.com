@@ -6,7 +6,8 @@
  *
  * Why: the [ai] and [stream] bindings are "remote-only" — wrangler would need a Cloudflare login
  * (and could incur usage) even for `wrangler dev`/vitest. The Worker treats both as optional, so the
- * generated copy simply drops them and switches the public vars to development values.
+ * generated copy simply drops them and switches the public vars to development values. It also drops the custom-domain
+ * `routes`: they only mean something on the real Cloudflare account, never on a local machine.
  */
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -28,11 +29,13 @@ const lines = readFileSync(src, "utf8").split("\n");
 const result = [];
 let dropping = false;
 let inVars = false;
+let inTable = false;
 
 for (const line of lines) {
   const header = line.match(/^\s*\[{1,2}\s*([^\]]+?)\s*\]{1,2}\s*(#.*)?$/);
   if (header) {
     const name = header[1];
+    inTable = true;
     dropping = DROP_TABLES.has(name);
     inVars = name === "vars";
     if (dropping) continue;
@@ -40,6 +43,7 @@ for (const line of lines) {
     // skip the body of a dropped table until the next header
     continue;
   }
+  if (!inTable && /^\s*routes\s*=/.test(line)) continue; // custom domains: real Cloudflare account only
   if (inVars) {
     const kv = line.match(/^(\w+)\s*=\s*"[^"]*"(.*)$/);
     if (kv && kv[1] in DEV_VARS) {
