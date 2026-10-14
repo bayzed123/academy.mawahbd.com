@@ -1,11 +1,14 @@
 #:schema node_modules/wrangler/config-schema.json
 # =============================================================================
 #  MAWAH Academy — Cloudflare Worker configuration
-#  Run `npm run setup:cloudflare` once: it creates the D1 database, KV namespace
-#  and R2 bucket for you and fills in the IDs below. No secrets live in this file —
-#  every key (payments, e-mail, AI) is set with `wrangler secret put` (docs/deployment.md).
+#  You do not fill in the two placeholder IDs below. Every deploy from GitHub
+#  (.github/workflows/deploy.yml) finds — or creates — the D1 database, KV namespace
+#  and R2 bucket on your Cloudflare account and puts their IDs in for that run
+#  (to deploy from your own computer instead: `npm run setup:cloudflare` once).
+#  No secrets live in this file — every key (payments, e-mail, AI) is a Wrangler
+#  secret (docs/deployment.md).
 # =============================================================================
-name = "mawah-academy"
+name = "academy-mawahbd-com"     # must be the name of the Worker on the Cloudflare account (the dashboard shows it)
 main = "src/index.ts"
 compatibility_date = "2026-10-14"
 compatibility_flags = ["nodejs_compat"]
@@ -13,7 +16,9 @@ workers_dev = true
 upload_source_maps = true
 
 # --- Custom domain ----------------------------------------------------------
-# Uncomment once mawahbd.com is on this Cloudflare account (setup script can do it):
+# Until then the site answers on the free workers.dev address (SITE_URL below). To move it to academy.mawahbd.com — its
+# DNS zone must be on the same Cloudflare account — uncomment the next line AND change SITE_URL to
+# "https://academy.mawahbd.com", then commit (or run: npm run setup:cloudflare -- --domain academy.mawahbd.com).
 # routes = [{ pattern = "academy.mawahbd.com", custom_domain = true }]
 
 # --- Static assets: React apps (/app, /admin) + fonts/css/js (/assets) -------
@@ -31,7 +36,7 @@ run_worker_first = [
 # --- Public (non-secret) configuration ---------------------------------------
 [vars]
 ENVIRONMENT = "production"            # production | development
-SITE_URL = "https://academy.mawahbd.com"
+SITE_URL = "https://academy-mawahbd-com.mawahacademy.workers.dev"   # the public address: must match where people open the site
 BRAND_CODE = "MWH"                    # used in invoice numbers: INV-MWH-YYYYMMDD-0001
 DEFAULT_LANG = "bn"                   # bn | en
 PAYMENT_MODE = "live"                 # live | sandbox (gateway sandbox endpoints)

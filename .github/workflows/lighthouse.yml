@@ -25,14 +25,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      # The address is the SITE_URL in worker/wrangler.toml (the repository variable SITE_URL overrides it, if you set one).
+      - name: Which address to measure
+        id: site
+        env:
+          OVERRIDE: ${{ vars.SITE_URL }}
+        run: echo "url=${OVERRIDE:-$(node scripts/print-site-url.mjs)}" >> "$GITHUB_OUTPUT"
       # Before the site is deployed (or while it is unreachable) there is nothing to measure: say so instead of failing
       # every Monday. A manual run still fails loudly.
       - name: Is the site live?
         id: live
         env:
-          SITE: ${{ vars.SITE_URL || 'https://academy.mawahbd.com' }}
+          SITE: ${{ steps.site.outputs.url }}
         run: |
-          if curl -fsS --max-time 20 "$SITE/api/health" | grep -q '"ok":true'; then
+          body="$(curl -fsS --max-time 20 "$SITE/api/health" || true)"
+          if printf '%s' "$body" | grep -q '"ok":true'; then
             echo "live=true" >> "$GITHUB_OUTPUT"
           elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
             echo "::error title=The site is not reachable::$SITE/api/health did not answer."
@@ -45,5 +52,5 @@ jobs:
         if: steps.live.outputs.live == 'true'
         env:
           CHROME_PATH: /usr/bin/google-chrome
-          LH_URL: ${{ vars.SITE_URL || 'https://academy.mawahbd.com' }}
+          LH_URL: ${{ steps.site.outputs.url }}
         run: node scripts/lighthouse-local.mjs

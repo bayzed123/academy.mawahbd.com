@@ -1,7 +1,8 @@
 name: Deploy
 
-# Push to main  →  all checks (ci.yml)  →  database migrations  →  wrangler deploy  →  health check.
-# One-time setup (repository secrets, environment, Cloudflare resources) is in docs/deployment.md.
+# Push to main  →  all checks (ci.yml)  →  Cloudflare access check  →  find or create the database, KV and file storage
+# →  database migrations  →  wrangler deploy  →  secrets  →  health check.
+# One-time setup is two repository secrets (docs/deployment.md, section 4). Nothing else has to be filled in by hand.
 on:
   push:
     branches: [main]
@@ -35,51 +36,55 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: actions/checkout@v4
       - id: check
         run: |
-          problem=""
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            problem="Add the repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (docs/deployment.md, step 6)."
-          elif grep -q "REPLACE_WITH" worker/wrangler.toml; then
-            problem="worker/wrangler.toml still contains placeholder IDs. Run 'npm run setup:cloudflare' and commit the result (docs/deployment.md)."
-          fi
-          if [ -z "$problem" ]; then
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
-          elif [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            exit 0
+          fi
+          problem="Add the repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (docs/deployment.md, section 4)."
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
             echo "::error title=Deployment is not set up::$problem"
             exit 1
-          else
-            echo "deploy=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Deployment is not set up yet, so nothing was deployed::$problem"
-            echo "### Nothing was deployed" >> "$GITHUB_STEP_SUMMARY"
-            echo "$problem" >> "$GITHUB_STEP_SUMMARY"
           fi
+          echo "deploy=false" >> "$GITHUB_OUTPUT"
+          echo "::notice title=Deployment is not set up yet, so nothing was deployed::$problem"
+          { echo "### Nothing was deployed"; echo "$problem"; } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     name: Migrate and deploy to Cloudflare
     needs: [verify, ready]
     if: needs.ready.outputs.deploy == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     # Optional: in GitHub → Settings → Environments → production, add "required reviewers" to approve each release.
     environment:
       name: production
-      url: ${{ vars.SITE_URL || 'https://academy.mawahbd.com' }}
+      url: ${{ steps.deploy.outputs.url }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      SITE: ${{ vars.SITE_URL || 'https://academy.mawahbd.com' }}
+      WRANGLER_SEND_METRICS: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
+
+      # Read-only. Says in plain words if the token lacks a permission, R2 is off, or the account ID is another account's.
+      - name: Check the Cloudflare access (changes nothing)
+        run: node scripts/ci-preflight.mjs
+
       - run: npm ci
 
       - name: Build (public site, student app, admin)
         run: npm run build
+
+      # The two placeholder IDs in worker/wrangler.toml are filled in here, for this run only (nothing is committed).
+      # Creates the D1 database, KV namespace and R2 bucket the first time; afterwards it only finds them.
+      - name: Find or create the database, KV storage and file storage
+        run: node scripts/setup-cloudflare.mjs --ci
 
       - name: Remember the database restore point
         working-directory: worker
@@ -95,18 +100,61 @@ jobs:
         run: npx wrangler d1 migrations apply DB --remote
 
       - name: Deploy the Worker and its static assets
+        id: deploy
         working-directory: worker
-        run: npx wrangler deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          title="$(git log -1 --pretty=%s)"
+          npx wrangler deploy --message "GitHub: ${title:0:80} (${GITHUB_SHA::7})" 2>&1 | tee "$RUNNER_TEMP/deploy.log"
+          # the address Cloudflare just published; the SITE_URL from wrangler.toml if Cloudflare printed none
+          url="$(grep -oE 'https://[A-Za-z0-9.-]+\.workers\.dev' "$RUNNER_TEMP/deploy.log" | head -1 || true)"
+          [ -n "$url" ] || url="$(node ../scripts/print-site-url.mjs)"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      # APP_SECRET is made here (random, never shown) if the Worker has none. SETUP_TOKEN is only taken from the repository
+      # secret of that name — optional, needed once, to create the first admin. Existing secrets are never replaced.
+      - name: Give the Worker its secrets
+        env:
+          SETUP_TOKEN: ${{ secrets.SETUP_TOKEN }}
+        run: node scripts/setup-cloudflare.mjs --ci --no-resources --secrets
 
       - name: Health check
+        shell: bash
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
         run: |
-          for attempt in 1 2 3 4 5 6; do
-            if curl -fsS "$SITE/api/health" | grep -q '"ok":true'; then
-              echo "healthy: $SITE"
+          for attempt in $(seq 1 12); do
+            body="$(curl -fsS --max-time 20 "$URL/api/health" || true)"
+            if printf '%s' "$body" | grep -q '"ok":true'; then
+              echo "healthy: $URL"
+              {
+                echo "### ✅ Deployed"
+                echo
+                echo "Site: $URL"
+                echo "Admin: $URL/admin/"
+              } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             echo "not ready yet (attempt $attempt) …"
             sleep 10
           done
-          echo "::error::$SITE/api/health did not report healthy after the deploy"
+          echo "::error::$URL/api/health did not report healthy after the deploy"
           exit 1
+
+      - name: What to check if this failed
+        if: failure()
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ### ❌ The deploy did not finish
+
+          The site keeps serving the version it had before. Open the red step above to read Cloudflare's own message, then check:
+
+          1. **"Check the Cloudflare access"** failed: follow the ✗ lines (a missing token permission, R2 not switched on, or an account ID that belongs to another Cloudflare account).
+          2. **"Find or create the database, KV storage and file storage"** failed: R2 must be switched on once (Cloudflare dashboard → R2 → Overview), and the API token needs *D1 · Edit*, *Workers KV Storage · Edit* and *Workers R2 Storage · Edit* as well as *Workers Scripts · Edit*.
+          3. **Migrations or "Deploy the Worker"** failed: read the message. If it mentions Stream, switch Stream on in the Cloudflare dashboard.
+          4. **"Health check"** failed: the code was published but the site answers with an error. Open the address and add `/api/health`.
+          5. Cloudflare's own **Workers Builds** (the Git connection under Worker → Settings → Builds) is not used by this project and fails on it. Disconnect it there.
+
+          More: docs/deployment.md, sections 4 and 8.
+          EOF

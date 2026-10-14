@@ -1,0 +1,155 @@
+import assert from "node:assert/strict";
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { test } from "node:test";
+import { fileURLToPath } from "node:url";
+import { findPlaceholders } from "./toml-patch.mjs";
+
+/*
+ * Runs scripts/setup-cloudflare.mjs — the thing GitHub's Deploy workflow runs before and after every deploy — against a
+ * stand-in for Wrangler that keeps a pretend Cloudflare account in a file. It checks what the script does to a fresh
+ * account, that a second run changes nothing, that secrets are never printed and never invented, and that a missing
+ * R2 subscription ends with a plain explanation. Nothing here talks to Cloudflare.
+ */
+const root = fileURLToPath(new URL("../../", import.meta.url));
+
+const FAKE_WRANGLER = `#!/usr/bin/env node
+const fs = require("node:fs");
+const file = process.env.FAKE_STATE;
+const s = JSON.parse(fs.readFileSync(file, "utf8"));
+const a = process.argv.slice(2);
+s.calls.push(a.join(" "));
+const done = (code = 0) => { fs.writeFileSync(file, JSON.stringify(s)); process.exit(code); };
+const say = (x) => process.stdout.write(typeof x === "string" ? x : JSON.stringify(x, null, 2));
+const stdin = () => { try { return fs.readFileSync(0, "utf8"); } catch { return ""; } };
+const workerName = (fs.readFileSync("wrangler.toml", "utf8").match(/^name\\s*=\\s*"([^"]+)"/m) || [])[1];
+const cmd = a.slice(0, 2).join(" ");
+
+if (a[0] === "whoami") { say("You are logged in with an API Token.\\n"); done(); }
+if (cmd === "d1 list") { say(s.d1); done(); }
+if (cmd === "d1 create") { s.d1.push({ uuid: "d1-" + (s.d1.length + 1) + "-uuid", name: a[2] }); say("Created\\n"); done(); }
+if (a[0] === "kv" && a[2] === "list") { say(s.kv); done(); }
+if (a[0] === "kv" && a[2] === "create") { s.kv.push({ id: "kv" + (s.kv.length + 1) + "id", title: s.kvTitle || workerName + "-" + a[3] }); say("Created\\n"); done(); }
+if (a[0] === "r2" && s.r2Disabled) { process.stderr.write("Please enable R2 through the Cloudflare Dashboard. [code: 10042]\\n"); done(1); }
+if (cmd === "r2 bucket" && a[2] === "list") { say(s.r2.map((n) => "name:           " + n + "\\n").join("")); done(); }
+if (cmd === "r2 bucket" && a[2] === "create") { s.r2.push(a[3]); say("Created\\n"); done(); }
+if (cmd === "secret list") { say(s.secrets.map((name) => ({ name, type: "secret_text" }))); done(); }
+if (cmd === "secret put") { s.secretValues[a[2]] = stdin(); s.secrets.push(a[2]); say("Success\\n"); done(); }
+process.stderr.write("fake wrangler: unexpected command " + a.join(" ") + "\\n");
+done(2);
+`;
+
+function sandbox(initial = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "mawah-setup-"));
+  mkdirSync(join(dir, "scripts/lib"), { recursive: true });
+  mkdirSync(join(dir, "worker"));
+  copyFileSync(join(root, "scripts/setup-cloudflare.mjs"), join(dir, "scripts/setup-cloudflare.mjs"));
+  copyFileSync(join(root, "scripts/lib/toml-patch.mjs"), join(dir, "scripts/lib/toml-patch.mjs"));
+  copyFileSync(join(root, "worker/wrangler.toml"), join(dir, "worker/wrangler.toml"));
+  const bin = join(dir, "fake-wrangler.cjs");
+  writeFileSync(bin, FAKE_WRANGLER);
+  chmodSync(bin, 0o755);
+  const state = join(dir, "state.json");
+  writeFileSync(state, JSON.stringify({ d1: [], kv: [], r2: [], secrets: [], secretValues: {}, calls: [], ...initial }));
+  return {
+    toml: () => readFileSync(join(dir, "worker/wrangler.toml"), "utf8"),
+    state: () => JSON.parse(readFileSync(state, "utf8")),
+    run(args, env = {}) {
+      const r = spawnSync(process.execPath, [join(dir, "scripts/setup-cloudflare.mjs"), ...args], {
+        encoding: "utf8",
+        env: { PATH: process.env.PATH, WRANGLER_BIN: bin, FAKE_STATE: state, ...env },
+      });
+      return { code: r.status, out: `${r.stdout}${r.stderr}` };
+    },
+  };
+}
+
+const creates = (calls) => calls.filter((c) => /(^| )(create|put)( |$)/.test(c));
+
+test("a fresh account: creates the database, the KV namespace and the bucket, and fills the IDs in", () => {
+  const sb = sandbox();
+  const r = sb.run(["--ci"]);
+  assert.equal(r.code, 0, r.out);
+  assert.deepEqual(findPlaceholders(sb.toml()), []);
+  assert.match(sb.toml(), /database_id = "d1-1-uuid"/);
+  assert.match(sb.toml(), /^id = "kv1id"/m);
+  assert.deepEqual(creates(sb.state().calls), ["d1 create mawah-academy-db", "kv namespace create KV", "r2 bucket create mawah-academy-media"]);
+  assert.doesNotMatch(r.out, /Next steps/, "automation prints no hand-holding text");
+  assert.ok(!sb.state().calls.includes("whoami"), "no separate login check in automation: the access check came first and Wrangler reports real errors itself");
+});
+
+test("running it again creates nothing and changes nothing", () => {
+  const sb = sandbox();
+  assert.equal(sb.run(["--ci"]).code, 0);
+  const first = sb.toml();
+  const callsBefore = sb.state().calls.length;
+  const again = sb.run(["--ci"]);
+  assert.equal(again.code, 0, again.out);
+  assert.deepEqual(creates(sb.state().calls.slice(callsBefore)), []);
+  assert.equal(sb.toml(), first);
+});
+
+test("a KV namespace made under the Worker's earlier name is reused, not duplicated", () => {
+  const sb = sandbox({ kv: [{ id: "oldkv", title: "mawah-academy-KV" }] });
+  assert.equal(sb.run(["--ci"]).code, 0);
+  assert.match(sb.toml(), /^id = "oldkv"/m);
+  assert.equal(sb.state().calls.filter((c) => c.startsWith("kv namespace create")).length, 0);
+});
+
+test("a new KV namespace is found even when this Wrangler titles it differently", () => {
+  const sb = sandbox({ kvTitle: "some-other-title", kv: [{ id: "someone-elses", title: "unrelated" }] });
+  assert.equal(sb.run(["--ci"]).code, 0);
+  assert.match(sb.toml(), /^id = "kv2id"/m, "the namespace that appeared, not the unrelated one");
+});
+
+test("secrets: APP_SECRET is random, SETUP_TOKEN comes from the environment, and neither is ever printed", () => {
+  const sb = sandbox();
+  const token = "my-own-long-setup-token-42";
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { SETUP_TOKEN: `${token}\n` });
+  assert.equal(r.code, 0, r.out);
+  const s = sb.state();
+  assert.ok(s.secretValues.APP_SECRET.length >= 48, "a long random APP_SECRET");
+  assert.equal(s.secretValues.SETUP_TOKEN, token, "the owner's token, trimmed");
+  assert.ok(!r.out.includes(token) && !r.out.includes(s.secretValues.APP_SECRET), "no secret value in the output");
+  assert.deepEqual(s.calls.filter((c) => /^(d1|kv|r2) /.test(c)), [], "--no-resources leaves the database, KV and R2 alone");
+  assert.equal(sb.toml(), readFileSync(join(root, "worker/wrangler.toml"), "utf8"), "and the file");
+});
+
+test("secrets already on the Worker are left alone", () => {
+  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN"] });
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { SETUP_TOKEN: "another-long-token-value" });
+  assert.equal(r.code, 0, r.out);
+  assert.deepEqual(creates(sb.state().calls), []);
+});
+
+test("no SETUP_TOKEN is ever invented in automation; a too-short one is refused", () => {
+  const none = sandbox();
+  const r1 = none.run(["--ci", "--no-resources", "--secrets"]);
+  assert.equal(r1.code, 0, r1.out);
+  assert.deepEqual(Object.keys(none.state().secretValues), ["APP_SECRET"]);
+  assert.match(r1.out, /no SETUP_TOKEN yet/);
+
+  const short = sandbox();
+  const r2 = short.run(["--ci", "--no-resources", "--secrets"], { SETUP_TOKEN: "short" });
+  assert.equal(r2.code, 0, r2.out);
+  assert.deepEqual(Object.keys(short.state().secretValues), ["APP_SECRET"]);
+  assert.match(r2.out, /shorter than 12/);
+});
+
+test("R2 not switched on: stops with the plain instruction", () => {
+  const sb = sandbox({ r2Disabled: true });
+  const r = sb.run(["--ci"]);
+  assert.notEqual(r.code, 0);
+  assert.match(r.out, /R2 → Overview/);
+});
+
+test("a dry run calls nothing and changes nothing", () => {
+  const sb = sandbox();
+  const r = sb.run(["--dry-run", "--ci", "--secrets", "--domain", "learn.example.com"]);
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /dry run/);
+  assert.deepEqual(sb.state().calls, []);
+  assert.equal(sb.toml(), readFileSync(join(root, "worker/wrangler.toml"), "utf8"));
+});
