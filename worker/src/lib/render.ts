@@ -41,7 +41,7 @@ export async function renderHtml(
  * Edge page cache. Public pages are identical for every visitor, so they are rendered once per colo
  * and served from Cloudflare's cache (Cache API). The cache key contains
  *   - only the query params that change the page (so ?fbclid=… / ?utm_… never fragment the cache)
- *   - a "content version" number that any admin edit bumps (instant, global invalidation)
+ *   - a "content version" number that any admin edit bumps (immediate in the colo that made the edit, ~1 minute elsewhere: KV is eventually consistent)
  * ------------------------------------------------------------------------------------------------ */
 export interface CacheOptions {
   /** seconds the edge may serve the same HTML */

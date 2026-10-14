@@ -451,7 +451,7 @@ describe("learning: access control, progress and certificates", () => {
     expect(file.status).toBe(200);
     expect(file.headers.get("content-disposition")).toContain("attachment");
     expect(file.headers.get("cache-control")).toContain("no-store");
-    expect(await file.text()).toBe("%PDF-1.4 test");
+    expect(new TextDecoder().decode(await file.arrayBuffer())).toBe("%PDF-1.4 test"); // bytes, not .text(): it is a PDF
   });
 
   it("tracks progress and issues a verifiable certificate at 100% — exactly once", async () => {

@@ -233,7 +233,7 @@ flowchart LR
 | `/media/*` | Public images from R2 (immutable cache; only image types; SVG refused) |
 | `/fonts/*`, `/assets/*`, `/sprite.svg` … | Static assets, served straight from Cloudflare’s asset layer with long-lived cache headers (no Worker run) |
 
-**Edge page cache.** Public pages are identical for every visitor, so each is rendered once per data centre and served from the Cache API. The cache key is *path + the few query parameters that change the page + a “content version”* kept in KV; **any admin edit bumps the version**, which invalidates everything instantly and globally. Marketing parameters (`?fbclid`, `?utm_*`) never fragment the cache. Cached HTML is anonymous; a non-secret cookie flag lets the script swap “Log in” for “My Learning”.
+**Edge page cache.** Public pages are identical for every visitor, so each is rendered once per data centre and served from the Cache API. The cache key is *path + the few query parameters that change the page + a “content version”* kept in KV; **any admin edit bumps the version**, which invalidates every cached page — immediately in the data centre that handled the edit and within about a minute everywhere else (KV is eventually consistent). Marketing parameters (`?fbclid`, `?utm_*`) never fragment the cache. Cached HTML is anonymous; a non-secret cookie flag lets the script swap “Log in” for “My Learning”.
 
 **Storage.** D1 = relational data · KV = sessions (only a SHA-256 of the token is stored), content version, chat/day counters, dev mail outbox · R2 = public images (`banners/ photos/ blog/`, content-hash names) and **private** lesson files (`resources/`, downloaded only through an authenticated, enrolment-checked route) · Stream = video.
 
@@ -469,7 +469,7 @@ Aligned with the **NIST Cybersecurity Framework** (Govern, Identify, Protect, De
 Speed is treated as a requirement with real techniques:
 
 * **Lean cold-entry pages.** Server-rendered HTML, **45–71 KB raw / 11–15 KB gzip** per public page (a test caps the home page at 110 KB), CSS inlined, one ≈ 3.7 KB script, **zero third-party requests** before the visitor interacts (a test fails the build otherwise), fonts self-hosted and preloaded, analytics loaded only after the first interaction (or 6 s).
-* **Edge-cached HTML** with instant global invalidation (§6) and `stale-while-revalidate`.
+* **Edge-cached HTML** with fast global invalidation (≈ 1 minute, §6) and `stale-while-revalidate`.
 * **Images**: uploads are resized/compressed in the browser before upload and stored under content-hash names with a one-year immutable cache; banners are lazy-loaded except the first three.
 * **Video through Cloudflare Stream** (adaptive bitrate, signed tokens) — never raw files from R2.
 * **Lazy everything below the fold**: reviews and related classes are fetched when scrolled near; off-screen page sections skip layout/paint (`content-visibility`).
@@ -499,6 +499,7 @@ Budgets (`scripts/lighthouse-local.mjs`): performance ≥ 85, accessibility ≥ 
 |---|---|---:|---|
 | Unit + integration | **Vitest inside the real Workers runtime** (`@cloudflare/vitest-plugin`, local D1/KV/R2) | 107 tests | Auth and lock-out, RBAC matrix, every admin module, catalogue, checkout, coupons, bundles, webhooks and idempotency, refunds, enrolment, drip, progress, reviews gating, certificates and verification, invoices, chatbot, cron, uploads, CSV, security headers, rate limits |
 | API contract | JSON fixtures in `tests/fixtures/` (`course-list`, `create-order`, `admin-login`, `certificate-verify`) | 8 | Exact response shapes and “never leaks” key lists |
+| Route guards + production mode | `worker/test/hardening.test.ts` (Vitest, same runtime) | 10 | **Every** registered API route is enumerated from the router: admin endpoints refuse anonymous callers and student sessions, a read-only Viewer cannot write anywhere, student/checkout endpoints need a login — so a new endpoint that forgets its check fails immediately. Also flips `ENVIRONMENT=production` to prove HSTS, `__Host-` Secure/HttpOnly cookies (Strict for staff), no test gateway or dev mailbox even with `ALLOW_MOCK_PAYMENTS`, the edge page cache (MISS → HIT, tracking parameters ignored, an admin edit shows on the next request) and that personal responses are never cached |
 | Script tests | `node --test` | 5 | The Cloudflare setup helper |
 | **End-to-end** | **Playwright** against a real Worker on a fresh seeded local database | 33 | **enrol → pay → access → complete → certificate issued → publicly verified**, the admin workflows (first-run setup, instructors with photo upload, settings, class + curriculum + files, manual payment approve/refund, coming-soon notify list, team roles, chatbot key masking, reports, CSV), the owner’s numbers matching what students did, language toggle, password change/reset, **axe accessibility** on every main screen, **360 px phones** |
 | Web vitals | Lighthouse gate | 5 pages | §10 budgets |
