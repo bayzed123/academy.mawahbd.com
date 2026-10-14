@@ -7,7 +7,7 @@ import type { PageCtx } from "../ctx";
 import { Layout } from "../layout";
 import { qrSvg } from "../qr";
 import { articleLd, breadcrumbLd, personLd } from "../seo";
-import { CourseCard, Crumbs, Flash, Icon, LogoMark, SectionHead } from "../ui";
+import { CourseCard, Crumbs, Flash, Icon, LogoImg, SectionHead } from "../ui";
 
 /* ======================================================================================== blog */
 export interface PostRow {
@@ -195,7 +195,7 @@ export function AboutPage({ ctx }: { ctx: PageCtx }) {
             ))}
           </ul>
           <p class="cta-row">
-            <a class="btn btn-gold btn-lg" href={ctx.href("/courses")}>
+            <a class="btn btn-primary btn-lg" href={ctx.href("/courses")}>
               {t("hero.cta1")}
               <Icon name="arrow" />
             </a>
@@ -248,7 +248,7 @@ export function ContactPage({ ctx, flash }: { ctx: PageCtx; flash?: string }) {
                 <textarea class="input" id="c-msg" name="message" required minlength={5} maxlength={2000} />
               </div>
               <div data-turnstile />
-              <button class="btn btn-gold btn-lg" type="submit">
+              <button class="btn btn-primary btn-lg" type="submit">
                 {t("contact.send")}
               </button>
               <p class="status-line" data-status role="status" />
@@ -318,7 +318,7 @@ export function VerifyPage({ ctx, code, cert }: { ctx: PageCtx; code?: string; c
                 {t("verify.input")}
               </label>
               <input class="input" id="vcode" name="code" value={code ?? ""} placeholder="MWH-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck={false} required />
-              <button class="btn btn-gold" type="submit">
+              <button class="btn btn-primary" type="submit">
                 {t("verify.btn")}
               </button>
             </form>
@@ -389,7 +389,7 @@ export function CertificatePage({ ctx, cert }: { ctx: PageCtx; cert: CertRow }) 
       bodyClass="doc"
     >
       <div class="doc-bar">
-        <button class="btn btn-gold" type="button" data-print>
+        <button class="btn btn-primary" type="button" data-print>
           <Icon name="download" />
           {t("btn.print")}
         </button>
@@ -403,8 +403,8 @@ export function CertificatePage({ ctx, cert }: { ctx: PageCtx; cert: CertRow }) 
       <div class="cert">
         <div class="cert-border" />
         <div class="cert-in">
-          <LogoMark class="cert-logo" />
-          <div class="cert-brand">{lang === "bn" ? t("brand.name") : "MAWAH Academy"}</div>
+          <LogoImg class="cert-logo" ctx={ctx} />
+          <div class="cert-brand">{t("brand.academy")}</div>
           <h1>{t("cert.heading")}</h1>
           <p class="small">{t("cert.presented")}</p>
           <div class="cert-name">{cert.student_name}</div>
@@ -434,7 +434,7 @@ export function InvoicePage({ ctx, order, customer }: { ctx: PageCtx; order: Ord
   return (
     <Layout ctx={ctx} chrome={false} title={title} description={title} noindex bodyClass="doc">
       <div class="doc-bar">
-        <button class="btn btn-gold" type="button" data-print>
+        <button class="btn btn-primary" type="button" data-print>
           <Icon name="download" />
           {t("btn.print")}
         </button>
@@ -442,7 +442,7 @@ export function InvoicePage({ ctx, order, customer }: { ctx: PageCtx; order: Ord
       <article class="invoice">
         <header class="inv-head">
           <div>
-            <LogoMark />
+            <LogoImg class="inv-logo" ctx={ctx} />
             <h1 class="mt">{lang === "bn" ? "ইনভয়েস" : "Invoice"}</h1>
             <p class="muted">{order.invoice_no ?? (lang === "bn" ? "পেমেন্টের অপেক্ষায়" : "Awaiting payment")}</p>
           </div>
@@ -521,7 +521,7 @@ export function ErrorPage({ ctx, status }: { ctx: PageCtx; status: 404 | 500 }) 
             <Icon name={status === 404 ? "search" : "bell"} />
             <h1>{t(status === 404 ? "err.404.title" : "err.500.title")}</h1>
             <p>{t(status === 404 ? "err.404.body" : "err.500.body")}</p>
-            <a class="btn btn-gold" href={ctx.href("/")}>
+            <a class="btn btn-primary" href={ctx.href("/")}>
               {t("err.home")}
             </a>
           </div>

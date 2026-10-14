@@ -70,7 +70,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 }
 
 /* ---------------------------------------------------------------- buttons / form fields */
-export function Button({ busy, children, className = "btn-gold", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { busy?: boolean }) {
+export function Button({ busy, children, className = "btn-primary", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { busy?: boolean }) {
   return (
     <button {...rest} className={`btn ${className}`} aria-busy={busy || undefined} disabled={rest.disabled || busy}>
       {busy && <span className="spinner sm" aria-hidden="true" />}

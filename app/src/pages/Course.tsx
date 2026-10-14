@@ -127,7 +127,7 @@ function ReviewBox({ view, slug }: { view: CourseView; slug: string }) {
       </label>
       <textarea id="rv-body" className="input mt" maxLength={1000} placeholder={t("app.course.review.body")} value={body} onChange={(e) => setBody(e.target.value)} />
       <div className="row mt">
-        <Button className="btn-emerald" busy={save.isPending} disabled={rating < 1} onClick={() => save.mutate()}>
+        <Button className="btn-dark" busy={save.isPending} disabled={rating < 1} onClick={() => save.mutate()}>
           {t("btn.submit")}
         </Button>
         {existing && (
@@ -153,7 +153,7 @@ export function CourseOverview() {
         <div className="empty">
           <Icon name="lock" />
           <h2>{t("app.course.notEnrolled")}</h2>
-          <Link className="btn btn-gold btn-lg" to={`/checkout?c=${encodeURIComponent(slug)}`}>
+          <Link className="btn btn-primary btn-lg" to={`/checkout?c=${encodeURIComponent(slug)}`}>
             {t("btn.enrollNow")}
           </Link>
         </div>
@@ -178,7 +178,7 @@ export function CourseOverview() {
         </div>
         <div className="row">
           {resume ? (
-            <Link className="btn btn-gold btn-lg" to={`/learn/${slug}/${resume}`}>
+            <Link className="btn btn-primary btn-lg" to={`/learn/${slug}/${resume}`}>
               <Icon name="play" /> {done ? t("app.learning.review") : v.progress.done > 0 ? t("app.course.resume") : t("app.learning.start")}
             </Link>
           ) : (

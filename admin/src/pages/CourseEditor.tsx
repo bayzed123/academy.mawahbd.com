@@ -142,7 +142,7 @@ export function CourseEditor() {
               </a>
             )}
             {canWrite && tab !== "curriculum" && (
-              <Button className="btn-gold" busy={save.isPending} disabled={!dirty && !!id} onClick={onSave}>
+              <Button className="btn-primary" busy={save.isPending} disabled={!dirty && !!id} onClick={onSave}>
                 {t("btn.save")}
               </Button>
             )}

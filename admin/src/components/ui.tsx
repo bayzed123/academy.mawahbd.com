@@ -26,7 +26,7 @@ export function Icon({ name, className = "" }: { name: string; className?: strin
 }
 
 /* --------------------------------------------------------------------------------------------- buttons */
-export function Button({ busy, children, className = "btn-emerald", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { busy?: boolean }) {
+export function Button({ busy, children, className = "btn-dark", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { busy?: boolean }) {
   return (
     <button type="button" {...rest} className={`btn btn-sm ${className}`} aria-busy={busy || undefined} disabled={rest.disabled || busy}>
       {busy && <span className="spinner sm" aria-hidden="true" />}
@@ -261,7 +261,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               <Button className="btn-ghost" onClick={() => close(false)}>
                 {t("btn.cancel")}
               </Button>
-              <Button className={state.danger ? "btn-danger" : "btn-emerald"} disabled={needs} onClick={() => close(true)}>
+              <Button className={state.danger ? "btn-danger" : "btn-dark"} disabled={needs} onClick={() => close(true)}>
                 {state.confirmLabel ?? t("btn.confirm")}
               </Button>
             </div>

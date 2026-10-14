@@ -128,7 +128,7 @@ Three workflows live in `.github/workflows/`:
 | Workflow | Runs | Does |
 |---|---|---|
 | **CI** (`ci.yml`) | every pull request (and on demand); also reused by Deploy, so `main` is checked before every release | typecheck · unit/integration tests · production build · Playwright end-to-end · Lighthouse gate (Core Web Vitals) · secret scan |
-| **Deploy** (`deploy.yml`) | every push to `main` (and on demand) | runs CI → records the database restore point → applies migrations → `wrangler deploy` → health check |
+| **Deploy** (`deploy.yml`) | every push to `main` (and on demand) | runs CI → records the database restore point → applies migrations → `wrangler deploy` → health check. **Until the Cloudflare secrets exist it deploys nothing and says so in a notice** (the run stays green); a manual run fails loudly instead |
 | **Lighthouse (live site)** (`lighthouse.yml`) | after each successful deploy and every Monday | measures the live public pages and fails if a budget is broken |
 
 **One-time GitHub setup** (repository → *Settings*):
@@ -201,8 +201,7 @@ The payment adapters were written against the gateways’ public documentation a
 
 | Symptom | Likely cause and fix |
 |---|---|
-| Deploy fails: *“worker/wrangler.toml still contains placeholder IDs”* | Run `npm run setup:cloudflare` (or fill in `REPLACE_WITH_D1_ID` / `REPLACE_WITH_KV_ID` by hand) and commit |
-| Deploy fails: *“Add the repository secrets …”* | Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (section 4) |
+| Deploy runs but says *“Nothing was deployed”* / *“Deployment is not set up yet”* | Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (section 4) — and run `npm run setup:cloudflare` so `wrangler.toml` has real IDs |
 | `setup:cloudflare` says R2 is not enabled | Enable R2 in the dashboard (*R2 → Overview*), run it again |
 | `/admin/` shows a login form but you never created an admin | The setup form appears only while no admin exists and `SETUP_TOKEN` is set; `npx wrangler secret put SETUP_TOKEN` and reload |
 | Students can pay but are not enrolled | The gateway could not reach the IPN URL: check the *Orders* list for *Pending*, the gateway panel’s IPN log, and that `SITE_URL` is exactly your public address |

@@ -108,7 +108,7 @@ export function ResourcePage<T extends { id: number; deleted_at?: string | null 
         sub={sub}
         actions={
           canWrite && (
-            <Button className="btn-gold" onClick={() => open(null)}>
+            <Button className="btn-primary" onClick={() => open(null)}>
               + {t("btn.add")}
             </Button>
           )
@@ -170,7 +170,7 @@ export function ResourcePage<T extends { id: number; deleted_at?: string | null 
             <Button className="btn-ghost" onClick={() => setEditing(null)}>
               {t("btn.cancel")}
             </Button>
-            <Button className="btn-gold" busy={save.isPending} onClick={() => save.mutate()}>
+            <Button className="btn-primary" busy={save.isPending} onClick={() => save.mutate()}>
               {t("btn.save")}
             </Button>
           </div>

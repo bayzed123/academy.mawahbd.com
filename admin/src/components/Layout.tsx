@@ -228,10 +228,10 @@ export function Layout() {
         {t("adm.skip")}
       </a>
       <aside className={`side${drawer ? " open" : ""}`}>
-        <Link to="/" className="brand">
-          <img src="/favicon.svg" alt="" width={38} height={38} />
+        <Link to="/" className="brand" aria-label={`${t("brand.name")} · ${t("adm.title")}`}>
+          <img className="logo-wide" src="/logo-sm.webp" alt="" width={85} height={46} />
+          <img className="logo-icon" src="/icon-192.png" alt="" width={44} height={44} />
           <span className="lbl">
-            <b>{lang === "bn" ? t("brand.name") : "MAWAH"}</b>
             <small>{t("adm.title")}</small>
           </span>
         </Link>

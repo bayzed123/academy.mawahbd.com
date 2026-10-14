@@ -89,7 +89,7 @@ function ProviderCard({ p, canWrite, onChange }: { p: Provider; canWrite: boolea
           {p.last_test_ok === false && p.last_test_detail && <p className="err-text">{p.last_test_detail}</p>}
         </div>
         {canWrite && !p.is_active && (
-          <Button className="btn-gold" busy={busy === "activate"} disabled={!p.configured} onClick={() => run("activate", () => adm(`${base}/activate`, { json: {} }), t("adm.chat.activated"))}>
+          <Button className="btn-primary" busy={busy === "activate"} disabled={!p.configured} onClick={() => run("activate", () => adm(`${base}/activate`, { json: {} }), t("adm.chat.activated"))}>
             {t("adm.chat.makeActive")}
           </Button>
         )}
@@ -148,7 +148,7 @@ function ProviderCard({ p, canWrite, onChange }: { p: Provider; canWrite: boolea
 
       {canWrite && (
         <div className="row">
-          <Button className="btn-emerald" busy={busy === "save"} onClick={() => run("save", () => adm(base, { method: "PUT", json: { enabled: true, model, temperature: temp, max_tokens: tokens } }), t("adm.saved"))}>
+          <Button className="btn-dark" busy={busy === "save"} onClick={() => run("save", () => adm(base, { method: "PUT", json: { enabled: true, model, temperature: temp, max_tokens: tokens } }), t("adm.saved"))}>
             {t("btn.save")}
           </Button>
           <Button className="btn-outline" busy={busy === "test"} disabled={!p.configured} onClick={test}>
@@ -243,7 +243,7 @@ export function Chatbot() {
             </Field>
           </div>
           {can("settings:write") && (
-            <Button className="btn-gold" busy={saveContent.isPending} onClick={() => saveContent.mutate()}>
+            <Button className="btn-primary" busy={saveContent.isPending} onClick={() => saveContent.mutate()}>
               {t("btn.save")}
             </Button>
           )}

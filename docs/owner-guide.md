@@ -19,6 +19,7 @@
 * **ড্যাশবোর্ডের ওপরের “সিস্টেমের অবস্থা” লাইন** একনজরে বলে দেয় কী ঠিক আছে (সবুজ), কী সেটআপ বাকি (হলুদ), কোথায় সমস্যা (লাল)। প্রতিটি সমস্যার পাশে **“ঠিক করুন”** লিংক আছে।
 * **ভুল করলে ক্ষতি নেই।** মুছে ফেললে বেশিরভাগ জিনিস **ট্র্যাশ** থেকে **ফিরিয়ে আনা** যায়, আর কে কী করেছেন তার হিসাব **অ্যাক্টিভিটি লগ**-এ থাকে।
 * টাকা সংক্রান্ত বড় কাজ (**রিফান্ড**, টিম, সেটিংস) শুধু **সুপার অ্যাডমিন** করতে পারেন।
+* **লোগো ও রং** ওয়েবসাইটের ফাইলের অংশ, অ্যাডমিনের সেটিং নয়। কালো–লাল–সোনালি রংগুলো আপনাদের লোগো থেকেই নেওয়া। লোগো বা রং বদলাতে চাইলে আপনার ডেভেলপারকে বলুন — তিনি `brand/mawah-logo.jpg` বদলে `npm run brand:assets` চালালেই সব জায়গায় (হেডার, ফুটার, সার্টিফিকেট, ইনভয়েস, শেয়ার ছবি) নতুন লোগো বসে যাবে।
 
 ## ২. প্রথম দিনের কাজ — “প্রথম ধাপ” তালিকা
 
@@ -176,6 +177,7 @@
 * The **System health** strip at the top says at a glance what is fine (green), what still needs setup (amber) and what is broken (red). Each problem has a **Fix it** link.
 * **Mistakes are forgivable.** Most deletions go to the **Trash** and can be **Restored**, and the **Activity log** records who did what.
 * Money-sensitive actions (**refunds**, team, settings) are **Super Admin** only.
+* **Your logo and colours are part of the website’s files, not an admin setting.** The black, red and gold come from your logo. To change the logo or the colours, ask your developer: they replace `brand/mawah-logo.jpg` and run `npm run brand:assets`, and the new logo appears everywhere (header, footer, certificates, invoices, the picture shown when a page is shared).
 
 ## 2. Your first day — the “First steps” checklist
 

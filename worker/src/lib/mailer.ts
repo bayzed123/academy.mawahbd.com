@@ -82,22 +82,22 @@ export async function readOutbox(env: Env, to?: string): Promise<(MailMessage & 
 }
 
 /* ------------------------------------------------------------------------------------------------
- * Branded templates (emerald / gold / ivory), bilingual. Table layout + inline styles for mail clients.
+ * Branded templates (black / red / gold / ivory — the colours of the logo), bilingual. Table layout + inline styles for mail clients.
  * ---------------------------------------------------------------------------------------------- */
 type Lang = "bn" | "en";
 
 function layout(lang: Lang, title: string, bodyHtml: string, brand: string): string {
-  return `<!doctype html><html lang="${lang}"><body style="margin:0;background:#f5efe1;font-family:'Hind Siliguri',Segoe UI,Arial,sans-serif;color:#14211c">
+  return `<!doctype html><html lang="${lang}"><body style="margin:0;background:#f5efe1;font-family:'Hind Siliguri',Segoe UI,Arial,sans-serif;color:#1b1213">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5efe1;padding:24px 12px"><tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#fffdf8;border-radius:16px;overflow:hidden;border:1px solid #e6dfcc">
-<tr><td style="background:#073b2c;padding:22px 28px;color:#e8cf94;font-size:20px;letter-spacing:.12em;font-weight:600">${escapeHtml(brand)}</td></tr>
-<tr><td style="height:3px;background:#c9a24b"></td></tr>
-<tr><td style="padding:28px"><h1 style="margin:0 0 14px;font-size:22px;line-height:1.3;color:#073b2c">${escapeHtml(title)}</h1>${bodyHtml}</td></tr>
+<tr><td style="background:#070304;padding:22px 28px;color:#e6dc8c;font-size:20px;letter-spacing:.12em;font-weight:600">${escapeHtml(brand)}</td></tr>
+<tr><td style="height:3px;background:#db1718"></td></tr>
+<tr><td style="padding:28px"><h1 style="margin:0 0 14px;font-size:22px;line-height:1.3;color:#070304">${escapeHtml(title)}</h1>${bodyHtml}</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
 const button = (href: string, label: string) =>
-  `<p style="margin:22px 0"><a href="${escapeHtml(href)}" style="background:#c9a24b;color:#073b2c;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px;display:inline-block">${escapeHtml(label)}</a></p>`;
+  `<p style="margin:22px 0"><a href="${escapeHtml(href)}" style="background:#db1718;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px;display:inline-block">${escapeHtml(label)}</a></p>`;
 
 const brandName = (lang: Lang) => (lang === "bn" ? "মাওয়াহ একাডেমি" : "MAWAH Academy");
 
@@ -111,7 +111,7 @@ export function passwordResetMail(lang: Lang, link: string): Omit<MailMessage, "
   const label = lang === "bn" ? "নতুন পাসওয়ার্ড দিন" : "Choose a new password";
   return {
     subject: `${subject} — ${brandName(lang)}`,
-    html: layout(lang, subject, `<p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p>${button(link, label)}<p style="color:#66756d;font-size:14px">${escapeHtml(ignore)}</p>`, brandName(lang)),
+    html: layout(lang, subject, `<p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p>${button(link, label)}<p style="color:#6d5f60;font-size:14px">${escapeHtml(ignore)}</p>`, brandName(lang)),
     text: `${intro}\n\n${link}\n\n${ignore}`,
   };
 }
@@ -129,8 +129,8 @@ export function orderReceiptMail(
   const list = d.items.map((i) => `<li>${escapeHtml(i)}</li>`).join("");
   const meta =
     lang === "bn"
-      ? `<p style="color:#3b4a43">ইনভয়েস: <b>${escapeHtml(d.invoiceNo)}</b> · মোট: <b>${escapeHtml(d.total)}</b></p>`
-      : `<p style="color:#3b4a43">Invoice: <b>${escapeHtml(d.invoiceNo)}</b> · Total: <b>${escapeHtml(d.total)}</b></p>`;
+      ? `<p style="color:#4a3d3e">ইনভয়েস: <b>${escapeHtml(d.invoiceNo)}</b> · মোট: <b>${escapeHtml(d.total)}</b></p>`
+      : `<p style="color:#4a3d3e">Invoice: <b>${escapeHtml(d.invoiceNo)}</b> · Total: <b>${escapeHtml(d.total)}</b></p>`;
   const cta = lang === "bn" ? "ক্লাস শুরু করুন" : "Start learning";
   const inv = lang === "bn" ? "ইনভয়েস দেখুন" : "View invoice";
   return {
@@ -138,7 +138,7 @@ export function orderReceiptMail(
     html: layout(
       lang,
       subject,
-      `<p style="font-size:16px">${escapeHtml(hello)}</p><p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p><ul style="line-height:1.8">${list}</ul>${meta}${button(d.learnUrl, cta)}<p><a href="${escapeHtml(d.invoiceUrl)}" style="color:#0b4d3a">${escapeHtml(inv)}</a></p>`,
+      `<p style="font-size:16px">${escapeHtml(hello)}</p><p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p><ul style="line-height:1.8">${list}</ul>${meta}${button(d.learnUrl, cta)}<p><a href="${escapeHtml(d.invoiceUrl)}" style="color:#b50f12">${escapeHtml(inv)}</a></p>`,
       brandName(lang),
     ),
     text: `${hello}\n${intro}\n\n${d.items.join("\n")}\n\n${d.invoiceNo} · ${d.total}\n${d.learnUrl}\n${d.invoiceUrl}`,

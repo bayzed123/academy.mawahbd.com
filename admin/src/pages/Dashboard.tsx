@@ -223,15 +223,15 @@ export function Dashboard() {
       <div className="grid-2">
         {rev && (
           <Panel title={t("adm.chart.revenue30")}>
-            <Chart type="line" label={t("adm.chart.revenue30")} labels={rev.map((r) => short(r.period))} datasets={[{ label: t("adm.kpi.revenue"), data: rev.map((r) => r.value), color: "#0f6148" }]} format={(n) => money(n)} />
+            <Chart type="line" label={t("adm.chart.revenue30")} labels={rev.map((r) => short(r.period))} datasets={[{ label: t("adm.kpi.revenue"), data: rev.map((r) => r.value), color: "#db1718" }]} format={(n) => money(n)} />
           </Panel>
         )}
         <Panel title={t("adm.chart.enroll30")}>
-          <Chart type="bar" label={t("adm.chart.enroll30")} labels={d!.charts.enrollments_daily.map((r) => short(r.period))} datasets={[{ label: t("adm.kpi.enrollments"), data: d!.charts.enrollments_daily.map((r) => r.value), color: "#c9a24b" }]} />
+          <Chart type="bar" label={t("adm.chart.enroll30")} labels={d!.charts.enrollments_daily.map((r) => short(r.period))} datasets={[{ label: t("adm.kpi.enrollments"), data: d!.charts.enrollments_daily.map((r) => r.value), color: "#c4b14a" }]} />
         </Panel>
         {d!.charts.revenue_monthly && (
           <Panel title={t("adm.chart.revenue12")} className="span-2">
-            <Chart type="bar" label={t("adm.chart.revenue12")} labels={d!.charts.revenue_monthly.map((r) => r.period)} datasets={[{ label: t("adm.kpi.revenue"), data: d!.charts.revenue_monthly.map((r) => r.value), color: "#0f6148" }]} format={(n) => money(n)} />
+            <Chart type="bar" label={t("adm.chart.revenue12")} labels={d!.charts.revenue_monthly.map((r) => r.period)} datasets={[{ label: t("adm.kpi.revenue"), data: d!.charts.revenue_monthly.map((r) => r.value), color: "#db1718" }]} format={(n) => money(n)} />
           </Panel>
         )}
       </div>

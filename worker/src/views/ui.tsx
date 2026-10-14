@@ -10,22 +10,20 @@ export const Icon = ({ name, class: cls = "" }: { name: string; class?: string }
   </svg>
 );
 
-/** The arch-and-"M" monogram: an emerald arch (a doorway into the kitchen) with a gold pearl above. */
-export const LogoMark = ({ class: cls = "brand-mark" }: { class?: string }) => (
-  <svg class={cls} viewBox="0 0 64 64" role="img" aria-label="MAWAH Academy">
-    <rect width="64" height="64" rx="15" fill="#073b2c" />
-    <path d="M32 9c-10 0-17.5 7.4-17.5 17.2V55h35V26.2C49.5 16.4 42 9 32 9z" fill="#0b4d3a" stroke="#c9a24b" stroke-width="2.4" />
-    <path d="M21 46V28.5L32 40l11-11.5V46" fill="none" stroke="#e8cf94" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
-    <circle cx="32" cy="19" r="2.6" fill="#c9a24b" />
-  </svg>
+/**
+ * The official logo (marketing/public/logo.webp, built from brand/mawah-logo.jpg by scripts/gen-brand-assets.mjs).
+ * It is a picture with its own black background: show it on black (header, footer) or as a framed badge (documents).
+ */
+export const LogoImg = ({ class: cls = "", ctx }: { class?: string; ctx: PageCtx }) => (
+  <img class={cls} src="/logo.webp" width="520" height="283" alt={ctx.t("brand.name")} decoding="async" />
 );
 
+/** Header / footer lockup: logo + a small "Academy" label (the logo itself already says MAWAH). */
 export const Brand = ({ ctx }: { ctx: PageCtx }) => (
   <a class="brand" href={ctx.href("/")} aria-label={ctx.t("brand.name")}>
-    <LogoMark />
+    <img class="brand-logo" src="/logo-sm.webp" width="107" height="58" alt="" decoding="async" />
     <span class="brand-text">
-      <span class="brand-name">{ctx.lang === "bn" ? ctx.t("brand.name") : "MAWAH"}</span>
-      <span class="brand-sub">Academy</span>
+      <span class="brand-name">{ctx.t("brand.academy")}</span>
     </span>
   </a>
 );
@@ -150,7 +148,7 @@ export const NotifyForm = ({ ctx, slug, compact = false }: { ctx: PageCtx; slug:
       {ctx.t("notify.ph")}
     </label>
     <input class="input" id={`nf-${slug}${compact ? "-c" : ""}`} type="email" name="email" required autocomplete="email" placeholder={ctx.t("notify.ph")} />
-    <button class="btn btn-emerald btn-sm" type="submit">
+    <button class="btn btn-dark btn-sm" type="submit">
       {ctx.t("notify.btn")}
     </button>
     <p class="status-line full" data-status role="status" />
@@ -203,7 +201,7 @@ export const CourseCard = ({ course, ctx, eager = false, headingLevel = 3 }: { c
               {ctx.t("btn.comingSoon")}
             </span>
           ) : (
-            <a class="btn btn-gold btn-sm" href={`/app/checkout?c=${encodeURIComponent(course.slug)}`}>
+            <a class="btn btn-primary btn-sm" href={`/app/checkout?c=${encodeURIComponent(course.slug)}`}>
               {ctx.t("btn.enrollNow")}
               <span class="btn-price">{priceLabel(ctx, course.price)}</span>
             </a>

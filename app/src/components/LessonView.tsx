@@ -40,7 +40,7 @@ export function LessonMedia({ lesson }: { lesson: LessonContentDTO }) {
       <div className="panel tc">
         <Icon name="play" className="icon-lg" />
         <p>{t("app.lesson.externalNote")}</p>
-        <a className="btn btn-gold btn-lg" href={lesson.external.url} target="_blank" rel="noopener noreferrer">
+        <a className="btn btn-primary btn-lg" href={lesson.external.url} target="_blank" rel="noopener noreferrer">
           {t("app.lesson.externalOpen")}
         </a>
       </div>
@@ -119,7 +119,7 @@ export function Questions({ lessonId }: { lessonId: number }) {
         </label>
         <textarea id="qa-text" className="input" maxLength={1000} placeholder={t("app.qa.placeholder")} value={text} onChange={(e) => setText(e.target.value)} />
         <div className="mt">
-          <Button type="submit" className="btn-emerald" busy={ask.isPending} disabled={text.trim().length < 3}>
+          <Button type="submit" className="btn-dark" busy={ask.isPending} disabled={text.trim().length < 3}>
             {t("app.qa.ask")}
           </Button>
         </div>

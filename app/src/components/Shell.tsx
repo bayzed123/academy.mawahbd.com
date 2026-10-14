@@ -38,8 +38,10 @@ export function Shell() {
       <header className="app-header">
         <div className="wrap app-nav">
           <a className="brand" href={home} aria-label={t("brand.name")}>
-            <img src="/favicon.svg" alt="" width={40} height={40} />
-            <b>{lang === "bn" ? t("brand.name") : "MAWAH"}</b>
+            <img src="/logo-sm.webp" alt="" width={99} height={54} />
+            <span className="brand-text">
+              <span className="brand-name">{t("brand.academy")}</span>
+            </span>
           </a>
           <nav className="nav-links" aria-label="Main">
             {student &&
@@ -81,7 +83,7 @@ export function Shell() {
               </div>
             </details>
           ) : (
-            <Link className="btn btn-gold btn-sm" to="/login">
+            <Link className="btn btn-primary btn-sm" to="/login">
               {t("btn.login")}
             </Link>
           )}

@@ -1,4 +1,6 @@
 version: 2
+# Minor and patch updates arrive as ONE pull request per ecosystem. Major versions (new framework releases) are left out on
+# purpose: they need code changes and a careful test run, so a developer upgrades them deliberately.
 updates:
   - package-ecosystem: npm
     directory: /
@@ -8,7 +10,17 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

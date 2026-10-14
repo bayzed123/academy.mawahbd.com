@@ -6,7 +6,7 @@
 
 | | |
 |---|---|
-| **Public site** | Server-rendered, edge-cached, ≈ 4 KB of JavaScript. The 26 launch classes with the owner’s prices, class pages with structured data, blog, certificate verification. Lighthouse (mobile): accessibility / best practices / SEO **100**, performance **92–99** |
+| **Public site** | Server-rendered, edge-cached, ≈ 4 KB of JavaScript. The 26 launch classes with the owner’s prices, class pages with structured data, blog, certificate verification. Lighthouse (mobile): accessibility / best practices / SEO **100**, performance **91–99** |
 | **Student app** (`/app`) | Register, buy (SSLCommerz · bKash · Nagad · Rocket · cards · manual send-money · free), watch lessons (Stream video with signed tokens), track progress, ask questions, review (enrolled students only), earn **verifiable certificates**, invoices |
 | **Admin** (`/admin`) | Health check and “needs attention today” first, then classes + curriculum builder, orders (verify / refund), students, reviews, Q&A, coupons, bundles, certificates, Coming-Soon notify lists, reports, team with **roles**, audit log, AI chatbot settings — CSV export everywhere |
 | **AI chatbot** | Workers AI by default, Gemini switchable in the admin (no code change), grounded in your live catalogue, honest “I’m not sure” with hand-off to the team |
@@ -36,18 +36,19 @@ Requires **Node.js ≥ 20.19** (22 recommended). Local D1/KV/R2 run on your mach
 |---|---|
 | `npm run dev` | Everything for local work: builds, migrates a local database, runs the Worker (8787) and hot-reload servers for the student app (5173) and admin (5174) |
 | `npm run typecheck` | `tsc` in all four workspaces (required before any deploy) |
-| `npm test` | i18n completeness, script tests, and **125 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) |
+| `npm test` | i18n completeness, script tests, and **126 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
 | `npm run build && npm run test:e2e` | **33 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows, accessibility (axe), 360 px phones |
 | `npm run lighthouse:local` | Core Web Vitals gate on the public pages (mobile profile) |
 | `npm run setup:cloudflare -- --domain academy.mawahbd.com --secrets` | One-time: creates D1/KV/R2, fills `wrangler.toml`, sets the domain and secrets (`--dry-run` first) |
 | `npm run db:migrate:remote` · `npm run deploy` | Apply migrations / build and deploy (normally done by GitHub Actions on push to `main`) |
-| `npm run check:i18n` · `npm run og:image` | Bangla/English dictionary check · regenerate the social-share image |
+| `npm run check:i18n` · `npm run brand:assets` | Bangla/English dictionary check · rebuild every logo, icon and social-share file from `brand/mawah-logo.jpg` |
 
 ## Project layout
 
 ```
 worker/      Cloudflare Worker: public pages (Hono + JSX), JSON API, payments, chatbot, cron, D1 migrations, tests
-marketing/   public-site CSS/JS, chat widget, fonts, sprite, favicon, social image
+brand/       the owner’s original logo (source of the generated logo/icon files)
+marketing/   public-site CSS/JS, chat widget, fonts, sprite, logo, icons, social image
 app/         React student app          admin/   React admin CMS          shared/  types, RBAC table, i18n, design tokens
 e2e/         Playwright specs           tests/   API fixtures + test guide  scripts/ dev runner, setup, builds, Lighthouse gate
 docs/        specification and guides   .github/ CI, deploy and Lighthouse workflows

@@ -31,7 +31,7 @@ export function Certificates() {
       {q.isError && <ErrorState error={q.error} onRetry={() => q.refetch()} />}
       {q.data?.length === 0 && (
         <Empty icon="award" title={t("app.certs.empty")}>
-          <Link className="btn btn-gold" to="/">
+          <Link className="btn btn-primary" to="/">
             {t("app.nav.learning")}
           </Link>
         </Empty>
@@ -50,7 +50,7 @@ export function Certificates() {
           </div>
           {!c.revoked_at && (
             <div className="row">
-              <a className="btn btn-gold btn-sm" href={`${home}/certificate/${c.code}`} target="_blank" rel="noopener noreferrer">
+              <a className="btn btn-primary btn-sm" href={`${home}/certificate/${c.code}`} target="_blank" rel="noopener noreferrer">
                 {t("app.certs.view")}
               </a>
               <button className="btn btn-outline btn-sm" type="button" onClick={() => copy(c.code)}>
@@ -136,7 +136,7 @@ export function Profile() {
             <option value="en">English</option>
           </select>
         </Field>
-        <Button type="submit" className="btn-emerald" busy={save.isPending}>
+        <Button type="submit" className="btn-dark" busy={save.isPending}>
           {t("btn.save")}
         </Button>
       </form>
@@ -149,7 +149,7 @@ export function Profile() {
         <Field id="pw-new" label={t("app.profile.password.new")} error={pwFields.next} hint={t("app.profile.password.hint")}>
           <TextInput id="pw-new" type="password" autoComplete="new-password" minLength={8} value={next} onChange={(e) => setNext(e.target.value)} error={pwFields.next} />
         </Field>
-        <Button type="submit" className="btn-emerald" busy={change.isPending} disabled={!cur || next.length < 8}>
+        <Button type="submit" className="btn-dark" busy={change.isPending} disabled={!cur || next.length < 8}>
           {t("btn.save")}
         </Button>
       </form>

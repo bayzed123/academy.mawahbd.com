@@ -37,7 +37,7 @@ The brief asks to **confirm two decisions with the requester before finalizing**
 | **Chatbot** | Cloudflare Workers AI by default; Gemini switchable in the admin; capped per visitor/day | Yes |
 | **Sign-in** | E-mail + password only (Google sign-in is not built; the database column is reserved) | Roadmap |
 | **Policies** | Empty placeholders — **you must write** refund, privacy and terms | Admin → Settings → Policies |
-| **Logo** | A designed concept (arched doorway + gold “M”) used as the favicon, app icon and share image. If you have an official logo, send it and it replaces the concept | Yes |
+| **Logo and colours** | Your **official logo** (`brand/mawah-logo.jpg`) is used in the header, footer, sign-in screens, certificates, invoices, app icons and the share image. The colours — **black, red, gold, ivory** — are measured from it; green appears only in tiny “paid / working / genuine” status markers | Yes — replace `brand/mawah-logo.jpg`, run `npm run brand:assets` |
 | **Analytics** | Nothing is tracked until you paste GA4 / Clarity / Meta Pixel IDs in Admin → Settings → Analytics | Yes |
 
 ## 4. What we need from you to go live

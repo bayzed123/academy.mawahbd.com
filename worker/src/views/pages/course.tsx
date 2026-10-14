@@ -209,7 +209,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
           ) : (
             <>
               <div class="buy-price">{priceLabel(ctx, course.price)}</div>
-              <a class="btn btn-gold btn-lg btn-block" href={checkout}>
+              <a class="btn btn-primary btn-lg btn-block" href={checkout}>
                 {t("btn.enrollNow")}
                 <Icon name="arrow" />
               </a>
@@ -251,14 +251,14 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
         {soon ? (
           <>
             <span class="badge-soon">{t("btn.comingSoon")}</span>
-            <a class="btn btn-emerald btn-sm" href="#main">
+            <a class="btn btn-dark btn-sm" href="#main">
               {t("btn.notifyMe")}
             </a>
           </>
         ) : (
           <>
             <b>{priceLabel(ctx, course.price)}</b>
-            <a class="btn btn-gold" href={checkout}>
+            <a class="btn btn-primary" href={checkout}>
               {t("btn.enrollNow")}
             </a>
           </>

@@ -37,7 +37,7 @@ export function Layout(props: LayoutProps) {
   const { t, lang, settings, env } = ctx;
   const chrome = props.chrome !== false;
   const canonical = ctx.abs(props.canonicalPath ?? ctx.href(ctx.path));
-  const image = props.image ?? ctx.abs(HAS_OG_IMAGE ? "/og-default.jpg" : "/favicon.svg");
+  const image = props.image ?? ctx.abs(HAS_OG_IMAGE ? "/og-default.jpg" : "/icon-512.png");
   const ids = analyticsIds(ctx);
   const tsKey = turnstileEnabled(env) ? env.TURNSTILE_SITE_KEY : "";
   const announcement = lang === "bn" ? settings.announcement.bn || settings.announcement.en : settings.announcement.en || settings.announcement.bn;
@@ -66,7 +66,7 @@ export function Layout(props: LayoutProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{props.title}</title>
         <meta name="description" content={props.description} />
-        <meta name="theme-color" content="#073b2c" />
+        <meta name="theme-color" content="#070304" />
         {props.noindex ? <meta name="robots" content="noindex, follow" /> : <meta name="robots" content="index, follow, max-image-preview:large" />}
         <link rel="canonical" href={canonical} />
         <link rel="alternate" hreflang="bn" href={ctx.abs(localizedPath("bn", ctx.path))} />
@@ -88,7 +88,9 @@ export function Layout(props: LayoutProps) {
         {ids.clarity && <meta name="mawah:clarity" content={ids.clarity} />}
         {ids.pixel && <meta name="mawah:pixel" content={ids.pixel} />}
         {tsKey && <meta name="mawah:turnstile" content={tsKey} />}
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" sizes="48x48" />
+        <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.webmanifest" />
         {fontPreloads.map((href) => (
           <link rel="preload" href={href} as="font" type="font/woff2" crossorigin="anonymous" />

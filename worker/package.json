@@ -7,7 +7,7 @@
   "scripts": {
     "gen:devconfig": "node ../scripts/gen-dev-config.mjs",
     "dev": "npm run gen:devconfig && wrangler dev -c .wrangler.dev.toml --persist-to ../.wrangler/state",
-    "typecheck": "wrangler types --include-runtime false >/dev/null 2>&1; tsc -p tsconfig.json",
+    "typecheck": "node ../scripts/build-marketing.mjs && (wrangler types --include-runtime false >/dev/null 2>&1; tsc -p tsconfig.json)",
     "test": "npm run gen:devconfig && vitest run",
     "test:watch": "npm run gen:devconfig && vitest",
     "db:migrate:local": "npm run gen:devconfig && wrangler d1 migrations apply DB --local -c .wrangler.dev.toml --persist-to ../.wrangler/state",

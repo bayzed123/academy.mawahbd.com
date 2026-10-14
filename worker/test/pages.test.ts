@@ -43,6 +43,23 @@ describe("home & navigation", () => {
     expect(html).toContain("All classes");
   });
 
+  it("shows the official logo with an 'Academy' label in both languages, and the brand icons in the head", async () => {
+    for (const [path, label] of [["/", "একাডেমি"], ["/en", "Academy"]] as const) {
+      const html = await text(await new Client().get(path));
+      // header and footer both carry the lockup: the logo picture (named by the link, so empty alt) + the label
+      expect(html.match(/class="brand-logo" src="\/logo-sm\.webp"/g)?.length, path).toBe(2);
+      expect(html, path).toContain(`<span class="brand-name">${label}</span>`);
+      expect(html, path).toMatch(/<a class="brand" href="[^"]*" aria-label="[^"]+">/);
+      expect(html, path).toContain('<meta name="theme-color" content="#070304"');
+      expect(html, path).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png"');
+      expect(html, path).toContain('href="/favicon-32.png"');
+      expect(html, path).not.toContain("favicon.svg"); // the drawn monogram is gone
+      expect(html, path).not.toMatch(/#073b2c|#0b4d3a|#0f6148/i); // and so is the old green
+    }
+    // the organisation's structured data points at the square logo file
+    expect(await text(await new Client().get("/"))).toContain("/icon-512.png");
+  });
+
   it("never ships inline style attributes or inline scripts (CSP-safe markup)", async () => {
     const soon = await course(`soon-${Date.now()}`, "Soon Course", { status: "coming_soon" });
     for (const path of ["/", "/en", "/courses", "/courses/beginners-baking-class", "/contact", "/about", "/verify", "/blog", "/policies/refund"]) {

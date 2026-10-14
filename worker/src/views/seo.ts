@@ -12,7 +12,7 @@ export const organizationLd = (ctx: PageCtx) => ({
   name: "MAWAH Academy",
   alternateName: "মাওয়াহ একাডেমি",
   url: ctx.abs("/"),
-  logo: ctx.abs("/favicon.svg"),
+  logo: ctx.abs("/icon-512.png"),
   sameAs: [ctx.settings.contact.facebook, ctx.settings.contact.youtube, ctx.settings.contact.instagram].filter((u) => /^https?:\/\//.test(u)),
 });
 
@@ -101,6 +101,6 @@ export const articleLd = (
   mainEntityOfPage: ctx.abs(ctx.href(`/blog/${p.slug}`)),
   inLanguage: ctx.lang === "bn" ? "bn-BD" : "en",
   author: { "@type": "Organization", name: "MAWAH Academy" },
-  publisher: { "@type": "Organization", name: "MAWAH Academy", logo: { "@type": "ImageObject", url: ctx.abs("/favicon.svg") } },
+  publisher: { "@type": "Organization", name: "MAWAH Academy", logo: { "@type": "ImageObject", url: ctx.abs("/icon-512.png") } },
   ...(p.image ? { image: ctx.abs(p.image) } : {}),
 });

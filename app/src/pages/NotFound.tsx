@@ -7,7 +7,7 @@ export function NotFound() {
   return (
     <Empty icon="search" title={t("app.notFound.title")}>
       <p>{t("app.notFound.body")}</p>
-      <Link className="btn btn-gold" to="/">
+      <Link className="btn btn-primary" to="/">
         {t("app.nav.learning")}
       </Link>
     </Empty>

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Renders marketing/public/og-default.jpg (1200x630, a JPEG so it stays under ~100 KB: WhatsApp skips big preview images) — the picture shown when a page without its own image is
- * shared on Facebook / WhatsApp / Google. It is built from the brand's own fonts and colours, so re-run this after
+ * shared on Facebook / WhatsApp / Google. It shows the owner's logo (brand/mawah-logo.jpg) on the brand black, in the brand fonts, so re-run this after
  * a rebrand:   node scripts/gen-og-image.mjs      (CHROMIUM_PATH=/path/to/chrome if Playwright's browser is not installed)
  * Nothing here is a claim about the business: no counts, no ratings, no prices.
  */
@@ -12,6 +12,13 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const font = (name) => `data:font/woff2;base64,${readFileSync(resolve(root, "marketing/public/fonts", name)).toString("base64")}`;
+const logo = `data:image/jpeg;base64,${readFileSync(resolve(root, "brand/mawah-logo.jpg")).toString("base64")}`;
+
+/** The artwork inside the 972x972 original (same numbers as scripts/gen-brand-assets.mjs) and how large it is drawn here. */
+const BOX = { x: 40 - 14, y: 246 - 18, w: 867 + 28, h: 451 + 36 };
+const LOGO_W = 640;
+const k = LOGO_W / BOX.w;
+const LOGO_H = Math.round(BOX.h * k);
 
 const html = `<!doctype html><meta charset="utf-8"><style>
 @font-face{font-family:Playfair;font-weight:600;src:url(${font("playfair-latin-600.woff2")}) format("woff2")}
@@ -19,36 +26,21 @@ const html = `<!doctype html><meta charset="utf-8"><style>
 @font-face{font-family:Hind;font-weight:400;src:url(${font("hind-latin-400.woff2")}) format("woff2");unicode-range:U+0000-00FF}
 @font-face{font-family:Hind;font-weight:400;src:url(${font("hind-bn-400.woff2")}) format("woff2");unicode-range:U+0980-09FE}
 @font-face{font-family:Hind;font-weight:600;src:url(${font("hind-latin-600.woff2")}) format("woff2");unicode-range:U+0000-00FF}
-@font-face{font-family:Hind;font-weight:600;src:url(${font("hind-bn-600.woff2")}) format("woff2");unicode-range:U+0980-09FE}
 *{box-sizing:border-box;margin:0}
-body{width:1200px;height:630px;overflow:hidden;font-family:Hind,sans-serif;color:#fbf7ee;position:relative;
-  background:radial-gradient(900px 520px at 85% 15%,#157a5b 0%,rgba(21,122,91,0) 70%),linear-gradient(135deg,#04261c 0%,#073b2c 55%,#0b4d3a 100%)}
-.frame{position:absolute;inset:26px;border:2px solid rgba(201,162,75,.55);border-radius:26px}
-.frame::after{content:"";position:absolute;inset:10px;border:1px solid rgba(201,162,75,.25);border-radius:18px}
-.mark{position:absolute;right:90px;top:120px;width:330px;height:330px;opacity:.95}
-.copy{position:absolute;left:92px;top:118px;width:640px}
-.eyebrow{display:flex;align-items:center;gap:14px;font-weight:600;font-size:24px;letter-spacing:.34em;color:#e8d09a}
-.eyebrow i{display:block;width:58px;height:2px;background:#c9a24b}
-h1{font-family:Playfair,serif;font-weight:600;font-size:104px;line-height:1.04;margin:26px 0 6px;letter-spacing:.01em}
-.bn{font-family:Tiro,Hind,serif;font-size:66px;color:#e8cf94;line-height:1.3}
-.tag{margin-top:34px;font-size:32px;line-height:1.45;color:#dcefe6;max-width:600px}
-.tag b{color:#e8d09a;font-weight:600}
-.foot{position:absolute;left:92px;bottom:70px;font-size:26px;color:#e8d09a;font-weight:600;letter-spacing:.04em}
+body{width:1200px;height:630px;overflow:hidden;font-family:Hind,sans-serif;color:#f3ebe0;position:relative;text-align:center;
+  background:radial-gradient(700px 420px at 92% -10%,rgba(219,23,24,.34),transparent 65%),radial-gradient(640px 380px at 4% 112%,rgba(217,205,105,.14),transparent 62%),#070304}
+.frame{position:absolute;inset:24px;border:2px solid rgba(217,205,105,.55);border-radius:26px}
+.frame::after{content:"";position:absolute;inset:10px;border:1px solid rgba(217,205,105,.25);border-radius:18px}
+.logo{position:absolute;left:${(1200 - LOGO_W) / 2}px;top:62px;width:${LOGO_W}px;height:${LOGO_H}px;background:url(${logo}) no-repeat;background-size:${Math.round(972 * k)}px ${Math.round(972 * k)}px;background-position:${Math.round(-BOX.x * k)}px ${Math.round(-BOX.y * k)}px;mix-blend-mode:lighten}
+.en{position:absolute;left:0;right:0;top:${62 + LOGO_H + 22}px;font-family:Playfair,serif;font-weight:600;font-size:38px;letter-spacing:.01em;color:#fbf7ee}
+.bn{position:absolute;left:0;right:0;top:${62 + LOGO_H + 80}px;font-family:Tiro,Hind,serif;font-size:36px;color:#e6dc8c}
+.url{position:absolute;left:0;right:0;bottom:48px;font-size:24px;font-weight:600;letter-spacing:.14em;color:#d9cd69}
 </style>
 <div class="frame"></div>
-<svg class="mark" viewBox="0 0 64 64" aria-hidden="true">
-  <path d="M32 6c-11.6 0-20 8.4-20 19.6V58h40V25.6C52 14.4 43.600 6 32 6z" fill="#0b4d3a" stroke="#c9a24b" stroke-width="1.8"/>
-  <path d="M32 11c-8.600 0-15 6.200-15 14.600V53h30V25.600C47 17.200 40.600 11 32 11z" fill="none" stroke="#c9a24b" stroke-width=".6" opacity=".6"/>
-  <path d="M20.500 47V28.500L32 41l11.500-12.500V47" fill="none" stroke="#e8cf94" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="32" cy="18" r="2.400" fill="#c9a24b"/>
-</svg>
-<div class="copy">
-  <div class="eyebrow"><i></i>ACADEMY</div>
-  <h1>MAWAH</h1>
-  <div class="bn">মাওয়াহ একাডেমি</div>
-  <p class="tag"><b>Cooking &amp; baking classes</b> you can learn at home — in Bangla.</p>
-</div>
-<div class="foot">academy.mawahbd.com</div>`;
+<div class="logo" role="img" aria-label="MAWAH"></div>
+<div class="en">Cooking &amp; baking classes you can learn at home</div>
+<div class="bn">ঘরে বসেই ধাপে ধাপে শিখুন রান্না ও বেকিং</div>
+<div class="url">ACADEMY.MAWAHBD.COM</div>`;
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ["--no-sandbox"] });
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
