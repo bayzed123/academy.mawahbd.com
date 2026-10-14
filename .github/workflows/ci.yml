@@ -1,11 +1,9 @@
 name: CI
 
-# Runs on every pull request and every branch except main. main is built, tested AND deployed by deploy.yml,
-# which calls this very workflow first — so a change can never reach production without passing everything here.
+# Runs on every pull request (and on demand). main is built, tested AND deployed by deploy.yml, which calls this
+# very workflow first — so a change can never reach production without passing everything here.
 on:
   pull_request:
-  push:
-    branches-ignore: [main]
   workflow_call:
   workflow_dispatch:
 
@@ -87,6 +85,9 @@ jobs:
     name: No secrets in the repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read # the scanner lists a pull request's commits through the API
     steps:
       - uses: actions/checkout@v4
         with:

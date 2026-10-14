@@ -127,7 +127,7 @@ Three workflows live in `.github/workflows/`:
 
 | Workflow | Runs | Does |
 |---|---|---|
-| **CI** (`ci.yml`) | every pull request and every branch except `main`; also reused by Deploy | typecheck · unit/integration tests · production build · Playwright end-to-end · Lighthouse gate (Core Web Vitals) · secret scan |
+| **CI** (`ci.yml`) | every pull request (and on demand); also reused by Deploy, so `main` is checked before every release | typecheck · unit/integration tests · production build · Playwright end-to-end · Lighthouse gate (Core Web Vitals) · secret scan |
 | **Deploy** (`deploy.yml`) | every push to `main` (and on demand) | runs CI → records the database restore point → applies migrations → `wrangler deploy` → health check |
 | **Lighthouse (live site)** (`lighthouse.yml`) | after each successful deploy and every Monday | measures the live public pages and fails if a budget is broken |
 

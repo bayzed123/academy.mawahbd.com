@@ -75,7 +75,7 @@ The controls below are organised by the **NIST Cybersecurity Framework** functio
 |---|---|
 | **Activity log**: every admin write (who, what, when, from which IP, what fields changed — *not* the content), every login/failed login, refunds, approvals, certificate re-issues, cron runs. Read-only in the UI (Super Admin / Viewer); CSV export | `worker/src/lib/audit.ts`, Admin → Activity log |
 | **Payment event log** (`payment_events`): every gateway callback, whether it verified, the payload | `worker/src/routes/api/payments.ts` |
-| Health strip and dashboard alerts; **Lighthouse and security-header tests in CI** catch regressions; gitleaks on every push | `.github/workflows/` |
+| Health strip and dashboard alerts; **Lighthouse and security-header tests in CI** catch regressions; gitleaks on every pull request and every release | `.github/workflows/` |
 | Live logs with `npx wrangler tail`; each response carries an `X-Request-Id` to match a user report to a log line | `security.ts` |
 
 ### Respond
@@ -97,7 +97,7 @@ Point-in-time database restore with **D1 Time Travel**, scheduled exports, Worke
 | Password-reset tokens | E-mailed link; D1 stores only a SHA-256, single-use, 1 hour | — | — |
 | Passwords | D1 as PBKDF2 hashes | Nobody (not even the owner) | Never |
 
-Rules: **never** put a key in a file in the repository, in a pull-request comment, in a screenshot or in a chat. The repository is protected by `.gitignore` (`.dev.vars`, `.env*`), a **secret scanner on every push and pull request** (`.gitleaks.toml`), test values that are obviously fake, and per-run random passwords in the end-to-end tests. If a real key is ever committed: treat it as compromised — **rotate it at the provider first**, then remove it from the code (history rewriting is not enough).
+Rules: **never** put a key in a file in the repository, in a pull-request comment, in a screenshot or in a chat. The repository is protected by `.gitignore` (`.dev.vars`, `.env*`), a **secret scanner on every pull request and every release** (`.gitleaks.toml`), test values that are obviously fake, and per-run random passwords in the end-to-end tests. If a real key is ever committed: treat it as compromised — **rotate it at the provider first**, then remove it from the code (history rewriting is not enough).
 
 ---
 

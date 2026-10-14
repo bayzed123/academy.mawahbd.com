@@ -625,8 +625,8 @@ Other known follow-ups: server-rendered **PDF** invoices/certificates (needs a h
 
 * Complete files, never diffs; a TypeScript/build check passes before anything is called finished (`npm run typecheck`, required by CI and the deploy workflow).
 * Every piece of copy is bilingual and plain; large touch targets; tested at 360 px.
-* Clean checkout before editing: CI builds from a clean checkout on every push.
-* **Never commit a real API or payment key — including in test files.** `.gitignore` excludes `.dev.vars`/`.env*`; test values look fake (`fake-…-not-a-secret`); the owner’s e2e password is generated per run; **gitleaks** scans every push and pull request (`.gitleaks.toml`).
+* Clean checkout before editing: CI builds from a clean checkout on every pull request and every release.
+* **Never commit a real API or payment key — including in test files.** `.gitignore` excludes `.dev.vars`/`.env*`; test values look fake (`fake-…-not-a-secret`); the owner’s e2e password is generated per run; **gitleaks** scans every pull request and every release (`.gitleaks.toml`).
 * Database changes are *new* numbered migration files, never edits to applied ones.
 
 ---

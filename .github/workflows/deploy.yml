@@ -19,6 +19,9 @@ jobs:
   verify:
     name: Checks
     uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      pull-requests: read
 
   deploy:
     name: Migrate and deploy to Cloudflare

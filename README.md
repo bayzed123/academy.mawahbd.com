@@ -57,7 +57,7 @@ The full annotated tree is in [docs/spec.md §13](docs/spec.md#13-file-and-folde
 
 ## Deploying
 
-Push to `main` → GitHub Actions runs every check → applies D1 migrations → `wrangler deploy` → health check → Lighthouse on the live pages. One-time setup (Cloudflare resources, repository secrets, domain, first admin, payment sandbox checklist) is in **[docs/deployment.md](docs/deployment.md)**. Secrets are Wrangler secrets — **never** committed; a secret scanner runs on every push.
+Push to `main` → GitHub Actions runs every check → applies D1 migrations → `wrangler deploy` → health check → Lighthouse on the live pages. One-time setup (Cloudflare resources, repository secrets, domain, first admin, payment sandbox checklist) is in **[docs/deployment.md](docs/deployment.md)**. Secrets are Wrangler secrets — **never** committed; a secret scanner runs on every pull request and every release.
 
 ## Choices made for you (please confirm — [docs/decisions.md](docs/decisions.md))
 
