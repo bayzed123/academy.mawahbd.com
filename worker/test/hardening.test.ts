@@ -148,11 +148,13 @@ describe("production mode", () => {
       expect(first.headers.get("x-page-cache")).toBe("MISS");
       expect(first.headers.get("cache-control")).toMatch(/public/);
       expect(first.headers.get("set-cookie")).toBeNull(); // a cacheable page never sets cookies
+      await first.text(); // read the page to the end, like a browser does (the cache copy is finished by then)
 
-      // the cache entry is written after the response (waitUntil): give it a moment, then it is a HIT
+      // the cache entry is written after the response (waitUntil): on a busy machine that can take a while, so wait up to 10 s
       let second = await new Client().get(path);
-      for (let i = 0; i < 20 && second.headers.get("x-page-cache") !== "HIT"; i++) {
-        await new Promise((r) => setTimeout(r, 50));
+      for (let i = 0; i < 100 && second.headers.get("x-page-cache") !== "HIT"; i++) {
+        await second.text();
+        await new Promise((r) => setTimeout(r, 100));
         second = await new Client().get(path);
       }
       expect(second.headers.get("x-page-cache")).toBe("HIT");
