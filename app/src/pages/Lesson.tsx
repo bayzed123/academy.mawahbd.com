@@ -44,7 +44,9 @@ export function LessonPlayer() {
     onError: () => toast(t("err.generic"), true),
   });
 
-  useEffect(() => window.scrollTo({ top: 0 }), [id]);
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [id]);
 
   if (!Number.isInteger(id) || id <= 0) return <Navigate to={`/learn/${slug}`} replace />;
   if (view.isPending || lesson.isPending) return <Spinner />;
