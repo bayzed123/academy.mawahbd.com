@@ -39,8 +39,8 @@ Requires **Node.js ≥ 20.19** (22 recommended). Local D1/KV/R2 run on your mach
 | `npm test` | i18n completeness, script tests, and **126 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
 | `npm run build && npm run test:e2e` | **33 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows, accessibility (axe), 360 px phones |
 | `npm run lighthouse:local` | Core Web Vitals gate on the public pages (mobile profile) |
-| `npm run setup:cloudflare -- --domain academy.mawahbd.com --secrets` | One-time: creates D1/KV/R2, fills `wrangler.toml`, sets the domain and secrets (`--dry-run` first) |
-| `npm run db:migrate:remote` · `npm run deploy` | Apply migrations / build and deploy (normally done by GitHub Actions on push to `main`) |
+| `npm run setup:cloudflare -- --secrets` | Only for deploying from your own computer: creates D1/KV/R2, fills `wrangler.toml`, sets the secrets (`--dry-run` first). **GitHub’s Deploy workflow does all of this by itself** — see [deployment.md](docs/deployment.md) |
+| `npm run db:migrate:remote` · `npm run deploy` | Apply migrations / build and deploy (normally done by GitHub Actions on every push to `main`) |
 | `npm run check:i18n` · `npm run brand:assets` | Bangla/English dictionary check · rebuild every logo, icon and social-share file from `brand/mawah-logo.jpg` |
 
 ## Project layout

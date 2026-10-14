@@ -44,19 +44,32 @@ Everything else: `npm run typecheck` · `npm test` · `npm run build && npm run 
 
 ## 2. Put it on Cloudflare — first time
 
-You need a Cloudflare account. **R2** (file storage) must be switched on once in the dashboard (*R2 → Overview*; it asks for a payment method but the free allowance is generous). The domain `mawahbd.com` should already be on this Cloudflare account (its DNS zone), so `academy.mawahbd.com` can be attached automatically.
+You need a Cloudflare account with **R2** (file storage) switched on once in the dashboard (*R2 → Overview*; it asks for a payment method but the free allowance is generous).
 
-### 2a. Automatic (recommended)
+The site starts on the free Cloudflare address that is written in `worker/wrangler.toml` as `SITE_URL` — `https://academy-mawahbd-com.mawahacademy.workers.dev`. Moving it to `academy.mawahbd.com` is a separate step for later ([section 7](#7-day-to-day-releases-rollbacks-domains)); that domain’s DNS zone must be on the same Cloudflare account.
+
+### 2a. From GitHub (recommended — nothing to run on your computer)
+
+Do the one-time GitHub setup in [section 4](#4-github-actions-tests-and-automatic-deploys) (two repository secrets; it works from a phone). Then merge into `main`, or open *Actions → Deploy → Run workflow*. The Deploy workflow:
+
+1. **checks the Cloudflare access** and says in plain words what is missing (a token permission, R2 switched off, an account ID that belongs to another Cloudflare account);
+2. **creates whatever is missing** on your Cloudflare account — the D1 database `mawah-academy-db`, a KV namespace (`<worker name>-KV`) and the R2 bucket `mawah-academy-media` — and uses their IDs for that run only (nothing is committed; the two placeholders in `wrangler.toml` stay as they are);
+3. applies the database migrations (the first run also loads the 26-class catalogue), deploys the Worker, and gives it an `APP_SECRET` (random, never shown) and, if you added the GitHub secret `SETUP_TOKEN`, your setup token;
+4. checks `/api/health` and writes the site’s address into the run’s summary page.
+
+Every later deploy is the same run: it finds what already exists and only publishes what changed. The Worker’s `name` in `wrangler.toml` must be the name of the Worker on the account (`academy-mawahbd-com`).
+
+### 2b. From your computer (the same thing by hand)
 
 ```bash
-npx wrangler login                                   # opens a browser once
-npm run setup:cloudflare -- --dry-run --domain academy.mawahbd.com --secrets   # shows what it WOULD do
-npm run setup:cloudflare -- --domain academy.mawahbd.com --secrets
+npx wrangler login                                      # opens a browser once
+npm run setup:cloudflare -- --dry-run --secrets         # shows what it WOULD do
+npm run setup:cloudflare -- --secrets                   # add  --domain academy.mawahbd.com  once that domain is ready
 ```
 
-The script creates (only if missing) the D1 database `mawah-academy-db`, the KV namespace `mawah-academy-KV` and the R2 bucket `mawah-academy-media`; writes their IDs into `worker/wrangler.toml`; attaches the custom domain and sets `SITE_URL`; and creates the two secrets `APP_SECRET` (random, never shown) and `SETUP_TOKEN` (random, **shown once** — copy it). It is safe to run again: nothing existing is changed or deleted. Commit the updated `wrangler.toml` (resource IDs are not secrets).
+The script creates (only if missing) the D1 database `mawah-academy-db`, a KV namespace and the R2 bucket `mawah-academy-media`; writes their IDs into `worker/wrangler.toml`; and creates the two secrets `APP_SECRET` (random, never shown) and `SETUP_TOKEN` (random, **shown once** — copy it). With `--domain` it also attaches the custom domain and sets `SITE_URL`. It is safe to run again: nothing existing is changed or deleted. Committing the updated `wrangler.toml` is optional (resource IDs are not secrets); the GitHub deploys work either way.
 
-### 2b. By hand (what the script does)
+### 2c. By hand (what the script does)
 
 ```bash
 cd worker
@@ -64,25 +77,25 @@ npx wrangler login
 npx wrangler d1 create mawah-academy-db            # copy the database_id into wrangler.toml
 npx wrangler kv namespace create KV                # copy the id into wrangler.toml
 npx wrangler r2 bucket create mawah-academy-media
-# in wrangler.toml, uncomment:  routes = [{ pattern = "academy.mawahbd.com", custom_domain = true }]
-# and set  SITE_URL = "https://academy.mawahbd.com"
+# later, for the custom domain: uncomment  routes = [{ pattern = "academy.mawahbd.com", custom_domain = true }]
+# in wrangler.toml and set  SITE_URL = "https://academy.mawahbd.com"
 openssl rand -base64 48 | npx wrangler secret put APP_SECRET     # a long random string — keep a copy in a password manager
 npx wrangler secret put SETUP_TOKEN                              # any long random string (used once, then deleted)
 ```
 
-### 2c. Switch on the two Cloudflare products
+### 2d. Switch on the two Cloudflare products
 
 * **Stream (video)** — dashboard → *Stream* → enable. The Worker finds your customer code by itself; you may also put it in `wrangler.toml` as `STREAM_CUSTOMER_CODE` (the part of `customer-<code>.cloudflarestream.com`). Stream bills per minute stored and delivered — see Cloudflare’s pricing.
 * **Workers AI (chatbot)** — nothing to enable; the binding is in `wrangler.toml`. A daily free allowance exists; beyond it usage is billed (the chatbot is capped per visitor and per day, see [spec §5](spec.md#5-ai-support-chatbot)). You can switch the chatbot to Gemini or off in *Admin → AI Chatbot*.
 
-### 2d. Create the tables and deploy
+### 2e. Create the tables and deploy
 
 ```bash
 npm run db:migrate:remote      # applies worker/migrations/*.sql to the real database (first run also loads the 26-class catalogue)
 npm run deploy                 # builds everything and runs wrangler deploy
 ```
 
-Open `https://academy.mawahbd.com` — the public site is live. Continue with [section 5](#5-first-start-your-admin-account).
+Open the site address — the public site is live. Continue with [section 5](#5-first-start-your-admin-account).
 
 > From now on you normally never run these by hand: pushing to `main` does it (section 4).
 
@@ -94,8 +107,8 @@ Open `https://academy.mawahbd.com` — the public site is live. Continue with [s
 
 | Secret | Needed | What it is |
 |---|---|---|
-| `APP_SECRET` | **required** | Long random string. Peppers password hashes, signs the local test gateway, and encrypts a chatbot key saved from the admin. **Do not change it casually** — see *Key rotation* in [security.md](security.md#key-rotation) |
-| `SETUP_TOKEN` | first start only | One-time key for creating the first admin. **Delete it afterwards** (`npx wrangler secret delete SETUP_TOKEN`); the dashboard reminds you |
+| `APP_SECRET` | **required** | Long random string. Peppers password hashes, signs the local test gateway, and encrypts a chatbot key saved from the admin. **Do not change it casually** — see *Key rotation* in [security.md](security.md#key-rotation). The Deploy workflow creates it for you (random, never shown) when the Worker has none |
+| `SETUP_TOKEN` | first start only | One-time key for creating the first admin. Choose any long random text (12+ characters) and save it as the GitHub repository secret `SETUP_TOKEN`; the Deploy workflow gives it to the Worker. **Remove it afterwards** (section 5); the dashboard reminds you |
 | `SSLCOMMERZ_STORE_ID` · `SSLCOMMERZ_STORE_PASSWORD` | for bKash/Nagad/Rocket/card payments | From your SSLCommerz merchant account (sandbox credentials first) |
 | `BKASH_APP_KEY` · `BKASH_APP_SECRET` · `BKASH_USERNAME` · `BKASH_PASSWORD` | only for *direct* bKash | From bKash’s tokenized-checkout onboarding |
 | `RESEND_API_KEY` | strongly recommended | Sends receipts, password resets and launch e-mails ([resend.com](https://resend.com); verify your sending domain). Without it the dashboard warns “e-mail not connected” |
@@ -109,13 +122,15 @@ Open `https://academy.mawahbd.com` — the public site is live. Continue with [s
 | Variable | Default | Meaning |
 |---|---|---|
 | `ENVIRONMENT` | `production` | `production` turns on HSTS, `__Host-` cookies, the edge page cache and disables the test gateway |
-| `SITE_URL` | `https://academy.mawahbd.com` | Used in links, e-mails and payment callbacks — must match the real address |
+| `SITE_URL` | `https://academy-mawahbd-com.mawahacademy.workers.dev` | The public address. Used in links, e-mails, payment callbacks and the checks after a deploy — must match where people really open the site. Change it together with `routes` when the custom domain goes live (section 7) |
 | `BRAND_CODE` | `MWH` | Invoice prefix: `INV-MWH-YYYYMMDD-0001` |
 | `DEFAULT_LANG` | `bn` | Language for visitors with no preference |
 | `PAYMENT_MODE` | `live` | `live` or `sandbox` — selects the gateways’ endpoints |
 | `MAIL_FROM` | `MAWAH Academy <no-reply@mawahbd.com>` | Sender (the domain must be verified in Resend) |
 | `STREAM_CUSTOMER_CODE` | *(empty)* | Optional; found automatically when empty |
 | `TURNSTILE_SITE_KEY` | *(empty)* | Optional public key for Turnstile |
+
+A plain *Variable* typed into the Cloudflare dashboard is replaced by this file on every deploy: keep public settings here, and add *Secrets* in the dashboard if you like (secrets are kept).
 
 Business settings (contact numbers, payment options, refund/privacy/terms texts, analytics IDs, chatbot greeting/FAQ) are **not** deployment settings: the owner edits them in *Admin → Settings*.
 
@@ -128,17 +143,20 @@ Three workflows live in `.github/workflows/`:
 | Workflow | Runs | Does |
 |---|---|---|
 | **CI** (`ci.yml`) | every pull request (and on demand); also reused by Deploy, so `main` is checked before every release | typecheck · unit/integration tests · production build · Playwright end-to-end · Lighthouse gate (Core Web Vitals) · secret scan |
-| **Deploy** (`deploy.yml`) | every push to `main` (and on demand) | runs CI → records the database restore point → applies migrations → `wrangler deploy` → health check. **Until the Cloudflare secrets exist it deploys nothing and says so in a notice** (the run stays green); a manual run fails loudly instead |
+| **Deploy** (`deploy.yml`) | every push to `main` (and on demand) | runs CI → checks the Cloudflare access → finds or creates the database, KV and file storage → records the database restore point → applies migrations → `wrangler deploy` → gives the Worker its secrets → health check. **Until the two Cloudflare secrets exist it deploys nothing and says so in a notice** (the run stays green); a manual run fails loudly instead |
 | **Lighthouse (live site)** (`lighthouse.yml`) | after each successful deploy and every Monday | measures the live public pages and fails if a budget is broken |
 
-**One-time GitHub setup** (repository → *Settings*):
+**One-time GitHub setup** (repository → *Settings*; all of it can be done from a phone):
 
 1. **Secrets and variables → Actions → New repository secret**
-   * `CLOUDFLARE_API_TOKEN` — create at Cloudflare → *My Profile → API Tokens → Create Token* from the **“Edit Cloudflare Workers”** template, then add *Account · D1 · Edit* and *Account · Workers R2 Storage · Edit*, limited to your account (and the `mawahbd.com` zone).
-   * `CLOUDFLARE_ACCOUNT_ID` — the 32-character account ID shown on the Cloudflare dashboard’s right-hand side.
-   * (optional) a **variable** `SITE_URL` if the address differs from `https://academy.mawahbd.com` (used by the health check and Lighthouse).
+   * `CLOUDFLARE_API_TOKEN` — Cloudflare → *My Profile → API Tokens → Create Token* → the **“Edit Cloudflare Workers”** template. Then check that these *Account* permissions are on (the template lacks D1 and R2, add them): *Workers Scripts · Edit*, *Workers KV Storage · Edit*, *D1 · Edit*, *Workers R2 Storage · Edit*; set *Account resources* to your account. Paste the token with nothing before or after it. (For the custom domain later also add, for the `mawahbd.com` zone: *Workers Routes · Edit* and *DNS · Edit*.)
+   * `CLOUDFLARE_ACCOUNT_ID` — the 32-character ID in the Cloudflare dashboard address (`dash.cloudflare.com/<account id>/…`). It must be the account that owns your Worker: the Deploy workflow refuses to go on when the account’s `workers.dev` address is not the one in `SITE_URL`, so a wrong account can never receive your database and files.
+   * `SETUP_TOKEN` *(optional, for the first start)* — any long random text, 12 characters or more; you use it once to create the first admin ([section 5](#5-first-start-your-admin-account)).
+   * (optional) a **variable** `SITE_URL` if Lighthouse should measure a different address than the one in `worker/wrangler.toml`.
 2. **Environments → New environment → `production`** — optional, but add *Required reviewers* if you want a human to approve each release.
 3. **Branches → Add rule for `main`** — *Require a pull request* and *Require status checks to pass*: pick the CI jobs (*Typecheck, unit tests, build* · *End-to-end (Playwright)* · *Core Web Vitals gate (Lighthouse, mobile)* · *No secrets in the repository*).
+
+**Do not also connect the Worker to Git inside Cloudflare** (*Workers & Pages → your Worker → Settings → Builds*, or the “Import a repository” button). GitHub Actions already deploys it. Cloudflare’s own build would start on every push and every pull request, is not set up for this project’s layout (the Worker’s configuration lives in `worker/` and the apps must be built first), fails, and adds a red **Workers Builds** check to every pull request. If it is connected: *Settings → Builds → Disconnect*.
 
 Branch strategy: work on a branch → open a pull request (CI runs, Dependabot keeps dependencies fresh) → merge → it deploys. **Database changes are always a new file** in `worker/migrations/` (`0004_….sql`), never an edit of an applied one; keep migrations additive (new columns/tables) so the *previous* version keeps working while a deploy rolls out.
 
@@ -146,9 +164,9 @@ Branch strategy: work on a branch → open a pull request (CI runs, Dependabot k
 
 ## 5. First start: your admin account
 
-1. Open `https://academy.mawahbd.com/admin/`. While no admin exists the page shows **“Create the first admin”**.
-2. Enter your name, e-mail, a strong password (a passphrase of 12+ characters) and the **setup token**. The form permanently closes the moment the account exists.
-3. Delete the token: `npx wrangler secret delete SETUP_TOKEN` (the dashboard’s *Things to fix* list shows a reminder until you do).
+1. Open `<your site address>/admin/` — until the custom domain is live that is `https://academy-mawahbd-com.mawahacademy.workers.dev/admin/`. While no admin exists the page shows **“Create the first admin”** (if it does not, the Worker has no setup token yet: add the GitHub secret `SETUP_TOKEN` and run Deploy again).
+2. Enter your name, e-mail, a strong password (a passphrase of 12+ characters) and the **setup token** (the text you saved as the GitHub secret `SETUP_TOKEN`). The form permanently closes the moment the account exists.
+3. Remove the token — in Cloudflare: your Worker → *Settings → Variables and Secrets* → `SETUP_TOKEN` → *Delete* (or `npx wrangler secret delete SETUP_TOKEN`) — and delete the GitHub secret too. The dashboard’s *Things to fix* list shows a reminder until the Worker’s copy is gone.
 4. Follow **First steps** on the dashboard (contact details, payments, instructor, lessons, refund policy, e-mail, chatbot, team) — see the [owner guide](owner-guide.md).
 
 ---
@@ -189,9 +207,9 @@ The payment adapters were written against the gateways’ public documentation a
 
 ## 7. Day-to-day: releases, rollbacks, domains
 
-* **Release**: merge a pull request into `main`. **Rollback the code**: Cloudflare dashboard → *Workers & Pages → mawah-academy → Deployments → Rollback*, or `npx wrangler rollback` in `worker/`. **Roll back data**: D1 Time Travel (see security.md) — use only for data loss; migrations are forward-only.
+* **Release**: merge a pull request into `main`. **Rollback the code**: Cloudflare dashboard → *Workers & Pages → academy-mawahbd-com → Deployments → Rollback*, or `npx wrangler rollback` in `worker/`. **Roll back data**: D1 Time Travel (see security.md) — use only for data loss; migrations are forward-only.
 * **See what is happening**: `npx wrangler tail` (live logs) and the in-app *Admin → Activity log*.
-* **Change the domain**: edit the `routes` line and `SITE_URL` in `wrangler.toml` (or rerun `npm run setup:cloudflare -- --domain new.example.com`), deploy. Update the payment gateway return/IPN URLs and the Resend sending domain.
+* **Put the site on your own domain** (or change it): in `worker/wrangler.toml` uncomment/edit the `routes` line and change `SITE_URL` to the same address — GitHub’s file editor works on a phone — and commit; the next deploy attaches the domain (its DNS zone must be on the same Cloudflare account, and the API token needs *Workers Routes · Edit* and *DNS · Edit* for that zone). From a computer you can instead run `npm run setup:cloudflare -- --domain academy.mawahbd.com`. Then update the payment gateway return/IPN URLs and the Resend sending domain.
 * **A staging copy** (optional, to rehearse payments or migrations without touching live data): add an `[env.staging]` block to `wrangler.toml` with its own `name`, `vars` (`PAYMENT_MODE = "sandbox"`), and its own D1/KV/R2 IDs, then `npx wrangler deploy --env staging`.
 * **Costs to expect**: Workers, D1, KV and R2 have free allowances that cover a small academy; Stream (per minute stored/delivered) and Workers AI (beyond the daily allowance) are the variable costs. Check Cloudflare’s current pricing pages.
 
@@ -201,8 +219,11 @@ The payment adapters were written against the gateways’ public documentation a
 
 | Symptom | Likely cause and fix |
 |---|---|
-| Deploy runs but says *“Nothing was deployed”* / *“Deployment is not set up yet”* | Add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (section 4) — and run `npm run setup:cloudflare` so `wrangler.toml` has real IDs |
-| `setup:cloudflare` says R2 is not enabled | Enable R2 in the dashboard (*R2 → Overview*), run it again |
+| Deploy runs but says *“Nothing was deployed”* / *“Deployment is not set up yet”* | Add the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (section 4) |
+| Deploy is red at **Check the Cloudflare access** | Read the ✗ lines in the run’s summary page: they name the missing token permission, say that R2 must be switched on, or that the account ID belongs to another Cloudflare account. Fix the secret or the token, then *Actions → Deploy → Run workflow* |
+| Deploy is red at **Find or create the database…** or says R2 is not enabled | Enable R2 in the dashboard (*R2 → Overview*) and give the token *D1 · Edit*, *Workers KV Storage · Edit* and *Workers R2 Storage · Edit*; run Deploy again |
+| A red **Workers Builds: academy-mawahbd-com** check on pull requests, or “Failed” entries in the Worker’s *Deployments* list | The Worker is also connected to Git inside Cloudflare, which this project does not use. *Workers & Pages → your Worker → Settings → Builds → Disconnect*. GitHub Actions is the one deployer |
+| The `workers.dev` address shows a plain “Hello World” | Cloudflare’s placeholder Worker is still there: no Deploy has succeeded yet. Open *Actions → Deploy* and read the latest run |
 | `/admin/` shows a login form but you never created an admin | The setup form appears only while no admin exists and `SETUP_TOKEN` is set; `npx wrangler secret put SETUP_TOKEN` and reload |
 | Students can pay but are not enrolled | The gateway could not reach the IPN URL: check the *Orders* list for *Pending*, the gateway panel’s IPN log, and that `SITE_URL` is exactly your public address |
 | Dashboard says “E-mail is not connected” | Set `RESEND_API_KEY` and verify the sending domain; mail goes nowhere without it |

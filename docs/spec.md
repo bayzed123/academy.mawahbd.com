@@ -251,10 +251,12 @@ flowchart LR
   DEV["Developer"] -->|"pull request"| GH["GitHub"]
   GH --> CI["CI: typecheck, unit tests, E2E, Lighthouse, secret scan"]
   CI -->|"green, merged to main"| DEP["Deploy workflow"]
-  DEP --> MIG["D1 migrations apply --remote"]
+  DEP --> PRE["Access check + find or create D1 / KV / R2"]
+  PRE --> MIG["D1 migrations apply --remote"]
   MIG --> WD["wrangler deploy"]
   WD --> CF["Cloudflare: Worker + static assets"]
-  CF --> HC["Health check: /api/health"]
+  CF --> SEC["Secrets (APP_SECRET, SETUP_TOKEN) if missing"]
+  SEC --> HC["Health check: /api/health"]
   HC --> LH["Lighthouse on the live pages"]
 ```
 
@@ -505,7 +507,7 @@ Budgets (`scripts/lighthouse-local.mjs`): performance ≥ 85, accessibility ≥ 
 | Unit + integration | **Vitest inside the real Workers runtime** (`@cloudflare/vitest-plugin`, local D1/KV/R2) | 108 tests | Auth and lock-out, RBAC matrix, every admin module, catalogue, checkout, coupons, bundles, webhooks and idempotency, refunds, enrolment, drip, progress, reviews gating, certificates and verification, invoices, chatbot, cron, uploads, CSV, security headers, rate limits |
 | API contract | JSON fixtures in `tests/fixtures/` (`course-list`, `create-order`, `admin-login`, `certificate-verify`) | 8 | Exact response shapes and “never leaks” key lists |
 | Route guards + production mode | `worker/test/hardening.test.ts` (Vitest, same runtime) | 10 | **Every** registered API route is enumerated from the router: admin endpoints refuse anonymous callers and student sessions, a read-only Viewer cannot write anywhere, student/checkout endpoints need a login — so a new endpoint that forgets its check fails immediately. Also flips `ENVIRONMENT=production` to prove HSTS, `__Host-` Secure/HttpOnly cookies (Strict for staff), no test gateway or dev mailbox even with `ALLOW_MOCK_PAYMENTS`, the edge page cache (MISS → HIT, tracking parameters ignored, an admin edit shows on the next request) and that personal responses are never cached |
-| Script tests | `node --test` | 11 | The Cloudflare setup helper; the brand (palette contrast ratios, every CSS variable defined, the logo/icon files the pages point at); React effects must not return a value by accident (newer Chrome returns a Promise from `scrollTo()`, which React would call as a cleanup function and blank the app) |
+| Script tests | `node --test` | 29 | The Cloudflare setup script (run against a stand-in Wrangler: a fresh account, a second run, secrets never printed or invented, R2 off) and the deploy access check (run against a pretend Cloudflare API: missing permissions, R2 off, a pasted-with-a-space token, an account ID that belongs to another account); the brand (palette contrast ratios, every CSS variable defined, the logo/icon files the pages point at); React effects must not return a value by accident (newer Chrome returns a Promise from `scrollTo()`, which React would call as a cleanup function and blank the app) |
 | **End-to-end** | **Playwright** against a real Worker on a fresh seeded local database | 33 | **enrol → pay → access → complete → certificate issued → publicly verified**, the admin workflows (first-run setup, instructors with photo upload, settings, class + curriculum + files, manual payment approve/refund, coming-soon notify list, team roles, chatbot key masking, reports, CSV), the owner’s numbers matching what students did, language toggle, password change/reset, **axe accessibility** on every main screen, **360 px phones** |
 | Web vitals | Lighthouse gate | 5 pages | §10 budgets |
 | Types | `tsc` in all four workspaces | — | Required before a deploy |
@@ -572,11 +574,9 @@ Short version (full, copy-paste guide: **[deployment.md](deployment.md)**):
 npm ci
 npm run dev            # Worker :8787 · student app :5173 · admin :5174 · local D1/KV/R2 · demo data
 
-# Production — once
-npx wrangler login
-npm run setup:cloudflare -- --domain academy.mawahbd.com --secrets   # creates D1/KV/R2, fills wrangler.toml
-npm run db:migrate:remote
-# add the GitHub secrets CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID, then push to main
+# Production — once: add the GitHub secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (and, for the first admin, SETUP_TOKEN),
+# then merge to main — the Deploy workflow creates the D1 database, KV namespace and R2 bucket if they are missing,
+# migrates, deploys, sets APP_SECRET and checks /api/health. (From a computer instead: npm run setup:cloudflare -- --secrets)
 ```
 
 Node ≥ 20.19 (CI uses 22) · Wrangler 4 · branch strategy: feature branch → pull request (CI) → merge to `main` → automatic migrate + deploy + health check + Lighthouse on the live pages. Secrets (`APP_SECRET`, `SETUP_TOKEN`, gateway/e-mail/AI keys) are set with `wrangler secret put` and never live in the repository; `worker/.dev.vars.example` shows the local-only fakes.

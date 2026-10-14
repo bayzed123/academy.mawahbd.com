@@ -6,6 +6,16 @@
 export const PLACEHOLDER_D1 = "REPLACE_WITH_D1_ID";
 export const PLACEHOLDER_KV = "REPLACE_WITH_KV_ID";
 
+/** The Worker's name: the first top-level `name = "…"` (before any [table], so a rate-limit `name` cannot be mistaken for it). */
+export function readWorkerName(toml) {
+  return /^name\s*=\s*"([^"]+)"/m.exec(toml.split(/^\s*\[/m)[0])?.[1];
+}
+
+/** The public address the Worker is told about: the `SITE_URL` entry under [vars]. */
+export function readSiteUrl(toml) {
+  return /^SITE_URL\s*=\s*"([^"]+)"/m.exec(toml)?.[1];
+}
+
 /** @returns {string[]} the placeholder IDs that are still present in the file */
 export function findPlaceholders(toml) {
   return [PLACEHOLDER_D1, PLACEHOLDER_KV].filter((p) => toml.includes(p));
