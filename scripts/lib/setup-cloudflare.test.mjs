@@ -31,7 +31,15 @@ if (a[0] === "whoami") { say("You are logged in with an API Token.\\n"); done();
 if (cmd === "d1 list") { say(s.d1); done(); }
 if (cmd === "d1 create") { s.d1.push({ uuid: "d1-" + (s.d1.length + 1) + "-uuid", name: a[2] }); say("Created\\n"); done(); }
 if (a[0] === "kv" && a[2] === "list") { say(s.kv); done(); }
-if (a[0] === "kv" && a[2] === "create") { s.kv.push({ id: "kv" + (s.kv.length + 1) + "id", title: s.kvTitle || workerName + "-" + a[3] }); say("Created\\n"); done(); }
+if (a[0] === "kv" && a[2] === "create") {
+  // Wrangler 4.151 on the real account titled it just "KV"; older ones used "<worker>-KV" (the tests can ask for either)
+  const title = s.kvTitle === "worker-prefixed" ? workerName + "-" + a[3] : s.kvTitle || a[3];
+  // like Cloudflare, refuse a second namespace with the same title
+  if (s.kv.some((n) => n.title === title)) { process.stderr.write("A namespace with this title already exists [code: 10014]\\n"); done(1); }
+  s.kv.push({ id: "kv" + (s.kv.length + 1) + "id", title });
+  say("Created\\n");
+  done();
+}
 if (a[0] === "r2" && s.r2Disabled) { process.stderr.write("Please enable R2 through the Cloudflare Dashboard. [code: 10042]\\n"); done(1); }
 if (cmd === "r2 bucket" && a[2] === "list") { say(s.r2.map((n) => "name:           " + n + "\\n").join("")); done(); }
 if (cmd === "r2 bucket" && a[2] === "create") { s.r2.push(a[3]); say("Created\\n"); done(); }
@@ -89,6 +97,22 @@ test("running it again creates nothing and changes nothing", () => {
   assert.equal(again.code, 0, again.out);
   assert.deepEqual(creates(sb.state().calls.slice(callsBefore)), []);
   assert.equal(sb.toml(), first);
+});
+
+test("the namespace the real Wrangler made on the owner's account (titled just \u201cKV\u201d) is found again on the next deploy", () => {
+  const sb = sandbox({ kv: [{ id: "f14a64bf5acd4b95ad631d062dfe7e6d", title: "KV" }] });
+  const r = sb.run(["--ci"]);
+  assert.equal(r.code, 0, r.out);
+  assert.match(sb.toml(), /^id = "f14a64bf5acd4b95ad631d062dfe7e6d"/m);
+  assert.equal(sb.state().calls.filter((c) => c.startsWith("kv namespace create")).length, 0, "no second namespace");
+});
+
+test("a KV namespace titled \u201c<worker>-KV\u201d (older Wrangler) is found again too, and two runs in a row make exactly one", () => {
+  const sb = sandbox({ kvTitle: "worker-prefixed" });
+  assert.equal(sb.run(["--ci"]).code, 0);
+  assert.equal(sb.state().kv[0].title, "academy-mawahbd-com-KV");
+  assert.equal(sb.run(["--ci"]).code, 0);
+  assert.equal(sb.state().kv.length, 1);
 });
 
 test("a KV namespace made under the Worker's earlier name is reused, not duplicated", () => {

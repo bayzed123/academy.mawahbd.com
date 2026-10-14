@@ -53,7 +53,7 @@ The site starts on the free Cloudflare address that is written in `worker/wrangl
 Do the one-time GitHub setup in [section 4](#4-github-actions-tests-and-automatic-deploys) (two repository secrets; it works from a phone). Then merge into `main`, or open *Actions → Deploy → Run workflow*. The Deploy workflow:
 
 1. **checks the Cloudflare access** and says in plain words what is missing (a token permission, R2 switched off, an account ID that belongs to another Cloudflare account);
-2. **creates whatever is missing** on your Cloudflare account — the D1 database `mawah-academy-db`, a KV namespace (`<worker name>-KV`) and the R2 bucket `mawah-academy-media` — and uses their IDs for that run only (nothing is committed; the two placeholders in `wrangler.toml` stay as they are);
+2. **creates whatever is missing** on your Cloudflare account — the D1 database `mawah-academy-db`, a KV namespace (Wrangler names it `KV`; older versions `<worker name>-KV` — a re-run recognises either and never makes a second one) and the R2 bucket `mawah-academy-media` — and uses their IDs for that run only (nothing is committed; the two placeholders in `wrangler.toml` stay as they are);
 3. applies the database migrations (the first run also loads the 26-class catalogue), deploys the Worker, and gives it an `APP_SECRET` (random, never shown) and, if you added the GitHub secret `SETUP_TOKEN`, your setup token;
 4. checks `/api/health` and writes the site’s address into the run’s summary page.
 

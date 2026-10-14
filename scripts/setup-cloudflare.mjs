@@ -47,8 +47,11 @@ let toml = readFileSync(tomlPath, "utf8");
 
 const WORKER_NAME = readWorkerName(toml) ?? "academy-mawahbd-com";
 const D1_NAME = "mawah-academy-db";
-const KV_TITLE = `${WORKER_NAME}-KV`; // `wrangler kv namespace create KV` titles it "<worker name>-KV"
-const KV_TITLE_BEFORE_RENAME = "mawah-academy-KV"; // what an account set up under the Worker's earlier name has
+// What `wrangler kv namespace create KV` titles the namespace depends on the Wrangler version: Wrangler 4.151 (seen on the
+// real account) names it just "KV"; older ones "<worker name>-KV"; an account set up under the Worker's earlier name has
+// "mawah-academy-KV". Every one of them is the same namespace, so a re-run must recognise all of them (a second "KV" would
+// either be refused or leave the site with an empty namespace and everybody signed out).
+const KV_TITLES = [`${WORKER_NAME}-KV`, "KV", "mawah-academy-KV"];
 const R2_NAME = "mawah-academy-media";
 const MIN_SETUP_TOKEN = 12;
 
@@ -116,20 +119,22 @@ if (WITH_RESOURCES) {
     info(`id ${d1Id}`);
   }
 
-  step(`KV namespace "${KV_TITLE}"`);
+  step("KV namespace");
   if (DRY) {
     info(`(dry run) would look for it with "wrangler kv namespace list" and run: npx wrangler kv namespace create KV  — only if it is missing`);
     kvId = "<KV id>";
   } else {
     const read = () => jsonOf(wrangler(["kv", "namespace", "list"]).stdout, "KV namespaces");
+    const byTitle = (list) => KV_TITLES.map((title) => list.find((n) => n.title === title)).find(Boolean);
     const before = read();
-    let found = before.find((n) => n.title === KV_TITLE || n.title === KV_TITLE_BEFORE_RENAME);
+    let found = byTitle(before);
     if (!found) {
       info("not found — creating it");
-      wrangler(["kv", "namespace", "create", "KV"]);
+      const made = wrangler(["kv", "namespace", "create", "KV"], { allowFail: true });
       // the namespace that was not in the list before is ours, whatever title this Wrangler version gave it
       const after = read();
-      found = after.find((n) => !before.some((b) => b.id === n.id)) ?? after.find((n) => n.title === KV_TITLE);
+      found = after.find((n) => !before.some((b) => b.id === n.id)) ?? byTitle(after);
+      if (!found && !made.ok) fail(`wrangler kv namespace create KV failed:\n${made.all.trim()}`);
     } else info(`already exists (${found.title})`);
     if (!found?.id) fail("the KV namespace was created but its ID could not be read — check `npx wrangler kv namespace list`.");
     kvId = found.id;
