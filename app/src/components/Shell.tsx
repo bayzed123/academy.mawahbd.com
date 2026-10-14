@@ -50,7 +50,7 @@ export function Shell() {
               ))}
             <a href={`${home === "/" ? "" : home}/courses`}>{t("app.nav.browse")}</a>
           </nav>
-          <button className="lang-btn" onClick={switchLang} aria-label="Language">
+          <button type="button" className="lang-btn" onClick={switchLang} lang={lang === "bn" ? "en" : "bn"}>
             {t("lang.switch")}
           </button>
           {student ? (

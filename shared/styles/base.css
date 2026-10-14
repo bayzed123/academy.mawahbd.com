@@ -59,7 +59,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .icon-lg{width:2.2rem;height:2.2rem}
 
 /* ---------- section heading with the thin gold rule ---------- */
-.eyebrow{display:inline-block;font-size:.8rem;font-weight:600;color:var(--g-600);text-transform:uppercase;letter-spacing:.18em;margin-bottom:.6rem}
+.eyebrow{display:inline-block;font-size:.8rem;font-weight:600;color:var(--g-700);text-transform:uppercase;letter-spacing:.18em;margin-bottom:.6rem}
 html[lang=bn] .eyebrow{letter-spacing:0;text-transform:none;font-size:.9rem}
 .sec-head{max-width:46rem;margin:0 0 clamp(24px,4vw,40px)}
 .sec-head.center{margin-inline:auto}

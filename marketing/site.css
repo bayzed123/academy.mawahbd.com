@@ -11,7 +11,7 @@
 .brand-text{display:flex;flex-direction:column;line-height:1.05}
 .brand-name{font-family:var(--font-display);font-weight:600;font-size:1.3rem;letter-spacing:.16em;color:var(--e-900)}
 html[lang=bn] .brand-name{font-weight:400;letter-spacing:0;font-size:1.34rem}
-.brand-sub{font-size:.62rem;letter-spacing:.42em;color:var(--g-600);text-transform:uppercase;font-weight:600;margin-top:3px}
+.brand-sub{font-size:.62rem;letter-spacing:.42em;color:var(--g-700);text-transform:uppercase;font-weight:600;margin-top:3px}
 html[lang=bn] .brand-sub{display:none}
 .nav-links{display:none;gap:clamp(12px,2vw,26px);list-style:none;margin:0;padding:0}
 .nav-links a{color:var(--ink-2);text-decoration:none;font-weight:600;font-size:.98rem;padding:.4rem .1rem;border-bottom:2px solid transparent}

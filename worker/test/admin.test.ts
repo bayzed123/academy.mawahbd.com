@@ -159,6 +159,14 @@ describe("course management", () => {
     expect(Object.keys(fields)).toEqual(expect.arrayContaining(["price", "title_en", "level", "status"]));
   });
 
+  it("accepts exactly what the admin form sends (no certificate template field) and applies the default", async () => {
+    const { client } = await loginStaff("content_manager");
+    const { cert_template: _unused, ...formBody } = body({ title_en: "Form Shaped Class" });
+    const res = await client.post("/api/admin/courses", formBody);
+    expect(res.status).toBe(201);
+    expect((await json(res)).item.cert_template).toBe("classic");
+  });
+
   it("publishing stamps published_at; the public site shows the class only once it is live", async () => {
     const { client } = await loginStaff("content_manager");
     const { item } = await json(await client.post("/api/admin/courses", body({ title_en: "Publish Me Class" })));
@@ -821,6 +829,30 @@ describe("launch notifications, reports and dashboard", () => {
     expect(learning.items.find((r: any) => r.id === course.id)).toMatchObject({ enrolled: 1 });
     const csv = await (await admin.get(`/api/admin/reports/revenue.csv?from=${today}&to=${today}`)).text();
     expect(csv.split("\r\n")[0]).toContain("Revenue (BDT)");
+  });
+
+  it("free enrolments are not sales: they never inflate order counts, buyers or class sales", async () => {
+    const paid = await makeCourse({ price: 800 });
+    const free = await makeCourse({ price: 0 });
+    const buyer = await registerStudent();
+    const publicId = (await json(await buyer.client.post("/api/checkout", { courses: [paid.slug], channel: "mock" }))).order.public_id;
+    expect((await payMock(publicId)).status).toBe(200);
+    const taker = await registerStudent();
+    expect((await taker.client.post("/api/checkout", { courses: [free.slug] })).status).toBe(201); // enrolled instantly, order total 0
+
+    const admin = (await loginStaff("super_admin")).client;
+    const today = new Date(Date.now() + 6 * 3600e3).toISOString().slice(0, 10);
+    const rep = await json(await admin.get(`/api/admin/reports/revenue?from=${today}&to=${today}`));
+    expect(rep.by_course.map((r: any) => r.course_id)).toContain(paid.id);
+    expect(rep.by_course.map((r: any) => r.course_id)).not.toContain(free.id);
+    expect(rep.by_method.map((m: any) => m.method)).not.toContain("free");
+    expect(rep.totals.average_order).toBe(rep.totals.orders ? Math.round(rep.totals.revenue / rep.totals.orders) : 0);
+    expect(rep.totals.average_order).toBeGreaterThanOrEqual(800); // never dragged down by ৳0 orders
+    const dash = await json(await admin.get("/api/admin/dashboard"));
+    expect(dash.top_classes.map((r: any) => r.id)).not.toContain(free.id);
+    // the free class still shows up where enrolments belong
+    const learning = await json(await admin.get("/api/admin/reports/learning"));
+    expect(learning.items.find((r: any) => r.id === free.id)).toMatchObject({ enrolled: 1 });
   });
 
   it("the dashboard shows only real numbers, 'needs attention' items, a health strip and onboarding steps", async () => {

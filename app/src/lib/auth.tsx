@@ -34,19 +34,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       student: me.isPending ? undefined : (me.data ?? null),
       async login(email, password, turnstile) {
         const s = await login.mutateAsync({ email, password, turnstile });
-        qc.clear();
+        qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" && q.queryKey[0] !== "site" });
         qc.setQueryData(["me"], s);
         return s;
       },
       async register(input) {
         const s = await register.mutateAsync(input);
-        qc.clear();
+        qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" && q.queryKey[0] !== "site" });
         qc.setQueryData(["me"], s);
         return s;
       },
       async logout() {
         await api("/auth/logout", { method: "POST", json: {} }).catch(() => undefined);
-        qc.clear();
+        qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" && q.queryKey[0] !== "site" });
         qc.setQueryData(["me"], null);
       },
       setStudent: (s) => qc.setQueryData(["me"], s),

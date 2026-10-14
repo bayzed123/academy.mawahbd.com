@@ -122,6 +122,19 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
   return checks;
 }
 
+/** Cheap counters for the sidebar badges (polled every minute) — the full dashboard is only loaded on the dashboard page. */
+dashboard.get("/badges", requirePerm("dashboard:read"), async (c) => {
+  const n = async (sql: string) => (await first<{ n: number }>(c.env.DB, sql))?.n ?? 0;
+  const [orders, reviews, questions, messages, handoffs] = await Promise.all([
+    n("SELECT COUNT(*) AS n FROM orders WHERE status = 'awaiting_verification'"),
+    n("SELECT COUNT(*) AS n FROM reviews WHERE status = 'pending'"),
+    n("SELECT COUNT(*) AS n FROM lesson_questions WHERE status = 'open'"),
+    n("SELECT COUNT(*) AS n FROM contact_messages WHERE status = 'new'"),
+    n("SELECT COUNT(*) AS n FROM chat_escalations WHERE status = 'open'"),
+  ]);
+  return ok(c, { orders, reviews, questions, messages: messages + handoffs });
+});
+
 dashboard.get("/health", requirePerm("dashboard:read"), async (c) => ok(c, { checks: await runHealthChecks(c.env) }));
 
 dashboard.get("/dashboard", requirePerm("dashboard:read"), async (c) => {
@@ -141,7 +154,7 @@ dashboard.get("/dashboard", requirePerm("dashboard:read"), async (c) => {
   ] = await Promise.all([
     first<{ v: number }>(db, "SELECT COALESCE(SUM(total), 0) AS v FROM orders WHERE status = 'paid' AND date(paid_at, '+6 hours') >= ?", since30),
     first<{ v: number }>(db, "SELECT COALESCE(SUM(total), 0) AS v FROM orders WHERE status = 'paid' AND date(paid_at, '+6 hours') >= ? AND date(paid_at, '+6 hours') < ?", since60, since30),
-    count("SELECT COUNT(*) AS n FROM orders WHERE status = 'paid' AND date(paid_at, '+6 hours') >= ?", since30),
+    count("SELECT COUNT(*) AS n FROM orders WHERE status = 'paid' AND total > 0 AND date(paid_at, '+6 hours') >= ?", since30), // free enrolments are not sales
     count("SELECT COUNT(*) AS n FROM students"),
     count("SELECT COUNT(*) AS n FROM students WHERE date(created_at, '+6 hours') >= ?", since30),
     count("SELECT COUNT(*) AS n FROM enrollments WHERE status = 'active'"),
@@ -160,7 +173,7 @@ dashboard.get("/dashboard", requirePerm("dashboard:read"), async (c) => {
       db,
       `SELECT c.id, c.title_en, c.title_bn, COUNT(*) AS sales, SUM(oi.price) AS revenue FROM order_items oi
        JOIN orders o ON o.id = oi.order_id JOIN courses c ON c.id = oi.course_id
-       WHERE o.status = 'paid' AND date(o.paid_at, '+6 hours') >= ? GROUP BY c.id ORDER BY sales DESC, revenue DESC LIMIT 5`,
+       WHERE o.status = 'paid' AND oi.price > 0 AND date(o.paid_at, '+6 hours') >= ? GROUP BY c.id ORDER BY sales DESC, revenue DESC LIMIT 5`,
       since30,
     ),
     all(

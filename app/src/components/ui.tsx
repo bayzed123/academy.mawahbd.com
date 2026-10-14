@@ -32,9 +32,9 @@ export function Banner({ course }: { course: Pick<CourseCardDTO, "banner_key" | 
 export const accentClass = (course: Pick<CourseCardDTO, "category">) => `a-${course.category?.accent ?? "snack"}`;
 
 /* ---------------------------------------------------------------- progress */
-export function Progress({ pct, done }: { pct: number; done?: boolean }) {
+export function Progress({ pct, done, label }: { pct: number; done?: boolean; label: string }) {
   return (
-    <div className={`progress${done ? " done" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
+    <div className={`progress${done ? " done" : ""}`} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
       <i style={{ "--p": `${Math.max(0, Math.min(100, pct))}%` } as CSSProperties} />
     </div>
   );
@@ -127,7 +127,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const seq = useRef(0);
   const push = useCallback((text: string, bad?: boolean) => {
     const id = ++seq.current;
-    setItems((x) => [...x.slice(-2), { id, text, bad }]);
+    setItems((x) => [...x.filter((i) => i.text !== text || !!i.bad !== !!bad).slice(-2), { id, text, bad }]);
     window.setTimeout(() => setItems((x) => x.filter((i) => i.id !== id)), 5000);
   }, []);
   return (

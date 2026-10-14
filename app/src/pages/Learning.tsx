@@ -62,7 +62,7 @@ export function MyLearning() {
                 <h3 className="card-title">
                   <Link to={`/learn/${m.course.slug}`}>{pick(m.course, "title")}</Link>
                 </h3>
-                <Progress pct={m.progress.pct} done={done} />
+                <Progress pct={m.progress.pct} done={done} label={t("app.learning.progress", { done: lang === "bn" ? toBn(m.progress.done) : m.progress.done, total: lang === "bn" ? toBn(m.progress.total) : m.progress.total })} />
                 <div className="prog-line">
                   <span>{t("app.learning.progress", { done: lang === "bn" ? toBn(m.progress.done) : m.progress.done, total: lang === "bn" ? toBn(m.progress.total) : m.progress.total })}</span>
                   <b>{lang === "bn" ? toBn(m.progress.pct) : m.progress.pct}%</b>

@@ -171,7 +171,7 @@ export function CourseOverview() {
       <div className="course-head">
         <p className="eyebrow">{v.course.category ? pick(v.course.category, "name") : ""}</p>
         <h1>{pick(v.course, "title")}</h1>
-        <Progress pct={v.progress.pct} done={done} />
+        <Progress pct={v.progress.pct} done={done} label={t("app.learning.progress", { done: lang === "bn" ? toBn(v.progress.done) : v.progress.done, total: lang === "bn" ? toBn(v.progress.total) : v.progress.total })} />
         <div className="prog-line">
           <span>{t("app.learning.progress", { done: lang === "bn" ? toBn(v.progress.done) : v.progress.done, total: lang === "bn" ? toBn(v.progress.total) : v.progress.total })}</span>
           <b>{lang === "bn" ? toBn(v.progress.pct) : v.progress.pct}%</b>

@@ -272,7 +272,7 @@ const courseSchema = z.object({
   details_url: optionalUrl,
   featured: z.boolean(),
   cert_enabled: z.boolean(),
-  cert_template: z.enum(["classic"]),
+  cert_template: z.enum(["classic"]).optional(), // one template today: the column default applies when the form does not send it
   seo_title_bn: textSchema(120),
   seo_title_en: textSchema(120),
   seo_desc_bn: textSchema(320),

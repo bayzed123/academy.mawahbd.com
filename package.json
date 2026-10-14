@@ -21,14 +21,16 @@
     "build": "npm run build:marketing && npm run build:app && npm run build:admin",
     "dev": "node scripts/dev.mjs",
     "typecheck": "npm run typecheck -w shared && npm run typecheck -w worker && npm run typecheck -w app && npm run typecheck -w admin",
-    "test": "npm run build:marketing && npm run test -w worker",
+    "test": "npm run check:i18n && npm run build:marketing && npm run test -w worker",
     "test:e2e": "playwright test",
     "db:migrate:local": "npm run build:marketing && npm run db:migrate:local -w worker",
     "db:seed:dev": "npm run db:seed:dev -w worker",
     "db:migrate:remote": "npm run db:migrate:remote -w worker",
-    "deploy": "npm run build && npm run deploy -w worker"
+    "deploy": "npm run build && npm run deploy -w worker",
+    "check:i18n": "node --experimental-strip-types --no-warnings scripts/check-i18n.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.64.0",
     "typescript": "^7.0.2"
   }

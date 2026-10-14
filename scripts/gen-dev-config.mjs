@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
  * Generates worker/.wrangler.dev.toml from worker/wrangler.toml for local development and tests.
+ * (DEV_SITE_URL / DEV_CONFIG_OUT override the site URL and output file, DEV_RATE_LIMIT_MULT scales the rate limits —
+ * all used by the Playwright server on :8788, whose tests hammer one "IP"; unit tests cover the real limits.)
  *
  * Why: the [ai] and [stream] bindings are "remote-only" — wrangler would need a Cloudflare login
  * (and could incur usage) even for `wrangler dev`/vitest. The Worker treats both as optional, so the
@@ -12,14 +14,15 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const src = resolve(root, "worker/wrangler.toml");
-const out = resolve(root, "worker/.wrangler.dev.toml");
+const out = resolve(root, process.env.DEV_CONFIG_OUT ?? "worker/.wrangler.dev.toml"); // the E2E server writes its own copy
 
 const DEV_VARS = {
   ENVIRONMENT: "development",
-  SITE_URL: "http://localhost:8787",
+  SITE_URL: process.env.DEV_SITE_URL ?? "http://localhost:8787",
   PAYMENT_MODE: "sandbox",
 };
 const DROP_TABLES = new Set(["ai", "stream"]);
+const RATE_MULT = Number(process.env.DEV_RATE_LIMIT_MULT ?? 1);
 
 const lines = readFileSync(src, "utf8").split("\n");
 const result = [];
@@ -44,7 +47,8 @@ for (const line of lines) {
       continue;
     }
   }
-  result.push(line);
+  const rate = RATE_MULT !== 1 ? line.match(/^(\s*simple\s*=\s*\{\s*limit\s*=\s*)(\d+)(.*)$/) : null;
+  result.push(rate ? `${rate[1]}${Number(rate[2]) * RATE_MULT}${rate[3]}` : line);
 }
 
 mkdirSync(dirname(out), { recursive: true });

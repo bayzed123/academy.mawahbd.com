@@ -22,6 +22,8 @@ function range(c: Ctx) {
 }
 
 const PAID_IN_RANGE = "o.status = 'paid' AND date(o.paid_at, '+6 hours') BETWEEN ? AND ?";
+// free enrolments (total 0) are not sales: they never count as orders, buyers or class sales — only money does
+const SALE = "CASE WHEN o.total > 0 THEN 1 ELSE 0 END";
 
 async function revenueReport(c: Ctx) {
   const { from, to, group } = range(c);
@@ -30,14 +32,14 @@ async function revenueReport(c: Ctx) {
   const [series, totals, byCourse, byMethod, byCoupon, refunds] = await Promise.all([
     all<{ period: string; orders: number; revenue: number; discounts: number }>(
       db,
-      `SELECT strftime('${fmt}', o.paid_at, '+6 hours') AS period, COUNT(*) AS orders, SUM(o.total) AS revenue, SUM(o.discount) AS discounts
+      `SELECT strftime('${fmt}', o.paid_at, '+6 hours') AS period, SUM(${SALE}) AS orders, SUM(o.total) AS revenue, SUM(o.discount) AS discounts
        FROM orders o WHERE ${PAID_IN_RANGE} GROUP BY period ORDER BY period`,
       from,
       to,
     ),
     first<{ orders: number; revenue: number; discounts: number; students: number }>(
       db,
-      `SELECT COUNT(*) AS orders, COALESCE(SUM(o.total), 0) AS revenue, COALESCE(SUM(o.discount), 0) AS discounts, COUNT(DISTINCT o.student_id) AS students
+      `SELECT COALESCE(SUM(${SALE}), 0) AS orders, COALESCE(SUM(o.total), 0) AS revenue, COALESCE(SUM(o.discount), 0) AS discounts, COUNT(DISTINCT CASE WHEN o.total > 0 THEN o.student_id END) AS students
        FROM orders o WHERE ${PAID_IN_RANGE}`,
       from,
       to,
@@ -46,14 +48,14 @@ async function revenueReport(c: Ctx) {
       db,
       `SELECT oi.course_id, c.title_en, c.title_bn, COUNT(*) AS sales, SUM(oi.price) AS revenue
        FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN courses c ON c.id = oi.course_id
-       WHERE ${PAID_IN_RANGE} GROUP BY oi.course_id ORDER BY revenue DESC, sales DESC LIMIT 50`,
+       WHERE ${PAID_IN_RANGE} AND oi.price > 0 GROUP BY oi.course_id ORDER BY revenue DESC, sales DESC LIMIT 50`,
       from,
       to,
     ),
     all(
       db,
       `SELECT COALESCE(o.method, o.gateway, 'other') AS method, COUNT(*) AS orders, SUM(o.total) AS revenue
-       FROM orders o WHERE ${PAID_IN_RANGE} GROUP BY 1 ORDER BY revenue DESC`,
+       FROM orders o WHERE ${PAID_IN_RANGE} AND o.total > 0 GROUP BY 1 ORDER BY revenue DESC`,
       from,
       to,
     ),
