@@ -7,6 +7,9 @@
   var $$ = function (s, r) { return Array.prototype.slice.call((r || d).querySelectorAll(s)); };
   var meta = function (n) { var m = $('meta[name="' + n + '"]'); return m ? m.getAttribute("content") || "" : ""; };
 
+  /* the visitor's language follows them into the student app (same origin, so localStorage is shared) */
+  try { localStorage.setItem("mawah_lang", (d.documentElement.lang || "bn").slice(0, 2)); } catch (e) { /* private mode */ }
+
   /* 1. cached HTML is anonymous; a non-secret cookie flag swaps "Log in" for "My Learning" */
   if (/(?:^|;\s*)mawah_in=1/.test(d.cookie)) {
     $$("[data-guest]").forEach(function (e) { e.hidden = true; });

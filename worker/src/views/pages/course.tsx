@@ -154,7 +154,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
                         <Icon name={lessonIcon[l.type]} />
                         <span>{loc(l, "title", lang)}</span>
                         {l.is_preview && (
-                          <a class="tag-preview" href={`/app/preview/${l.id}`}>
+                          <a class="tag-preview" href={`/app/preview/${l.id}?c=${encodeURIComponent(course.slug)}`}>
                             {t("course.preview")}
                           </a>
                         )}

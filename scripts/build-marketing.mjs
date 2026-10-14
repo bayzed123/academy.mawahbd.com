@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Builds the public-site assets:
- *   marketing/site.css      -> minified string inlined into every page   (worker/src/generated/assets.ts)
+ *   shared/styles/base.css + marketing/site.css -> minified string inlined into every page (worker/src/generated/assets.ts)
  *   marketing/site.js       -> dist/static/assets/site.<hash>.js          (immutable, 1 year cache)
  *   marketing/chat.{js,css} -> dist/static/chat.{js,css}                  (small, 1 hour cache)
  *   marketing/public/**     -> dist/static/**                             (fonts, sprite, icons, manifest)
@@ -26,7 +26,7 @@ mkdirSync(gen, { recursive: true });
 // static public files (fonts, sprite, favicon, pattern, manifest, og image …)
 cpSync(resolve(root, "marketing/public"), out, { recursive: true });
 
-const css = (await transform(read("marketing/site.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+const css = (await transform(`${read("shared/styles/base.css")}\n${read("marketing/site.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 const js = (await transform(read("marketing/site.js"), { loader: "js", minify: true, target: "es2017" })).code;
 const chatJs = (await transform(read("marketing/chat.js"), { loader: "js", minify: true, target: "es2017" })).code;
 const chatCss = (await transform(read("marketing/chat.css"), { loader: "css", minify: true })).code;

@@ -382,7 +382,8 @@ async function withItems(env: Env, rows: OrderRow[]): Promise<OrderDTO[]> {
   if (rows.length === 0) return [];
   const items = await all<OrderItemDTO & { order_id: number }>(
     env.DB,
-    `SELECT order_id, course_id, title_bn, title_en, price, list_price FROM order_items WHERE order_id IN (${qs(rows.length)}) ORDER BY id`,
+    `SELECT oi.order_id, oi.course_id, c.slug, oi.title_bn, oi.title_en, oi.price, oi.list_price
+     FROM order_items oi JOIN courses c ON c.id = oi.course_id WHERE oi.order_id IN (${qs(rows.length)}) ORDER BY oi.id`,
     ...rows.map((r) => r.id),
   );
   return rows.map((r) => ({

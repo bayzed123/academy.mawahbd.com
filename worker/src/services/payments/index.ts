@@ -15,7 +15,8 @@ export function availableChannels(env: Env, settings: Settings): Channel[] {
   const out: Channel[] = [];
   if (settings.payments.sslcommerz && sslConfigured(env)) out.push("sslcommerz");
   if (settings.payments.bkash_direct && bkashConfigured(env)) out.push("bkash");
-  if (settings.payments.manual) out.push("manual");
+  // manual send-money is only offered once the owner has entered at least one number to send the money to
+  if (settings.payments.manual && Object.values(settings.payments.manual_numbers).some((n) => !!n)) out.push("manual");
   if (mockEnabled(env)) out.push("mock");
   return out;
 }

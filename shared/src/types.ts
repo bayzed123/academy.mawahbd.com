@@ -115,6 +115,8 @@ export interface LessonContentDTO {
 
 export interface OrderItemDTO {
   course_id: number;
+  /** class slug (for "go to class" links); absent on quotes built before the class row is joined */
+  slug?: string;
   title_bn: string;
   title_en: string;
   price: number;

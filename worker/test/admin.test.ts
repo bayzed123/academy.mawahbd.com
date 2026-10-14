@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Client, env, json, loginStaff, registerStudent, uniqueEmail } from "./helpers";
 import { mockSignature } from "../src/services/payments";
 import { runScheduled } from "../src/cron";
-import { resetSettingsCache } from "../src/lib/settings";
+import { resetSettingsCache, setSetting } from "../src/lib/settings";
 
 /* ------------------------------------------------------------------------------------------------ helpers */
 let seq = 0;
@@ -35,6 +35,11 @@ const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 
 const PDF = new TextEncoder().encode("%PDF-1.4\n1 0 obj\n<<>>\nendobj\n");
 
 afterEach(() => vi.restoreAllMocks());
+
+// manual send-money checkout needs the owner's receiving numbers (set once per isolated test database)
+beforeAll(async () => {
+  await setSetting(env, "payments", { sslcommerz: true, bkash_direct: false, manual: true, manual_numbers: { bkash: "01711111111", nagad: "", rocket: "" }, manual_note_bn: "", manual_note_en: "" }, null);
+});
 
 /* ------------------------------------------------------------------------------------------------ RBAC */
 describe("admin API access control (RBAC)", () => {

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
+import { turnstileEnabled } from "../lib/turnstile";
 import { buildCsp } from "../middleware/security";
 
 /**
@@ -18,7 +19,7 @@ async function shell(c: { env: AppEnv["Bindings"]; req: { url: string } }, base:
   const headers = new Headers({
     "Content-Type": "text/html; charset=utf-8",
     "Cache-Control": "no-cache",
-    "Content-Security-Policy": buildCsp({ spa: true }),
+    "Content-Security-Policy": buildCsp({ spa: true, turnstile: turnstileEnabled(c.env) }),
   });
   if (base === "admin") headers.set("X-Robots-Tag", "noindex, nofollow");
   return new Response(asset.body, { status: 200, headers });

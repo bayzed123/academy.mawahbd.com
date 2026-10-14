@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Client, env, json, registerStudent } from "./helpers";
 import { mockSignature } from "../src/services/payments";
 import { refreshCourseRating } from "../src/services/catalog";
+import { setSetting } from "../src/lib/settings";
 
 /* ------------------------------------------------------------------------------------------------ helpers */
 let seq = 0;
@@ -290,6 +291,30 @@ describe("coupons", () => {
 
 /* ------------------------------------------------------------------------------------------------ manual */
 describe("manual send-money payments", () => {
+  const payments = (numbers: { bkash: string; nagad: string; rocket: string }) => ({
+    sslcommerz: true,
+    bkash_direct: false,
+    manual: true,
+    manual_numbers: numbers,
+    manual_note_bn: "",
+    manual_note_en: "",
+  });
+  beforeEach(async () => {
+    await setSetting(env, "payments", payments({ bkash: "01711111111", nagad: "", rocket: "" }), null);
+  });
+
+  it("is only offered once the owner has entered a number to send money to", async () => {
+    const course = await makeCourse();
+    const { client } = await registerStudent();
+    const offered = async () => (await json(await client.post("/api/checkout/quote", { courses: [course.slug] }))).quote.channels as string[];
+    expect(await offered()).toContain("manual");
+    await setSetting(env, "payments", payments({ bkash: "", nagad: "", rocket: "" }), null);
+    expect(await offered()).not.toContain("manual");
+    const res = await client.post("/api/checkout", { courses: [course.slug], channel: "manual", manual: { method: "bkash", trx_id: "8n7a6d5e4c", payer_number: "01712345678" } });
+    expect(res.status).toBe(400);
+    expect((await json(res)).error.code).toBe("payment_unavailable");
+  });
+
   it("records the TrxID, waits for staff, and refuses a TrxID that was already used", async () => {
     const course = await makeCourse({ price: 650 });
     const { client } = await registerStudent();
