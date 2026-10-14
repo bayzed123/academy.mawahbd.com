@@ -240,9 +240,9 @@ flowchart LR
 
 **Edge page cache.** Public pages are identical for every visitor, so each is rendered once per data centre and served from the Cache API. The cache key is *path + the few query parameters that change the page + a “content version”* kept in KV; **any admin edit bumps the version**, which invalidates every cached page — immediately in the data centre that handled the edit and within about a minute everywhere else (KV is eventually consistent). Marketing parameters (`?fbclid`, `?utm_*`) never fragment the cache. Cached HTML is anonymous; a non-secret cookie flag lets the script swap “Log in” for “My Learning”.
 
-**Storage.** D1 = relational data · KV = sessions (only a SHA-256 of the token is stored), content version, chat/day counters, dev mail outbox · R2 = public images (`banners/ photos/ blog/`, content-hash names) and **private** lesson files (`resources/`, downloaded only through an authenticated, enrolment-checked route) · Stream = video.
+**Storage.** D1 = relational data · KV = sessions (only a SHA-256 of the token is stored), content version, chat/day counters, dev mail outbox · R2 = public images (`banners/ photos/ blog/`, content-hash names), **private** lesson files (`resources/`, downloaded only through an authenticated, enrolment-checked route) and **private payment screenshots** (`proofs/`, opened only by staff who may verify payments) · Stream = video.
 
-**Scheduled work** (cron, every 6 h; every step independent and idempotent): cancel checkouts abandoned for 48 h (manual verifications are never auto-closed) · purge used/expired tokens · drop old unverified payment events · finish interrupted launch e-mails.
+**Scheduled work** (cron, every 6 h; every step independent and idempotent): cancel checkouts abandoned for 48 h (an unpaid manual order too — one waiting for staff is never auto-closed) · delete payment screenshots 90 days after their order was settled · purge used/expired tokens · drop old unverified payment events · finish interrupted launch e-mails.
 
 **Delivery path**
 
@@ -311,7 +311,7 @@ erDiagram
 | `students` | `email` (unique, NOCASE), `name`, `phone`, `password_hash`, `google_sub` (reserved), `locale`, `blocked`, `failed_logins`, `locked_until`, `sessions_valid_after`, `last_login_at` | Password hash = PBKDF2-SHA256 + pepper (§9) |
 | `staff` | `email`, `name`, **`role`** (`super_admin`·`content_manager`·`support`·`viewer`), `password_hash`, `active`, `must_change_password`, lock-out fields | The admin accounts (“admins/staff”) |
 | `auth_tokens` | `kind` (`password_reset`·`email_verify`), `subject_type/id`, **`token_hash`**, `expires_at`, `used_at` | Only the SHA-256 of a token is stored |
-| **`orders`** | **`public_id`**, **`invoice_no`** (unique), `student_id`, **`status`** (`pending`·`awaiting_verification`·`paid`·`failed`·`cancelled`·`refunded`), `subtotal`, `discount`, `total`, `currency`, `coupon_id/code`, `bundle_id`, `method`, `gateway`, `gateway_ref/txn`, `payer_number`, customer snapshot, `paid_at`, `paid_claim`, `refunded_at` | A partial unique index stops a manual TrxID being used on two orders |
+| **`orders`** | **`public_id`**, **`invoice_no`** (unique), `student_id`, **`status`** (`pending`·`awaiting_verification`·`paid`·`failed`·`cancelled`·`refunded`), `subtotal`, `discount`, `total`, `currency`, `coupon_id/code`, `bundle_id`, `method`, `gateway`, `gateway_ref/txn`, `payer_number`, customer snapshot, `paid_at`, `paid_claim`, `refunded_at`, **`pay_by`** (manual: the UTC deadline shown to the student), **`proof_at`** and **`proof_key`** (manual: when proof arrived, and the R2 key of the private screenshot) | A partial unique index stops a manual TrxID being used on two orders |
 | `order_items` | `order_id`, `course_id`, titles (snapshot), `list_price`, `price` | Prices are copied at purchase time |
 | `payment_events` | `order_id`, `provider`, `event`, `verified`, `payload` | Raw gateway callbacks for audit and idempotency |
 | `invoice_counters` | `day` (PK), `last_seq` | Gapless per-day sequence |
@@ -406,7 +406,7 @@ export interface Course {
 |---|---|---|
 | **SSLCommerz** | Hosted page with **bKash, Nagad, Rocket and cards**; the IPN is re-validated server-to-server before anything is granted | 🟡 |
 | **bKash direct** | Tokenized checkout (create → execute → verify) | 🟡 (adapter built; not exercised against bKash) |
-| **Manual send-money** | The owner enters the receiving numbers in Settings (the channel is *hidden until a number exists*); the student sends money, submits TrxID + sender number; staff verify in Admin → Orders (Approve / Reject). A TrxID can only ever be used on one order | ✅ |
+| **Manual send-money** | No gateway needed. The owner enters the receiving numbers (and the length of the payment window) in Settings; the channel is *hidden until a number exists*. The student first says which number they will pay **from**, then sees the owner’s number, the amount, a payment reference and a countdown (default **20 minutes**), pays in their own app and sends the **TrxID and/or a screenshot** — optionally with a ready-written **WhatsApp** message. Staff compare it with the account statement in Admin → Orders and **Approve** or **Reject**; the student’s open page turns to “successful” by itself. A TrxID can only ever be used on one order | ✅ |
 | **Free** | Price 0 (or a 100 % coupon): no payment step, enrolled on one click, invoice still issued | ✅ |
 | **Test gateway** | Signed local simulation for development and automated tests. **Impossible in production** (`ENVIRONMENT=production` disables it regardless of settings) | ✅ |
 | **Stripe / international cards** | — | ⏭ Phase 3 |
@@ -438,13 +438,43 @@ sequenceDiagram
 * **Amounts come from the database**, never from the browser; coupon and bundle prices are recomputed server-side on every quote and at payment time.
 * **Coupons**: percent or flat, minimum order, maximum discount, start/expiry, total and per-student limits, optional restriction to specific classes. **Bundles** price several classes together; enrolling in a bundle enrols in each class.
 
+**Manual send-money, step by step** (works with no payment gateway at all; the owner’s numbers and the length of the window are in Admin → Settings → Payments):
+
+```mermaid
+sequenceDiagram
+  actor St as Student
+  participant App as React app
+  participant W as Worker
+  actor Ow as Owner / Support
+  St->>App: choose "Manual", pick bKash/Nagad/Rocket, type the number they will pay from
+  App->>W: POST /api/checkout {manual: {method, payer_number}}
+  W-->>App: order (pending) with pay_by = now + 20 min
+  App-->>St: the owner's number, the amount, a payment reference and a countdown
+  St->>St: pays in the bKash / Nagad / Rocket app
+  St->>App: TrxID and/or a screenshot
+  App->>W: POST /api/checkout/:id/proof-image, then POST /api/checkout/:id/proof
+  W->>W: order becomes awaiting_verification
+  W-->>Ow: e-mail "payment proof received" (and the Orders badge)
+  St-->>Ow: optional WhatsApp message (wa.me link, text already written)
+  Ow->>W: Admin → Orders → Approve, after matching the account statement
+  W-->>App: paid and enrolled (the open page asks again every 15 s)
+```
+
+* **The window guides, it does not trap.** `pay_by` is set when the order is made and the countdown follows the *server’s* clock (the order response carries `now`, so a wrong phone clock does not matter). When it runs out the page says so and offers “start again”; **proof sent late is still accepted** — people pay slowly — and the admin sees “n min after the payment window”. The length is a setting (default 20, allowed 5–120 minutes).
+* **Proof is a TrxID, a screenshot, or both** (at least one). The TrxID is 6–24 letters/digits, upper-cased, and can only ever belong to one order. The screenshot is shrunk in the browser (1600 px, JPEG), then checked on the server by its *magic bytes* (JPEG, PNG, WebP or AVIF, at most 3 MB) and stored **privately** in R2 under `proofs/<order>/<hash>.<ext>`. Only staff who may verify payments can open it, and browsers are told not to keep it. It is deleted 90 days after the order is settled.
+* **A payment reference** (the first 8 characters of the order id, upper-case) is shown to the student to put in the send-money reference box, so Support can match a payment to an order at a glance.
+* **No double orders.** Starting a second manual checkout for the same class cancels the earlier unpaid one.
+* **Staff may approve a manual order that is still `pending`** — the student paid and only wrote on WhatsApp. Approval is still one atomic, idempotent step recorded in the activity log. The test gateway’s orders cannot be approved this way.
+* **The owner is told.** When proof arrives an e-mail goes to the contact address from Settings (if e-mail is set up) and the Orders badge in the admin counts it.
+
 ```mermaid
 stateDiagram-v2
   [*] --> pending: checkout started
   pending --> paid: gateway webhook verified
   pending --> failed: gateway reports failure
   pending --> cancelled: student cancels or 48 h pass
-  [*] --> awaiting_verification: manual send-money submitted
+  pending --> awaiting_verification: manual proof sent (TrxID and/or screenshot)
+  pending --> paid: staff approve a manual order (proof came by WhatsApp)
   awaiting_verification --> paid: staff approve
   awaiting_verification --> failed: staff reject
   paid --> refunded: Super Admin refunds
@@ -504,11 +534,11 @@ Budgets (`scripts/lighthouse-local.mjs`): performance ≥ 85, accessibility ≥ 
 
 | Layer | Tooling | Count | Covers |
 |---|---|---:|---|
-| Unit + integration | **Vitest inside the real Workers runtime** (`@cloudflare/vitest-plugin`, local D1/KV/R2) | 108 tests | Auth and lock-out, RBAC matrix, every admin module, catalogue, checkout, coupons, bundles, webhooks and idempotency, refunds, enrolment, drip, progress, reviews gating, certificates and verification, invoices, chatbot, cron, uploads, CSV, security headers, rate limits |
+| Unit + integration | **Vitest inside the real Workers runtime** (`@cloudflare/vitest-plugin`, local D1/KV/R2) | 130 tests | Auth and lock-out, RBAC matrix, every admin module, catalogue, checkout, coupons, bundles, webhooks and idempotency, refunds, enrolment, drip, progress, reviews gating, certificates and verification, invoices, chatbot, cron, uploads, CSV, security headers, rate limits |
 | API contract | JSON fixtures in `tests/fixtures/` (`course-list`, `create-order`, `admin-login`, `certificate-verify`) | 8 | Exact response shapes and “never leaks” key lists |
 | Route guards + production mode | `worker/test/hardening.test.ts` (Vitest, same runtime) | 10 | **Every** registered API route is enumerated from the router: admin endpoints refuse anonymous callers and student sessions, a read-only Viewer cannot write anywhere, student/checkout endpoints need a login — so a new endpoint that forgets its check fails immediately. Also flips `ENVIRONMENT=production` to prove HSTS, `__Host-` Secure/HttpOnly cookies (Strict for staff), no test gateway or dev mailbox even with `ALLOW_MOCK_PAYMENTS`, the edge page cache (MISS → HIT, tracking parameters ignored, an admin edit shows on the next request) and that personal responses are never cached |
 | Script tests | `node --test` | 29 | The Cloudflare setup script (run against a stand-in Wrangler: a fresh account, a second run, secrets never printed or invented, R2 off) and the deploy access check (run against a pretend Cloudflare API: missing permissions, R2 off, a pasted-with-a-space token, an account ID that belongs to another account); the brand (palette contrast ratios, every CSS variable defined, the logo/icon files the pages point at); React effects must not return a value by accident (newer Chrome returns a Promise from `scrollTo()`, which React would call as a cleanup function and blank the app) |
-| **End-to-end** | **Playwright** against a real Worker on a fresh seeded local database | 33 | **enrol → pay → access → complete → certificate issued → publicly verified**, the admin workflows (first-run setup, instructors with photo upload, settings, class + curriculum + files, manual payment approve/refund, coming-soon notify list, team roles, chatbot key masking, reports, CSV), the owner’s numbers matching what students did, language toggle, password change/reset, **axe accessibility** on every main screen, **360 px phones** |
+| **End-to-end** | **Playwright** against a real Worker on a fresh seeded local database | 35 | **enrol → pay → access → complete → certificate issued → publicly verified**, the admin workflows (first-run setup, instructors with photo upload, settings, class + curriculum + files, manual payment (own number → countdown → TrxID/screenshot → WhatsApp message → approve), refund, coming-soon notify list, team roles, chatbot key masking, reports, CSV), the owner’s numbers matching what students did, language toggle, password change/reset, **axe accessibility** on every main screen, **360 px phones** |
 | Web vitals | Lighthouse gate | 5 pages | §10 budgets |
 | Types | `tsc` in all four workspaces | — | Required before a deploy |
 

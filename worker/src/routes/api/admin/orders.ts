@@ -15,6 +15,7 @@ export const orders = new Hono<AppEnv>();
 
 const COLS = `o.id, o.public_id, o.invoice_no, o.status, o.subtotal, o.discount, o.total, o.coupon_code, o.method, o.gateway, o.gateway_txn,
   o.payer_number, o.customer_name, o.customer_email, o.customer_phone, o.note, o.created_at, o.paid_at, o.refunded_at, o.student_id,
+  o.pay_by, o.proof_at, (o.proof_key IS NOT NULL) AS has_proof_image,
   (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS item_count,
   (SELECT group_concat(oi.title_en, ' · ') FROM order_items oi WHERE oi.order_id = o.id) AS items`;
 
@@ -116,6 +117,24 @@ orders.get("/orders/:id", requirePerm("orders:read"), async (c) => {
   return ok(c, { order, items, events, student });
 });
 
+/** The payment screenshot a student sent. Private: only staff who verify payments can open it, and browsers are told not to keep it. */
+orders.get("/orders/:id/proof-image", requirePerm("orders:verify"), async (c) => {
+  const id = intParam(c, "id");
+  const row = await first<{ proof_key: string | null }>(c.env.DB, "SELECT proof_key FROM orders WHERE id = ?", id);
+  if (!row?.proof_key) throw notFound();
+  const object = await c.env.R2.get(row.proof_key);
+  if (!object) throw notFound();
+  return new Response(object.body, {
+    headers: {
+      "Content-Type": object.httpMetadata?.contentType ?? "application/octet-stream",
+      "Cache-Control": "private, no-store",
+      "Content-Disposition": "inline",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "default-src 'none'; img-src 'self'; sandbox",
+    },
+  });
+});
+
 /** A manual (bKash/Nagad/Rocket send-money) payment checked against the account statement -> opens the classes. */
 orders.post("/orders/:id/approve", requirePerm("orders:verify"), async (c) => {
   const id = intParam(c, "id");
@@ -125,7 +144,9 @@ orders.post("/orders/:id/approve", requirePerm("orders:verify"), async (c) => {
     id,
   );
   if (!order) throw notFound();
-  if (order.status !== "awaiting_verification") throw new HttpError(409, "not_awaiting_verification");
+  // a manual order can be approved while it is still "pending" too: the student paid but sent the proof on WhatsApp instead of the form
+  const approvable = order.status === "awaiting_verification" || (order.status === "pending" && order.gateway === "manual");
+  if (!approvable) throw new HttpError(409, "not_awaiting_verification");
   const result = await markOrderPaid(c.env, id, { gateway: "manual", waitUntil: (p) => c.executionCtx.waitUntil(p) });
   if (!result.won) throw new HttpError(409, "already_processed");
   await audit(c, { action: "order.approved", entity: "order", entityId: id, summary: order.gateway_txn ?? "" });

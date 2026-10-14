@@ -73,14 +73,22 @@
 |---|---|---|
 | **অনলাইন পেমেন্ট (SSLCommerz)** | SSLCommerz মার্চেন্ট অ্যাকাউন্ট ও তার Store ID/Password — **ডেভেলপার সিক্রেট হিসেবে বসাবেন** | বিকাশ, নগদ, রকেট বা কার্ড — পেমেন্ট শেষ হলে **নিজে নিজেই** ক্লাস খুলে যায় |
 | **সরাসরি বিকাশ** (ঐচ্ছিক) | বিকাশের টোকেনাইজড চেকআউট কী | বিকাশ পেজে পেমেন্ট |
-| **ম্যানুয়াল সেন্ড মানি** | শুধু আপনার বিকাশ/নগদ/রকেট নম্বর (**সেটিংস → পেমেন্ট**-এ বসান) | শিক্ষার্থী আপনার নম্বরে টাকা পাঠিয়ে **TrxID** ও নিজের নম্বর জমা দেন; **আপনি যাচাই করে অনুমোদন দিলে** ক্লাস খোলে |
+| **ম্যানুয়াল সেন্ড মানি** | শুধু আপনার বিকাশ/নগদ/রকেট নম্বর (**সেটিংস → পেমেন্ট**-এ বসান) — কোনো গেটওয়ে লাগে না | শিক্ষার্থী আগে **নিজের কোন নম্বর থেকে টাকা পাঠাবেন** সেটি লেখেন, তারপর আপনার নম্বর, টাকার অঙ্ক ও **২০ মিনিটের কাউন্টডাউন** দেখেন। টাকা পাঠিয়ে **TrxID এবং/অথবা স্ক্রিনশট** জমা দেন (চাইলে তৈরি করা **হোয়াটসঅ্যাপ মেসেজ** পাঠান)। **আপনি যাচাই করে অনুমোদন দিলে** ক্লাস খোলে এবং তাঁর খোলা পাতা নিজে থেকেই “সফল” দেখায় |
 
 **ম্যানুয়াল পেমেন্ট যাচাই (প্রতিদিনের কাজ):**
 1. বাঁ মেনু → **অর্ডার** (পাশে লাল সংখ্যা মানে কতগুলো অপেক্ষায়)। অবস্থা “যাচাইয়ের অপেক্ষায়” বেছে নিন।
-2. অর্ডার খুলুন → আপনার ফোনের বিকাশ/নগদ/রকেট মেসেজের সাথে **TrxID ও টাকার অঙ্ক** মেলান।
+2. অর্ডার খুলুন → আপনার ফোনের বিকাশ/নগদ/রকেট মেসেজের সাথে **TrxID, কোন নম্বর থেকে এসেছে ও টাকার অঙ্ক** মেলান। স্ক্রিনশট পাঠালে অর্ডারেই দেখা যাবে (শুধু আপনারা যাঁরা পেমেন্ট যাচাই করতে পারেন তাঁরাই দেখেন)।
 3. মিললে **পেমেন্ট অনুমোদন** — ক্লাস সাথে সাথে খুলবে, ইনভয়েস নম্বর তৈরি হবে। না মিললে **প্রত্যাখ্যান** — শিক্ষার্থীকে ইমেইলে জানানো হবে, তিনি আবার চেষ্টা করতে পারবেন।
 
 > ম্যানুয়াল অপশন সেটিংসে **আপনার নম্বর না বসানো পর্যন্ত শিক্ষার্থীদের কাছে আসে না**।
+
+**জেনে রাখুন:**
+* **২০ মিনিট** (সেটিংস → পেমেন্টে ৫–১২০ মিনিটের মধ্যে বদলানো যায়) শুধু শিক্ষার্থীকে গাইড করে। সময় পেরিয়ে গেলেও পরে পাঠানো প্রমাণ **গ্রহণ করা হয়**; অর্ডারে লেখা থাকে “সময়ের কত মিনিট পরে”। আপনি দেখে সিদ্ধান্ত নেন।
+* শিক্ষার্থীর কাছে একটি **পেমেন্ট রেফারেন্স কোড** (অর্ডার নম্বরের প্রথম ৮ অক্ষর) দেখানো হয় — টাকা পাঠানোর রেফারেন্স ঘরে লিখতে বলা হয়, যাতে আপনি সহজে মেলাতে পারেন।
+* প্রমাণ এলে আপনার **যোগাযোগের ইমেইলে** একটি বার্তা যায় (ইমেইল সংযুক্ত থাকলে) এবং *অর্ডার* মেনুর লাল সংখ্যা বাড়ে।
+* হোয়াটসঅ্যাপে লিখে জানালেও (ফর্ম পূরণ না করলেও) আপনি **অপেক্ষমাণ অর্ডারটি খুলে সরাসরি অনুমোদন** দিতে পারেন।
+* হোয়াটসঅ্যাপ বোতামটি **সেটিংস → যোগাযোগ ও ঘোষণা**-য় দেওয়া হোয়াটসঅ্যাপ নম্বরে যায় — সেটি না বসালে বোতামটি দেখা যায় না।
+* স্ক্রিনশট **গোপনে** রাখা হয় এবং অর্ডার চূড়ান্ত হওয়ার **৯০ দিন পরে মুছে যায়** (তাতে ব্যালেন্স ও ফোন নম্বর থাকতে পারে)।
 
 **ইনভয়েস:** প্রতিটি অর্ডারের ইনভয়েস নম্বর যেমন `INV-MWH-20261014-0001` (তারিখ + ক্রমিক নম্বর, মাঝে ফাঁক পড়ে না)। শিক্ষার্থী “আমার অর্ডার”-এ ইনভয়েস খুলে **প্রিন্ট / PDF হিসেবে সংরক্ষণ** করতে পারেন।
 
@@ -152,7 +160,7 @@
 
 | সমস্যা | কী করবেন |
 |---|---|
-| শিক্ষার্থী বলছেন টাকা দিয়েছেন কিন্তু ক্লাস খোলেনি | *অর্ডার*-এ ইমেইল/অর্ডার নম্বর খুঁজুন। “অপেক্ষমাণ” হলে গেটওয়ের পেমেন্ট প্যানেলে লেনদেনটি দেখুন; ম্যানুয়াল হলে TrxID মিলিয়ে অনুমোদন দিন। না পেলে ডেভেলপারকে অর্ডার নম্বর জানান |
+| শিক্ষার্থী বলছেন টাকা দিয়েছেন কিন্তু ক্লাস খোলেনি | *অর্ডার*-এ ইমেইল/অর্ডার নম্বর খুঁজুন। “অপেক্ষমাণ” হলে গেটওয়ের পেমেন্ট প্যানেলে লেনদেনটি দেখুন; ম্যানুয়াল হলে TrxID বা স্ক্রিনশট দেখে স্টেটমেন্টের সাথে মিলিয়ে অনুমোদন দিন (“অপেক্ষমাণ” অবস্থাতেও দেওয়া যায়)। না পেলে ডেভেলপারকে অর্ডার নম্বর জানান |
 | ইমেইল যাচ্ছে না | ড্যাশবোর্ডে “ইমেইল সংযুক্ত নয়” দেখাচ্ছে কি না দেখুন → ডেভেলপারকে বলুন |
 | ভিডিও চলছে না | কারিকুলামে ভিডিওর অবস্থা “প্রস্তুত” কি না দেখুন; Stream চালু আছে কি না দেখুন |
 | কেউ অন্যের অ্যাকাউন্ট ব্যবহার করছেন মনে হচ্ছে | *শিক্ষার্থী*-তে খুঁজে **ব্লক** করুন (সব ডিভাইস থেকে লগআউট হবে) |
@@ -231,14 +239,22 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 |---|---|---|
 | **Online payment (SSLCommerz)** | An SSLCommerz merchant account and its Store ID/Password — **your developer sets them as secrets** | bKash, Nagad, Rocket or card — when payment completes the class opens **by itself** |
 | **Direct bKash** (optional) | bKash tokenized-checkout keys | Payment on bKash’s page |
-| **Manual send-money** | Just your bKash/Nagad/Rocket number (**enter it in Settings → Payments**) | The student sends money to your number, submits the **TrxID** and their number; **the class opens when you approve** |
+| **Manual send-money** | Just your bKash/Nagad/Rocket number (**enter it in Settings → Payments**) — no gateway needed | The student first types **the number they will pay from**, then sees your number, the amount and a **20-minute countdown**. They send the money and submit the **TrxID and/or a screenshot** (and can send you a ready-written **WhatsApp message**). **The class opens when you approve**, and their open page turns to “successful” by itself |
 
 **Checking manual payments (a daily job):**
 1. Left menu → **Orders** (a red number shows how many are waiting). Filter status **Awaiting verification**.
-2. Open an order and compare the **TrxID and amount** with the SMS on your phone.
+2. Open an order and compare the **TrxID, the number it came from and the amount** with the SMS on your phone. A screenshot, if the student sent one, is shown on the order (only people who may verify payments can see it).
 3. If they match, **Approve payment** — the class opens immediately and the invoice number is created. If not, **Reject** — the student is e-mailed and can try again.
 
 > The manual option is **not shown to students until you enter your number**.
+
+**Good to know:**
+* The **20 minutes** (changeable in *Settings → Payments*, 5–120) only guides the student. Proof that arrives **after** the time is still accepted; the order says how many minutes late it was, and you decide.
+* The student is shown a **payment reference** (the first 8 characters of the order number) to type into the send-money reference box, so you can match it quickly.
+* When proof arrives you get an **e-mail at your contact address** (if e-mail is set up) and the red number next to *Orders* goes up.
+* If the student only wrote to you on WhatsApp, you can still open their *waiting* order and **approve it directly**.
+* The WhatsApp button goes to the **WhatsApp number in Settings → Contact & announcement** — without one the button is not shown.
+* Screenshots are stored **privately** and are deleted **90 days** after the order is settled (they can show balances and phone numbers).
 
 **Invoices:** every order gets a number like `INV-MWH-20261014-0001` (date + running number, no gaps). Students open the invoice in *My Orders* and use **Print / Save as PDF**.
 
@@ -310,7 +326,7 @@ When someone leaves, **deactivate** their account — their access ends at once.
 
 | Problem | What to do |
 |---|---|
-| A student says they paid but the class did not open | Search *Orders* by e-mail/order number. If *Pending*, look at the gateway’s own panel for that transaction; if manual, match the TrxID and approve. If it is still unclear, give your developer the order number |
+| A student says they paid but the class did not open | Search *Orders* by e-mail/order number. If *Pending*, look at the gateway’s own panel for that transaction; if manual, match the TrxID or the screenshot against your statement and approve (you can approve while it is still *Pending* or *Awaiting verification*). If it is still unclear, give your developer the order number |
 | E-mails are not arriving | Check whether the dashboard says “E-mail is not connected” → ask your developer |
 | A video will not play | In the curriculum check the video says *ready*; check Stream is enabled |
 | Someone seems to be sharing an account | *Students* → search → **Block** (signs out every device) |

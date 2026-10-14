@@ -5,6 +5,7 @@ import { audit } from "../../lib/audit";
 import { all, first, nowIso, run } from "../../lib/db";
 import { forbidden, HttpError, intParam, notFound, ok, parseBody } from "../../lib/http";
 import { textSchema } from "../../lib/schemas";
+import { getSettings } from "../../lib/settings";
 import { pageCtxFor } from "../../lib/pagectx";
 import { renderHtml } from "../../lib/render";
 import { requireStudent } from "../../middleware/auth";
@@ -20,6 +21,7 @@ import {
   setLessonComplete,
 } from "../../services/learning";
 import { orderForStudent, ordersForStudent } from "../../services/orders";
+import { manualPayInfo } from "../../services/payments";
 import { InvoicePage } from "../../views/pages/misc";
 
 export const studentRoutes = new Hono<AppEnv>();
@@ -59,7 +61,12 @@ studentRoutes.get("/resources/:id/download", async (c) => {
 });
 
 studentRoutes.get("/orders", async (c) => ok(c, { orders: await ordersForStudent(c.env, c.get("student")!.id) }));
-studentRoutes.get("/orders/:publicId", async (c) => ok(c, { order: await orderForStudent(c.env, c.get("student")!.id, c.req.param("publicId")) }));
+studentRoutes.get("/orders/:publicId", async (c) => {
+  const order = await orderForStudent(c.env, c.get("student")!.id, c.req.param("publicId"));
+  // while a manual order is open, its page has to say where to send the money
+  const open = order.gateway === "manual" && (order.status === "pending" || order.status === "awaiting_verification");
+  return ok(c, { order: open ? { ...order, manual: manualPayInfo(await getSettings(c.env)) } : order, now: new Date().toISOString() });
+});
 
 /** Printable invoice (HTML styled for A4 — "Save as PDF" from the browser's print dialog). Only the buyer can open it. */
 studentRoutes.get("/orders/:publicId/invoice", async (c) => {

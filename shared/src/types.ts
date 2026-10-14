@@ -138,7 +138,22 @@ export interface OrderDTO {
   payer_number: string | null;
   created_at: string;
   paid_at: string | null;
+  /** manual payments: the time the student was asked to pay by, when they sent proof (TrxID and/or screenshot), and whether a screenshot is on file */
+  pay_by: string | null;
+  proof_at: string | null;
+  has_proof_image: boolean;
+  /** only while a manual order is still open: where to send the money */
+  manual?: ManualPayInfo | null;
   items: OrderItemDTO[];
+}
+
+/** Where a manual (send-money) payment goes, and how long the student has. */
+export interface ManualPayInfo {
+  numbers: { bkash: string; nagad: string; rocket: string };
+  note_bn: string;
+  note_en: string;
+  /** minutes the student is asked to pay within */
+  window_min: number;
 }
 
 /** How the student pays: SSLCommerz hosted page (bKash/Nagad/Rocket/cards), bKash direct, manual send-money, or the dev-only mock. */
@@ -153,7 +168,7 @@ export interface QuoteDTO {
   bundle_id: number | null;
   /** payment channels that can be used right now (empty when total is 0: enrolment is instant) */
   channels: Channel[];
-  manual: { numbers: { bkash: string; nagad: string; rocket: string }; note_bn: string; note_en: string } | null;
+  manual: ManualPayInfo | null;
 }
 
 export interface CertificateDTO {

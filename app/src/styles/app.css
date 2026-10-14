@@ -174,6 +174,34 @@ html[lang=bn] .brand-name{font-weight:400;letter-spacing:.02em;font-size:1.1rem;
 .num-list{list-style:none;margin:.4rem 0 1rem;padding:0;display:grid;gap:8px}
 .num-list li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:.6rem .9rem;background:#fff;border:1px solid var(--line);border-radius:12px}
 .num-list code{font-size:1.1rem;font-weight:700;letter-spacing:.04em;color:var(--k-900)}
+/* manual (send-money) payment: the first step on the checkout page, then the screens of an open order */
+.how-list{margin:.2rem 0 1rem;padding-left:1.3rem;display:grid;gap:.35rem;color:var(--ink-2)}
+.pay-panel{padding-block:clamp(20px,3.4vw,32px)}
+.pay-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:1rem}
+.pay-head h1{font-size:clamp(1.45rem,4.2vw,2rem);margin:0}
+.countdown{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .95rem;border-radius:999px;font-weight:800;font-variant-numeric:tabular-nums;background:var(--g-100);border:1px solid var(--g-300);color:var(--g-800)}
+.countdown.warn,.countdown.over{background:var(--red-50);border-color:var(--red-100);color:var(--red-800)}
+.pay-steps{margin:0 0 1rem;padding-left:1.4rem;display:grid;gap:.9rem}
+.pay-steps li{line-height:1.5}
+.copy-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:.45rem}
+.copy-row code{font-size:1.25rem;font-weight:800;letter-spacing:.05em;color:var(--k-900);background:#fff;border:1px solid var(--line);border-radius:12px;padding:.5rem .9rem}
+.proof-form{margin-top:1.2rem;padding-top:1.2rem;border-top:1px solid var(--line)}
+.field .label{display:block;font-weight:600;font-size:.95rem;color:var(--ink-2)}
+.shot-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.shot-pick{position:relative;cursor:pointer}
+.shot-pick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.shot-pick:focus-within{outline:3px solid var(--focus);outline-offset:2px}
+.shot-preview{display:inline-flex;align-items:center;gap:8px}
+.shot-preview img{width:56px;height:56px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.btn-wa{background:var(--ok-700);border-color:var(--ok-700);color:#fff}
+.btn-wa:hover{background:var(--ok-800);border-color:var(--ok-800);color:#fff}
+.wa-box{margin-top:1.1rem;text-align:center}
+/* full-width buttons wrap their label (long Bangla ones too) instead of pushing the page sideways on a 360 px phone */
+.btn-block,.pay-panel .btn,.panel .btn-wa{white-space:normal;text-align:center;line-height:1.3}
+.checkout>*{min-width:0}
+.sent-list{list-style:none;margin:0 0 1rem;padding:0;display:grid;gap:.45rem}
+.sent-list li{display:flex;gap:.5rem;align-items:center}
+.sent-list .icon{color:var(--ok-600)}
 .chip{display:inline-flex;align-items:center;gap:.35rem;padding:.15rem .7rem;border-radius:999px;font-size:.82rem;font-weight:700;border:1px solid var(--line-2);background:var(--ivory-2);color:var(--ink-2);white-space:nowrap}
 .chip.paid{background:var(--ok-50);border-color:var(--ok-100);color:var(--ok-800)}
 .chip.pending,.chip.awaiting_verification{background:var(--g-100);border-color:var(--g-300);color:var(--g-800)}

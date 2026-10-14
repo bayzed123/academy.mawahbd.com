@@ -115,24 +115,72 @@ test("a paid class: test gateway -> webhook-confirmed enrollment -> lessons, pro
   expect(publicCourse.course.rating_count).toBe(0);
 });
 
-test("manual send-money: the student sees the owner's numbers and a clear waiting state", async () => {
+test("manual send-money: own number first, a countdown with our details, proof by TrxID, a WhatsApp message ready, a clear waiting state", async () => {
   await page.goto("/app/checkout?c=traditional-aurosh-biryani-online-class");
   await page.getByText("Send money manually").click();
-  await expect(page.locator(".num-list")).toContainText("01799990000");
-  // client-side guard + server validation of the proof
+  // step 1 asks only for the service and the student's own number; the owner's number appears once they commit
+  await expect(page.getByText("You get our number and 20 minutes to send the money.")).toBeVisible();
+  await expect(page.locator(".copy-row")).toHaveCount(0);
+  await page.getByLabel("Your number — the one you will send money from").fill("123");
+  await page.getByRole("button", { name: "Continue — show payment details" }).click();
+  await expect(page.getByText("Please enter a valid Bangladeshi mobile number.")).toBeVisible();
+  await page.getByLabel("Your number — the one you will send money from").fill("01712345678");
+  await page.getByRole("button", { name: "Continue — show payment details" }).click();
+
+  // the open order: the amount, the countdown, the owner's number to copy, the reference code
+  await expect(page).toHaveURL(/\/app\/orders\/[a-z2-7]{20}/);
+  await expect(page.getByRole("heading", { name: /^Send ৳[\d,]+ now$/ })).toBeVisible();
+  await expect(page.getByRole("timer")).toContainText(/(19|20):\d\d left to pay/);
+  await expect(page.locator(".copy-row code").first()).toHaveText("01799990000");
+  await expect(page.getByText("You are paying from 01712345678")).toBeVisible();
+
+  // proof: nothing at all, then a TrxID that is not one, then the real one
+  const send = page.getByRole("button", { name: "I have paid — send for checking" });
+  await send.click();
+  await expect(page.getByText("Enter the transaction ID or add a screenshot.")).toBeVisible();
   await page.getByLabel("Transaction ID (TrxID)").fill("x");
-  await page.getByLabel("Number you sent from").fill("123");
-  await page.getByRole("button", { name: "I have sent the money" }).click();
+  await send.click();
   await expect(page.getByText("Please enter the transaction ID exactly as in the message.")).toBeVisible();
   await page.getByLabel("Transaction ID (TrxID)").fill("A1B2C3D4E5");
-  await page.getByLabel("Number you sent from").fill("01712345678");
-  await page.getByRole("button", { name: "I have sent the money" }).click();
+  await send.click();
   await expect(page.getByRole("heading", { name: "We are verifying your payment" })).toBeVisible();
+  await expect(page.getByText("TrxID A1B2C3D4E5")).toBeVisible();
+
+  // a WhatsApp message to the team is ready: the owner's number (typed 017… in Settings) with its country code, and the payment facts
+  const wa = await page.getByRole("link", { name: "Send the details on WhatsApp too" }).getAttribute("href");
+  expect(wa).toMatch(/^https:\/\/wa\.me\/8801711112222\?text=/);
+  const text = decodeURIComponent(wa!.split("?text=")[1]);
+  expect(text).toContain("TrxID: A1B2C3D4E5");
+  expect(text).toContain("from 01712345678");
+  expect(text).toMatch(/Order: [A-Z2-7]{8}/);
+  expect(text).toContain("৳");
+
   await page.goto("/app/");
   await expect(page.getByText("Your payment is being verified")).toBeVisible();
   // the class stays locked until staff approve
   const locked = await apiGet<{ ok: boolean; error?: { code: string } }>(page, "/student/courses/traditional-aurosh-biryani-online-class");
   expect(locked.ok).toBe(false);
+});
+
+test("manual send-money: after the 20 minutes the page says so, and proof is still accepted (the money may already be on its way)", async ({ browser }) => {
+  const ctx = await browser.newContext({ locale: "en-US" });
+  await useLang(ctx, "en");
+  const p = await ctx.newPage();
+  await registerStudent(p, { name: "Late Payer" });
+  const started = await apiPost(p, "/checkout", { courses: ["beginners-baking-class"], channel: "manual", manual: { method: "bkash", payer_number: "01812345678" } });
+  expect(started.status).toBe(201);
+  const id: string = started.body.order.public_id;
+  await p.clock.install();
+  await p.goto(`/app/orders/${id}`);
+  await expect(p.getByRole("timer")).toContainText(/\d\d:\d\d left to pay/);
+  await p.clock.fastForward("21:00");
+  await expect(p.getByText("Time is up").first()).toBeVisible();
+  await expect(p.getByRole("link", { name: "Start again" })).toBeVisible();
+  await p.clock.resume();
+  await p.getByLabel("Transaction ID (TrxID)").fill("LATE1234AB");
+  await p.getByRole("button", { name: "I have paid — send for checking" }).click();
+  await expect(p.getByRole("heading", { name: "We are verifying your payment" })).toBeVisible();
+  await ctx.close();
 });
 
 test("a free preview lesson is watchable without an account, and leads to enrollment", async ({ browser }) => {
@@ -211,7 +259,10 @@ test("student app accessibility: no serious or critical axe violations", async (
   const p = await ctx.newPage();
   const email = uniqueEmail("a11y");
   await registerStudent(p, { email });
-  for (const path of ["/app/", "/app/profile", "/app/orders", "/app/checkout?c=beginners-baking-class", "/app/login"]) {
+  // an open manual payment, so its screen (countdown, copy buttons, the file picker) is checked too
+  const started = await apiPost(p, "/checkout", { courses: ["beginners-baking-class"], channel: "manual", manual: { method: "bkash", payer_number: "01712345678" } });
+  expect(started.status).toBe(201);
+  for (const path of ["/app/", "/app/profile", "/app/orders", "/app/checkout?c=beginners-baking-class", `/app/orders/${started.body.order.public_id}`, "/app/login"]) {
     if (path === "/app/login") {
       await p.locator(".user-menu summary").click();
       await p.getByRole("button", { name: "Log out" }).click();

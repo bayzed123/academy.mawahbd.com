@@ -2,7 +2,7 @@
 
 | Kind | Where | Run | What it proves |
 |---|---|---|---|
-| Unit + integration (inside the real Workers runtime, local D1/KV/R2) | `worker/test/*.test.ts` | `npm test` | Every route, rule and money calculation: auth, RBAC, checkout, webhooks, enrolment, certificates, admin, chatbot, cron |
+| Unit + integration (inside the real Workers runtime, local D1/KV/R2) | `worker/test/*.test.ts` | `npm test` | Every route, rule and money calculation: auth, RBAC, checkout, webhooks, enrolment, certificates, admin, chatbot, cron, and the manual-payment flow (pay window, own number, TrxID/screenshot proof, private screenshots, late proof, approve) |
 | API contract | `tests/fixtures/*.json` + `worker/test/contract.test.ts` | `npm test` | The exact JSON shape of the key endpoints (class list, create order, admin login, certificate verification) and that secrets never leak |
 | Route guards + production mode | `worker/test/hardening.test.ts` | `npm test` | Enumerates every registered API route and checks its login/permission guard (a new unguarded endpoint fails here); flips `ENVIRONMENT=production` to check HSTS, `__Host-` cookies, no test gateway, and the edge page cache with its invalidation |
 | Script tests | `scripts/lib/*.test.mjs` | `npm run test:scripts` | The helper that fills Cloudflare IDs into `wrangler.toml`; the brand — palette contrast ratios (AA), every CSS variable defined (no leftover green), the logo/icon files the pages point at; the Cloudflare setup script against a stand-in Wrangler and the deploy access check against a pretend Cloudflare API (nothing touches a real account); React effect callbacks have block bodies (a newer Chrome returns a Promise from `window.scrollTo()`, and an effect that returns it blanks the whole app) |

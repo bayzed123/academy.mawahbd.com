@@ -157,11 +157,14 @@ test("manual payment: the student waits, support verifies, access opens exactly 
   const { email } = await registerStudent(sp, { name: "Manual Payer" });
   await sp.goto("/app/checkout?c=pizza-masterclass-e2e");
   await sp.getByText("Send money manually").click();
-  await expect(sp.locator(".num-list")).toContainText("01799990000"); // the number the owner entered in Settings
+  await sp.getByLabel("Your number — the one you will send money from").fill("01712345678");
+  await sp.getByRole("button", { name: "Continue — show payment details" }).click();
+  await expect(sp.locator(".copy-row code").first()).toHaveText("01799990000"); // the number the owner entered in Settings
   await sp.getByLabel("Transaction ID (TrxID)").fill("8N7A6D5E4C");
-  await sp.getByLabel("Number you sent from").fill("01712345678");
-  await sp.getByRole("button", { name: "I have sent the money" }).click();
+  await sp.getByLabel("Screenshot of the payment (optional)").setInputFiles({ name: "payment.png", mimeType: "image/png", buffer: PNG });
+  await sp.getByRole("button", { name: "I have paid — send for checking" }).click();
   await expect(sp.getByRole("heading", { name: "We are verifying your payment" })).toBeVisible();
+  await expect(sp.getByText("Screenshot attached")).toBeVisible();
   // a second order cannot reuse the same transaction id
   const dup = await apiPost(sp, "/checkout", { courses: ["pizza-masterclass-e2e"], channel: "manual", manual: { method: "bkash", trx_id: "8N7A6D5E4C", payer_number: "01712345678" } });
   expect([409, 400]).toContain(dup.status);
@@ -172,6 +175,18 @@ test("manual payment: the student waits, support verifies, access opens exactly 
   await expect(page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: /^Orders\s*1$/ })).toBeVisible(); // the sidebar badge counts it
   await page.getByRole("row", { name: new RegExp(email) }).click();
   await expect(page.getByText("Check this payment")).toBeVisible();
+  // the proof the student sent: the number they paid from, the TrxID, in time, and the screenshot — private to staff who verify payments
+  await expect(page.getByText("within the payment window")).toBeVisible();
+  const shot = page.getByAltText("Payment screenshot sent by the student");
+  await expect(shot).toBeVisible();
+  await expect.poll(() => shot.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  const shotUrl = (await shot.getAttribute("src"))!;
+  const shotRes = await page.request.get(shotUrl);
+  expect(shotRes.headers()["content-type"]).toBe("image/png");
+  expect(shotRes.headers()["cache-control"]).toBe("private, no-store");
+  const stranger = await browser.newContext();
+  expect((await stranger.request.get(shotUrl)).status()).toBe(401);
+  await stranger.close();
   await page.getByRole("button", { name: "Approve payment" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Approve payment" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();

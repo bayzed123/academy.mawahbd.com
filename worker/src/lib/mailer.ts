@@ -183,6 +183,18 @@ export function contactAckMail(lang: Lang, d: { name: string }): Omit<MailMessag
   };
 }
 
+/** To the owner's contact address when a student sends payment proof, so a payment never waits unseen. Bilingual: the owner reads either. */
+export function manualProofStaffMail(d: { student: string; total: string; method: string; code: string; adminUrl: string }): Omit<MailMessage, "to"> {
+  const subject = `Payment to verify ${d.total} · পেমেন্ট যাচাই করুন — ${d.code}`;
+  const en = `${d.student} sent proof for a ${d.method} payment of ${d.total} (order ${d.code}). Open the order, compare the TrxID with your ${d.method} messages, then press Approve payment.`;
+  const bn = `${d.student} ${d.method}-এ ${d.total} পাঠানোর প্রমাণ দিয়েছেন (অর্ডার ${d.code})। অর্ডারটি খুলে ট্রানজ্যাকশন আইডি আপনার ${d.method} মেসেজের সাথে মিলিয়ে “পেমেন্ট অনুমোদন” চাপুন।`;
+  return {
+    subject,
+    html: layout("en", subject, `<p style="font-size:16px;line-height:1.6">${escapeHtml(en)}</p><p style="font-size:16px;line-height:1.6">${escapeHtml(bn)}</p>${button(d.adminUrl, "Open the order · অর্ডার খুলুন")}`, "MAWAH Academy"),
+    text: `${en}\n\n${bn}\n\n${d.adminUrl}`,
+  };
+}
+
 export function manualPaymentRejectedMail(lang: Lang, d: { name: string; reason: string }): Omit<MailMessage, "to"> {
   const subject = lang === "bn" ? "পেমেন্ট যাচাই করা যায়নি" : "We could not verify your payment";
   const body =

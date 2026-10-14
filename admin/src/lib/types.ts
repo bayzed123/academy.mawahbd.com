@@ -71,6 +71,10 @@ export interface OrderRow {
   student_id: number;
   item_count: number;
   items: string;
+  /** manual payments: the time the student was asked to pay by, when they sent proof, and whether a screenshot is on file */
+  pay_by: string | null;
+  proof_at: string | null;
+  has_proof_image: number;
 }
 
 export interface Option {

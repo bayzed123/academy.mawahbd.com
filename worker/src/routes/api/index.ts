@@ -19,7 +19,7 @@ export const api = new Hono<AppEnv>();
 
 api.use("*", apiHeaders);
 api.use("*", originGuard);
-// JSON endpoints never need big bodies; the two upload routes (images, lesson files) enforce their own larger caps
+// JSON endpoints never need big bodies; the upload routes (images, lesson files, payment screenshots) enforce their own larger caps
 const jsonLimit = bodyLimit({
   maxSize: 256 * 1024,
   onError: () => {
@@ -27,7 +27,8 @@ const jsonLimit = bodyLimit({
   },
 });
 const isUpload = (method: string, path: string) =>
-  method === "POST" && (path === "/api/admin/media/image" || /^\/api\/admin\/lessons\/\d+\/resources$/.test(path));
+  method === "POST" &&
+  (path === "/api/admin/media/image" || /^\/api\/admin\/lessons\/\d+\/resources$/.test(path) || /^\/api\/checkout\/[a-z0-9]+\/proof-image$/.test(path));
 api.use("*", (c, next) => (isUpload(c.req.method, new URL(c.req.url).pathname) ? next() : jsonLimit(c, next)));
 // payment gateway callbacks come from the gateway's servers, not a browser: exempt from the per-IP limiter
 api.use("*", async (c, next) => {

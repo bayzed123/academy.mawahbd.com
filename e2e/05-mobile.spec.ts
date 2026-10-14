@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminLogin, registerStudent, useLang } from "./helpers";
+import { adminLogin, apiPost, registerStudent, useLang } from "./helpers";
 
 /* Phones first: most students in Bangladesh arrive on a ~360px-wide Android. Nothing may scroll sideways or hide behind other UI. */
 test.use({ viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true });
@@ -54,6 +54,39 @@ test("student app on a phone: bottom tab bar, no overlap with the chat button, n
     await page.goto(path);
     await page.waitForLoadState("networkidle");
     await noSidewaysScroll(page, path);
+  }
+  await ctx.close();
+});
+
+test("manual payment on a phone: the pay screen and the waiting screen fit in both languages, with nothing serious for axe", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true, locale: "en-US" });
+  await useLang(ctx, "en");
+  const page = await ctx.newPage();
+  await registerStudent(page);
+  const started = await apiPost(page, "/checkout", { courses: ["beginners-baking-class"], channel: "manual", manual: { method: "bkash", payer_number: "01712345678" } });
+  expect(started.status).toBe(201);
+  const id: string = started.body.order.public_id;
+  for (const lang of ["en", "bn"]) {
+    await page.evaluate((l) => localStorage.setItem("mawah_lang", l), lang);
+    await page.goto(`/app/orders/${id}`);
+    await expect(page.getByRole("timer")).toBeVisible();
+    await noSidewaysScroll(page, `the pay screen (${lang})`);
+    // the long Bangla buttons must wrap, not push the page sideways
+    for (const button of await page.locator(".pay-panel .btn").all()) {
+      const box = await button.boundingBox();
+      if (box) expect(box.x + box.width, `a button runs off the right edge (${lang})`).toBeLessThanOrEqual(360);
+    }
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(results.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id)).toEqual([]);
+  }
+  // after the TrxID is sent, the waiting screen
+  const sent = await apiPost(page, `/checkout/${id}/proof`, { trx_id: "PHONE12345" });
+  expect(sent.status).toBe(200);
+  for (const lang of ["en", "bn"]) {
+    await page.evaluate((l) => localStorage.setItem("mawah_lang", l), lang);
+    await page.goto(`/app/orders/${id}`);
+    await expect(page.locator(".sent-list")).toBeVisible();
+    await noSidewaysScroll(page, `the waiting screen (${lang})`);
   }
   await ctx.close();
 });

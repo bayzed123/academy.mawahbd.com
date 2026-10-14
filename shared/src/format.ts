@@ -108,6 +108,17 @@ export function normalizeBdPhone(input: string): string | null {
   return m ? `0${m[1]}` : null;
 }
 
+/** The short code of an order that people read out or type into a payment reference: the first 8 characters of its public id. */
+export function orderCode(publicId: string): string {
+  return publicId.slice(0, 8).toUpperCase();
+}
+
+/** wa.me wants the number with its country code and nothing else: 01712345678 -> 8801712345678 (other countries: digits only). */
+export function waNumber(input: string): string {
+  const bd = normalizeBdPhone(input);
+  return bd ? `88${bd}` : input.replace(/\D/g, "").replace(/^00/, "");
+}
+
 export function maskEmail(email: string): string {
   const [user, domain] = email.split("@");
   if (!domain) return "***";

@@ -1,9 +1,10 @@
 import type { Channel, OrderDTO, OrderItemDTO, OrderStatus, PaymentMethod } from "@mawah/shared";
-import { dhakaDayStamp, formatMoney, loc } from "@mawah/shared";
+import { dhakaDayStamp, formatMoney, loc, MANUAL_WINDOW_DEFAULT_MIN, MAX_PROOF_IMAGE_BYTES } from "@mawah/shared";
 import type { Env, StudentCtx } from "../env";
 import { auditAs } from "../lib/audit";
-import { generatePublicOrderId, randomToken } from "../lib/crypto";
+import { generatePublicOrderId, randomToken, sha256Hex } from "../lib/crypto";
 import { all, first, nowIso, qs, run } from "../lib/db";
+import { sniffImage } from "../lib/files";
 import { conflict, HttpError, notFound } from "../lib/http";
 import { orderReceiptMail, sendMail } from "../lib/mailer";
 
@@ -162,8 +163,10 @@ async function applyCoupon(env: Env, studentId: number, code: string, courses: C
  * ============================================================================================== */
 export interface ManualProof {
   method: "bkash" | "nagad" | "rocket";
-  trx_id: string;
+  /** the number the student pays FROM — it lets staff match the payment in their statement */
   payer_number: string;
+  /** absent when the student is only starting: they pay first and send the TrxID (and/or a screenshot) afterwards */
+  trx_id?: string;
 }
 
 export async function createOrder(
@@ -172,14 +175,21 @@ export async function createOrder(
   quote: Quote,
   channel: Channel | "free",
   manual?: ManualProof,
+  windowMin: number = MANUAL_WINDOW_DEFAULT_MIN,
 ): Promise<{ id: number; public_id: string }> {
   const publicId = generatePublicOrderId();
-  const now = nowIso();
-  const status: OrderStatus = channel === "manual" ? "awaiting_verification" : "pending";
+  const created = new Date();
+  const now = nowIso(created);
+  // A manual order starts "pending" with a payment window and moves on when the student sends proof — or at once when the
+  // TrxID comes with the order (the one-step form older clients use).
+  const isManual = channel === "manual";
+  const withProof = isManual && !!manual?.trx_id;
+  const status: OrderStatus = withProof ? "awaiting_verification" : "pending";
+  const payBy = isManual ? nowIso(new Date(created.getTime() + windowMin * 60_000)) : null;
   const insert = env.DB.prepare(
     `INSERT INTO orders (public_id, student_id, status, subtotal, discount, total, coupon_id, coupon_code, bundle_id, method, gateway,
-                         gateway_txn, payer_number, customer_name, customer_email, customer_phone, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                         gateway_txn, payer_number, customer_name, customer_email, customer_phone, pay_by, proof_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     publicId,
     student.id,
@@ -197,6 +207,8 @@ export async function createOrder(
     student.name,
     student.email,
     student.phone ?? "",
+    payBy,
+    withProof ? now : null,
     now,
     now,
   );
@@ -221,6 +233,83 @@ export async function createOrder(
     ),
   );
   return { id: orderId, public_id: publicId };
+}
+
+/** Starting again replaces the student's own unpaid manual order for the same class(es), so they never pile up. */
+export async function cancelReplacedManualOrders(env: Env, studentId: number, courseIds: number[]): Promise<void> {
+  if (courseIds.length === 0) return;
+  await run(
+    env.DB,
+    `UPDATE orders SET status = 'cancelled', note = 'replaced', updated_at = ?
+     WHERE student_id = ? AND gateway = 'manual' AND status = 'pending'
+       AND id IN (SELECT order_id FROM order_items WHERE course_id IN (${qs(courseIds.length)}))`,
+    nowIso(),
+    studentId,
+    ...courseIds,
+  );
+}
+
+interface OpenManualOrder {
+  id: number;
+  status: OrderStatus;
+  gateway: string | null;
+  gateway_txn: string | null;
+  proof_key: string | null;
+}
+
+/** The student's own manual order, and only while it can still change (pending, or waiting for staff). */
+async function openManualOrder(env: Env, studentId: number, publicId: string): Promise<OpenManualOrder> {
+  const row = await first<OpenManualOrder>(env.DB, "SELECT id, status, gateway, gateway_txn, proof_key FROM orders WHERE public_id = ? AND student_id = ?", publicId, studentId);
+  if (!row) throw notFound();
+  if (row.gateway !== "manual") throw new HttpError(409, "not_manual");
+  if (row.status !== "pending" && row.status !== "awaiting_verification") throw new HttpError(409, "order_closed");
+  return row;
+}
+
+/**
+ * The student sends proof for an open manual order: a TrxID, a screenshot sent earlier with saveProofImage, or both — at least one.
+ * The first time it moves the order to "awaiting_verification"; later it only lets them fix a typo while staff have not decided.
+ * Proof that arrives after the payment window is accepted on purpose: the money may already have been sent.
+ */
+export async function submitManualProof(env: Env, studentId: number, publicId: string, trxId: string | null): Promise<{ id: number; first: boolean }> {
+  const row = await openManualOrder(env, studentId, publicId);
+  const trx = trxId ?? row.gateway_txn;
+  if (!trx && !row.proof_key) throw new HttpError(422, "validation", "validation", { trx_id: "required" });
+  const now = nowIso();
+  try {
+    const res = await run(
+      env.DB,
+      `UPDATE orders SET status = 'awaiting_verification', gateway_txn = ?, proof_at = COALESCE(proof_at, ?), updated_at = ?
+       WHERE id = ? AND status IN ('pending','awaiting_verification')`,
+      trx,
+      now,
+      now,
+      row.id,
+    );
+    if ((res.meta.changes ?? 0) !== 1) throw new HttpError(409, "order_closed");
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
+    if (String(err).includes("UNIQUE")) throw conflict("trx_used", { trx_id: "trx_used" });
+    throw err;
+  }
+  return { id: row.id, first: row.status === "pending" };
+}
+
+/**
+ * Stores the payment screenshot as a private R2 object that only staff can open. The type comes from the file's own bytes, and the key
+ * holds the order and the content hash, so the same picture sent twice is stored once.
+ */
+export async function saveProofImage(env: Env, studentId: number, publicId: string, bytes: Uint8Array): Promise<number> {
+  const row = await openManualOrder(env, studentId, publicId);
+  if (bytes.length === 0) throw new HttpError(400, "empty_file");
+  if (bytes.length > MAX_PROOF_IMAGE_BYTES) throw new HttpError(413, "file_too_large");
+  const kind = sniffImage(bytes);
+  if (!kind) throw new HttpError(415, "unsupported_file_type");
+  const key = `proofs/${publicId}/${(await sha256Hex(bytes)).slice(0, 24)}.${kind.ext}`;
+  await env.R2.put(key, bytes, { httpMetadata: { contentType: kind.mime } });
+  await run(env.DB, "UPDATE orders SET proof_key = ?, updated_at = ? WHERE id = ?", key, nowIso(), row.id);
+  if (row.proof_key && row.proof_key !== key) await env.R2.delete(row.proof_key).catch(() => undefined);
+  return row.id;
 }
 
 export interface PaidInput {
@@ -374,9 +463,13 @@ interface OrderRow {
   payer_number: string | null;
   created_at: string;
   paid_at: string | null;
+  pay_by: string | null;
+  proof_at: string | null;
+  has_proof_image: number;
 }
 
-const ORDER_COLS = "id, public_id, invoice_no, status, subtotal, discount, total, coupon_code, method, gateway, gateway_txn, payer_number, created_at, paid_at";
+const ORDER_COLS =
+  "id, public_id, invoice_no, status, subtotal, discount, total, coupon_code, method, gateway, gateway_txn, payer_number, created_at, paid_at, pay_by, proof_at, (proof_key IS NOT NULL) AS has_proof_image";
 
 async function withItems(env: Env, rows: OrderRow[]): Promise<OrderDTO[]> {
   if (rows.length === 0) return [];
@@ -388,6 +481,7 @@ async function withItems(env: Env, rows: OrderRow[]): Promise<OrderDTO[]> {
   );
   return rows.map((r) => ({
     ...r,
+    has_proof_image: !!r.has_proof_image,
     items: items.filter((i) => i.order_id === r.id).map(({ order_id: _o, ...rest }) => rest),
   }));
 }

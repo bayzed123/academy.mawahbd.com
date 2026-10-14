@@ -18,6 +18,15 @@ interface Init {
   signal?: AbortSignal;
 }
 
+async function readBody<T>(res: Response): Promise<T> {
+  const body = (await res.json().catch(() => null)) as (T & { ok?: boolean }) | ApiErrorBody | null;
+  if (!res.ok || !body || (body as { ok?: boolean }).ok === false) {
+    const err = (body as ApiErrorBody | null)?.error;
+    throw new ApiError(res.status, err?.code ?? (res.status === 429 ? "rate_limited" : "generic"), err?.fields, err as unknown as Record<string, unknown>);
+  }
+  return body as T;
+}
+
 export async function api<T = unknown>(path: string, init: Init = {}): Promise<T> {
   let res: Response;
   try {
@@ -32,12 +41,23 @@ export async function api<T = unknown>(path: string, init: Init = {}): Promise<T
     if (err instanceof DOMException && err.name === "AbortError") throw err;
     throw new ApiError(0, "network");
   }
-  const body = (await res.json().catch(() => null)) as (T & { ok?: boolean }) | ApiErrorBody | null;
-  if (!res.ok || !body || (body as { ok?: boolean }).ok === false) {
-    const err = (body as ApiErrorBody | null)?.error;
-    throw new ApiError(res.status, err?.code ?? (res.status === 429 ? "rate_limited" : "generic"), err?.fields, err as unknown as Record<string, unknown>);
+  return readBody<T>(res);
+}
+
+/** Sends a file's raw bytes (a payment screenshot). Errors come back exactly like api() errors. */
+export async function apiUpload<T = unknown>(path: string, file: Blob): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`/api${path}`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { Accept: "application/json", "Content-Type": file.type || "application/octet-stream" },
+      body: file,
+    });
+  } catch {
+    throw new ApiError(0, "network");
   }
-  return body as T;
+  return readBody<T>(res);
 }
 
 /** Only same-site paths may be used as a post-login destination (blocks open redirects). */

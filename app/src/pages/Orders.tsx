@@ -5,6 +5,7 @@ import type { OrderDTO, OrderStatus } from "@mawah/shared";
 import { api } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { Empty, ErrorState, Icon, Spinner } from "../components/ui";
+import { ManualPay, ManualWaiting } from "./ManualPay";
 
 const statusIcon: Record<OrderStatus, string> = { paid: "check", pending: "clock", awaiting_verification: "clock", failed: "x", cancelled: "x", refunded: "x" };
 
@@ -35,7 +36,7 @@ export function Orders() {
           <span className="row">
             <span className="muted small">{date(o.created_at)}</span>
             <b>{money(o.total)}</b>
-            <span className={`chip ${o.status}`}>{t(`status.${o.status}` as "status.paid")}</span>
+            <span className={`chip ${o.status}`}>{o.gateway === "manual" && o.status === "pending" ? t("app.orders.payNow") : t(`status.${o.status}` as "status.paid")}</span>
           </span>
         </Link>
       ))}
@@ -48,15 +49,21 @@ export function OrderDetail() {
   const { t, pick, money, dateTime, lang } = useI18n();
   const qc = useQueryClient();
   const started = useRef(Date.now());
+  const skewMs = useRef(0); // the server's clock minus this device's, so the payment countdown is right even when the phone's clock is off
   const q = useQuery({
     queryKey: ["order", publicId],
-    queryFn: async () => (await api<{ order: OrderDTO }>(`/student/orders/${publicId}`)).order,
-    // the payment webhook can arrive after the browser redirect: keep checking for a few minutes, politely
+    queryFn: async () => {
+      const r = await api<{ order: OrderDTO; now?: string }>(`/student/orders/${publicId}`);
+      if (r.now) skewMs.current = Date.parse(r.now) - Date.now();
+      return r.order;
+    },
+    // the payment webhook can arrive after the browser redirect: keep checking for a few minutes, politely. An open manual order
+    // changes only when staff decide, so while this page is on screen it asks every 15 seconds for up to two hours (not in a hidden tab).
     refetchInterval: (query) => {
-      const s = query.state.data?.status;
+      const d = query.state.data;
       const age = Date.now() - started.current;
-      if (s === "pending") return age < 4 * 60_000 ? 3000 : false;
-      if (s === "awaiting_verification") return age < 10 * 60_000 ? 20_000 : false;
+      if (d?.status === "pending") return d.gateway === "manual" ? false : age < 4 * 60_000 ? 3000 : false;
+      if (d?.status === "awaiting_verification") return age < 2 * 3600_000 ? 15_000 : false;
       return false;
     },
   });
@@ -71,34 +78,44 @@ export function OrderDetail() {
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const o = q.data;
   const first = o.items[0];
+  const manualOpen = o.gateway === "manual" && !!o.manual && (o.status === "pending" || o.status === "awaiting_verification");
+
+  const hero = (
+    <section className={`panel status-hero ${o.status}`}>
+      <div className="big">
+        <Icon name={statusIcon[o.status]} />
+      </div>
+      <h1>{t(`app.orders.status.${o.status}.title` as "app.orders.status.paid.title")}</h1>
+      <p className="muted">{t(`app.orders.status.${o.status}.body` as "app.orders.status.paid.body")}</p>
+      {o.status === "pending" && <span className="spinner sm" aria-hidden="true" />}
+      <div className="row mt">
+        {o.status === "paid" && first?.slug && (
+          <Link className="btn btn-primary btn-lg" to={o.items.length === 1 ? `/learn/${first.slug}` : "/"}>
+            <Icon name="play" /> {t("app.orders.startLearning")}
+          </Link>
+        )}
+        {(o.status === "failed" || o.status === "cancelled") && first?.slug && (
+          <Link className="btn btn-primary btn-lg" to={`/checkout?c=${first.slug}`}>
+            {t("app.orders.tryAgain")}
+          </Link>
+        )}
+        {o.status === "paid" && (
+          <a className="btn btn-outline" href={`/api/student/orders/${o.public_id}/invoice?lang=${lang}`} target="_blank" rel="noopener noreferrer">
+            <Icon name="download" /> {t("app.orders.invoice")}
+          </a>
+        )}
+      </div>
+    </section>
+  );
 
   return (
     <>
-      <section className={`panel status-hero ${o.status}`}>
-        <div className="big">
-          <Icon name={statusIcon[o.status]} />
-        </div>
-        <h1>{t(`app.orders.status.${o.status}.title` as "app.orders.status.paid.title")}</h1>
-        <p className="muted">{t(`app.orders.status.${o.status}.body` as "app.orders.status.paid.body")}</p>
-        {o.status === "pending" && <span className="spinner sm" aria-hidden="true" />}
-        <div className="row mt">
-          {o.status === "paid" && first?.slug && (
-            <Link className="btn btn-primary btn-lg" to={o.items.length === 1 ? `/learn/${first.slug}` : "/"}>
-              <Icon name="play" /> {t("app.orders.startLearning")}
-            </Link>
-          )}
-          {(o.status === "failed" || o.status === "cancelled") && first?.slug && (
-            <Link className="btn btn-primary btn-lg" to={`/checkout?c=${first.slug}`}>
-              {t("app.orders.tryAgain")}
-            </Link>
-          )}
-          {o.status === "paid" && (
-            <a className="btn btn-outline" href={`/api/student/orders/${o.public_id}/invoice?lang=${lang}`} target="_blank" rel="noopener noreferrer">
-              <Icon name="download" /> {t("app.orders.invoice")}
-            </a>
-          )}
-        </div>
-      </section>
+      {manualOpen && o.status === "pending" ? (
+        <ManualPay order={o} skewMs={skewMs.current} />
+      ) : (
+        hero
+      )}
+      {manualOpen && o.status === "awaiting_verification" && <ManualWaiting order={o} />}
 
       <section className="panel">
         <h2>{t("app.orders.items")}</h2>

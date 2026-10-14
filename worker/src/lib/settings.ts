@@ -1,3 +1,4 @@
+import { MANUAL_WINDOW_DEFAULT_MIN } from "@mawah/shared";
 import type { Env } from "../env";
 import { all, nowIso, run, safeJson } from "./db";
 
@@ -12,6 +13,8 @@ export interface Settings {
     manual_numbers: { bkash: string; nagad: string; rocket: string };
     manual_note_bn: string;
     manual_note_en: string;
+    /** minutes a student is asked to pay within after choosing manual payment */
+    manual_window_min: number;
   };
   policies: {
     refund_bn: string;
@@ -37,6 +40,7 @@ export const SETTING_DEFAULTS: Settings = {
     manual_numbers: { bkash: "", nagad: "", rocket: "" },
     manual_note_bn: "",
     manual_note_en: "",
+    manual_window_min: MANUAL_WINDOW_DEFAULT_MIN,
   },
   policies: { refund_bn: "", refund_en: "", privacy_bn: "", privacy_en: "", terms_bn: "", terms_en: "" },
   about: { bn: "", en: "" },

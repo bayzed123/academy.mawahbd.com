@@ -13,6 +13,8 @@ export function MyLearning() {
   const courses = useQuery({ queryKey: ["my-courses"], queryFn: async () => (await api<{ courses: MyCourseDTO[] }>("/student/courses")).courses });
   const orders = useQuery({ queryKey: ["orders"], queryFn: async () => (await api<{ orders: OrderDTO[] }>("/student/orders")).orders });
   const awaiting = useMemo(() => orders.data?.filter((o) => o.status === "awaiting_verification") ?? [], [orders.data]);
+  // a manual payment that was started and not finished yet (the order page has the payment details and the countdown)
+  const unfinished = useMemo(() => orders.data?.filter((o) => o.gateway === "manual" && o.status === "pending" && !!o.pay_by && Date.parse(o.pay_by) > Date.now()) ?? [], [orders.data]);
   const home = lang === "en" ? "/en" : "";
 
   return (
@@ -21,6 +23,16 @@ export function MyLearning() {
         <h1>{t("app.learning.title")}</h1>
         <p>{student ? t("app.learning.hello", { name: student.name.split(" ")[0] }) : ""} {t("app.learning.sub")}</p>
       </div>
+
+      {unfinished.map((o) => (
+        <Link key={o.public_id} to={`/orders/${o.public_id}`} className="notice">
+          <Icon name="wallet" />
+          <div>
+            <b>{t("app.learning.finishPay")}</b>
+            <p>{o.items.map((i) => pick(i, "title")).join(", ")} — {t("app.learning.finishPayBody")}</p>
+          </div>
+        </Link>
+      ))}
 
       {awaiting.map((o) => (
         <Link key={o.public_id} to={`/orders/${o.public_id}`} className="notice">

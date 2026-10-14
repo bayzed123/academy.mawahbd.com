@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { Channel, QuoteDTO } from "@mawah/shared";
+import { toBnDigits, type Channel, type QuoteDTO } from "@mawah/shared";
 import { api, ApiError } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { Button, Empty, ErrorState, Field, Icon, Spinner, TextInput, useFieldErrors, useToast } from "../components/ui";
@@ -24,7 +24,6 @@ export default function Checkout() {
   const [couponError, setCouponError] = useState("");
   const [channel, setChannel] = useState<Channel | "">("");
   const [method, setMethod] = useState<Method>("bkash");
-  const [trx, setTrx] = useState("");
   const [payer, setPayer] = useState("");
   const [fields, setFields] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
@@ -39,6 +38,9 @@ export default function Checkout() {
 
   // pick a sensible default payment channel as soon as the quote tells us what is available
   const channels = quote.data?.channels ?? [];
+  // only the services the owner has a number for can be chosen for a manual payment
+  const manualMethods = (["bkash", "nagad", "rocket"] as const).filter((m) => quote.data?.manual?.numbers[m]);
+  const chosenMethod: Method = manualMethods.includes(method) ? method : (manualMethods[0] ?? method);
   useEffect(() => {
     if (channels.length && !channels.includes(channel as Channel)) setChannel(channels.includes("sslcommerz") ? "sslcommerz" : channels[0]);
   }, [channels, channel]);
@@ -56,7 +58,7 @@ export default function Checkout() {
   const pay = useMutation({
     mutationFn: async () =>
       api<{ order: { public_id: string; status: string; total: number }; redirect_url?: string }>("/checkout", {
-        json: { ...cart, coupon, channel: channel || undefined, manual: channel === "manual" ? { method, trx_id: trx.trim(), payer_number: payer.trim() } : undefined },
+        json: { ...cart, coupon, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined },
       }),
     onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: ["orders"] });
@@ -150,34 +152,22 @@ export default function Checkout() {
 
             {channel === "manual" && !free && q.manual && (
               <div className="manual-box">
-                <p>
-                  <b>{t("app.checkout.manual.send", { amount: money(q.total) })}</b>
-                </p>
-                <ul className="num-list">
-                  {(["bkash", "nagad", "rocket"] as const)
-                    .filter((m) => q.manual!.numbers[m])
-                    .map((m) => (
-                      <li key={m}>
-                        <span>{t(`method.${m}` as "method.bkash")}</span>
-                        <code>{q.manual!.numbers[m]}</code>
-                      </li>
-                    ))}
-                </ul>
-                {(pick(q.manual, "note") as string) && <p className="small">{pick(q.manual, "note")}</p>}
+                <ol className="how-list">
+                  <li>{t("app.checkout.manual.how1")}</li>
+                  <li>{t("app.checkout.manual.how2", { min: lang === "bn" ? toBnDigits(q.manual.window_min) : q.manual.window_min })}</li>
+                  <li>{t("app.checkout.manual.how3")}</li>
+                </ol>
                 <Field id="m-method" label={t("app.checkout.manual.method")}>
-                  <select id="m-method" className="input" value={method} onChange={(e) => setMethod(e.target.value as Method)}>
-                    {(["bkash", "nagad", "rocket"] as const).map((m) => (
+                  <select id="m-method" className="input" value={chosenMethod} onChange={(e) => setMethod(e.target.value as Method)}>
+                    {manualMethods.map((m) => (
                       <option key={m} value={m}>
                         {t(`method.${m}` as "method.bkash")}
                       </option>
                     ))}
                   </select>
                 </Field>
-                <Field id="m-trx" label={t("app.checkout.manual.trx")} error={fields.trx_id} hint={t("app.checkout.manual.trxHint")}>
-                  <TextInput id="m-trx" autoCapitalize="characters" autoComplete="off" value={trx} onChange={(e) => setTrx(e.target.value)} error={fields.trx_id} />
-                </Field>
-                <Field id="m-payer" label={t("app.checkout.manual.payer")} error={fields.payer_number}>
-                  <TextInput id="m-payer" type="tel" inputMode="tel" placeholder="01XXXXXXXXX" value={payer} onChange={(e) => setPayer(e.target.value)} error={fields.payer_number} />
+                <Field id="m-payer" label={t("app.checkout.manual.payer")} error={fields.payer_number} hint={t("app.checkout.manual.payerHint")}>
+                  <TextInput id="m-payer" type="tel" inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" value={payer} onChange={(e) => setPayer(e.target.value)} error={fields.payer_number} />
                 </Field>
                 <p className="hint">{t("app.checkout.manual.note")}</p>
               </div>
@@ -247,8 +237,8 @@ export default function Checkout() {
             </div>
 
             <div className="mt">
-              <Button className="btn-primary btn-block btn-lg" type="submit" busy={pay.isPending} disabled={!free && (channels.length === 0 || (channel === "manual" && (!trx.trim() || !payer.trim())))}>
-                {free ? t("app.checkout.enrollFree") : channel === "manual" ? t("app.checkout.submitManual") : t("app.checkout.place", { amount: money(q.total) })}
+              <Button className="btn-primary btn-block btn-lg" type="submit" busy={pay.isPending} disabled={!free && (channels.length === 0 || (channel === "manual" && !payer.trim()))}>
+                {free ? t("app.checkout.enrollFree") : channel === "manual" ? t("app.checkout.continueManual") : t("app.checkout.place", { amount: money(q.total) })}
               </Button>
             </div>
             <p className="hint tc">

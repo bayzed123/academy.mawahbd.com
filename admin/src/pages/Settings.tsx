@@ -9,7 +9,7 @@ import { Button, ErrorState, Field, Icon, PageHeader, Panel, Spinner, Switch, Ta
 interface S {
   contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string };
   announcement: { bn: string; en: string };
-  payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string };
+  payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number };
   policies: { refund_bn: string; refund_en: string; privacy_bn: string; privacy_en: string; terms_bn: string; terms_en: string };
   about: { bn: string; en: string };
   analytics: { ga4: string; clarity: string; meta_pixel: string };
@@ -149,6 +149,9 @@ export function Settings() {
                   <Switch checked={v.manual} disabled={!canWrite} onChange={(x) => set({ manual: x })} label={t("adm.pay.manual")} />
                   <p className="hint">{t("adm.pay.manualHint")}</p>
                 </div>
+                <Field id="pn-window" label={t("adm.pay.window")} error={e.manual_window_min} hint={t("adm.pay.windowHint")}>
+                  <TextInput id="pn-window" type="number" inputMode="numeric" min={5} max={120} value={String(v.manual_window_min)} error={e.manual_window_min} disabled={!canWrite} onChange={(x) => set({ manual_window_min: Number(x.target.value) })} />
+                </Field>
                 {(["bkash", "nagad", "rocket"] as const).map((m) => (
                   <Field key={m} id={`pn-${m}`} label={t("adm.pay.number", { name: t(`method.${m}` as "method.bkash") })} error={e[`manual_numbers.${m}`]}>
                     <TextInput id={`pn-${m}`} inputMode="tel" value={v.manual_numbers[m]} error={e[`manual_numbers.${m}`]} disabled={!canWrite} onChange={(x) => set({ manual_numbers: { ...v.manual_numbers, [m]: x.target.value } })} />
