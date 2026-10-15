@@ -68,6 +68,8 @@ describe("the class overview behind the View page", () => {
       lessons: 2,
       previews: 1,
       minutes: 30,
+      materials_files: 0, // nothing added under Admin → Materials yet
+      materials_others: 0,
     });
     expect(body.reviews.map((r: { body: string; status: string }) => `${r.status}:${r.body}`).sort()).toEqual(["approved:Lovely", "pending:Waiting"]);
     expect(slug).toBeTruthy();

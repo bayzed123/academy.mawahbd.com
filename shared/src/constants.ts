@@ -54,6 +54,8 @@ export const PERMISSIONS = {
   "banners:write": SA_CM,
   "faqs:read": ALL,
   "faqs:write": SA_CM,
+  "materials:read": ALL,
+  "materials:write": SA_CM,
   "coupons:read": ALL,
   "coupons:write": SA_CM,
   "media:write": SA_CM,
@@ -94,6 +96,7 @@ export function can(role: Role | undefined | null, permission: Permission): bool
 export const ADMIN_NAV = [
   { key: "dashboard", path: "", perm: "dashboard:read" },
   { key: "courses", path: "courses", perm: "courses:read" },
+  { key: "materials", path: "materials", perm: "materials:read" },
   { key: "instructors", path: "instructors", perm: "instructors:read" },
   { key: "orders", path: "orders", perm: "orders:read" },
   { key: "students", path: "students", perm: "students:read" },
@@ -122,6 +125,19 @@ export type BannerPlacement = (typeof BANNER_PLACEMENTS)[number];
 /** What a question is about (site-wide questions are grouped by it on the FAQ page). */
 export const FAQ_TOPICS = ["general", "payment", "learning", "certificate", "refund"] as const;
 export type FaqTopic = (typeof FAQ_TOPICS)[number];
+
+/**
+ * What the owner can add to a class beyond its lessons (Admin → Materials), in the order the type cards are shown:
+ * files to download (video, PDF, ZIP, book), a live class (link + time), a plain link, and a private group.
+ */
+export const MATERIAL_KINDS = ["video", "pdf", "zip", "book", "live", "link", "group"] as const;
+export type MaterialKind = (typeof MATERIAL_KINDS)[number];
+/** These can be an uploaded file or, instead, a link (Google Drive, YouTube …); the other kinds are always a link. */
+export const FILE_MATERIAL_KINDS = ["video", "pdf", "zip", "book"] as const satisfies readonly MaterialKind[];
+export const LIVE_PLATFORMS = ["zoom", "meet", "facebook", "youtube", "other"] as const;
+export const GROUP_PLATFORMS = ["facebook", "whatsapp", "telegram", "other"] as const;
+/** Cloudflare accepts request bodies up to 100 MB on its Free and Pro plans: a file is sent in one piece, so stay under it. */
+export const MAX_UPLOAD_MATERIAL_BYTES = 95 * 1024 * 1024;
 
 /** Icons available for category tags and generated class banners (see marketing/public/sprite.svg). */
 export const CLASS_ICONS = ["cake", "snack", "glass", "bowl", "sweet", "snowflake", "cupcake", "brownie", "pastry", "pot", "crescent", "tiffin", "mango"] as const;

@@ -23,6 +23,8 @@ interface Overview {
     lessons: number;
     previews: number;
     minutes: number;
+    materials_files: number;
+    materials_others: number;
   };
   reviews: { id: number; rating: number; body: string; status: string; created_at: string; student_name: string }[];
 }
@@ -87,6 +89,11 @@ export function CourseView() {
                 <Icon name="external" /> {t("adm.course.viewOnSite")}
               </a>
             )}
+            {can("materials:write") && (
+              <Link className="btn btn-outline btn-sm" to={`/materials?course_id=${id}&add=1`}>
+                <Icon name="plus" /> {t("adm.course.addMaterial")}
+              </Link>
+            )}
             {canWrite && (
               <Link className="btn btn-primary btn-sm" to={`/courses/${id}/edit`}>
                 <Icon name="sparkle" /> {t("adm.course.edit")}
@@ -115,6 +122,13 @@ export function CourseView() {
         />
         <Kpi icon="check" label={t("adm.course.kpi.reviewsWaiting")} value={num(s.reviews_waiting)} sub={t("adm.course.kpi.toApprove")} tone={s.reviews_waiting > 0 ? "warn" : undefined} to={can("reviews:read") ? "/reviews?status=pending" : undefined} />
         {(c.status === "coming_soon" || s.waiting > 0) && <Kpi icon="bell" label={t("adm.course.kpi.waiting")} value={num(s.waiting)} sub={t("adm.course.kpi.asked")} to={can("signups:read") ? "/signups" : undefined} />}
+        <Kpi
+          icon="layers"
+          label={t("adm.course.kpi.materials")}
+          value={num(s.materials_files + s.materials_others)}
+          sub={t("adm.course.kpi.materialsSub", { f: num(s.materials_files), o: num(s.materials_others) })}
+          to={can("materials:read") ? `/materials?course_id=${id}` : undefined}
+        />
         <Kpi icon="book" label={t("adm.course.kpi.lessons")} value={num(s.lessons)} sub={t(s.previews === 1 ? "adm.course.kpi.shapeOne" : "adm.course.kpi.shape", { m: num(s.minutes), p: num(s.previews) })} tone={s.lessons === 0 && active ? "warn" : undefined} />
       </section>
 

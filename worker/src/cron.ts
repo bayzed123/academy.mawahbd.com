@@ -3,6 +3,7 @@ import type { Env } from "./env";
 import { auditAs } from "./lib/audit";
 import { all, nowIso, run } from "./lib/db";
 import { retryPendingLaunches } from "./services/launch";
+import { cleanupOrphanUploads } from "./services/materials";
 
 /**
  * Housekeeping on the 6-hourly cron trigger. Every step is independent and idempotent, so a failed run is simply repeated.
@@ -10,6 +11,7 @@ import { retryPendingLaunches } from "./services/launch";
  *  - payment screenshots (they show wallet balances and phone numbers) are deleted 90 days after their order was settled
  *  - expired login / reset tokens and old rate-limit counters are removed
  *  - launch announcements that were interrupted are finished
+ *  - class-material uploads that were never saved into a material are removed after two days
  */
 export async function runScheduled(env: Env, _cron: string): Promise<void> {
   const now = new Date();
@@ -20,6 +22,7 @@ export async function runScheduled(env: Env, _cron: string): Promise<void> {
     ["old_tokens", () => run(env.DB, "DELETE FROM auth_tokens WHERE expires_at < ? OR used_at IS NOT NULL", nowIso(new Date(now.getTime() - 7 * 86400 * 1000)))],
     ["old_events", () => run(env.DB, "DELETE FROM payment_events WHERE created_at < ? AND verified = 0", nowIso(new Date(now.getTime() - 90 * 86400 * 1000)))],
     ["launch_retry", () => retryPendingLaunches(env)],
+    ["orphan_uploads", () => cleanupOrphanUploads(env)],
   ];
   const failed: string[] = [];
   for (const [name, fn] of steps) {

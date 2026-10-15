@@ -1,8 +1,9 @@
 import { raw } from "hono/html";
-import { formatDate, formatDuration, formatNumber, loc, type CourseCardDTO, type CurriculumModuleDTO } from "@mawah/shared";
+import { formatDate, formatDuration, formatNumber, loc, MATERIAL_KINDS, type CourseCardDTO, type CurriculumModuleDTO, type MaterialKind } from "@mawah/shared";
 import { renderMarkdown } from "../../lib/markdown";
 import type { CourseDetail, PublicReview, ReviewSummary } from "../../services/catalog";
 import type { FaqDTO } from "../../services/faqs";
+import type { Included } from "../../services/materials";
 import type { PageCtx } from "../ctx";
 import { ClassFaq } from "../faq";
 import { Layout } from "../layout";
@@ -16,8 +17,12 @@ export interface CourseData {
   summary: ReviewSummary;
   /** the class's own questions, then the home-page ones (Admin → FAQ) */
   faqs: FaqDTO[];
+  /** what the class gives beyond lessons (Admin → Materials): counts and titles of what is switched on — never an address or a file */
+  included: Included;
   flash?: string;
 }
+
+const materialIcon: Record<MaterialKind, string> = { video: "video", pdf: "file", zip: "layers", book: "book", live: "play", link: "link", group: "users" };
 
 const lessonIcon = { video: "play", external: "play", text: "book", resource: "download" } as const;
 
@@ -37,7 +42,11 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
   const checkout = `/app/checkout?c=${encodeURIComponent(course.slug)}`;
   const reviewHref = `/app/review/${encodeURIComponent(course.slug)}`;
   const preview = data.curriculum.flatMap((m) => m.lessons).find((l) => l.is_preview);
-  const includes = [t("course.inc.lessons"), t("course.inc.progress"), t("course.inc.ask"), ...(course.cert_enabled ? [t("course.inc.cert")] : [])];
+  const inc = data.included;
+  // one line per kind the owner really added ("2 PDFs to download", "A private community group" …) — nothing if they added none
+  const materialLines = MATERIAL_KINDS.filter((k) => (inc.counts[k] ?? 0) > 0).map((k) => t(`course.inc.m.${k}${inc.counts[k] === 1 ? "" : ".n"}` as "course.inc.m.pdf", { n: num(inc.counts[k] ?? 0) }));
+  const hasFiles = (["video", "pdf", "zip", "book"] as const).some((k) => (inc.counts[k] ?? 0) > 0);
+  const includes = [t("course.inc.lessons"), t("course.inc.progress"), t("course.inc.ask"), ...materialLines, ...(course.cert_enabled ? [t("course.inc.cert")] : [])];
 
   return (
     <Layout
@@ -149,6 +158,20 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
                 </li>
               ))}
             </ul>
+            {inc.titles.length > 0 && (
+              <>
+                <h3 class="inc-sub">{t("course.inc.list")}</h3>
+                <ul class="inc-list">
+                  {inc.titles.map((m) => (
+                    <li>
+                      <Icon name={materialIcon[m.kind]} />
+                      {loc(m, "title", lang)}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {hasFiles && <p class="muted inc-note">{t("course.inc.personal")}</p>}
           </section>
 
           <section class="curr" aria-labelledby="curr-h">

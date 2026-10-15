@@ -19,6 +19,10 @@ test.beforeAll(async ({ browser }) => {
   admin = await ctx.newPage();
   await adminLogin(admin);
   await expect(admin.getByRole("heading", { level: 1 })).toContainText(", Owner");
+  // When one test of this group fails, Playwright runs the whole group again from the top — with the banners of the first
+  // attempt still in the database (the first test then found its row twice). So every attempt starts from an empty list.
+  const left = await apiGet<{ items: { id: number }[] }>(admin, "/admin/banners?per_page=100");
+  for (const b of left.items) await admin.evaluate((id) => fetch(`/api/admin/banners/${id}`, { method: "DELETE" }), b.id);
 });
 test.afterAll(async () => admin.context().close());
 
@@ -110,8 +114,11 @@ test("the slider moves by itself every few seconds and the pause button stops it
   const ctx = await browser.newContext({ locale: "en-US" });
   await useLang(ctx, "en");
   const page = await ctx.newPage();
-  await page.clock.install();
+  // Time that moves only when this test moves it. (After install() alone the fake clock also follows the real one, so on a
+  // busy machine the slider could move one extra time between two steps below and the test would see the wrong banner.)
+  await page.clock.install({ time: new Date("2026-03-01T10:00:00+06:00") });
   await page.goto("/en");
+  await page.clock.pauseAt(new Date("2026-03-01T10:00:05+06:00")); // still before the slider's first move
   const slider = page.getByRole("region", { name: "Offers and announcements" });
   const dots = slider.getByRole("button", { name: /^Show banner/ });
   await expect(dots.nth(0)).toHaveAttribute("aria-current", "true");

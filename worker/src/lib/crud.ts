@@ -40,7 +40,8 @@ export interface ResourceDef<S extends z.ZodObject> {
   csv?: CsvColumn<Row>[];
   label?: (row: Row) => string;
   beforeSave?: (c: Ctx, data: Record<string, unknown>, existing: Row | null) => Promise<Record<string, unknown>> | Record<string, unknown>;
-  afterSave?: (c: Ctx, row: Row, data: Record<string, unknown>, kind: "create" | "update") => Promise<void>;
+  /** `existing` is the row as it was before an update (null on create) */
+  afterSave?: (c: Ctx, row: Row, data: Record<string, unknown>, kind: "create" | "update", existing: Row | null) => Promise<void>;
   canDelete?: (c: Ctx, row: Row) => Promise<void>;
   decorate?: (c: Ctx, rows: Row[]) => Promise<Row[]>;
 }
@@ -149,7 +150,7 @@ export function crudRoutes<S extends z.ZodObject>(def: ResourceDef<S>): Hono<App
       throw err;
     }
     const row = await fetchRow(c, rowId!, true);
-    if (def.afterSave) await def.afterSave(c, row, data, kind);
+    if (def.afterSave) await def.afterSave(c, row, data, kind, existing);
     await audit(c, { action: `${def.name}.${kind === "create" ? "created" : "updated"}`, entity: def.name, entityId: row.id, summary: def.label?.(row) ?? "", meta: { fields: keys } });
     if (def.publicContent) await bumpContentVersion(c.env);
     const [item] = def.decorate ? await def.decorate(c, [row]) : [row];

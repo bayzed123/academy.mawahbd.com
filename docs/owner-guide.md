@@ -242,6 +242,23 @@
 * ইমেইলের কী (key) কখনো স্ক্রিনে দেখানো হয় না। কোথাও (চ্যাট, ইমেইল) কী পাঠিয়ে ফেললে সেটি আর গোপন নেই — Resend-এ নতুন কী বানিয়ে পুরনোটি মুছে দিন।
 * শুধু মালিক (সুপার অ্যাডমিন) পরীক্ষা পাঠাতে পারেন।
 
+## ২১. ম্যাটেরিয়াল — ফাইল, লিংক, লাইভ ক্লাস ও প্রাইভেট গ্রুপ
+
+লেসনের বাইরে ক্লাসের সঙ্গে যা দিতে চান — রেসিপি কার্ডের পিডিএফ, জিপ ফাইল, বই, রেকর্ড করা ভিডিও, লাইভ ক্লাসের লিংক, প্রাইভেট গ্রুপ — সব এক জায়গা থেকে। বাঁ মেনুর **ম্যাটেরিয়াল** খুলুন, অথবা কোনো ক্লাসের সারসংক্ষেপ পাতায় **ম্যাটেরিয়াল যোগ করুন** চাপুন।
+
+* **ধাপ ১ — ক্লাস বাছুন; ধাপ ২ — কী যোগ করছেন বাছুন:** ভিডিও, পিডিএফ, জিপ ফাইল, বই, লাইভ ক্লাস, লিংক অথবা প্রাইভেট গ্রুপ। ধরন বাছলে ফর্মে শুধু ওই ধরনের দরকারি ঘরগুলোই থাকে; প্রতিটি কার্ডের নিচে এক লাইনে লেখা আছে সেটা কী।
+* **ফাইল আপলোড:** ভিডিও, পিডিএফ, জিপ/ওয়ার্ড/এক্সেল/পাওয়ারপয়েন্ট বা বই (পিডিএফ/EPUB) সরাসরি এখানে আপলোড হয় — প্রতিটি সর্বোচ্চ **৯৫ এমবি**। আপলোডের সময় শতকরা হিসাব দেখায়। ভুল ধরনের ফাইল (যেমন নাম পিডিএফ, কিন্তু ভেতরে অন্য কিছু) সিস্টেম নিজেই ফিরিয়ে দেয়।
+* **বড় ফাইল বা লম্বা ভিডিও:** ৯৫ এমবির বেশি হলে গুগল ড্রাইভ / ইউটিউব / ভিমিওতে রেখে এখানে **লিংক** দিন। প্রতিটি ম্যাটেরিয়ালে “ফাইল আপলোড” অথবা “লিংক দিন” — দুটোর একটি বাছতে হয়, দুটো একসাথে নয়।
+* **লাইভ ক্লাস:** জুম / গুগল মিট / ফেসবুক লাইভের লিংক ও শুরুর সময় (বাংলাদেশ সময়) দিন; চাইলে কত মিনিট চলবে তাও। শিক্ষার্থী দেখেন ক্লাসটি শুরু হবে, চলছে, না শেষ।
+* **প্রাইভেট গ্রুপ:** ফেসবুক, হোয়াটসঅ্যাপ বা টেলিগ্রাম বাছুন এবং আমন্ত্রণের লিংক দিন। **ফেসবুক গ্রুপ হলে** শিক্ষার্থী আগে তাঁর **ফেসবুক প্রোফাইলের লিংক** পাঠান — তবেই তিনি গ্রুপের লিংক দেখতে পান। অনুরোধগুলো **ম্যাটেরিয়াল → গ্রুপে যোগের অনুরোধ** পাতায় আসে (মেনুতে কতজন অপেক্ষায় আছেন দেখায়): প্রোফাইল খুলে ফেসবুকে তাঁকে গ্রুপে অনুমোদন দিন, তারপর এখানে **অনুমোদন** চাপুন। হোয়াটসঅ্যাপ/টেলিগ্রামে প্রোফাইল চাওয়া হয় না।
+* **কে পাবেন:** শুধু ওই ক্লাসে **চালু ভর্তি** থাকা শিক্ষার্থী। ভর্তি না থাকলে বা রিফান্ড/বাতিল হলে ফাইল ও লিংক আর খোলে না। ফাইলের আসল সংরক্ষণ-ঠিকানা কেউ দেখতে পায় না; ডাউনলোড সবসময় আপনার সাইট হয়েই যায়।
+* **“অন্যকে দেবেন না, বিক্রি করবেন না” নোটিশ:** ক্লাসের পাতায় ম্যাটেরিয়ালের ঠিক ওপরে প্রতিটি শিক্ষার্থীকে সহজ ভাষায় জানানো হয় — এগুলো শুধু তাঁর নিজের শেখার জন্য, কেউ বিক্রি বা আবার আপলোড করবেন না, আর কে কী ডাউনলোড করেছেন তার রেকর্ড থাকে।
+* **ডাউনলোডের তালিকা:** **ম্যাটেরিয়াল → ডাউনলোডের তালিকা** — কোন শিক্ষার্থী কোন ম্যাটেরিয়াল কখন ডাউনলোড বা খুলেছেন। কোনো ফাইল অন্য কোথাও ছড়িয়ে পড়লে এখান থেকে বোঝা যায় কার অ্যাকাউন্ট থেকে গিয়েছিল।
+* **লুকানো / মোছা:** সারির সুইচে এক ক্লিকে শিক্ষার্থীদের কাছ থেকে লুকানো যায় (কিছু মোছা হয় না)। মুছলে **ট্র্যাশ**-এ যায়, সেখান থেকে ফিরিয়ে আনা যায়।
+* **ওয়েবসাইটের ক্লাস পাতায়:** কেনার আগে দর্শক দেখেন ক্লাসে কোন কোন ধরনের ম্যাটেরিয়াল আছে (সংখ্যাসহ) — কোনো ফাইল বা লিংক নয়। ভর্তির পর সেগুলো ক্লাসের ভেতরে খোলে।
+* যে আপলোড কখনো সংরক্ষণ করা হয়নি (ফাইল দিয়ে ফর্ম না সেভ করে বেরিয়ে গেলে), সিস্টেম কয়েক দিন পর নিজে থেকে মুছে দেয়।
+* সম্পাদনা এবং গ্রুপের অনুরোধ অনুমোদন করতে পারেন সুপার অ্যাডমিন ও কনটেন্ট ম্যানেজার; বাকিরা শুধু দেখতে পান।
+
 ---
 
 # English
@@ -476,3 +493,20 @@ Receipts, password resets and “the class is open” announcements go out by e-
 * While the last test failed, the e-mail card on the dashboard is amber. Fix it, test again — it turns green.
 * The e-mail key is never shown on screen. If a key was ever pasted somewhere (a chat, an e-mail) it is no longer private — create a new one at Resend and delete the old one.
 * Only the owner (Super Admin) can send a test.
+
+## 21. Materials — files, links, live classes and private groups
+
+Whatever you give a class besides its lessons — a PDF of recipe cards, a ZIP, a book, a recorded video, a live-class link, a private group — is added from one place. Open **Materials** in the left menu, or press **Add material** on a class’s overview page.
+
+* **Step 1 — choose the class; step 2 — choose what you are adding:** Video, PDF, ZIP file pack, Book, Live class, Link or Private group. Once you choose a type the form shows only what that type needs; each card has one line saying what it is.
+* **Uploading a file:** a video, a PDF, a ZIP / Word / Excel / PowerPoint file or a book (PDF / EPUB) is uploaded right here — up to **95 MB** each, with a progress percentage. A file of the wrong kind (a name that says PDF but something else inside) is turned away automatically.
+* **Big files and long videos:** over 95 MB, keep the file on Google Drive / YouTube / Vimeo and paste the **link** here instead. Each material is either “Upload a file” or “Add a link” — not both.
+* **Live class:** paste the Zoom / Google Meet / Facebook Live link and the start time (Bangladesh time), and optionally the length in minutes. Students see whether it is upcoming, live now or over.
+* **Private group:** choose Facebook, WhatsApp or Telegram and paste the invite link. For a **Facebook group** the student first sends their **Facebook profile link** — only then do they see the group’s link. The requests arrive under **Materials → Group requests** (the menu shows how many are waiting): open the profile, approve them inside the Facebook group, then press **Approve** here. WhatsApp and Telegram do not ask for a profile.
+* **Who gets it:** only students with an **active enrolment** in that class. Not enrolled, refunded or cancelled — the file and the link no longer open. Nobody sees a file’s real storage address; downloads always go through your site.
+* **The “do not share or resell” notice:** right above the materials on the class page every student is told in plain words that these are for their own learning only, that nobody may resell or re-upload them, and that downloads are recorded against their account.
+* **Download log:** **Materials → Download log** — which student downloaded or opened which material, and when. If a file ever turns up somewhere it should not be, this shows whose account it left from.
+* **Hide / delete:** the switch on a row hides it from students at once (nothing is deleted). Deleting moves it to **Trash**, where it can be restored.
+* **On the public class page:** before buying, a visitor sees which kinds of material the class includes (with counts) — never a file or a link. After enrolling, they open inside the class.
+* An upload that was never saved (you left the form after uploading) is cleaned up automatically after a few days.
+* Super Admin and Content Manager can edit materials and approve group requests; everyone else can look.

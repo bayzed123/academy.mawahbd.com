@@ -204,7 +204,7 @@ html[lang=bn] .rail-in h3{letter-spacing:0;text-transform:none;font-size:.9rem}
 .table-bar select.input{width:auto;min-width:140px;flex:1 1 140px;max-width:240px}
 .date-range{display:flex;align-items:center;gap:6px}
 .date-range .input{width:150px}
-.table-scroll{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh-1)}
+.table-scroll{position:relative;overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh-1)}
 .table-scroll.stale{opacity:.6}
 .table{width:100%;min-width:560px;border-collapse:collapse;font-size:.95rem}
 .table.compact{min-width:0}
@@ -229,6 +229,7 @@ th.num{text-align:right}
 .clip.wrap{white-space:normal;max-width:60ch;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .pager{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:14px}
 .desk{display:none}
+.desk-i{display:none} /* an icon button that only shows from tablet width up, so a phone's row keeps room for the switch, edit and delete */
 pre.meta{margin:.4rem 0 0;padding:.6rem .8rem;background:var(--k-950);color:#f0e6dc;border-radius:10px;font-size:.8rem;overflow:auto;max-width:60ch;white-space:pre-wrap}
 .stars{display:inline-flex;gap:1px;color:var(--g-500)}
 .stars .icon{width:16px;height:16px;fill:currentColor;stroke:none}
@@ -361,6 +362,7 @@ html[lang=bn] .login-sub{letter-spacing:.02em;text-transform:none;font-size:1rem
   .form-grid{grid-template-columns:1fr 1fr}
   .desk{display:table-cell}
   th.desk{display:table-cell}
+  .desk-i{display:inline-grid}
   .grid-2{grid-template-columns:1fr 1fr}
 }
 @media (min-width:1360px){
@@ -415,3 +417,36 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
 .view-reviews p{margin:.3rem 0 0}
 .view-reviews .stars{display:inline-flex;margin-right:.4rem;color:var(--g-600)}
 .view-reviews .stars .off{color:var(--line-2)}
+
+/* ---------- Materials: type cards, delivery switch, upload box, list ---------- */
+.type-cards,.seg-field{border:0;padding:0;margin:0;min-width:0}
+.type-cards legend,.seg-field legend{font-weight:600;margin:0 0 .5rem;padding:0}
+.type-cards .cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.type-card{display:grid;grid-template-columns:40px 1fr;column-gap:12px;row-gap:2px;align-content:start;text-align:start;padding:12px 14px;border:1.5px solid var(--line-2);border-radius:14px;background:#fff;color:inherit;font:inherit;cursor:pointer;min-height:68px}
+.type-card:hover{border-color:var(--g-500)}
+.type-card.on{border-color:var(--red-600);background:var(--red-50);box-shadow:0 0 0 2px rgba(219,23,24,.14)}
+.type-card .ico{grid-row:1/3;display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:var(--k-900);color:var(--g-300)}
+.type-card .ico .icon{width:20px;height:20px}
+.type-card b{align-self:end}
+.type-card small{color:var(--ink-3);line-height:1.35}
+/* once a type is chosen the cards shrink to their names (the choice's help moves under them), so the details are in view */
+.type-cards .cards.chosen{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.cards.chosen .type-card{min-height:0;padding:8px 10px;grid-template-columns:32px 1fr;align-items:center}
+.cards.chosen .type-card .ico{grid-row:auto;width:32px;height:32px;border-radius:8px}
+.cards.chosen .type-card .ico .icon{width:17px;height:17px}
+.cards.chosen .type-card small{display:none}
+.kind-help{margin:.6rem 0 0}
+.seg{display:inline-flex;flex-wrap:wrap;border:1.5px solid var(--line-2);border-radius:12px;overflow:hidden;background:#fff}
+.seg button{display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1rem;border:0;background:transparent;font:inherit;font-weight:600;cursor:pointer;color:var(--ink-2);min-height:44px}
+.seg button.on{background:var(--k-900);color:#fff}
+.file-box{border:1.5px dashed var(--line-2);border-radius:14px;padding:16px;background:var(--ivory-2)}
+.file-box.bad{border-color:var(--red-600);background:var(--red-50)}
+.file-box .drop{display:grid;justify-items:center;gap:4px;padding:18px;border-radius:12px;background:#fff;border:1px solid var(--line);cursor:pointer;text-align:center}
+.file-box .drop:hover{border-color:var(--g-500)}
+.file-box .drop .icon{width:28px;height:28px;color:var(--g-600)}
+.file-box .drop small{color:var(--ink-3)}
+.file-box:has(input:focus-visible) .drop,label.btn:has(input:focus-visible){outline:3px solid var(--red-600);outline-offset:2px}
+.cell-icon{display:flex;gap:10px;align-items:center}
+.kind-ico{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--k-900);color:var(--g-300)}
+.kind-ico .icon{width:17px;height:17px}
+.ext-link{display:inline-flex;align-items:center;gap:.3rem;color:var(--red-700);font-weight:600}
