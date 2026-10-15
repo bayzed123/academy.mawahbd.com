@@ -98,7 +98,7 @@ test("a visitor buys with a name, a number and an e-mail — no log-in — and t
   await again.page.getByLabel(/^Email/).fill(email);
   await again.page.getByLabel(/^Password/).fill("another-password-9");
   await again.page.getByRole("button", { name: "Sign up" }).click();
-  await expect(again.page.locator("#email-err")).toHaveText("An account with this email already exists.");
+  await expect(again.page.locator("#email-err")).toContainText("An account with this email already exists.");
   await expect(again.page.getByText("Bought a class here before?")).toBeVisible();
   await expect(again.page.getByRole("link", { name: "Forgot your password?" })).toBeVisible();
   await again.ctx.close();

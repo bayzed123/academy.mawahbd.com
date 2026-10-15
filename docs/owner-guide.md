@@ -279,6 +279,20 @@
 * আপনার জিমেইলে “নতুন পেমেন্ট এসেছে” ইমেইলে লেখা থাকে ক্রেতার স্টুডেন্ট আইডি, আর অ্যাকাউন্টটি চেকআউটে নতুন তৈরি হয়েছে কি না।
 * অচেনা কেউ যেন অজস্র অ্যাকাউন্ট না বানাতে পারে সেজন্য একই ঠিকানা থেকে দিনে ৩০টির বেশি নতুন অ্যাকাউন্ট হয় না। আরও নিরাপত্তা চাইলে Cloudflare Turnstile চালু করুন (docs/deployment.md)।
 
+## ২৩. আগের শিক্ষার্থীদের যোগ করা — হাতে একজন করে, বা তালিকা থেকে একসাথে
+
+* যিনি ওয়েবসাইট চালুর আগে আপনার সাথে শিখেছেন, বা নগদে টাকা দিয়েছেন — তাঁকে **শিক্ষার্থী → শিক্ষার্থী যোগ করুন** থেকে যোগ করুন। নাম ও ইমেইল দিলেই হয়; মোবাইল নম্বর (বাংলা সংখ্যাতেও চলে) আর একটি **ব্যক্তিগত নোট** (“২০২৩-এ বিকাশে দিয়েছেন”) ঐচ্ছিক — নোটটি শুধু আপনার টিম দেখে।
+* **ক্লাস টিক দিন**, **কবে ভর্তি হয়েছেন** সেই তারিখ দিন, আর টাকা দিয়ে থাকলে **পরিমাণ, মাধ্যম (বিকাশ/নগদ/রকেট/কার্ড/নগদ টাকা/ব্যাংক), ট্রানজ্যাকশন আইডি ও তারিখ** লিখুন। পেমেন্টটি সেই তারিখের একটি **স্বাভাবিক পেইড অর্ডার** হিসেবে লেখা হয় — অর্ডার তালিকায় ও আয়ের রিপোর্টে সঠিক দিনে দেখা যায়, সেই দিনের পরের ইনভয়েস নম্বর পায়। **তাঁকে কোনো ইমেইল যায় না।**
+* যোগ করা শিক্ষার্থীর **পাসওয়ার্ড থাকে না**। তাঁকে ঢোকার পথ দিন: “পাসওয়ার্ড দেওয়ার লিংক ইমেইল করুন”, অথবা “নিজে পাঠানোর জন্য সাইন-ইন লিংক নিন” — লিংকটি কপি করে হোয়াটসঅ্যাপ বা মেসেঞ্জারে পাঠান (৩ দিন চলে, একবার)। লিংক খুলে পাসওয়ার্ড দিলে তিনি সরাসরি ঢুকে যান, ক্লাসগুলো সেখানেই থাকে। লিংকটি যার হাতে যাবে সে-ই পাসওয়ার্ড বদলাতে পারবে — শুধু শিক্ষার্থীকেই পাঠান।
+* পরে আরেকটি ক্লাস খুলে দিতে: শিক্ষার্থীকে খুলে **ক্লাস খুলুন** — একই তারিখ ও পেমেন্টের ঘর আছে। আগে থেকে থাকা ক্লাস টিক করা যায় না, তাই দুইবার হয় না।
+* **তালিকা থেকে একসাথে অনেকজন:** শিক্ষার্থী → **তালিকা থেকে যোগ করুন**।
+  1. **টেমপ্লেট (CSV) নামান** — প্রথম লাইনে কলামের নাম, একটি উদাহরণ। Excel/Google Sheets-এ খুলে নিজের তালিকা বসান। শুধু `name` ও `email` লাগে; বাকি সব ঐচ্ছিক। ক্লাসের নাম লিখতে পাতার নিচের “আপনার ক্লাস ও লেখার নাম” তালিকা দেখুন; একাধিক ক্লাস হলে `;` দিয়ে আলাদা করুন।
+  2. তালিকাটি **পেস্ট করুন** (শীটের ঘরগুলো কপি করে) বা CSV ফাইল বাছুন। ফাইল আপনার ব্রাউজারেই পড়া হয়।
+  3. **আমার তালিকা যাচাই করুন** চাপুন। প্রতিটি লাইনের পাশে লেখা থাকে নতুন / আগে থেকে আছেন / সমস্যা আছে — সমস্যা থাকলে কী ভুল (যেমন “‘কেক’ আপনার ক্লাসের কোনোটি নয়”)। এই ধাপে কিছুই সংরক্ষণ হয় না।
+  4. **“…টি লাইন যোগ করুন”** চাপুন। ভালো লাইনগুলো ছোট ছোট অংশে সংরক্ষণ হয়, অগ্রগতি দেখা যায়। যে লাইনে সমস্যা ছিল সেগুলো **ফাইল হিসেবে নামিয়ে** ঠিক করে আবার দিন।
+* আগে থেকে রেজিস্টার্ড কারও ইমেইল তালিকায় থাকলে তাঁর নাম/ফোন বদলায় না — শুধু নতুন ক্লাস যোগ হয়। একই তালিকা আবার দিলেও কেউ দুইবার যোগ হয় না, পেমেন্ট দুইবার লেখা হয় না। একবারে সর্বোচ্চ ১,০০০ লাইন।
+* এসব কাজ শুধু সুপার অ্যাডমিন ও সাপোর্ট করতে পারেন; ভিউয়ার শুধু দেখতে পারেন।
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -546,3 +560,17 @@ Whatever you give a class besides its lessons — a PDF of recipe cards, a ZIP, 
 * **Safety:** if someone types the e-mail of a student who already exists, that account is never opened — they are asked to sign in right there with the password (or are e-mailed a link when the account has none), and the payment then goes on as normal.
 * The “New payment received” e-mail in your Gmail shows the buyer’s student ID and whether the account was made at checkout.
 * To stop one visitor making piles of accounts, one address can make at most 30 new accounts a day. For more protection switch on Cloudflare Turnstile (docs/deployment.md).
+
+## 23. Adding earlier students — one by hand, or a whole list
+
+* Someone who studied with you before the website, or paid you in cash: **Students → Add student**. Name and e-mail are enough; the mobile number (Bangla digits work too) and a **private note** (“paid by bKash in 2023”) are optional — only your team sees the note.
+* **Tick the classes** they have, give the **day they really joined**, and, if they paid, the **amount, how (bKash / Nagad / Rocket / card / cash / bank), the transaction ID and the day**. The payment is written down as an **ordinary paid order on that day** — it shows in Orders and in your income reports on the right day, and takes that day’s next invoice number. **Nothing is e-mailed to the student.**
+* A student added this way **has no password**. Give them a way in: “E-mail a link to choose a password”, or “Get a sign-in link to send myself” — copy the link and send it on WhatsApp or Messenger (it works once, for 3 days). They open it, choose a password, and are in with their classes. Whoever has the link can set the password, so send it only to the student.
+* To open another class later: open the student → **Open class** — the same date and payment boxes. A class they already have cannot be ticked, so nothing is doubled.
+* **A whole list at once:** Students → **Import a list**.
+  1. **Download the template (CSV)** — the column names in the first line and one example. Open it in Excel / Google Sheets and put your list in. Only `name` and `email` are needed; everything else is optional. For the classes, use the “Your classes and the names to write” table on the page; for more than one class, separate them with `;`.
+  2. **Paste** the list (copy the cells of your sheet) or choose the CSV file. The file is read in your own browser.
+  3. Press **Check my list**. Every line says new / already registered / has a problem, and a problem says what is wrong (for example “‘Cake’ is not one of your classes”). Nothing is saved at this step.
+  4. Press **Add**. The good lines are saved in small parts with a progress bar; the lines that had a problem can be **downloaded as a file**, fixed, and imported again.
+* A student who is already registered keeps their name and phone — only the new classes are added. Importing the same list again adds nobody twice and writes no payment twice. Up to 1,000 lines at a time.
+* Only the owner (Super Admin) and Support can do this; a Viewer can only look.

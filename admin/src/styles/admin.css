@@ -460,3 +460,21 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
 .notify-results li.ok{border-color:#9bd3a8;background:#f1faf3}
 .notify-results li.warn{border-color:#e6cf7a;background:#fff9e3}
 .notify-results li.bad{border-color:#e9a0a0;background:#fff1f1}
+
+/* ---- students: adding by hand and importing a list ---- */
+.student-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em}
+.class-pick{border:1px solid var(--g-300);border-radius:14px;padding:14px 16px;margin:0;min-width:0}
+.class-pick legend{padding:0 6px;font-weight:600}
+.class-list{list-style:none;margin:10px 0 0;padding:0;max-height:260px;overflow:auto;display:grid;gap:2px}
+.class-list label{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:10px;cursor:pointer;min-height:44px}
+.class-list label:hover{background:var(--g-100)}
+.class-list input{width:20px;height:20px;flex:none}
+.pay-block{border:1px dashed var(--g-300);border-radius:14px;padding:14px 16px}
+.invite-link{margin-top:12px;padding:12px;border:1px solid var(--g-300);border-radius:12px;background:#fff}
+.invite-link label{display:block;font-weight:600;margin-top:8px}
+.import-flow h4{margin:20px 0 6px}
+.cols-table th[scope=row]{width:150px;white-space:nowrap;text-align:left;font-weight:600}
+.ref-scroll,.imp-scroll{max-height:380px;overflow:auto;border:1px solid var(--g-300);border-radius:12px;margin-top:12px}
+.imp-sum{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.imp-table tr.imp-problem{background:var(--red-50)}
+.imp-table td,.imp-table th{vertical-align:top}
