@@ -1,7 +1,8 @@
 import { raw } from "hono/html";
 import { loc } from "@mawah/shared";
 import { turnstileEnabled } from "../lib/turnstile";
-import { CSS, HAS_OG_IMAGE, SITE_JS } from "../generated/assets";
+import { BANNERS_JS, CSS, HAS_OG_IMAGE, SITE_JS } from "../generated/assets";
+import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { Brand, Icon, jsonLd, shopOf } from "./ui";
 
@@ -17,6 +18,8 @@ export interface LayoutProps {
   noindex?: boolean;
   bodyClass?: string;
   hasBuybar?: boolean;
+  /** the page has a banner slider: load the script that moves it */
+  slider?: boolean;
   /** shows/hides the site chrome (certificate & invoice documents print without it) */
   chrome?: boolean;
   children?: unknown;
@@ -303,7 +306,9 @@ export function Layout(props: LayoutProps) {
             </div>
           </>
         )}
+        {chrome && ctx.popup && <OfferPopup ctx={ctx} banner={ctx.popup} />}
         <script src={SITE_JS} defer />
+        {((chrome && ctx.popup) || props.slider) && <script src={BANNERS_JS} defer />}
       </body>
     </html>
   );

@@ -185,6 +185,19 @@
 
 **শপ লিংক (https://mawahbd.com):** *সেটিংস → যোগাযোগ, ঘোষণা ও শপ* অংশে ঠিকানা, মেনুর নাম (বাংলা ও English) বদলানো যায় এবং এক ক্লিকে বন্ধ করা যায়। চালু থাকলে মেনু, মোবাইল মেনু, ফুটার, ক্লাসের তালিকা, হোম পাতা ও স্টুডেন্ট অ্যাপে “শপ” দেখা যায়; ক্লিক করলে শপ **নতুন ট্যাবে** খোলে।
 
+## ১৭. ব্যানার — হোম পেজের স্লাইডার ও অফার পপ-আপ
+
+বাঁ মেনুর **ব্যানার** খুলে **+ যোগ করুন** চাপুন। যা বদলাবেন সাথে সাথে ওয়েবসাইটে লাইভ হয়।
+
+* **কোথায় দেখাবে:** *হোম পেজ স্লাইডার* — হোম পেজের উপরে বড় ছবি (দুই বা তার বেশি হলে নিজে নিজে সরে; সর্বোচ্চ ৮টি)। অথবা *অফার পপ-আপ* — কেউ ঢোকার কয়েক সেকেন্ড পরে ভেসে ওঠা একটি কার্ড।
+* **ছবি:** চওড়া ছবি **১৬০০ × ৬০০ পিক্সেল**। চাইলে ফোনের জন্য আলাদা প্রায় চৌকো ছবি (**১০০০ × ৮০০**) দিন — না দিলে চওড়া ছবিটিই দেখাবে। জরুরি অংশ ছবির মাঝখানের বাঁ দিকে রাখুন। শুধু লেখার ব্যানারও হয় (ছবি ছাড়া শিরোনাম দিলেই)।
+* **লেখা:** শিরোনাম ও ছোট লাইন (বাংলা ও English)। লেখা ছবির ভেতরে আগে থেকেই থাকলে এগুলো ফাঁকা রাখতে পারেন — তবে **“ছবিতে কী আছে”** লিখে দিন, এটি দৃষ্টিহীন দর্শকদের জন্য ও গুগলের জন্য দরকারি।
+* **বোতাম ও লিংক:** বোতামের লেখা (বাংলা ও English) এবং **কোথায় নিয়ে যাবে** — এই সাইটের কোনো পেজ (যেমন `/courses/beginners-baking-class`), অথবা `https://…` ঠিকানা, অথবা ফোন `tel:+8801700000000`। অন্য সাইটে নিতে চাইলে **নতুন ট্যাবে খুলুন** সুইচ চালু করুন। বোতাম না দিলে ছবিতে ক্লিক করলেই লিংকে যায়।
+* **সময়সূচি:** প্রথম ও শেষ দিন (বাংলাদেশ সময়; দুই দিনই ধরা হয়)। ফাঁকা রাখলে এখনই চালু এবং আপনি বন্ধ না করা পর্যন্ত চলবে।
+* **পপ-আপের সেটিং:** কত সেকেন্ড পরে আসবে (৫–১০ ভালো), কেউ বন্ধ করলে কত দিন পরে আবার জিজ্ঞেস করবে (০ = প্রতি ভিজিটে একবার), এবং কোথায় (শুধু হোম পেজে / সব পাবলিক পেজে)। কেউ বন্ধ করলে আর বিরক্ত করা হয় না; আপনি পপ-আপ বদলালে নতুনটি আবার সবাইকে দেখানো হয়।
+* **চালু / বন্ধ:** তালিকার সুইচে এক ক্লিকে। মুছলে **ট্র্যাশ**-এ যায় — সেখান থেকে ফিরিয়ে আনা যায়।
+* **সবার জন্য ব্যবহারযোগ্য:** কিবোর্ড ও স্ক্রিন-রিডারে চলে; যাঁরা ফোনে “কম নড়াচড়া” চেয়েছেন তাঁদের স্লাইডার নিজে সরে না; থামানোর বোতাম আছে।
+
 ---
 
 # English
@@ -362,3 +375,16 @@ When someone leaves, **deactivate** their account — their access ends at once.
 * If someone still sees the old page after you approve, ask them to refresh once (at most about a minute).
 
 **The Shop link (https://mawahbd.com):** in *Settings → Contact, announcement & shop* you can change the address and the menu name (Bangla and English) and switch it off with one click. While it is on, “Shop” appears in the menu, the phone menu, the footer, the class list, the home page and the student app, and opens the shop in a **new tab**.
+
+## 17. Banners — the home-page slider and the offer pop-up
+
+Open **Banners** in the left menu and press **+ Add**. Whatever you change is live on the website at once.
+
+* **Where it shows:** *Home page slider* — big pictures at the top of the home page (with two or more they slide by themselves; up to 8). Or *Offer pop-up* — a card that appears a few seconds after someone arrives.
+* **Picture:** a wide picture, **1600 × 600 px**. Optionally add a separate, nearly square picture for phones (**1000 × 800**) — without it the wide one is used. Keep the important part in the middle-left. A words-only banner works too (give it a headline and no picture).
+* **Words:** a headline and a short line (Bangla and English). If the words are already inside the picture you may leave these empty — but do fill **“What the picture shows”**: it is read aloud to blind visitors and used by Google.
+* **Button and link:** the button’s words (Bangla and English) and **where it goes** — a page of this site (like `/courses/beginners-baking-class`), an `https://…` address, or a phone number `tel:+8801700000000`. Switch on **Open in a new tab** for another site. With no button, clicking the picture follows the link.
+* **Schedule:** a first and a last day (Bangladesh time; both days count). Empty = live now and until you switch it off.
+* **Pop-up settings:** after how many seconds it appears (5–10 feels polite), how many days before it asks again after someone closes it (0 = once per visit), and where (home page only / all public pages). Someone who closed it is not bothered again — until you edit the pop-up, when everyone sees the new one.
+* **On / off:** the switch in the list, one click. Deleting moves a banner to **Trash**, where you can bring it back.
+* **Usable by everyone:** works with a keyboard and a screen reader; for people who asked their phone for “reduced motion” the slider does not move by itself; there is a pause button.

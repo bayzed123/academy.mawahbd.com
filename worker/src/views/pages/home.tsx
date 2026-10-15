@@ -6,8 +6,12 @@ import { HeroArt } from "../hero-art";
 import { Layout } from "../layout";
 import { CourseCard, Flash, Icon, InstructorBadges, SectionHead, Stars, shopOf } from "../ui";
 import { organizationLd, websiteLd } from "../seo";
+import type { BannerDTO } from "../../services/banners";
+import { BannerSlider } from "../banners";
 
 export interface HomeData {
+  /** the owner's slider banners (Admin → Banners); empty = the page opens with the built-in welcome */
+  banners: BannerDTO[];
   featured: CourseCardDTO[];
   beginners: CourseCardDTO[];
   instructors: InstructorDTO[];
@@ -35,8 +39,10 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
       title={t("meta.home.title")}
       description={t("meta.home.desc")}
       jsonLd={[organizationLd(ctx), websiteLd(ctx)]}
+      slider={data.banners.length > 0}
     >
-      <section class="hero">
+      {data.banners.length > 0 && <BannerSlider ctx={ctx} banners={data.banners} />}
+      <section class={`hero${data.banners.length > 0 ? " has-banners" : ""}`}>
         <div class="wrap hero-grid">
           <div>
             <span class="eyebrow">{t("hero.eyebrow")}</span>
