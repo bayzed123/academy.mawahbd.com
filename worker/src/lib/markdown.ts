@@ -120,3 +120,25 @@ export function stripMarkdown(src: string, max = 160): string {
     .trim();
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }
+
+/**
+ * The words a reader sees, without the Markdown marks and without cutting anything off (structured data, the chatbot's
+ * notes). Hyphens inside words stay ("e-mail"); only list markers at the start of a line go.
+ */
+export function markdownToText(src: string): string {
+  return src
+    .replace(/\r\n?/g, "\n")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/^[ \t]{0,3}#{1,6}[ \t]+/gm, "")
+    .replace(/^[ \t]*([-*+]|\d+[.)])[ \t]+/gm, "")
+    .replace(/^[ \t]*>[ \t]?/gm, "")
+    .replace(/(\*\*|__)(.+?)\1/g, "$2")
+    .replace(/(^|[\s(])\*([^*\s][^*]*?)\*(?=$|[\s).,;:!?])/g, "$1$2")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/[ \t]+/g, " ")
+    .replace(/ ?\n ?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}

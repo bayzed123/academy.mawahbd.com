@@ -50,6 +50,7 @@ seoRoutes.get("/sitemap.xml", (c) =>
       ...posts.map((x) => ({ path: `/blog/${x.slug}`, lastmod: x.updated_at, priority: "0.6" })),
       ...instructors.map((x) => ({ path: `/instructors/${x.slug}`, lastmod: x.updated_at, priority: "0.5" })),
       { path: "/about", priority: "0.5" },
+      { path: "/faq", priority: "0.6" },
       { path: "/contact", priority: "0.5" },
       { path: "/policies/refund", priority: "0.3" },
       { path: "/policies/privacy", priority: "0.3" },

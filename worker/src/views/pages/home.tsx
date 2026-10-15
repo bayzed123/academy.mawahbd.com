@@ -7,11 +7,15 @@ import { Layout } from "../layout";
 import { CourseCard, Flash, Icon, InstructorBadges, SectionHead, Stars, shopOf } from "../ui";
 import { organizationLd, websiteLd } from "../seo";
 import type { BannerDTO } from "../../services/banners";
+import type { FaqDTO } from "../../services/faqs";
 import { BannerSlider } from "../banners";
+import { HomeFaq } from "../faq";
 
 export interface HomeData {
   /** the owner's slider banners (Admin → Banners); empty = the page opens with the built-in welcome */
   banners: BannerDTO[];
+  /** the owner's home-page questions (Admin → FAQ → "show on the home page"); none = no section */
+  faqs: FaqDTO[];
   featured: CourseCardDTO[];
   beginners: CourseCardDTO[];
   instructors: InstructorDTO[];
@@ -231,6 +235,8 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
           </div>
         </section>
       )}
+
+      {data.faqs.length > 0 && <HomeFaq ctx={ctx} items={data.faqs} />}
 
       {data.posts.length > 0 && (
         <section class="section">

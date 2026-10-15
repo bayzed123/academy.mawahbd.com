@@ -12,7 +12,7 @@
 .brand-name{font-family:var(--font-display);font-weight:600;font-size:.8rem;letter-spacing:.36em;color:var(--g-300);text-transform:uppercase}
 html[lang=bn] .brand-name{font-weight:400;letter-spacing:.02em;font-size:1.12rem;text-transform:none}
 .nav-links{display:none;gap:clamp(12px,2vw,26px);list-style:none;margin:0;padding:0}
-.nav-links a{color:#eadfd2;text-decoration:none;font-weight:600;font-size:.98rem;padding:.4rem .1rem;border-bottom:2px solid transparent}
+.nav-links a{color:#eadfd2;text-decoration:none;font-weight:600;font-size:.98rem;padding:.4rem .1rem;border-bottom:2px solid transparent;white-space:nowrap}
 .nav-links a:hover,.nav-links a[aria-current=page]{color:#fff;border-color:var(--g-400)}
 .nav-actions{display:flex;align-items:center;gap:8px}
 .lang-toggle{display:inline-flex;align-items:center;gap:.35rem;min-height:44px;padding:.3rem .8rem;border:1.5px solid rgba(217,205,105,.5);border-radius:999px;text-decoration:none;color:#f3ebe0;font-weight:600;font-size:.92rem;background:transparent}
@@ -228,9 +228,12 @@ html[lang=bn] .cert-brand{letter-spacing:0;text-transform:none}
 @media (min-width:640px){
   .news{grid-template-columns:1.1fr 1fr}
 }
-@media (min-width:900px){
+/* the full menu in the header needs about 1180px (Bangla labels are longer): below that the menu button holds every link, so no label ever wraps */
+@media (min-width:1180px){
   .nav-links{display:flex}
   .menu{display:none}
+}
+@media (min-width:900px){
   .hero-grid{grid-template-columns:1.2fr .8fr}
   .detail{grid-template-columns:minmax(0,1fr) 360px}
   .buy{position:sticky;top:92px}
@@ -384,6 +387,55 @@ html.offer-open{overflow:hidden}
   .offer{place-items:end center;padding:0}
   .offer-card{width:100%;border-radius:20px 20px 0 0;border-inline:0;border-bottom:0}
 }
+
+/* ---------- FAQ: questions and answers (Admin -> FAQ) ---------- */
+/* each question is a native <details>: it works without JavaScript, with a keyboard and with a screen reader */
+.faq{display:grid;gap:10px}
+.faq-item{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);transition:border-color .2s,box-shadow .2s}
+.faq-item[open]{border-color:var(--g-500);box-shadow:var(--sh-1)}
+.faq-item>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:56px;padding:.9rem 1.25rem;cursor:pointer;font-weight:600;font-size:1.02rem;line-height:1.5;color:var(--ink);border-radius:var(--r)}
+.faq-item>summary::-webkit-details-marker{display:none}
+.faq-item>summary::after{content:"";flex:none;width:.6em;height:.6em;margin-top:-.25em;border:solid var(--g-700);border-width:0 2.5px 2.5px 0;transform:rotate(45deg);transition:transform .2s,margin .2s}
+.faq-item[open]>summary::after{transform:rotate(225deg);margin-top:.25em}
+.faq-item>summary:hover{background:var(--g-100)}
+.faq-item[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+.faq-a{padding:.15rem 1.25rem 1.2rem;color:var(--ink-2);line-height:1.75}
+.faq-a>*:first-child{margin-top:0}
+.faq-a>*:last-child{margin-bottom:0}
+.faq-a p{margin:0 0 .7em}
+.faq-a ul,.faq-a ol{margin:.3em 0 .7em;padding-inline-start:1.3em}
+.faq-a a{color:var(--red-700);text-decoration:underline;text-underline-offset:2px}
+.faq-more{margin:1.4rem 0 0;text-align:center}
+@media (prefers-reduced-motion:reduce){.faq-item,.faq-item>summary::after{transition:none}}
+
+/* home page: the heading and the way to reach a person on one side, the questions on the other */
+.faq-grid{display:grid;gap:clamp(24px,4vw,48px);align-items:start}
+.faq-side .sec-head{margin-bottom:1.4rem}
+@media (min-width:960px){
+  .faq-grid{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+  .faq-side{position:sticky;top:104px}
+}
+
+/* "still have a question?": always a dark card, so it reads the same on the ivory band and on the page */
+.faq-cta{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px 16px;align-items:center;padding:20px;border-radius:var(--r);background:var(--k-900);color:#efe5db;border:1px solid rgba(217,205,105,.35);--focus:var(--g-300)}
+.faq-cta h3{color:#fff;font-size:1.1rem;margin:0 0 .15em}
+.faq-cta p{margin:0;color:#e0d4c8;font-size:.95rem}
+.faq-cta-ico{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:rgba(217,205,105,.14);color:var(--g-300);border:1px solid rgba(217,205,105,.4)}
+.faq-cta-btns{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px}
+.faq-cta .btn-outline{border-color:rgba(255,255,255,.55);color:#fff}
+.faq-cta .btn-outline:hover{background:#fff;color:var(--k-900)}
+
+/* the FAQ page */
+.faq-page{max-width:860px;margin-inline:auto;display:grid;gap:clamp(22px,4vw,36px)}
+.faq-topics{display:flex;flex-wrap:wrap;gap:8px}
+.faq-topics .chip{display:inline-flex;align-items:center;min-height:44px;padding:.4rem 1rem;border-radius:999px;border:1.5px solid var(--line-2);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:600;font-size:.95rem}
+.faq-topics .chip:hover{border-color:var(--g-600);background:var(--g-100)}
+.faq-group{scroll-margin-top:96px}
+.faq-group h2{font-size:1.35rem;margin:0 0 .75rem}
+
+/* a class page: after the reviews */
+.faq-sec{margin-top:clamp(28px,4vw,44px);scroll-margin-top:96px}
+.faq-sec h2{margin-bottom:.8rem}
 
 /* ---------- rendering performance ---------- */
 /* off-screen sections are not laid out or painted until they are near the viewport (much less work on first load) */

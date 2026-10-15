@@ -1,6 +1,7 @@
 import { loc } from "@mawah/shared";
 import type { CourseDetail, InstructorDTO, PublicReview } from "../services/catalog";
-import { stripMarkdown } from "../lib/markdown";
+import type { FaqDTO } from "../services/faqs";
+import { markdownToText, stripMarkdown } from "../lib/markdown";
 import type { PageCtx } from "./ctx";
 
 /* Structured data (JSON-LD). Google documents `Course` markup including offers and ratings — we only ever emit
@@ -33,6 +34,17 @@ export const breadcrumbLd = (ctx: PageCtx, items: { name: string; path: string }
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: items.map((it, i) => ({ "@type": "ListItem", position: i + 1, name: it.name, item: ctx.abs(it.path) })),
+});
+
+/** FAQPage: the questions a page shows, and only those. Answers are the plain text of what the visitor reads. */
+export const faqLd = (ctx: PageCtx, items: FaqDTO[]) => ({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: items.map((f) => ({
+    "@type": "Question",
+    name: loc(f, "question", ctx.lang),
+    acceptedAnswer: { "@type": "Answer", text: markdownToText(loc(f, "answer", ctx.lang)) },
+  })),
 });
 
 export function courseLd(ctx: PageCtx, course: CourseDetail, reviews: PublicReview[]) {

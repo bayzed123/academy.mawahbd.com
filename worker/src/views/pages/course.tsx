@@ -2,9 +2,11 @@ import { raw } from "hono/html";
 import { formatDate, formatDuration, formatNumber, loc, type CourseCardDTO, type CurriculumModuleDTO } from "@mawah/shared";
 import { renderMarkdown } from "../../lib/markdown";
 import type { CourseDetail, PublicReview, ReviewSummary } from "../../services/catalog";
+import type { FaqDTO } from "../../services/faqs";
 import type { PageCtx } from "../ctx";
+import { ClassFaq } from "../faq";
 import { Layout } from "../layout";
-import { breadcrumbLd, courseLd, personLd } from "../seo";
+import { breadcrumbLd, courseLd, faqLd, personLd } from "../seo";
 import { avgLabel, CourseCard, Crumbs, Flash, Icon, InstructorBadges, NotifyForm, numLabel, priceLabel, reviewsLabel, Stars } from "../ui";
 
 export interface CourseData {
@@ -12,6 +14,8 @@ export interface CourseData {
   curriculum: CurriculumModuleDTO[];
   reviews: PublicReview[];
   summary: ReviewSummary;
+  /** the class's own questions, then the home-page ones (Admin → FAQ) */
+  faqs: FaqDTO[];
   flash?: string;
 }
 
@@ -51,6 +55,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
           { name: title, path: ctx.href(`/courses/${course.slug}`) },
         ]),
         ...(course.instructor ? [personLd(ctx, course.instructor)] : []),
+        ...(data.faqs.length > 0 ? [faqLd(ctx, data.faqs)] : []),
       ]}
     >
       <section class="page-hero">
@@ -247,6 +252,8 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
               </>
             )}
           </section>
+
+          {data.faqs.length > 0 && <ClassFaq ctx={ctx} items={data.faqs} />}
         </div>
 
         <aside class="buy" aria-label={t("label.price")}>

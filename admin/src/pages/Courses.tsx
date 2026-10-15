@@ -12,6 +12,13 @@ export function useCategoryOptions() {
   return (q.data?.items ?? []).map((c) => ({ value: String(c.id), label: pick(c, "name") }));
 }
 
+/** Every class as a select option (the same list the bundle form uses, so the two share one request). */
+export function useCourseOptions() {
+  const { pick } = useI18n();
+  const q = useQuery({ queryKey: ["course-options"], queryFn: () => adm<ListResponse<CourseRow>>("/courses?per_page=100&sort=title_en"), staleTime: 60_000 });
+  return (q.data?.items ?? []).map((c) => ({ value: String(c.id), label: pick(c, "title") }));
+}
+
 export function useInstructorOptions() {
   const { pick } = useI18n();
   const q = useQuery({ queryKey: ["instructor-options"], queryFn: () => adm<ListResponse<{ id: number; name_bn: string; name_en: string }>>("/instructors?per_page=100"), staleTime: 60_000 });

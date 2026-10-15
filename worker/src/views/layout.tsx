@@ -57,6 +57,7 @@ export function Layout(props: LayoutProps) {
     { href: ctx.href("/courses?level=beginner"), label: t("nav.beginners"), match: "" },
     { href: ctx.href("/blog"), label: t("nav.blog"), match: "/blog" },
     { href: ctx.href("/about"), label: t("nav.about"), match: "/about" },
+    { href: ctx.href("/faq"), label: t("nav.faq"), match: "/faq" },
     { href: ctx.href("/contact"), label: t("nav.contact"), match: "/contact" },
   ];
   const fontPreloads =
@@ -228,6 +229,9 @@ export function Layout(props: LayoutProps) {
                     </li>
                     <li>
                       <a href={ctx.href("/blog")}>{t("nav.blog")}</a>
+                    </li>
+                    <li>
+                      <a href={ctx.href("/faq")}>{t("nav.faq")}</a>
                     </li>
                     <li>
                       <a href={ctx.href("/contact")}>{t("nav.contact")}</a>

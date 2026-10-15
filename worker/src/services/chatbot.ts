@@ -2,7 +2,9 @@ import { formatMoney, loc } from "@mawah/shared";
 import type { Env, Lang } from "../env";
 import { AiError, getProvider, getProviderRow, resolveApiKey, type ChatMessage, type ProviderRow } from "../lib/ai-providers";
 import { all, first, nowIso, run } from "../lib/db";
+import { markdownToText } from "../lib/markdown";
 import { contentVersion, getSettings } from "../lib/settings";
+import { courseFaqs, siteFaqs, type FaqDTO } from "./faqs";
 
 /**
  * Grounded support chatbot.
@@ -82,6 +84,17 @@ async function courseFacts(env: Env, courseId: number, lang: Lang): Promise<stri
     .join("\n");
 }
 
+/**
+ * The questions and answers the owner published in Admin → FAQ, so the chatbot and the website never disagree: the questions of the
+ * class the student is looking at first, then the site-wide ones. Bounded, so a long FAQ cannot crowd out the rest of the facts.
+ */
+async function faqFacts(env: Env, lang: Lang, courseId?: number | null): Promise<string> {
+  const [own, site] = await Promise.all([courseId ? courseFaqs(env, courseId, 10) : Promise.resolve([] as FaqDTO[]), siteFaqs(env, { limit: 20 })]);
+  const line = (f: FaqDTO) => `Q: ${clip(loc(f, "question", lang), 160)}\nA: ${clip(markdownToText(loc(f, "answer", lang)).replace(/\s+/g, " "), 320)}`;
+  const text = [...own, ...site].map(line).join("\n");
+  return text ? clip(text, 2600) : "";
+}
+
 async function buildSystemPrompt(env: Env, lang: Lang, courseId?: number | null): Promise<string> {
   const s = await getSettings(env);
   const pay: string[] = [];
@@ -94,6 +107,7 @@ async function buildSystemPrompt(env: Env, lang: Lang, courseId?: number | null)
   const faq = loc({ faq_bn: s.chatbot.faq_bn, faq_en: s.chatbot.faq_en }, "faq", lang);
   const refund = loc({ r_bn: s.policies.refund_bn, r_en: s.policies.refund_en }, "r", lang);
   const focus = courseId ? await courseFacts(env, courseId, lang) : "";
+  const published = await faqFacts(env, lang, courseId);
 
   return [
     "You are the friendly support assistant of MAWAH Academy, an online cooking and baking academy in Bangladesh. Prices are in Bangladeshi Taka (BDT).",
@@ -112,6 +126,7 @@ async function buildSystemPrompt(env: Env, lang: Lang, courseId?: number | null)
     "After payment is confirmed the student gets access immediately in My Learning (/app/). A certificate with a verification code is issued when all lessons are completed. Certificates can be verified at /verify.",
     refund ? `Refund policy: ${clip(refund, 700)}` : "Refund policy: not published yet — send the student to the team.",
     faq ? `FAQ:\n${clip(faq, 1800)}` : "",
+    published ? `Questions and answers published on the website:\n${published}` : "",
     focus ? `\n${focus}` : "",
   ]
     .filter((l) => l !== "")
