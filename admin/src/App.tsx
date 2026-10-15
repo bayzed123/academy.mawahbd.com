@@ -11,6 +11,7 @@ const lazyPage = <K extends string>(loader: () => Promise<Record<K, React.Compon
 
 const Courses = lazyPage(() => import("./pages/Courses"), "Courses");
 const CourseEditor = lazyPage(() => import("./pages/CourseEditor"), "CourseEditor");
+const CourseView = lazyPage(() => import("./pages/CourseView"), "CourseView");
 const Instructors = lazyPage(() => import("./pages/Content"), "Instructors");
 const Categories = lazyPage(() => import("./pages/Content"), "Categories");
 const Blog = lazyPage(() => import("./pages/Content"), "Blog");
@@ -46,7 +47,9 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={guard("dashboard:read", <Dashboard />)} />
           <Route path="courses" element={guard("courses:read", <Courses />)} />
-          <Route path="courses/:id" element={guard("courses:read", <CourseEditor />)} />
+          <Route path="courses/new" element={guard("courses:write", <CourseEditor />)} />
+          <Route path="courses/:id" element={guard("courses:read", <CourseView />)} />
+          <Route path="courses/:id/edit" element={guard("courses:read", <CourseEditor />)} />
           <Route path="instructors" element={guard("instructors:read", <Instructors />)} />
           <Route path="categories" element={guard("categories:read", <Categories />)} />
           <Route path="orders" element={guard("orders:read", <Orders />)} />

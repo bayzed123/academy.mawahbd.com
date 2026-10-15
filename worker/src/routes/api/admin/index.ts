@@ -4,6 +4,7 @@ import { requireStaff } from "../../../middleware/auth";
 import { audience } from "./audience";
 import { banners } from "./banners";
 import { chatbot } from "./chatbot";
+import { courseOverview } from "./course-overview";
 import { blog, bundles, categories, coupons, courses, instructors } from "./content";
 import { curriculum } from "./curriculum";
 import { dashboard } from "./dashboard";
@@ -33,6 +34,6 @@ adminApi.route("/faqs", faqs);
 adminApi.route("/coupons", coupons);
 adminApi.route("/courses", courses);
 
-for (const router of [curriculum, media, orders, students, engagement, audience, chatbot, settings, reports, dashboard, staff]) {
+for (const router of [courseOverview, curriculum, media, orders, students, engagement, audience, chatbot, settings, reports, dashboard, staff]) {
   adminApi.route("/", router);
 }

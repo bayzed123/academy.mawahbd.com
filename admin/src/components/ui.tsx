@@ -13,6 +13,7 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
+import { Link } from "react-router";
 import { ApiError } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 
@@ -353,6 +354,29 @@ export function KV({ items }: { items: { label: string; value: ReactNode }[] }) 
         </div>
       ))}
     </dl>
+  );
+}
+
+/** A number card: an icon, a label, a value and a line of context; a link when `to` is given. */
+export function Kpi({ icon, label, value, sub, to, tone }: { icon: string; label: string; value: string; sub?: string; to?: string; tone?: "warn" | "ok" }) {
+  const body = (
+    <>
+      <span className={`kpi-ico ${tone ?? ""}`}>
+        <Icon name={icon} />
+      </span>
+      <span className="kpi-body">
+        <small>{label}</small>
+        <b>{value}</b>
+        {sub && <em>{sub}</em>}
+      </span>
+    </>
+  );
+  return to ? (
+    <Link className="kpi" to={to}>
+      {body}
+    </Link>
+  ) : (
+    <div className="kpi">{body}</div>
   );
 }
 

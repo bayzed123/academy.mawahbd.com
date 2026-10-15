@@ -391,3 +391,22 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
   .date-range{flex:1 1 100%;min-width:0}
   .date-range .input{flex:1 1 0;width:auto;min-width:0;max-width:100%}
 }
+
+/* ---------- class view mode and the Active / Inactive card ---------- */
+.vis-card{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;border-left:5px solid var(--line-2)}
+.vis-card.on{border-left-color:var(--ok-600,#1d8a5a)}
+.vis-text{display:grid;gap:.4rem;justify-items:start;min-width:0}
+.vis-text p{margin:0;color:var(--ink-2)}
+.view-banner{display:block;width:min(100%,520px);aspect-ratio:16/9;object-fit:cover;border-radius:12px;border:1px solid var(--line-2);margin-bottom:14px}
+.view-h{margin:18px 0 8px;font-size:1rem}
+.view-cols{display:grid;gap:12px 24px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.view-cols p{margin:0 0 8px}
+.outline{display:grid;gap:14px;margin:0;padding-left:1.2rem}
+.outline ul{list-style:none;margin:.4rem 0 0;padding:0;display:grid;gap:6px}
+.outline li li{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.outline li li .icon{width:1.1em;height:1.1em;color:var(--g-600)}
+.view-reviews{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.view-reviews li{display:block}
+.view-reviews p{margin:.3rem 0 0}
+.view-reviews .stars{display:inline-flex;margin-right:.4rem;color:var(--g-600)}
+.view-reviews .stars .off{color:var(--line-2)}
