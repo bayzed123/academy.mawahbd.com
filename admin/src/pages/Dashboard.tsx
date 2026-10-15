@@ -5,7 +5,7 @@ import { adm } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { Chart } from "../components/Chart";
-import { Button, Chip, ErrorState, Icon, PageHeader, Panel, Progress, Spinner, StatusChip, useToast } from "../components/ui";
+import { Button, Chip, ErrorState, Icon, Kpi, PageHeader, Panel, Progress, Spinner, StatusChip, useToast } from "../components/ui";
 
 interface Dash {
   kpis: {
@@ -45,28 +45,6 @@ function greeting(lang: "bn" | "en"): string {
   const h = new Date(Date.now() + 6 * 3600e3).getUTCHours();
   if (lang === "en") return h < 5 ? "Good night" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : h < 20 ? "Good evening" : "Good night";
   return h < 5 ? "শুভ রাত্রি" : h < 12 ? "শুভ সকাল" : h < 16 ? "শুভ দুপুর" : h < 18 ? "শুভ বিকাল" : h < 20 ? "শুভ সন্ধ্যা" : "শুভ রাত্রি";
-}
-
-function Kpi({ icon, label, value, sub, to, tone }: { icon: string; label: string; value: string; sub?: string; to?: string; tone?: "warn" | "ok" }) {
-  const body = (
-    <>
-      <span className={`kpi-ico ${tone ?? ""}`}>
-        <Icon name={icon} />
-      </span>
-      <span className="kpi-body">
-        <small>{label}</small>
-        <b>{value}</b>
-        {sub && <em>{sub}</em>}
-      </span>
-    </>
-  );
-  return to ? (
-    <Link className="kpi" to={to}>
-      {body}
-    </Link>
-  ) : (
-    <div className="kpi">{body}</div>
-  );
 }
 
 export function Dashboard() {

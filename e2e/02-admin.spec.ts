@@ -91,14 +91,14 @@ test("create a class, add curriculum + a downloadable file, reorder, and the pub
   await page.getByLabel("Title (English) *").fill("Pizza Masterclass E2E");
   await page.getByLabel("Short description (English)").fill("Make pizza at home.");
   await page.getByLabel("Price").fill("750");
-  await page.getByLabel("Status").selectOption("published");
+  await page.getByLabel("Visibility on the website").selectOption("published");
   await page.getByRole("button", { name: "Save" }).click();
   // a published class with no lessons asks for confirmation: students who pay would find it empty
   await expect(page.getByRole("alertdialog")).toContainText("This class has no lessons yet");
   await page.getByRole("alertdialog").getByRole("button", { name: "Cancel" }).click();
-  await page.getByLabel("Status").selectOption("draft");
+  await page.getByLabel("Visibility on the website").selectOption("draft");
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(page).toHaveURL(/\/admin\/courses\/\d+\?tab=curriculum/);
+  await expect(page).toHaveURL(/\/admin\/courses\/\d+\/edit\?tab=curriculum/);
 
   // module
   await page.getByRole("button", { name: "+ Add module" }).click();
@@ -138,7 +138,7 @@ test("create a class, add curriculum + a downloadable file, reorder, and the pub
 
   // publish: now it has lessons, so no warning
   await page.getByRole("tab", { name: "Details" }).click();
-  await page.getByLabel("Status").selectOption("published");
+  await page.getByLabel("Visibility on the website").selectOption("published");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
   const res = await page.request.get("/api/courses/pizza-masterclass-e2e");
@@ -226,9 +226,9 @@ test("coming-soon notify list: visitors sign up, publishing emails them once", a
   await page.getByLabel("Title (বাংলা) *").fill("শীঘ্রই আসছে ক্লাস");
   await page.getByLabel("Title (English) *").fill("Soon Class E2E");
   await page.getByLabel("Price").fill("500");
-  await page.getByLabel("Status").selectOption("coming_soon");
+  await page.getByLabel("Visibility on the website").selectOption("coming_soon");
   await page.getByRole("button", { name: "Save" }).click();
-  await expect(page).toHaveURL(/\/admin\/courses\/\d+\?tab=curriculum/);
+  await expect(page).toHaveURL(/\/admin\/courses\/\d+\/edit\?tab=curriculum/);
   const courseId = Number(page.url().match(/courses\/(\d+)/)![1]);
 
   const vctx = await browser.newContext({ locale: "en-US" });
@@ -243,8 +243,8 @@ test("coming-soon notify list: visitors sign up, publishing emails them once", a
   await nav("Notify lists").click();
   await expect(page.getByRole("cell", { name: email })).toBeVisible();
 
-  await page.goto(`/admin/courses/${courseId}`);
-  await page.getByLabel("Status").selectOption("published");
+  await page.goto(`/admin/courses/${courseId}/edit`);
+  await page.getByLabel("Visibility on the website").selectOption("published");
   await page.getByRole("button", { name: "Save" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Publish anyway" }).click();
   await expect(page.getByText("Saved.")).toBeVisible();
