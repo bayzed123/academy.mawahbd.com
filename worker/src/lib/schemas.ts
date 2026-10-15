@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { normalizeBdPhone } from "@mawah/shared";
+import { normalizeAnyPhone } from "@mawah/shared";
 
 /** Shared zod building blocks. Error "messages" are stable codes the UIs translate (see shared/i18n). */
 export const emailSchema = z
@@ -14,9 +14,13 @@ export const passwordSchema = z
   .min(8, "weak_password")
   .max(128, "too_long");
 
-export const nameSchema = z.string({ error: "required" }).trim().min(2, "required").max(80, "too_long");
+/** A person's name: no space at either end and one space between words, 2–80 characters. */
+export const nameSchema = z
+  .string({ error: "required" })
+  .transform((s) => s.trim().replace(/\s+/g, " "))
+  .pipe(z.string().min(2, "required").max(80, "too_long"));
 
-/** Optional Bangladeshi mobile number, normalised to 01XXXXXXXXX (or null). */
+/** Optional phone number: a Bangladesh mobile is normalised to 01XXXXXXXXX; a number from another country (students abroad) is kept as +digits. Or null. */
 export const phoneSchema = z
   .string()
   .trim()
@@ -25,7 +29,7 @@ export const phoneSchema = z
   .nullable()
   .transform((value, ctx) => {
     if (!value) return null;
-    const n = normalizeBdPhone(value);
+    const n = normalizeAnyPhone(value);
     if (!n) {
       ctx.addIssue({ code: "custom", message: "invalid_phone" });
       return z.NEVER;

@@ -7,6 +7,11 @@ export function toBnDigits(input: string | number): string {
   return String(input).replace(/\d/g, (d) => BN_DIGITS[Number(d)]);
 }
 
+/** Bengali digits to ASCII ones (০১৭… -> 017…), for numbers and dates people type in Bangla. */
+export function fromBnDigits(input: string): string {
+  return input.replace(/[০-৯]/g, (d) => String(BN_DIGITS.indexOf(d)));
+}
+
 /** Group digits the South-Asian way (12,34,567) — the convention used for BDT. */
 function groupIndian(intPart: string): string {
   if (intPart.length <= 3) return intPart;
@@ -103,9 +108,17 @@ export function pick<T>(lang: Lang, bn: T, en: T): T {
 
 /** Bangladesh mobile number normaliser: returns 01XXXXXXXXX or null. */
 export function normalizeBdPhone(input: string): string | null {
-  const digits = input.replace(/[^\d+]/g, "");
+  const digits = fromBnDigits(input).replace(/[^\d+]/g, "");
   const m = digits.match(/^(?:\+?880|0)?(1[3-9]\d{8})$/);
   return m ? `0${m[1]}` : null;
+}
+
+/** A number staff typed in: a Bangladesh mobile in the usual 01XXXXXXXXX form, or any other number kept as +digits (7–15 of them). */
+export function normalizeAnyPhone(input: string): string | null {
+  const bd = normalizeBdPhone(input);
+  if (bd) return bd;
+  const m = fromBnDigits(input).replace(/[^\d+]/g, "").match(/^(?:\+|00)?(\d{7,15})$/);
+  return m ? `+${m[1]}` : null;
 }
 
 /** The short code of an order that people read out or type into a payment reference: the first 8 characters of its public id. */

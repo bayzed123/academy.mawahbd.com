@@ -161,6 +161,26 @@ export function passwordResetMail(lang: Lang, link: string): Omit<MailMessage, "
   };
 }
 
+/** For a student the owner added by hand or imported: their account is ready, they only have to choose a password. */
+export function welcomeMail(lang: Lang, name: string, link: string, days: number): Omit<MailMessage, "to"> {
+  const subject = lang === "bn" ? "আপনার অ্যাকাউন্ট প্রস্তুত" : "Your account is ready";
+  const hello = lang === "bn" ? `আসসালামু আলাইকুম ${name},` : `Hello ${name},`;
+  const intro =
+    lang === "bn"
+      ? `${brandName(lang)}-এ আপনার অ্যাকাউন্ট তৈরি করা হয়েছে, আপনার ক্লাসগুলো সেখানেই আছে। নিচের বোতামে ক্লিক করে একটি পাসওয়ার্ড দিন, তারপর যেকোনো সময় ঢুকে শিখতে পারবেন। লিংকটি ${days} দিন কাজ করবে।`
+      : `An account has been created for you at ${brandName(lang)} and your classes are already in it. Press the button below to choose a password, then sign in any time to learn. The link works for ${days} days.`;
+  const later =
+    lang === "bn"
+      ? "লিংকের মেয়াদ শেষ হলে সাইন-ইন পাতায় “পাসওয়ার্ড ভুলে গেছেন?” চেপে এই ইমেইল দিয়ে নতুন লিংক নিতে পারবেন।"
+      : "If the link has run out, press “Forgot your password?” on the sign-in page and use this e-mail address to get a new one.";
+  const label = lang === "bn" ? "পাসওয়ার্ড দিন" : "Choose my password";
+  return {
+    subject: `${subject} — ${brandName(lang)}`,
+    html: layout(lang, subject, `<p style="font-size:16px;line-height:1.6">${escapeHtml(hello)}</p><p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p>${button(link, label)}<p style="color:#6d5f60;font-size:14px">${escapeHtml(later)}</p>`, brandName(lang)),
+    text: `${hello}\n\n${intro}\n\n${link}\n\n${later}`,
+  };
+}
+
 export function orderReceiptMail(
   lang: Lang,
   d: { name: string; invoiceNo: string; total: string; items: string[]; learnUrl: string; invoiceUrl: string },

@@ -17,6 +17,10 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const PAYMENT_METHODS = ["bkash", "nagad", "rocket", "card", "manual", "free", "mock"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
+/** How a student came to have an account: they signed up, the owner added them by hand, or a list was imported. */
+export const STUDENT_SOURCES = ["signup", "admin", "import"] as const;
+export type StudentSource = (typeof STUDENT_SOURCES)[number];
+
 export const LESSON_TYPES = ["video", "external", "text", "resource"] as const;
 export type LessonType = (typeof LESSON_TYPES)[number];
 
