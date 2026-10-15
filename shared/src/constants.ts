@@ -50,6 +50,8 @@ export const PERMISSIONS = {
   "blog:write": SA_CM,
   "bundles:read": ALL,
   "bundles:write": SA_CM,
+  "banners:read": ALL,
+  "banners:write": SA_CM,
   "coupons:read": ALL,
   "coupons:write": SA_CM,
   "media:write": SA_CM,
@@ -98,6 +100,7 @@ export const ADMIN_NAV = [
   { key: "blog", path: "blog", perm: "blog:read" },
   { key: "coupons", path: "coupons", perm: "coupons:read" },
   { key: "bundles", path: "bundles", perm: "bundles:read" },
+  { key: "banners", path: "banners", perm: "banners:read" },
   { key: "certificates", path: "certificates", perm: "certificates:read" },
   { key: "signups", path: "signups", perm: "signups:read" },
   { key: "messages", path: "messages", perm: "messages:read" },
@@ -108,6 +111,10 @@ export const ADMIN_NAV = [
   { key: "activity", path: "activity", perm: "activity:read" },
   { key: "help", path: "help", perm: "dashboard:read" },
 ] as const satisfies readonly { key: string; path: string; perm: Permission }[];
+
+/** Where a banner is shown: the slider at the top of the home page, or the offer pop-up. */
+export const BANNER_PLACEMENTS = ["hero", "popup"] as const;
+export type BannerPlacement = (typeof BANNER_PLACEMENTS)[number];
 
 /** Icons available for category tags and generated class banners (see marketing/public/sprite.svg). */
 export const CLASS_ICONS = ["cake", "snack", "glass", "bowl", "sweet", "snowflake", "cupcake", "brownie", "pastry", "pot", "crescent", "tiffin", "mango"] as const;

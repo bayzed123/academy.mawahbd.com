@@ -1,5 +1,6 @@
 import type { CategoryDTO, Lang } from "@mawah/shared";
 import type { Ctx, Env } from "../env";
+import { popupFor } from "../services/banners";
 import { listCategories } from "../services/catalog";
 import { makePageCtx, type PageCtx } from "../views/ctx";
 import { getSettings } from "./settings";
@@ -19,8 +20,10 @@ export function resetCategoryCache(): void {
 }
 
 export async function pageCtxFor(c: Ctx, lang: Lang, path: string): Promise<PageCtx> {
-  const [settings, categories] = await Promise.all([getSettings(c.env), categoriesCached(c.env)]);
-  return makePageCtx(c.env, settings, categories, lang, path);
+  const [settings, categories, popup] = await Promise.all([getSettings(c.env), categoriesCached(c.env), popupFor(c.env, path)]);
+  const ctx = makePageCtx(c.env, settings, categories, lang, path);
+  ctx.popup = popup;
+  return ctx;
 }
 
 export const langFromPath = (pathname: string): Lang => (pathname === "/en" || pathname.startsWith("/en/") ? "en" : "bn");
