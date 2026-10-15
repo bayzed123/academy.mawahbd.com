@@ -66,6 +66,8 @@ writeFileSync(
   Cache-Control: public, max-age=31536000, immutable
 /sprite.svg
   Cache-Control: public, max-age=86400
+/pay/*
+  Cache-Control: public, max-age=86400
 /logo.webp
   Cache-Control: public, max-age=86400
 /logo-sm.webp

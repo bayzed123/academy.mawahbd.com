@@ -36,7 +36,7 @@ const app = { ...common.en, ...appDict.en };
 const need = (dict, label, keys) => { for (const k of keys) if (!(k in dict)) fail(`${label}: missing dynamic key "${k}"`); };
 
 const dash = readFileSync(resolve(root, "worker/src/routes/api/admin/dashboard.ts"), "utf8");
-const issues = [...dash.matchAll(/\b(?:pay|chat|sec)\.push\("([a-z_]+)"\)/g)].map((m) => m[1]);
+const issues = [...dash.matchAll(/\b(?:pay|chat|sec|mail)\.push\("([a-z_]+)"\)/g)].map((m) => m[1]);
 issues.push(...[...dash.matchAll(/issues: [^\n]*?\["([a-z_]+)"\]/g)].map((m) => m[1]));
 const attention = [...dash.matchAll(/\{ key: "([a-z_]+)", severity:/g)].map((m) => m[1]);
 const steps = [...dash.matchAll(/\{ key: "([a-z]+)", done:/g)].map((m) => m[1]);

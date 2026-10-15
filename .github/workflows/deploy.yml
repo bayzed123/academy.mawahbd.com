@@ -121,11 +121,12 @@ jobs:
           [ -n "$url" ] || url="$(node ../scripts/print-site-url.mjs)"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
-      # APP_SECRET is made here (random, never shown) if the Worker has none. SETUP_TOKEN is only taken from the repository
-      # secret of that name — optional, needed once, to create the first admin. Existing secrets are never replaced.
+      # APP_SECRET is made here (random, never shown) if the Worker has none. SETUP_TOKEN and RESEND_API_KEY (the e-mail key) are only
+      # taken from the repository secrets of those names — both optional. Existing secrets are never replaced.
       - name: Give the Worker its secrets
         env:
           SETUP_TOKEN: ${{ secrets.SETUP_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: node scripts/setup-cloudflare.mjs --ci --no-resources --secrets
 
       # The free workers.dev address answers as soon as the code is published, whatever state the custom domain is in.

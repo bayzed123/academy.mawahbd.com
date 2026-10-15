@@ -4,6 +4,7 @@ import { turnstileEnabled } from "../lib/turnstile";
 import { BANNERS_JS, CSS, HAS_OG_IMAGE, SITE_JS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
+import { DEVELOPER, PAY_LOGOS } from "./footer-data";
 import { Brand, Icon, jsonLd, shopOf } from "./ui";
 
 export interface LayoutProps {
@@ -281,17 +282,27 @@ export function Layout(props: LayoutProps) {
                       </li>
                     )}
                   </ul>
-                  <p class="foot-h mt">{t("footer.payments")}</p>
-                  <div class="pay-list">
-                    <span>{t("method.bkash")}</span>
-                    <span>{t("method.nagad")}</span>
-                    <span>{t("method.rocket")}</span>
-                    <span>{t("method.card")}</span>
-                  </div>
+                  <p class="foot-h mt" id="pay-h">
+                    {t("footer.payments")}
+                  </p>
+                  <ul class="pay-logos" aria-labelledby="pay-h">
+                    {PAY_LOGOS.map((p) => (
+                      <li>
+                        <img src={p.src} width={p.width} height={p.height} alt={t(`method.${p.key}` as "method.bkash")} loading="lazy" decoding="async" />
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
               <div class="wrap foot-bottom">
                 <span>{t("footer.rights", { year: new Date().getUTCFullYear() })}</span>
+                <span class="foot-credit">
+                  {t("footer.developed")}{" "}
+                  <a href={DEVELOPER.url} rel="noopener noreferrer" target="_blank">
+                    {DEVELOPER.name}
+                    <span class="vh"> ({t("shop.opens")})</span>
+                  </a>
+                </span>
                 <span>{t("brand.tagline")}</span>
               </div>
             </footer>

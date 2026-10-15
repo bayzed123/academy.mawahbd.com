@@ -12,7 +12,14 @@ export interface MailResult {
   ok: boolean;
   provider: "resend" | "dev-outbox" | "none";
   error?: string;
+  /** When Resend refused the message: its HTTP status, its error name (e.g. "validation_error") and its own words. */
+  status?: number;
+  code?: string;
+  detail?: string;
 }
+
+/** Resend's own words for what went wrong, shortened, and never with anything that looks like a key in it. */
+const scrub = (s: string) => s.replace(/\bre_[A-Za-z0-9_]{6,}/g, "re_…").slice(0, 300);
 
 /**
  * Transactional e-mail through Resend's HTTPS API (RESEND_API_KEY is a Wrangler secret).
@@ -27,7 +34,17 @@ export async function sendMail(env: Env, msg: MailMessage): Promise<MailResult> 
         headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({ from: env.MAIL_FROM, to: [msg.to], subject: msg.subject, html: msg.html, text: msg.text }),
       });
-      if (!res.ok) return { ok: false, provider: "resend", error: `resend_${res.status}` };
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { name?: unknown; message?: unknown } | null;
+        return {
+          ok: false,
+          provider: "resend",
+          error: `resend_${res.status}`,
+          status: res.status,
+          code: typeof body?.name === "string" ? body.name.slice(0, 60) : undefined,
+          detail: typeof body?.message === "string" ? scrub(body.message) : undefined,
+        };
+      }
       return { ok: true, provider: "resend" };
     } catch (err) {
       return { ok: false, provider: "resend", error: err instanceof Error ? err.message : "network" };
@@ -40,6 +57,34 @@ export async function sendMail(env: Env, msg: MailMessage): Promise<MailResult> 
   }
   console.warn("mail_not_configured", msg.subject);
   return { ok: false, provider: "none", error: "RESEND_API_KEY missing" };
+}
+
+/** Where the result of the owner's last test message is kept (Admin → Settings → E-mail; the dashboard's health card reads it too). */
+export const MAIL_LAST_TEST_KEY = "mail:last-test";
+export interface MailLastTest {
+  at: string;
+  /** true = Resend accepted the message (named `sent`, not `ok`, so it can never be mistaken for the API's own ok flag) */
+  sent: boolean;
+  provider: string;
+  problem: MailProblem | null;
+  by: string;
+}
+
+/** What went wrong with a message, as a code the admin screen explains in plain words (and the owner can act on). */
+export type MailProblem = "key_missing" | "key_invalid" | "key_restricted" | "domain_not_verified" | "from_invalid" | "rate_limited" | "provider_error" | "network" | "other";
+
+export function mailProblem(r: MailResult): MailProblem | null {
+  if (r.ok) return null;
+  if (r.provider === "none") return "key_missing";
+  if (r.status === undefined) return "network";
+  const said = `${r.code ?? ""} ${r.detail ?? ""}`.toLowerCase();
+  if (/not verified|verify a domain|verify your domain/.test(said)) return "domain_not_verified";
+  if (r.code === "restricted_api_key") return "key_restricted";
+  if (r.status === 401 || r.code === "invalid_api_key" || r.code === "missing_api_key") return "key_invalid";
+  if (r.code === "invalid_from_address" || /invalid.*from|from.*invalid/.test(said)) return "from_invalid";
+  if (r.status === 429) return "rate_limited";
+  if (r.status >= 500) return "provider_error";
+  return "other";
 }
 
 /**
@@ -142,6 +187,22 @@ export function orderReceiptMail(
       brandName(lang),
     ),
     text: `${hello}\n${intro}\n\n${d.items.join("\n")}\n\n${d.invoiceNo} · ${d.total}\n${d.learnUrl}\n${d.invoiceUrl}`,
+  };
+}
+
+/** The message behind Admin → Settings → E-mail → "Send me a test e-mail". */
+export function testMail(lang: Lang, d: { name: string; when: string }): Omit<MailMessage, "to"> {
+  const subject = lang === "bn" ? "পরীক্ষামূলক ইমেইল" : "Test e-mail";
+  const hello = lang === "bn" ? `আসসালামু আলাইকুম ${d.name},` : `Hello ${d.name},`;
+  const body =
+    lang === "bn"
+      ? "এটি আপনার মাওয়াহ একাডেমি অ্যাডমিন থেকে পাঠানো একটি পরীক্ষামূলক ইমেইল। এটি পড়তে পারলে বুঝবেন আপনার ওয়েবসাইট ইমেইল পাঠাতে পারছে — রসিদ, পাসওয়ার্ড রিসেট ও ক্লাস চালুর ঘোষণা শিক্ষার্থীদের কাছে পৌঁছাবে।"
+      : "This is a test message sent from your MAWAH Academy admin. If you can read it, your website can send e-mail — receipts, password resets and launch announcements will reach your students.";
+  const sent = lang === "bn" ? `পাঠানো হয়েছে: ${d.when}` : `Sent: ${d.when}`;
+  return {
+    subject: `${subject} — ${brandName(lang)}`,
+    html: layout(lang, subject, `<p style="font-size:16px">${escapeHtml(hello)}</p><p style="font-size:16px;line-height:1.6">${escapeHtml(body)}</p><p style="color:#6d5f60;font-size:14px">${escapeHtml(sent)}</p>`, brandName(lang)),
+    text: `${hello}\n\n${body}\n\n${sent}`,
   };
 }
 

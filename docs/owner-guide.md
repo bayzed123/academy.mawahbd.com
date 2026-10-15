@@ -231,6 +231,17 @@
 * **গুগলের জন্য:** পাতায় যে প্রশ্নগুলো দেখা যাচ্ছে ঠিক সেগুলোই গুগলকে জানানো হয় — একটিও বেশি নয়।
 * সম্পাদনা করতে পারেন সুপার অ্যাডমিন ও কনটেন্ট ম্যানেজার; বাকিরা দেখতে পান।
 
+## ২০. ইমেইল ঠিকমতো যাচ্ছে কি না দেখুন
+
+রসিদ, পাসওয়ার্ড রিসেট ও ক্লাস চালুর ঘোষণা ইমেইলে যায় (Resend-এর মাধ্যমে)। কোনো ইমেইল আটকে গেলে ওয়েবসাইটে কিছু দেখা যায় না — তাই পরীক্ষা করে নিন।
+
+* বাঁ মেনু → **সেটিংস** → **ইমেইল** ট্যাব → **আমাকে একটি পরীক্ষামূলক ইমেইল পাঠান**।
+* ইমেইলটি যাবে **শুধু আপনার নিজের ঠিকানায়** (ঘণ্টায় সর্বোচ্চ ৬টি)। ইনবক্স ও স্প্যাম দুটোই দেখুন। এলে বুঝবেন ইমেইল ঠিক আছে।
+* না গেলে পর্দায় সহজ ভাষায় লেখা আসে **কেন** যায়নি এবং **কী করতে হবে** — যেমন: কী (key) নেই বা ভুল; **ডোমেইন Resend-এ যাচাই করা নেই** (সবচেয়ে সাধারণ — `mawahacademy.com`-কে Resend-এ Add Domain করে DNS রেকর্ডগুলো Cloudflare-এ বসাতে হয়); পাঠানোর ঠিকানা ভুল; সীমা শেষ।
+* শেষ পরীক্ষা ব্যর্থ হলে ড্যাশবোর্ডের স্বাস্থ্য-কার্ডে ইমেইল হলুদ দেখায়। ঠিক হলে আবার পরীক্ষা করুন — সবুজ হয়ে যাবে।
+* ইমেইলের কী (key) কখনো স্ক্রিনে দেখানো হয় না। কোথাও (চ্যাট, ইমেইল) কী পাঠিয়ে ফেললে সেটি আর গোপন নেই — Resend-এ নতুন কী বানিয়ে পুরনোটি মুছে দিন।
+* শুধু মালিক (সুপার অ্যাডমিন) পরীক্ষা পাঠাতে পারেন।
+
 ---
 
 # English
@@ -454,3 +465,14 @@ Open **FAQ** in the left menu and press **+ Add**. Whatever you change is live o
 * **The chatbot knows them too:** it answers from the questions you keep switched on, so changing a question here changes its answers.
 * **For Google:** exactly the questions shown on the page are described to Google — never one more.
 * Super Admin and Content Manager can edit; everyone else can look.
+
+## 20. Check that e-mail is going out
+
+Receipts, password resets and “the class is open” announcements go out by e-mail (through Resend). When one is refused, nothing shows on the website — so test it.
+
+* Left menu → **Settings** → the **E-mail** tab → **Send me a test e-mail**.
+* The message goes **only to your own address** (at most 6 an hour). Look in the inbox and in Spam. If it arrives, e-mail works.
+* If it does not, the screen says in plain words **why** and **what to do** — for example: no key, or the key is wrong; the **domain is not verified at Resend** (the most common one — add `mawahacademy.com` at Resend → Add Domain and put the DNS records it shows into Cloudflare); the sender address is wrong; the sending limit is reached.
+* While the last test failed, the e-mail card on the dashboard is amber. Fix it, test again — it turns green.
+* The e-mail key is never shown on screen. If a key was ever pasted somewhere (a chat, an e-mail) it is no longer private — create a new one at Resend and delete the old one.
+* Only the owner (Super Admin) can send a test.

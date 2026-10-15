@@ -5,6 +5,7 @@ import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { Button, ErrorState, Field, Icon, PageHeader, Panel, Spinner, Switch, Tabs, TextArea, TextInput, useFieldErrors, useToast } from "../components/ui";
+import { EmailPanel } from "./EmailPanel";
 
 interface S {
   contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string };
@@ -16,7 +17,7 @@ interface S {
   analytics: { ga4: string; clarity: string; meta_pixel: string };
 }
 type Key = keyof Pick<S, "contact" | "announcement" | "shop" | "payments" | "policies" | "about" | "analytics">;
-type Tab = "contact" | "payments" | "policies" | "about" | "analytics";
+type Tab = "contact" | "payments" | "email" | "policies" | "about" | "analytics";
 
 /** One settings group: local edits, one Save button, server-side validation errors shown per field. */
 function Group<K extends Key>({ name, data, canWrite, children }: { name: K; data: S[K]; canWrite: boolean; children: (v: S[K], set: (patch: Partial<S[K]>) => void, errors: Record<string, string>) => React.ReactNode }) {
@@ -84,12 +85,14 @@ export function Settings() {
         tabs={[
           { value: "contact", label: t("adm.settings.tab.contact") },
           { value: "payments", label: t("adm.settings.tab.payments") },
+          { value: "email", label: t("adm.settings.tab.email") },
           { value: "policies", label: t("adm.settings.tab.policies") },
           { value: "about", label: t("adm.settings.tab.about") },
           { value: "analytics", label: t("adm.settings.tab.analytics") },
         ]}
       />
       <Panel>
+        {tab === "email" && <EmailPanel />}
         {tab === "contact" && (
           <Group name="contact" data={s.contact} canWrite={canWrite}>
             {(v, set, e) => (

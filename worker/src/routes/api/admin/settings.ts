@@ -1,13 +1,15 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { MANUAL_WINDOW_RANGE_MIN } from "@mawah/shared";
-import type { AppEnv } from "../../../env";
+import { isDev, type AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { all } from "../../../lib/db";
 import { HttpError, ok, parseBody } from "../../../lib/http";
+import { MAIL_LAST_TEST_KEY, mailProblem, sendMail, testMail, type MailLastTest } from "../../../lib/mailer";
 import { emailSchema, textSchema } from "../../../lib/schemas";
 import { getSettings, SETTING_KEYS, setSetting, type SettingKey } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
+import { rateLimit } from "../../../middleware/ratelimit";
 
 /** Every business setting (contacts, payment options, policies, analytics …) is edited here — nothing needs a redeploy. */
 export const settings = new Hono<AppEnv>();
@@ -67,4 +69,45 @@ settings.put("/settings/:key", requirePerm("settings:write"), async (c) => {
   // the audit entry names what changed, never the content (policies / contact details can be long or personal)
   await audit(c, { action: "settings.updated", entity: "settings", entityId: key, meta: { keys: Object.keys(value) } });
   return ok(c, { settings: await getSettings(c.env, { fresh: true }) });
+});
+
+/* ------------------------------------------------------------------------------------------------
+ * E-mail. Receipts, password resets and launch announcements go out through Resend, and from the outside there is no way to tell
+ * whether it works: a message that is refused leaves no trace on the page. So the owner can send ONE test message to their own
+ * address and read, in plain words, what Resend said. The key itself is never shown or returned — only whether one is set.
+ * ---------------------------------------------------------------------------------------------- */
+
+/** The sending address's domain — the one Resend must have verified. */
+const senderDomain = (from: string) => from.match(/@([^>\s]+)>?\s*$/)?.[1]?.toLowerCase() ?? "";
+
+settings.get("/settings/email", requirePerm("settings:read"), async (c) => {
+  const last = await c.env.KV.get<MailLastTest>(MAIL_LAST_TEST_KEY, "json");
+  return ok(c, {
+    configured: !!c.env.RESEND_API_KEY,
+    provider: c.env.RESEND_API_KEY ? "resend" : isDev(c.env) ? "dev-outbox" : "none",
+    from: c.env.MAIL_FROM,
+    domain: senderDomain(c.env.MAIL_FROM),
+    last,
+  });
+});
+
+const emailTestSchema = z.object({ lang: z.enum(["bn", "en"]).default("en") });
+
+settings.post("/settings/email/test", requirePerm("settings:write"), rateLimit("RL_FORM"), async (c) => {
+  const staff = c.get("staff")!;
+  const { lang } = await parseBody(c, emailTestSchema);
+  // a check, not a way to send mail: a few per hour per person, and only ever to the signed-in person's own address
+  const used = `mailtest:${staff.id}:${Math.floor(Date.now() / 3_600_000)}`;
+  const count = Number((await c.env.KV.get(used)) ?? 0);
+  if (count >= 6) throw new HttpError(429, "rate_limited");
+  await c.env.KV.put(used, String(count + 1), { expirationTtl: 3700 });
+
+  const at = new Date().toISOString();
+  const when = new Intl.DateTimeFormat(lang === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" }).format(new Date(at));
+  const sent = await sendMail(c.env, { to: staff.email, ...testMail(lang, { name: staff.name, when }) });
+  const problem = mailProblem(sent);
+  const last: MailLastTest = { at, sent: sent.ok, provider: sent.provider, problem, by: staff.name };
+  await c.env.KV.put(MAIL_LAST_TEST_KEY, JSON.stringify(last));
+  await audit(c, { action: "email.tested", entity: "settings", entityId: "email", meta: { ok: sent.ok, problem, provider: sent.provider } });
+  return ok(c, { ...last, to: staff.email, from: c.env.MAIL_FROM, domain: senderDomain(c.env.MAIL_FROM), status: sent.status ?? null, detail: sent.detail ?? null });
 });

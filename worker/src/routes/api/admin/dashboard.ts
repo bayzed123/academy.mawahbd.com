@@ -3,6 +3,7 @@ import type { AppEnv, Env } from "../../../env";
 import { activeProvider } from "../../../services/chatbot";
 import { all, first } from "../../../lib/db";
 import { ok } from "../../../lib/http";
+import { MAIL_LAST_TEST_KEY } from "../../../lib/mailer";
 import { getSettings } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
 import { can } from "@mawah/shared";
@@ -86,7 +87,12 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
   }
   checks.push({ key: "payments", status: payStatus, issues: pay });
 
-  checks.push({ key: "email", status: env.RESEND_API_KEY ? "ok" : "warn", issues: env.RESEND_API_KEY ? [] : ["email_not_configured"] });
+  // e-mail: a key is set — and if the owner's last test message failed, say so (a key alone proves nothing)
+  const mail: string[] = [];
+  const lastMailTest = env.RESEND_API_KEY ? await env.KV.get<{ sent: boolean }>(MAIL_LAST_TEST_KEY, "json") : null;
+  if (!env.RESEND_API_KEY) mail.push("email_not_configured");
+  else if (lastMailTest && !lastMailTest.sent) mail.push("email_test_failed");
+  checks.push({ key: "email", status: mail.length ? "warn" : "ok", issues: mail });
   checks.push({ key: "video", status: env.STREAM ? "ok" : "warn", issues: env.STREAM ? [] : ["stream_not_configured"] });
 
   const chat: string[] = [];
@@ -217,7 +223,7 @@ dashboard.get("/dashboard", requirePerm("dashboard:read"), async (c) => {
       { key: "instructor", done: instructorReady > 0, href: "/instructors" },
       { key: "lessons", done: lessonReady > 0, href: "/courses" },
       { key: "policies", done: !!(firstRun.policies.refund_bn || firstRun.policies.refund_en), href: "/settings" },
-      { key: "email", done: hs("email") === "ok", href: "/settings" },
+      { key: "email", done: hs("email") === "ok", href: "/settings?tab=email" },
       { key: "chatbot", done: hs("chatbot") === "ok" || hs("chatbot") === "info", href: "/chatbot" },
       { key: "team", done: staffCount > 1, href: "/staff", optional: true },
     ],
