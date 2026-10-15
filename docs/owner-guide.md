@@ -242,6 +242,14 @@
 * ইমেইলের কী (key) কখনো স্ক্রিনে দেখানো হয় না। কোথাও (চ্যাট, ইমেইল) কী পাঠিয়ে ফেললে সেটি আর গোপন নেই — Resend-এ নতুন কী বানিয়ে পুরনোটি মুছে দিন।
 * শুধু মালিক (সুপার অ্যাডমিন) পরীক্ষা পাঠাতে পারেন।
 
+**আপনার জিমেইলে সব খবর — `mawahacademy@gmail.com`**
+
+* ওয়েবসাইটে যা-ই ঘটে, আপনার জিমেইলে একটি ইমেইল আসে: নতুন পেমেন্ট (পেইড অর্ডার), যাচাইয়ের অপেক্ষায় থাকা পেমেন্ট, যোগাযোগ ফর্মের বার্তা, নতুন শিক্ষার্থী, ক্লাসে প্রশ্ন, রিভিউ অনুমোদনের অপেক্ষায়, চ্যাটবট থেকে আপনার কাছে হস্তান্তর, প্রাইভেট গ্রুপে যোগ দেওয়ার অনুরোধ, “জানাও” সাইন-আপ এবং নিউজলেটার সাইন-আপ। প্রতিটি ইমেইলে সংক্ষেপে কী ঘটেছে আর কোথায় ক্লিক করে দেখবেন তা থাকে।
+* **সেটিংস → ইমেইল → আপনার কাছে নোটিফিকেশন** থেকে আরও ঠিকানা যোগ করা যায়, প্রতিটি ধরন আলাদাভাবে বন্ধ/চালু করা যায়, আর **একটি পরীক্ষামূলক নোটিফিকেশন পাঠান** বোতামে এখনই একটা নমুনা পাঠিয়ে দেখা যায়।
+* ইমেইলগুলো আসে `no-reply@mawahacademy.com` ঠিকানা থেকে (জিমেইল ঠিকানা থেকে সরাসরি পাঠানো Resend-এ সম্ভব নয়)। **রিপ্লাই** চাপলে উত্তর আপনার জিমেইলেই যায়।
+* ডোমেইন যাচাই না হওয়া পর্যন্ত আপনার নিজের নোটিফিকেশনগুলো Resend-এর পরীক্ষামূলক প্রেরক (`onboarding@resend.dev`) দিয়ে আসে — তাই আপনি খবর পেতে থাকেন — কিন্তু **শিক্ষার্থীদের** রসিদ ও পাসওয়ার্ড-সেট লিংক যায় না। ডোমেইন যাচাই করতে `docs/email-dns-records.txt` ফাইলটি Cloudflare → DNS → Import and export থেকে ইমপোর্ট করুন (চারটি রেকর্ডই **DNS only**), তারপর Resend → Domains-এ **Verify DNS Records** চাপুন।
+* কী (API key) বদলাতে হলে শুধু GitHub-এর `RESEND_API_KEY` সিক্রেট বদলান এবং Deploy চালান — প্রতিবার ডিপ্লয়ে নতুন কী ওয়েবসাইটে বসে যায়।
+
 ## ২১. ম্যাটেরিয়াল — ফাইল, লিংক, লাইভ ক্লাস ও প্রাইভেট গ্রুপ
 
 লেসনের বাইরে ক্লাসের সঙ্গে যা দিতে চান — রেসিপি কার্ডের পিডিএফ, জিপ ফাইল, বই, রেকর্ড করা ভিডিও, লাইভ ক্লাসের লিংক, প্রাইভেট গ্রুপ — সব এক জায়গা থেকে। বাঁ মেনুর **ম্যাটেরিয়াল** খুলুন, অথবা কোনো ক্লাসের সারসংক্ষেপ পাতায় **ম্যাটেরিয়াল যোগ করুন** চাপুন।
@@ -493,6 +501,14 @@ Receipts, password resets and “the class is open” announcements go out by e-
 * While the last test failed, the e-mail card on the dashboard is amber. Fix it, test again — it turns green.
 * The e-mail key is never shown on screen. If a key was ever pasted somewhere (a chat, an e-mail) it is no longer private — create a new one at Resend and delete the old one.
 * Only the owner (Super Admin) can send a test.
+
+**Everything that happens, in your Gmail — `mawahacademy@gmail.com`**
+
+* Whatever happens on the website, an e-mail lands in your Gmail: a paid order, a payment waiting to be checked, a contact-form message, a new student, a question on a class, a review waiting for approval, a chatbot hand-over, a private-group request, a “notify me” sign-up and a newsletter sign-up. Each e-mail says in a few lines what happened and where to click.
+* **Settings → E-mail → Notifications to you** adds more addresses, switches single kinds on or off, and has a **Send a test notification** button that sends a sample right now.
+* The e-mails come *from* `no-reply@mawahacademy.com` (Resend cannot send directly from a Gmail address). Pressing **Reply** answers to your Gmail inbox.
+* Until the domain is verified, your own notifications arrive through Resend’s test sender (`onboarding@resend.dev`) — so you keep getting the news — but **students’** receipts and set-your-password links are not sent. To verify the domain, import `docs/email-dns-records.txt` in Cloudflare → DNS → Import and export (all four rows **DNS only**), then press **Verify DNS Records** at Resend → Domains.
+* To change the key (the API key), just change the GitHub secret `RESEND_API_KEY` and run Deploy — every deploy puts the current key on the website.
 
 ## 21. Materials — files, links, live classes and private groups
 

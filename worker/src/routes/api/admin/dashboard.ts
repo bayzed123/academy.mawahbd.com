@@ -3,7 +3,7 @@ import type { AppEnv, Env } from "../../../env";
 import { activeProvider } from "../../../services/chatbot";
 import { all, first } from "../../../lib/db";
 import { ok } from "../../../lib/http";
-import { MAIL_LAST_TEST_KEY } from "../../../lib/mailer";
+import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_TEST_KEY } from "../../../lib/mailer";
 import { getSettings } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
 import { can } from "@mawah/shared";
@@ -89,9 +89,10 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
 
   // e-mail: a key is set — and if the owner's last test message failed, say so (a key alone proves nothing)
   const mail: string[] = [];
-  const lastMailTest = env.RESEND_API_KEY ? await env.KV.get<{ sent: boolean }>(MAIL_LAST_TEST_KEY, "json") : null;
+  const [lastMailTest, domainRefused] = env.RESEND_API_KEY ? await Promise.all([env.KV.get<{ sent: boolean }>(MAIL_LAST_TEST_KEY, "json"), env.KV.get(MAIL_DOMAIN_REFUSED_KEY)]) : [null, null];
   if (!env.RESEND_API_KEY) mail.push("email_not_configured");
   else if (lastMailTest && !lastMailTest.sent) mail.push("email_test_failed");
+  else if (domainRefused) mail.push("email_domain_unverified"); // Resend refused a message in the last days because the sending domain is not verified
   checks.push({ key: "email", status: mail.length ? "warn" : "ok", issues: mail });
   checks.push({ key: "video", status: env.STREAM ? "ok" : "warn", issues: env.STREAM ? [] : ["stream_not_configured"] });
 

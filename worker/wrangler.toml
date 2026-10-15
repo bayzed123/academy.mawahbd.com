@@ -43,6 +43,8 @@ BRAND_CODE = "MWH"                    # used in invoice numbers: INV-MWH-YYYYMMD
 DEFAULT_LANG = "bn"                   # bn | en
 PAYMENT_MODE = "live"                 # live | sandbox (gateway sandbox endpoints)
 MAIL_FROM = "MAWAH Academy <no-reply@mawahacademy.com>"   # the domain must be verified at Resend before e-mails can be sent
+NOTIFY_EMAIL = "mawahacademy@gmail.com"   # every notification (a payment, a message, a question …) is e-mailed here; Admin → Settings → E-mail can name other addresses
+MAIL_REPLY_TO = "mawahacademy@gmail.com"  # a student who replies to a receipt or a password e-mail reaches this inbox
 STREAM_CUSTOMER_CODE = ""             # e.g. "abcd1234efgh" from customer-<code>.cloudflarestream.com
 TURNSTILE_SITE_KEY = ""               # optional Cloudflare Turnstile (public site key)
 

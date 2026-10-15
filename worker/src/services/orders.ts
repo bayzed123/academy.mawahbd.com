@@ -7,6 +7,7 @@ import { all, first, nowIso, qs, run } from "../lib/db";
 import { sniffImage } from "../lib/files";
 import { conflict, HttpError, notFound } from "../lib/http";
 import { orderReceiptMail, sendMail } from "../lib/mailer";
+import { notices, notifyOwner } from "./notify";
 
 /* =================================================================================================
  *  Pricing  (server-side, always — the browser never tells us a price)
@@ -380,10 +381,50 @@ export async function markOrderPaid(env: Env, orderId: number, p: PaidInput): Pr
   if (!won) return { won: false };
 
   await auditAs(env, { type: "system", id: null, name: "" }, { action: "order.paid", entity: "order", entityId: orderId, summary: p.gateway, meta: { txn: p.txn ?? null } });
-  const job = sendReceipt(env, orderId).catch((err) => console.error("receipt_failed", orderId, err));
+  const job = Promise.all([sendReceipt(env, orderId).catch((err) => console.error("receipt_failed", orderId, err)), notifyPaid(env, orderId)]).then(() => undefined);
   if (p.waitUntil) p.waitUntil(job);
   else await job;
   return { won: true };
+}
+
+/** The facts of an order that a note to the owner needs. */
+async function orderForNotice(env: Env, orderId: number) {
+  const [order, items] = await Promise.all([
+    first<{ public_id: string; invoice_no: string | null; total: number; method: string | null; customer_name: string; customer_email: string; customer_phone: string; gateway_txn: string | null; payer_number: string | null; has_image: number }>(
+      env.DB,
+      "SELECT public_id, invoice_no, total, method, customer_name, customer_email, customer_phone, gateway_txn, payer_number, (proof_key IS NOT NULL) AS has_image FROM orders WHERE id = ?",
+      orderId,
+    ),
+    all<{ title_en: string }>(env.DB, "SELECT title_en FROM order_items WHERE order_id = ? ORDER BY id", orderId),
+  ]);
+  return order ? { order, items: items.map((i) => i.title_en) } : null;
+}
+
+/** "A payment came in" — to the owner, after the student has been let in. Never throws. */
+export async function notifyPaid(env: Env, orderId: number): Promise<void> {
+  try {
+    const d = await orderForNotice(env, orderId);
+    if (!d) return;
+    const o = d.order;
+    await notifyOwner(env, notices.orderPaid({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, items: d.items, total: o.total, method: o.method, invoiceNo: o.invoice_no ?? "" }));
+  } catch (err) {
+    console.error("notify_paid_failed", orderId, err instanceof Error ? err.message : err);
+  }
+}
+
+/** "A payment is waiting for you to verify" — when a student has sent the TrxID and/or a screenshot. Never throws. */
+export async function notifyProof(env: Env, orderId: number): Promise<void> {
+  try {
+    const d = await orderForNotice(env, orderId);
+    if (!d) return;
+    const o = d.order;
+    await notifyOwner(
+      env,
+      notices.paymentWaiting({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, items: d.items, total: o.total, method: o.method, trx: o.gateway_txn, payer: o.payer_number, hasImage: !!o.has_image, publicId: o.public_id }),
+    );
+  } catch (err) {
+    console.error("notify_proof_failed", orderId, err instanceof Error ? err.message : err);
+  }
 }
 
 export async function sendReceipt(env: Env, orderId: number): Promise<void> {

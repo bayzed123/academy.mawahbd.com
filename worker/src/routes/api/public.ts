@@ -8,6 +8,7 @@ import { emailSchema, langSchema, nameSchema, phoneSchema, textSchema, turnstile
 import { getSettings } from "../../lib/settings";
 import { turnstileEnabled, verifyTurnstile } from "../../lib/turnstile";
 import { loadStudent } from "../../middleware/auth";
+import { notices, notifyOwner } from "../../services/notify";
 import { rateLimit } from "../../middleware/ratelimit";
 import { approvedReviews, getCourseBySlug, getCurriculum, listCategories, listCourses, relatedCourses } from "../../services/catalog";
 import { certificateByCode, lessonContent } from "../../services/learning";
@@ -134,9 +135,10 @@ const notifySchema = z.object({ course: z.string().trim().min(1).max(120), email
 
 publicRoutes.post("/notify", rateLimit("RL_FORM"), (c) =>
   handleForm(c, notifySchema, "notify_ok", async (b) => {
-    const course = await first<{ id: number }>(c.env.DB, "SELECT id FROM courses WHERE slug = ? AND status = 'coming_soon' AND deleted_at IS NULL", b.course);
+    const course = await first<{ id: number; title_en: string }>(c.env.DB, "SELECT id, title_en FROM courses WHERE slug = ? AND status = 'coming_soon' AND deleted_at IS NULL", b.course);
     if (!course) throw new HttpError(422, "course_unavailable");
-    await run(c.env.DB, "INSERT INTO notify_signups (course_id, email, phone, lang) VALUES (?, ?, ?, ?) ON CONFLICT(course_id, email) DO NOTHING", course.id, b.email, b.phone, b.lang);
+    const added = await run(c.env.DB, "INSERT INTO notify_signups (course_id, email, phone, lang) VALUES (?, ?, ?, ?) ON CONFLICT(course_id, email) DO NOTHING", course.id, b.email, b.phone, b.lang);
+    if ((added.meta.changes ?? 0) > 0) c.executionCtx.waitUntil(notifyOwner(c.env, notices.notifyMe({ email: b.email, phone: b.phone ?? null, course: course.title_en })));
   }),
 );
 
@@ -144,7 +146,9 @@ const newsletterSchema = z.object({ email: emailSchema, lang: langSchema.optiona
 
 publicRoutes.post("/newsletter", rateLimit("RL_FORM"), (c) =>
   handleForm(c, newsletterSchema, "news_ok", async (b) => {
-    await run(c.env.DB, "INSERT INTO subscribers (email, lang, source) VALUES (?, ?, 'site') ON CONFLICT(email) DO UPDATE SET unsubscribed_at = NULL", b.email, b.lang);
+    // a repeat sign-up of someone already on the list changes nothing (and tells nobody); a first one, or a return after leaving, does
+    const added = await run(c.env.DB, "INSERT INTO subscribers (email, lang, source) VALUES (?, ?, 'site') ON CONFLICT(email) DO UPDATE SET unsubscribed_at = NULL WHERE unsubscribed_at IS NOT NULL", b.email, b.lang);
+    if ((added.meta.changes ?? 0) > 0) c.executionCtx.waitUntil(notifyOwner(c.env, notices.newsletter({ email: b.email, lang: b.lang })));
   }),
 );
 
@@ -161,6 +165,7 @@ publicRoutes.post("/contact", rateLimit("RL_FORM"), (c) =>
   handleForm(c, contactSchema, "contact_ok", async (b) => {
     await run(c.env.DB, "INSERT INTO contact_messages (name, email, phone, message) VALUES (?, ?, ?, ?)", b.name, b.email, b.phone ?? "", b.message);
     c.executionCtx.waitUntil(sendMail(c.env, { to: b.email, ...contactAckMail(b.lang, { name: b.name }) }));
+    c.executionCtx.waitUntil(notifyOwner(c.env, notices.contactMessage({ name: b.name, email: b.email, phone: b.phone ?? null, message: b.message })));
   }),
 );
 

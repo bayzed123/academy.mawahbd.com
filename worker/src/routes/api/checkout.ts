@@ -1,16 +1,16 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
-import { formatMoney, MAX_PROOF_IMAGE_BYTES, orderCode, type Channel, type QuoteDTO } from "@mawah/shared";
-import type { AppEnv, Env, StudentCtx } from "../../env";
+import { formatMoney, MAX_PROOF_IMAGE_BYTES, type Channel, type QuoteDTO } from "@mawah/shared";
+import type { AppEnv } from "../../env";
 import { audit } from "../../lib/audit";
 import { first, run } from "../../lib/db";
 import { HttpError, ok, parseBody } from "../../lib/http";
-import { manualPaymentReceivedMail, manualProofStaffMail, sendMail } from "../../lib/mailer";
-import { getSettings, type Settings } from "../../lib/settings";
+import { manualPaymentReceivedMail, sendMail } from "../../lib/mailer";
+import { getSettings } from "../../lib/settings";
 import { requireStudent } from "../../middleware/auth";
 import { rateLimit } from "../../middleware/ratelimit";
-import { buildQuote, cancelReplacedManualOrders, closeOrder, createOrder, markOrderPaid, saveProofImage, submitManualProof, type ManualProof, type Quote } from "../../services/orders";
+import { buildQuote, cancelReplacedManualOrders, closeOrder, createOrder, markOrderPaid, notifyProof, saveProofImage, submitManualProof, type ManualProof, type Quote } from "../../services/orders";
 import { availableChannels, manualPayInfo } from "../../services/payments";
 import { bkashCreate } from "../../services/payments/bkash";
 import { sslInit } from "../../services/payments/sslcommerz";
@@ -45,8 +45,6 @@ const checkoutSchema = z.object({
 
 const proofSchema = z.object({ trx_id: TRX_ID.optional() });
 
-const METHOD_NAME = { bkash: "bKash", nagad: "Nagad", rocket: "Rocket" } as const;
-
 function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<typeof getSettings>>): QuoteDTO {
   return {
     items: q.items,
@@ -58,21 +56,6 @@ function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<
     channels: q.total === 0 ? [] : channels,
     manual: channels.includes("manual") ? manualPayInfo(settings) : null,
   };
-}
-
-/** A note to the owner's contact address, so a payment never waits unseen (the admin badge and dashboard show it too). */
-function tellStaff(env: Env, settings: Settings, d: { student: StudentCtx; total: number; method: string | null; publicId: string }) {
-  const to = settings.contact.email;
-  if (!to) return Promise.resolve();
-  const method = METHOD_NAME[d.method as keyof typeof METHOD_NAME] ?? "mobile";
-  const mail = manualProofStaffMail({
-    student: d.student.name,
-    total: formatMoney(d.total, "en"),
-    method,
-    code: orderCode(d.publicId),
-    adminUrl: `${env.SITE_URL}/admin/orders?status=awaiting_verification`,
-  });
-  return sendMail(env, { to, ...mail }).then(() => undefined);
 }
 
 checkoutRoutes.post("/quote", async (c) => {
@@ -117,7 +100,7 @@ checkoutRoutes.post("/", async (c) => {
     if (withProof) {
       const mail = manualPaymentReceivedMail(student.locale, { name: student.name, total: formatMoney(quote.total, student.locale) });
       c.executionCtx.waitUntil(sendMail(c.env, { to: student.email, ...mail }));
-      c.executionCtx.waitUntil(tellStaff(c.env, settings, { student, total: quote.total, method: proof.method, publicId: order.public_id }));
+      c.executionCtx.waitUntil(notifyProof(c.env, order.id));
     }
     const created = await first<{ pay_by: string }>(c.env.DB, "SELECT pay_by FROM orders WHERE id = ?", order.id);
     return ok(c, { order: { public_id: order.public_id, status: withProof ? "awaiting_verification" : "pending", total: quote.total, pay_by: created?.pay_by ?? null } }, 201);
@@ -155,10 +138,9 @@ checkoutRoutes.post("/:publicId/proof", async (c) => {
   await audit(c, { action: "checkout.manual_proof", entity: "order", entityId: id });
   const order = await first<{ total: number; method: string | null; status: string }>(c.env.DB, "SELECT total, method, status FROM orders WHERE id = ?", id);
   if (firstProof && order) {
-    const settings = await getSettings(c.env);
     const mail = manualPaymentReceivedMail(student.locale, { name: student.name, total: formatMoney(order.total, student.locale) });
     c.executionCtx.waitUntil(sendMail(c.env, { to: student.email, ...mail }));
-    c.executionCtx.waitUntil(tellStaff(c.env, settings, { student, total: order.total, method: order.method, publicId }));
+    c.executionCtx.waitUntil(notifyProof(c.env, id));
   }
   return ok(c, { order: { public_id: publicId, status: order?.status ?? "awaiting_verification" } });
 });
