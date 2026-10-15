@@ -170,9 +170,13 @@ body.has-buybar{padding-bottom:78px}
 .social{display:flex;gap:10px;margin-top:1rem}
 .social a{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:1px solid rgba(230,220,140,.45);color:var(--g-300)}
 .social a:hover{background:var(--g-400);color:var(--k-950)}
-.pay-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:.7rem}
-.pay-list span{padding:.2rem .7rem;border-radius:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);font-size:.84rem;color:#efe6de}
+.site-footer .pay-logos{display:flex;flex-wrap:wrap;gap:6px;margin-top:.7rem}
+.pay-logos li{display:flex;align-items:center;justify-content:center;height:36px;padding:0 8px;border-radius:9px;background:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.16)}
+.pay-logos img{display:block;height:24px;width:auto}
 .foot-bottom{border-top:1px solid rgba(255,255,255,.1);padding-block:18px;font-size:.88rem;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
+/* the developer credit: a plain, visible link (underlined, gold) so it reads as one */
+.foot-credit a{color:var(--g-300);text-decoration:underline;text-underline-offset:3px;font-weight:600}
+.foot-credit a:hover{color:#fff}
 
 /* ---------- floating helpers ---------- */
 .floats{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:45;display:grid;gap:10px;justify-items:end}

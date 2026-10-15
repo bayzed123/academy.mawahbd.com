@@ -173,6 +173,11 @@ html[lang=bn] .rail-in h3{letter-spacing:0;text-transform:none;font-size:.9rem}
 .notice b{display:block;color:var(--k-900)}
 .notice p{margin:.15rem 0 0;font-size:.94rem;color:var(--ink-2)}
 .notice.bad-note{background:var(--red-50);border-color:var(--red-100)}
+.notice.bad-note .icon{color:var(--red-600)}
+.notice.ok-note{background:var(--ok-50);border-color:var(--ok-100)}
+.notice.ok-note .icon{color:var(--ok-600)}
+.notice .said{font-size:.88rem;color:var(--ink-3);word-break:break-word}
+.notice .said q{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.86em;quotes:none}
 .flash{padding:.75rem 1rem;border-radius:12px;font-weight:600;margin:0 0 1rem}
 .flash.err{background:var(--red-50);color:var(--red-800);border:1px solid var(--red-100)}
 .progress{height:8px;border-radius:99px;background:var(--ivory-2);overflow:hidden;border:1px solid var(--line);margin:.4rem 0}

@@ -162,6 +162,42 @@ test("no SETUP_TOKEN is ever invented in automation; a too-short one is refused"
   assert.match(r2.out, /shorter than 12/);
 });
 
+// A made-up key with the shape of a real one, built here so no key-shaped text sits in the source.
+const fakeResendKey = () => `re${"_"}${"Ab3".repeat(12)}`;
+
+test("the e-mail key comes from the GitHub secret RESEND_API_KEY, once, and is never printed", () => {
+  const sb = sandbox();
+  const key = fakeResendKey();
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { SETUP_TOKEN: "my-own-long-setup-token-42", RESEND_API_KEY: `${key}\n` });
+  assert.equal(r.code, 0, r.out);
+  assert.equal(sb.state().secretValues.RESEND_API_KEY, key, "the owner's key, trimmed");
+  assert.ok(!r.out.includes(key), "the key is not in the output");
+  assert.match(r.out, /RESEND_API_KEY created/);
+});
+
+test("an e-mail key already on the Worker is never replaced", () => {
+  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "RESEND_API_KEY"] });
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { RESEND_API_KEY: fakeResendKey() });
+  assert.equal(r.code, 0, r.out);
+  assert.deepEqual(creates(sb.state().calls), []);
+  assert.match(r.out, /RESEND_API_KEY already set/);
+});
+
+test("no GitHub secret RESEND_API_KEY: nothing is invented, and the output says what to do; something that is not a Resend key is refused", () => {
+  const none = sandbox();
+  const r1 = none.run(["--ci", "--no-resources", "--secrets"]);
+  assert.equal(r1.code, 0, r1.out);
+  assert.ok(!("RESEND_API_KEY" in none.state().secretValues));
+  assert.match(r1.out, /no RESEND_API_KEY yet/);
+
+  const wrong = sandbox();
+  const r2 = wrong.run(["--ci", "--no-resources", "--secrets"], { RESEND_API_KEY: "not-a-resend-key" });
+  assert.equal(r2.code, 0, r2.out);
+  assert.ok(!("RESEND_API_KEY" in wrong.state().secretValues));
+  assert.match(r2.out, /does not look like a Resend key/);
+  assert.ok(!r2.out.includes("not-a-resend-key"), "even a wrong value is not echoed");
+});
+
 test("R2 not switched on: stops with the plain instruction", () => {
   const sb = sandbox({ r2Disabled: true });
   const r = sb.run(["--ci"]);

@@ -110,7 +110,7 @@ Open the site address — the public site is live. Continue with [section 5](#5-
 | `SETUP_TOKEN` | first start only | One-time key for creating the first admin. Choose any long random text (12+ characters) and save it as the GitHub repository secret `SETUP_TOKEN`; the Deploy workflow gives it to the Worker. **Remove it afterwards** (section 5); the dashboard reminds you |
 | `SSLCOMMERZ_STORE_ID` · `SSLCOMMERZ_STORE_PASSWORD` | for bKash/Nagad/Rocket/card payments | From your SSLCommerz merchant account (sandbox credentials first) |
 | `BKASH_APP_KEY` · `BKASH_APP_SECRET` · `BKASH_USERNAME` · `BKASH_PASSWORD` | only for *direct* bKash | From bKash’s tokenized-checkout onboarding |
-| `RESEND_API_KEY` | strongly recommended | Sends receipts, password resets and launch e-mails ([resend.com](https://resend.com); verify your sending domain). Without it the dashboard warns “e-mail not connected” |
+| `RESEND_API_KEY` | strongly recommended | Sends receipts, password resets and launch e-mails ([resend.com](https://resend.com); verify your sending domain). Save it as the GitHub repository secret `RESEND_API_KEY` and run Deploy (given to the Worker once, never replaced), or add it in Cloudflare. Without it the dashboard warns “e-mail not connected”. Full steps and the one-click check: [section 3a](#3a-e-mail-resend-the-domain-the-key-and-the-one-click-test) |
 | `GEMINI_API_KEY` | optional | Only if you want the Gemini chatbot. Alternatively paste the key in *Admin → AI Chatbot* (stored encrypted, shown masked) |
 | `TURNSTILE_SECRET` | optional | Cloudflare Turnstile bot protection on public forms (also set the `TURNSTILE_SITE_KEY` variable) |
 | `APP_SECRET_PREVIOUS` | only while rotating `APP_SECRET` | The old value |
@@ -134,6 +134,18 @@ A plain *Variable* typed into the Cloudflare dashboard is replaced by this file 
 Business settings (contact numbers, payment options, refund/privacy/terms texts, analytics IDs, chatbot greeting/FAQ) are **not** deployment settings: the owner edits them in *Admin → Settings*.
 
 ---
+
+### 3a. E-mail (Resend): the domain, the key, and the one-click test
+
+Receipts, password resets and “the class is open” e-mails go through [Resend](https://resend.com). A message that Resend refuses leaves no trace on the website, so three things must be true — and the admin can check all of them with one button.
+
+1. **The sending domain is verified at Resend.** The site sends as `MAIL_FROM` in `worker/wrangler.toml` (`MAWAH Academy <no-reply@mawahacademy.com>`), so `mawahacademy.com` itself must be added at resend.com → *Domains* → *Add Domain*, the DNS records Resend shows copied into Cloudflare → *DNS* for `mawahacademy.com` (every row **DNS only**, not proxied), and *Verify* pressed (usually minutes). A Resend account that has verified only some *other* domain cannot send as `…@mawahacademy.com`: Resend answers “the domain is not verified” and no e-mail leaves. As a stopgap, `MAIL_FROM` can point at an address on a domain that *is* verified — receipts then come from that other name.
+2. **The key is on the website.** Resend → *API Keys* → *Create API Key*, permission **Sending access**. Give it to the website as the secret `RESEND_API_KEY` in either way:
+   - the GitHub repository secret `RESEND_API_KEY` (Settings → Secrets and variables → Actions), then run *Deploy*: the workflow gives it to the Worker **once** and never replaces it afterwards; or
+   - the Cloudflare dashboard → Workers & Pages → `academy-mawahbd-com` → Settings → Variables and Secrets (*Add*, or *Edit* to replace it later), or `npx wrangler secret put RESEND_API_KEY` inside `worker/`.
+
+   A key that was pasted into a chat, an e-mail or a ticket is no longer private: create a new one, replace it as above, and delete the old one at Resend.
+3. **It really arrives.** *Admin → Settings → E-mail → Send me a test e-mail* sends one message to **your own** address (never anyone else’s; six an hour) and shows, in plain words and with the steps, what Resend answered: no key / key refused / key may not send, **domain not verified**, bad sender address, sending limit reached, Resend down, or no connection. The dashboard’s e-mail health card turns amber while the last test failed, and the *Connect email* first step stays open until e-mail is fine. The key itself is never shown anywhere — only whether one is set.
 
 ## 4. GitHub Actions: tests and automatic deploys
 
@@ -176,7 +188,7 @@ Tick these before announcing the site (the dashboard’s *Health check* and *Thi
 
 - [ ] Contact details (WhatsApp, phone, e-mail) and the refund / privacy / terms texts are written (*Admin → Settings*)
 - [ ] **Payments** — work through the [payment checklist](#payment-go-live-checklist) below
-- [ ] **E-mail** — `RESEND_API_KEY` set and your sending domain verified; request a password reset and confirm it arrives
+- [ ] **E-mail** — `RESEND_API_KEY` set and your sending domain verified ([section 3a](#3a-e-mail-resend-the-domain-the-key-and-the-one-click-test)); press *Admin → Settings → E-mail → Send me a test e-mail* and confirm it arrives
 - [ ] Each class you sell has lessons (the dashboard lists empty ones); at least one video uploaded to Stream plays for a test student
 - [ ] *Admin → AI Chatbot → Test connection* shows success; ask it a price question and a question it cannot know (it should hand off)
 - [ ] `SETUP_TOKEN` deleted; every team member has their own account with the lowest role that works (*Content Manager* for editors, *Support* for payment checking, *Viewer* for read-only)
@@ -228,7 +240,7 @@ The payment adapters were written against the gateways’ public documentation a
 | The `workers.dev` address shows a plain “Hello World” | Cloudflare’s placeholder Worker is still there: no Deploy has succeeded yet. Open *Actions → Deploy* and read the latest run |
 | `/admin/` shows a login form but you never created an admin | The setup form appears only while no admin exists and `SETUP_TOKEN` is set; `npx wrangler secret put SETUP_TOKEN` and reload |
 | Students can pay but are not enrolled | The gateway could not reach the IPN URL: check the *Orders* list for *Pending*, the gateway panel’s IPN log, and that `SITE_URL` is exactly your public address |
-| Dashboard says “E-mail is not connected” | Set `RESEND_API_KEY` and verify the sending domain; mail goes nowhere without it |
+| Dashboard says “E-mail is not connected”, or “The last test e-mail did not work” | Open *Admin → Settings → E-mail* and press *Send me a test e-mail*: it says in plain words what Resend answered (key missing or refused, **domain not verified**, bad sender address, limit reached) and what to do — see [section 3a](#3a-e-mail-resend-the-domain-the-key-and-the-one-click-test) |
 | Video lessons say “video is not available” | Stream is not enabled on the account, or the lesson has no video uploaded/processed yet (the curriculum screen shows the processing state) |
 | `npm run dev` complains about a port | Another copy is running (ports 8787, 5173, 5174) — stop it, or run `npm run dev -- --worker-only` |
 | Playwright cannot find a browser | `npx playwright install chromium` (or set `CHROMIUM_PATH`) |

@@ -236,6 +236,7 @@ const en = {
   "footer.contact": "Contact",
   "footer.rights": "© {year} MAWAH Academy. All rights reserved.",
   "footer.payments": "We accept",
+  "footer.developed": "Developed by",
 
   "wa.label": "Chat on WhatsApp",
   "wa.prefill": "Hello MAWAH Academy, I have a question.",
@@ -492,6 +493,7 @@ const bn: Record<keyof typeof en, string> = {
   "footer.contact": "যোগাযোগ",
   "footer.rights": "© {year} মাওয়াহ একাডেমি। সর্বস্বত্ব সংরক্ষিত।",
   "footer.payments": "আমরা গ্রহণ করি",
+  "footer.developed": "ডেভেলপ করেছেন",
 
   "wa.label": "হোয়াটসঅ্যাপে কথা বলুন",
   "wa.prefill": "আসসালামু আলাইকুম, মাওয়াহ একাডেমি। আমার একটি প্রশ্ন আছে।",
