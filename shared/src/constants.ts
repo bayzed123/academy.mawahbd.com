@@ -17,6 +17,10 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const PAYMENT_METHODS = ["bkash", "nagad", "rocket", "card", "manual", "free", "mock"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
+/** Everything the owner can be told about by e-mail the moment it happens (Admin → Settings → E-mail → Notifications). */
+export const NOTIFY_KINDS = ["order_paid", "payment_waiting", "contact_message", "new_student", "course_question", "review_pending", "chat_handoff", "group_request", "notify_me", "newsletter"] as const;
+export type NotifyKind = (typeof NOTIFY_KINDS)[number];
+
 export const LESSON_TYPES = ["video", "external", "text", "resource"] as const;
 export type LessonType = (typeof LESSON_TYPES)[number];
 

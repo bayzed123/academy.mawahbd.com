@@ -1,4 +1,4 @@
-import { MANUAL_WINDOW_DEFAULT_MIN } from "@mawah/shared";
+import { MANUAL_WINDOW_DEFAULT_MIN, type NotifyKind } from "@mawah/shared";
 import type { Env } from "../env";
 import { all, nowIso, run, safeJson } from "./db";
 
@@ -29,6 +29,8 @@ export interface Settings {
   chatbot: { enabled: boolean; greeting_bn: string; greeting_en: string; faq_bn: string; faq_en: string };
   /** a link to the owner's shop (https://mawahbd.com): shown in the menus, the footer, the class list and the student app */
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
+  /** who is e-mailed about what happens on the site (payments, messages, questions …); no addresses = the default one from NOTIFY_EMAIL */
+  notifications: { emails: string[]; off: NotifyKind[] };
   onboarding: { dismissed: boolean };
 }
 
@@ -49,6 +51,7 @@ export const SETTING_DEFAULTS: Settings = {
   analytics: { ga4: "", clarity: "", meta_pixel: "" },
   chatbot: { enabled: true, greeting_bn: "", greeting_en: "", faq_bn: "", faq_en: "" },
   shop: { enabled: true, url: "https://mawahbd.com", label_bn: "দোকান", label_en: "Shop" },
+  notifications: { emails: [], off: [] },
   onboarding: { dismissed: false },
 };
 

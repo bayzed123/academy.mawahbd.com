@@ -121,8 +121,10 @@ jobs:
           [ -n "$url" ] || url="$(node ../scripts/print-site-url.mjs)"
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
-      # APP_SECRET is made here (random, never shown) if the Worker has none. SETUP_TOKEN and RESEND_API_KEY (the e-mail key) are only
-      # taken from the repository secrets of those names — both optional. Existing secrets are never replaced.
+      # APP_SECRET is made here (random, never shown) if the Worker has none, and SETUP_TOKEN is taken from the repository secret of that
+      # name (optional) — an existing APP_SECRET or SETUP_TOKEN is never replaced. RESEND_API_KEY (the e-mail key) is the exception: when
+      # the repository secret of that name looks like a Resend key it is set on the Worker at every deploy, so changing or rotating the
+      # key is one edit of the GitHub secret and one run of Deploy. With no such GitHub secret, a key set in Cloudflare is left alone.
       - name: Give the Worker its secrets
         env:
           SETUP_TOKEN: ${{ secrets.SETUP_TOKEN }}

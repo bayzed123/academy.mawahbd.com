@@ -34,6 +34,7 @@ afterEach(async () => {
   e.RESEND_API_KEY = undefined;
   vi.restoreAllMocks();
   await env.KV.delete("mail:last-test"); // the last test's result lives in KV: start every test with none
+  await env.KV.delete("mail:domain-refused"); // so does "Resend turned a message away because the domain is not verified"
 });
 
 const owner = async () => (await loginStaff("super_admin")).client;

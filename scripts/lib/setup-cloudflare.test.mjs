@@ -165,7 +165,7 @@ test("no SETUP_TOKEN is ever invented in automation; a too-short one is refused"
 // A made-up key with the shape of a real one, built here so no key-shaped text sits in the source.
 const fakeResendKey = () => `re${"_"}${"Ab3".repeat(12)}`;
 
-test("the e-mail key comes from the GitHub secret RESEND_API_KEY, once, and is never printed", () => {
+test("the e-mail key comes from the GitHub secret RESEND_API_KEY and is never printed", () => {
   const sb = sandbox();
   const key = fakeResendKey();
   const r = sb.run(["--ci", "--no-resources", "--secrets"], { SETUP_TOKEN: "my-own-long-setup-token-42", RESEND_API_KEY: `${key}\n` });
@@ -175,12 +175,30 @@ test("the e-mail key comes from the GitHub secret RESEND_API_KEY, once, and is n
   assert.match(r.out, /RESEND_API_KEY created/);
 });
 
-test("an e-mail key already on the Worker is never replaced", () => {
-  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "RESEND_API_KEY"] });
-  const r = sb.run(["--ci", "--no-resources", "--secrets"], { RESEND_API_KEY: fakeResendKey() });
+test("a new GitHub secret RESEND_API_KEY replaces the one on the Worker at the next deploy (a rotated key or a new Resend account)", () => {
+  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "RESEND_API_KEY"], secretValues: { RESEND_API_KEY: `re${"_"}${"Zz9".repeat(12)}` } });
+  const key = fakeResendKey();
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { RESEND_API_KEY: key });
   assert.equal(r.code, 0, r.out);
+  assert.equal(sb.state().secretValues.RESEND_API_KEY, key, "the GitHub secret is the one in force");
+  assert.deepEqual(creates(sb.state().calls), ["secret put RESEND_API_KEY"], "only the e-mail key is touched");
+  assert.match(r.out, /RESEND_API_KEY updated/);
+  assert.ok(!r.out.includes(key), "and still not printed");
+});
+
+test("an e-mail key already on the Worker stays when the GitHub secret is missing or is not a Resend key", () => {
+  const before = `re${"_"}${"Zz9".repeat(12)}`;
+  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "RESEND_API_KEY"], secretValues: { RESEND_API_KEY: before } });
+  const none = sb.run(["--ci", "--no-resources", "--secrets"]);
+  assert.equal(none.code, 0, none.out);
   assert.deepEqual(creates(sb.state().calls), []);
-  assert.match(r.out, /RESEND_API_KEY already set/);
+  assert.match(none.out, /RESEND_API_KEY is set on the Worker — left untouched/);
+
+  const wrong = sb.run(["--ci", "--no-resources", "--secrets"], { RESEND_API_KEY: "not-a-resend-key" });
+  assert.equal(wrong.code, 0, wrong.out);
+  assert.deepEqual(creates(sb.state().calls), []);
+  assert.match(wrong.out, /does not look like a Resend key.*already on the Worker stays/);
+  assert.equal(sb.state().secretValues.RESEND_API_KEY, before, "the working key is not overwritten by garbage");
 });
 
 test("no GitHub secret RESEND_API_KEY: nothing is invented, and the output says what to do; something that is not a Resend key is refused", () => {

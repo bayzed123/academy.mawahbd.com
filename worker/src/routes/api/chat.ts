@@ -48,6 +48,7 @@ chatRoutes.post("/", loadStudent, rateLimit("RL_CHAT"), async (c) => {
     lang: body.lang,
     courseId: body.course_id ?? null,
     studentId: c.get("student")?.id ?? null,
+    waitUntil: (p) => c.executionCtx.waitUntil(p),
   });
   return ok(c, out);
 });

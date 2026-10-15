@@ -203,17 +203,18 @@ describe("manual payment: sending proof", () => {
     expect(await env.R2.head(secondKey)).not.toBeNull();
   });
 
-  it("tells the owner by e-mail when proof arrives, if a contact address is set", async () => {
+  it("tells the owner by e-mail when proof arrives (more in notify.test.ts)", async () => {
     const owner = uniqueEmail("owner");
-    await setSetting(env, "contact", { whatsapp: "", phone: "", email: owner, facebook: "", youtube: "", instagram: "" }, null);
+    await setSetting(env, "notifications", { emails: [owner], off: [] }, null);
     const { client, publicId } = await startOrder();
     await client.post(`/api/checkout/${publicId}/proof`, { trx_id: "NOTIFYME11" });
     await new Promise((r) => setTimeout(r, 50)); // waitUntil work
     const outbox = await json(await new Client().get(`/api/dev/outbox?to=${encodeURIComponent(owner)}`));
     const mail = outbox.messages.at(-1);
-    expect(mail.subject).toMatch(/Payment to verify/);
+    expect(mail.subject).toMatch(/waiting for you to verify/);
+    expect(mail.text).toContain("NOTIFYME11");
     expect(mail.text).toContain("/admin/orders?status=awaiting_verification");
-    await setSetting(env, "contact", { whatsapp: "", phone: "", email: "", facebook: "", youtube: "", instagram: "" }, null);
+    await setSetting(env, "notifications", { emails: [], off: [] }, null);
   });
 });
 

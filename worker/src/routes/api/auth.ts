@@ -14,6 +14,7 @@ import { hashPassword } from "../../lib/crypto";
 import { loadStudent, requireStudent } from "../../middleware/auth";
 import { checkRateLimit, rateLimit } from "../../middleware/ratelimit";
 import { authenticate, createPasswordResetLink, setPassword } from "../../services/auth";
+import { notices, notifyOwner } from "../../services/notify";
 
 export const authRoutes = new Hono<AppEnv>();
 
@@ -75,6 +76,7 @@ authRoutes.post("/register", rateLimit("RL_AUTH"), async (c) => {
   await createSession(c, "student", id);
   c.set("student", { id, name: body.name, email: body.email, phone: body.phone, locale: body.lang });
   await audit(c, { action: "student.register", entity: "student", entityId: id });
+  c.executionCtx.waitUntil(notifyOwner(c.env, notices.newStudent({ name: body.name, email: body.email, phone: body.phone })));
   return ok(c, { student: toMe({ id, name: body.name, email: body.email, phone: body.phone, locale: body.lang }) }, 201);
 });
 
