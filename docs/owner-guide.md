@@ -45,6 +45,7 @@
    * **শীঘ্রই আসছে** — দেখা যাবে, “আমাকে জানান” ফর্মসহ; কেনা যাবে না।
    * **প্রকাশিত** — দেখা যাবে, ভর্তি হয়ে টাকা দেওয়া যাবে।
    * **আর্কাইভ** — ওয়েবসাইট থেকে সরে যাবে, কিন্তু যারা কিনেছেন তাদের অ্যাক্সেস থাকবে।
+   * পরে দ্রুত চালু/বন্ধ করতে ক্লাস তালিকার **“ওয়েবসাইটে চালু”** সুইচ ব্যবহার করুন — ১৮ নম্বর অংশ দেখুন।
 6. ক্যাটাগরি, প্রশিক্ষক, লেভেল (বিগিনার/মাঝারি/অ্যাডভান্সড), ফেসবুক পোস্টের লিংক (ঐচ্ছিক) দিন। “হোম পেজে বিশেষভাবে দেখান” অন করলে ক্লাসটি প্রথম পাতায় আসবে।
 7. **সংরক্ষণ করুন।** এরপর “কারিকুলাম” ট্যাবে লেসন যোগ করুন।
 
@@ -198,6 +199,25 @@
 * **চালু / বন্ধ:** তালিকার সুইচে এক ক্লিকে। মুছলে **ট্র্যাশ**-এ যায় — সেখান থেকে ফিরিয়ে আনা যায়।
 * **সবার জন্য ব্যবহারযোগ্য:** কিবোর্ড ও স্ক্রিন-রিডারে চলে; যাঁরা ফোনে “কম নড়াচড়া” চেয়েছেন তাঁদের স্লাইডার নিজে সরে না; থামানোর বোতাম আছে।
 
+## ১৮. ক্লাস চালু/বন্ধ করা, এবং ক্লাসের “দেখার” ও “সম্পাদনার” পাতা
+
+**চালু / বন্ধ — একটাই সুইচ।** ক্লাস তালিকায় (বাঁ মেনু → **ক্লাস**) প্রতিটি ক্লাসের পাশে **“ওয়েবসাইটে চালু”** সুইচ আছে।
+
+* **চালু (অন)** — ক্লাসটি ওয়েবসাইটে দেখা যায় এবং শিক্ষার্থীরা ভর্তি হয়ে টাকা দিতে পারেন। (সিস্টেমের ভেতরে এটাই “প্রকাশিত”।)
+* **বন্ধ (অফ)** — ক্লাসটি সাথে সাথে ওয়েবসাইট থেকে সরে যায় এবং কেউ কিনতে পারে না। (ভেতরে এটাই “খসড়া”।) **কিছু মোছা হয় না** — লেসন, ছবি, শিক্ষার্থী সব যেমন ছিল তেমনই থাকে; আবার চালু করলেই আগের মতো ফিরে আসে।
+* **বন্ধ করার আগে সিস্টেম জিজ্ঞেস করে** এবং বলে কতজন শিক্ষার্থী ইতোমধ্যে ভর্তি আছেন — **তাঁরা আগের মতোই ক্লাস করতে পারবেন**; শুধু নতুন কেউ কিনতে পারবে না।
+* **চালু করার সময় শুধু দুটি ক্ষেত্রে জিজ্ঞেস করে:** (১) ক্লাসে এখনো কোনো লেসন নেই — টাকা দিয়ে ঢুকে শিক্ষার্থী ফাঁকা ক্লাস দেখবেন; (২) কিছু মানুষ “আমাকে জানান” দিয়ে অপেক্ষা করছেন — চালু হলে এখনই তাঁদের ইমেইল যাবে।
+* “শীঘ্রই আসছে” ও “আর্কাইভ” সুইচে নেই — সেগুলো সম্পাদনার পাতায় **“ওয়েবসাইটে দেখানো”** মেনু থেকে বাছুন; প্রতিটি অপশনের পাশে সহজ ভাষায় লেখা আছে সেটি কী করে।
+* সুইচ চালাতে পারেন যাঁদের ক্লাস সম্পাদনার অনুমতি আছে (সুপার অ্যাডমিন ও কনটেন্ট ম্যানেজার)। বাকিরা অবস্থা দেখতে পান, কিন্তু বদলাতে পারেন না। প্রতিটি পরিবর্তন *অ্যাক্টিভিটি লগে* থাকে।
+
+**দেখার পাতা (ভিউ মোড)।** তালিকায় যেকোনো ক্লাসের সারিতে চাপ দিন (বা চোখের আইকনে) — **“ক্লাসের সারসংক্ষেপ”** পাতা খুলবে। এখানে কিছু টাইপ করা যায় না, তাই ভুলে কিছু বদলে যাওয়ার ভয় নেই। যা দেখবেন:
+
+* ক্লাসের অবস্থা এবং একই চালু/বন্ধ সুইচ;
+* কতজন শিক্ষার্থী ভর্তি, **আয়** (শুধু পরিশোধিত অর্ডার — কুপনের ছাড় বাদ দিয়ে যে টাকা সত্যিই এসেছে), **শিক্ষার্থীদের রেটিং** (শুধু অনুমোদিত রিভিউ থেকে; না থাকলে “এখনো রেটিং নেই” — কোনো সংখ্যা বানানো হয় না), অনুমোদনের অপেক্ষায় থাকা রিভিউ, লেসন ও মোট মিনিট;
+* ক্লাসের তথ্য (মূল্য, লেভেল, ওয়েবসাইটের ঠিকানা, বিবরণ), পাঠ্যসূচি ও সাম্প্রতিক রিভিউ।
+
+**সম্পাদনার পাতা (এডিট মোড)।** **“এই ক্লাস সম্পাদনা করুন”** বাটনে চাপুন (বা তালিকার সম্পাদনা আইকনে) — ওপরে **“সম্পাদনা মোড”** লেখা দেখাবে; আগের মতোই তথ্য, কারিকুলাম ও সার্চ (SEO) ট্যাব। ফিরতে **“← ক্লাসের সারসংক্ষেপ”**। পুরনো বুকমার্ক (যেমন `…?tab=curriculum`) সরাসরি সম্পাদনার পাতার কারিকুলাম ট্যাবে খোলে।
+
 ---
 
 # English
@@ -236,6 +256,7 @@ Below the health strip the dashboard shows **First steps**; it ticks itself off 
    * **Coming Soon** — visible with a “Notify me” form; cannot be bought yet.
    * **Published** — visible; students can enrol and pay.
    * **Archived** — hidden from the website, but people who bought it keep access.
+   * To switch a class on or off later, use the **Active on the website** switch in the class list — see section 18.
 6. Pick the category, instructor, level, the Facebook post link (optional). *Feature on the home page* puts the class on the front page.
 7. **Save**, then open the **Curriculum** tab to add lessons.
 
@@ -388,3 +409,22 @@ Open **Banners** in the left menu and press **+ Add**. Whatever you change is li
 * **Pop-up settings:** after how many seconds it appears (5–10 feels polite), how many days before it asks again after someone closes it (0 = once per visit), and where (home page only / all public pages). Someone who closed it is not bothered again — until you edit the pop-up, when everyone sees the new one.
 * **On / off:** the switch in the list, one click. Deleting moves a banner to **Trash**, where you can bring it back.
 * **Usable by everyone:** works with a keyboard and a screen reader; for people who asked their phone for “reduced motion” the slider does not move by itself; there is a pause button.
+
+## 18. Switching a class on or off, and the class’s “view” and “edit” pages
+
+**On / off — one switch.** In the class list (left menu → **Classes**) every class has an **Active on the website** switch.
+
+* **On (Active)** — the class is on the website and students can enrol and pay. (Inside the system this is *Published*.)
+* **Off (Inactive)** — the class leaves the website at once and nobody can buy it. (Inside the system this is *Draft*.) **Nothing is deleted** — lessons, pictures and students stay exactly as they were; switch it on again and it comes straight back.
+* **Before switching off, the system asks** and tells you how many students are already enrolled — **they keep their access exactly as before**; only new buyers are stopped.
+* **When switching on it asks in only two cases:** (1) the class has no lessons yet — a student who pays would find it empty; (2) people asked to be told when it opens — they are e-mailed right now.
+* *Coming soon* and *Archived* are not on the switch — choose them in the **Visibility on the website** menu on the edit page; each option says in plain words what it does.
+* Anyone who may edit classes (Super Admin and Content Manager) can use the switch. Everyone else can see the state but not change it. Every change is in the *Activity log*.
+
+**The view page (view mode).** Click any class row in the list (or the eye icon) to open the **Class overview**. Nothing on it can be typed into, so nothing can change by accident. It shows:
+
+* the class’s state and the same On/Off switch;
+* how many students are enrolled, the **money earned** (paid orders only — the amount that really came in after any coupon), the **student rating** (only from **approved** reviews; with none it says “Not rated yet” — numbers are never invented), reviews waiting for your approval, lessons and total minutes;
+* the class details (price, level, website address, descriptions), the curriculum and the latest reviews.
+
+**The edit page (edit mode).** Press **Edit this class** (or the edit icon in the list) — the page says **Edit mode** at the top; it has the same Details, Curriculum and Search (SEO) tabs as before. **← Class overview** takes you back. An old bookmark such as `…?tab=curriculum` still opens the edit page on its Curriculum tab.

@@ -1,10 +1,13 @@
 import { Link, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { adm } from "../lib/api";
+import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import type { CourseRow, ListResponse } from "../lib/types";
+import { isActive, useSetActive } from "../lib/visibility";
 import { ResourcePage } from "../components/ResourcePage";
-import { Icon, StatusChip } from "../components/ui";
+import { CourseStateChip } from "../components/CourseState";
+import { Icon, Switch } from "../components/ui";
 
 export function useCategoryOptions() {
   const { pick } = useI18n();
@@ -20,8 +23,10 @@ export function useInstructorOptions() {
 
 export function Courses() {
   const { t, pick, money, num } = useI18n();
+  const { can } = useAuth();
   const navigate = useNavigate();
   const categories = useCategoryOptions();
+  const setActive = useSetActive();
 
   return (
     <ResourcePage<CourseRow>
@@ -34,7 +39,8 @@ export function Courses() {
       rowLabel={(r) => r.title_en}
       defaultSort="sort"
       trash
-      onEdit={(row) => navigate(row ? `/courses/${row.id}` : "/courses/new")}
+      onEdit={(row) => navigate(row ? `/courses/${row.id}/edit` : "/courses/new")}
+      onView={(row) => navigate(`/courses/${row.id}`)}
       searchPlaceholder={t("adm.courses.search")}
       filters={[
         { key: "status", label: t("label.status"), options: ["draft", "coming_soon", "published", "archived"].map((s) => ({ value: s, label: t(`status.${s}` as "status.draft") })) },
@@ -53,7 +59,17 @@ export function Courses() {
           ),
         },
         { key: "price", label: t("label.price"), sort: "price", className: "num", render: (r) => (r.price === 0 ? t("label.free") : money(r.price)) },
-        { key: "status", label: t("label.status"), sort: "status", render: (r) => <StatusChip status={r.status} /> },
+        { key: "status", label: t("label.status"), sort: "status", render: (r) => <CourseStateChip status={r.status} /> },
+        {
+          key: "active",
+          label: t("adm.course.activeOnSite"),
+          render: (r) => (
+            // one switch: on = on the website and open for enrolment; off = hidden. It asks before hiding a class or opening an empty one.
+            <span onClick={(e) => e.stopPropagation()}>
+              <Switch checked={isActive(r)} disabled={!can("courses:write")} onChange={(x) => void setActive(r, x)} label={t("adm.course.toggle", { name: pick(r, "title") })} hideLabel />
+            </span>
+          ),
+        },
         {
           key: "lessons",
           label: t("adm.f.lessons"),
@@ -73,7 +89,7 @@ export function Courses() {
       ]}
       rowActions={(r) => (
         <>
-          <Link className="icon-btn" to={`/courses/${r.id}?tab=curriculum`} aria-label={t("adm.course.curriculum")} title={t("adm.course.curriculum")}>
+          <Link className="icon-btn" to={`/courses/${r.id}/edit?tab=curriculum`} aria-label={t("adm.course.curriculum")} title={t("adm.course.curriculum")}>
             <Icon name="list" />
           </Link>
           {r.status === "published" && (

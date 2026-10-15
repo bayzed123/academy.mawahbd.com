@@ -8,7 +8,8 @@ import { useI18n } from "../lib/i18n";
 import type { CourseRow } from "../lib/types";
 import { CurriculumBuilder } from "../components/Curriculum";
 import { FormFields, initialValues, toPayload, type FieldDef, type Values } from "../components/Form";
-import { Button, ErrorState, Icon, PageHeader, Panel, Spinner, StatusChip, Tabs, useConfirm, useFieldErrors, useToast } from "../components/ui";
+import { CourseStateChip } from "../components/CourseState";
+import { Button, Chip, ErrorState, Icon, PageHeader, Panel, Spinner, Tabs, useConfirm, useFieldErrors, useToast } from "../components/ui";
 import { useCategoryOptions, useInstructorOptions } from "./Courses";
 
 type Tab = "details" | "curriculum" | "seo";
@@ -21,7 +22,7 @@ const DEFAULTS: Values = {
 
 export function CourseEditor() {
   const { id: idParam } = useParams();
-  const isNew = idParam === "new";
+  const isNew = !idParam || idParam === "new";
   const id = isNew ? null : Number(idParam);
   const { t, pick, lang } = useI18n();
   const { can } = useAuth();
@@ -53,7 +54,7 @@ export function CourseEditor() {
     { type: "markdown", key: "long_en", label: t("adm.f.longEn"), rows: 10 },
     { type: "section", key: "s1", label: t("adm.f.sellingSection") },
     { type: "number", key: "price", label: t("adm.f.coursePrice"), half: true, min: 0, suffix: "৳", hint: t("adm.f.coursePriceHint") },
-    { type: "select", key: "status", label: t("label.status"), half: true, options: COURSE_STATUSES.map((s) => ({ value: s, label: t(`status.${s}` as "status.draft") })), hint: t(`adm.status.hint.${"draft"}` as "adm.status.hint.draft") },
+    { type: "select", key: "status", label: t("adm.course.visibility"), half: true, options: COURSE_STATUSES.map((s) => ({ value: s, label: t(`adm.course.vis.${s}` as "adm.course.vis.draft") })), hint: t(`adm.status.hint.${"draft"}` as "adm.status.hint.draft") },
     { type: "select", key: "category_id", label: t("adm.f.category"), half: true, options: categories, nullable: true, numeric: true },
     { type: "select", key: "instructor_id", label: t("adm.f.instructor"), half: true, options: instructors, nullable: true, numeric: true },
     { type: "select", key: "level", label: t("adm.f.level"), half: true, nullable: true, options: ["beginner", "intermediate", "advanced"].map((l) => ({ value: l, label: t(`label.${l}` as "label.beginner") })) },
@@ -99,7 +100,7 @@ export function CourseEditor() {
       void qc.invalidateQueries({ queryKey: ["/courses"] });
       void qc.invalidateQueries({ queryKey: ["course", res.item.id] });
       void qc.invalidateQueries({ queryKey: ["course-options"] });
-      if (!id) navigate(`/courses/${res.item.id}?tab=curriculum`, { replace: true });
+      if (!id) navigate(`/courses/${res.item.id}/edit?tab=curriculum`, { replace: true });
     },
     onError: (e) => {
       setErrors(fieldErrors(e));
@@ -128,14 +129,22 @@ export function CourseEditor() {
       <PageHeader
         title={title}
         back={
-          <Link to="/courses" className="back">
-            ← {t("adm.nav.courses")}
+          <Link to={c ? `/courses/${c.id}` : "/courses"} className="back">
+            ← {c ? t("adm.course.viewMode") : t("adm.nav.courses")}
           </Link>
         }
         sub={c ? undefined : t("adm.course.newSub")}
         actions={
           <>
-            {c && <StatusChip status={c.status} />}
+            <Chip tone="warn">
+              <Icon name="sparkle" /> {t("adm.course.editMode")}
+            </Chip>
+            {c && <CourseStateChip status={c.status} />}
+            {c && (
+              <Link className="btn btn-outline btn-sm" to={`/courses/${c.id}`}>
+                <Icon name="eye" /> {t("adm.view")}
+              </Link>
+            )}
             {c?.status === "published" && (
               <a className="btn btn-outline btn-sm" href={`${lang === "en" ? "/en" : ""}/courses/${c.slug}`} target="_blank" rel="noopener noreferrer">
                 <Icon name="external" /> {t("adm.course.viewOnSite")}

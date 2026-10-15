@@ -31,6 +31,8 @@ interface Props<T extends { id: number }> {
   transform?: (values: Values) => Values;
   /** replace the built-in edit drawer (the class editor is a full page) */
   onEdit?: (row: T | null) => void;
+  /** a read-only page for a row: clicking the row opens it, and an eye button appears next to Edit (classes) */
+  onView?: (row: T) => void;
   toolbarExtra?: ReactNode;
 }
 
@@ -39,7 +41,7 @@ interface Props<T extends { id: number }> {
  * bundles, coupons and the class list are all this component with different columns and fields —
  * so every module behaves the same way and a fix lands everywhere at once.
  */
-export function ResourcePage<T extends { id: number; deleted_at?: string | null }>({ title, sub, endpoint, perms, columns, fields, defaults, filters, searchPlaceholder, defaultSort, rowLabel, csv = true, trash, wide, rowActions, transform, onEdit, toolbarExtra }: Props<T>) {
+export function ResourcePage<T extends { id: number; deleted_at?: string | null }>({ title, sub, endpoint, perms, columns, fields, defaults, filters, searchPlaceholder, defaultSort, rowLabel, csv = true, trash, wide, rowActions, transform, onEdit, onView, toolbarExtra }: Props<T>) {
   const { t, err } = useI18n();
   const { can } = useAuth();
   const toast = useToast();
@@ -122,7 +124,7 @@ export function ResourcePage<T extends { id: number; deleted_at?: string | null 
         defaultSort={defaultSort}
         csv={csv}
         extraParams={{ deleted: showTrash ? "1" : undefined }}
-        onRowClick={canWrite ? (row) => !showTrash && open(row) : undefined}
+        onRowClick={onView ? (row) => !showTrash && onView(row) : canWrite ? (row) => !showTrash && open(row) : undefined}
         toolbar={
           <>
             {trash && (
@@ -153,6 +155,7 @@ export function ResourcePage<T extends { id: number; deleted_at?: string | null 
               )
             ) : (
               <>
+                {onView && <IconButton icon="eye" label={t("adm.view")} onClick={() => onView(row)} />}
                 {canWrite && <IconButton icon="sparkle" label={t("btn.edit")} onClick={() => open(row)} />}
                 {canDelete && <IconButton icon="x" label={t("btn.delete")} onClick={() => remove(row)} />}
               </>

@@ -8,7 +8,7 @@
 |---|---|
 | **Public site** | Server-rendered, edge-cached, ≈ 4 KB of JavaScript. The 26 launch classes with the owner’s prices, class pages with structured data, blog, certificate verification. Lighthouse (mobile): accessibility / best practices / SEO **100**, performance **91–99** |
 | **Student app** (`/app`) | Register, buy (SSLCommerz · bKash · Nagad · Rocket · cards · manual send-money (20-minute pay window, TrxID and/or screenshot, ready-made WhatsApp message) · free), watch lessons (Stream video with signed tokens), track progress, ask questions, review (enrolled students only), earn **verifiable certificates**, invoices |
-| **Admin** (`/admin`) | Health check and “needs attention today” first, then classes + curriculum builder, orders (verify / refund), students, reviews, Q&A, coupons, bundles, **banners (home slider + offer pop-up)**, certificates, Coming-Soon notify lists, reports, team with **roles**, audit log, AI chatbot settings — CSV export everywhere |
+| **Admin** (`/admin`) | Health check and “needs attention today” first, then classes (one **Active / Inactive** switch, a read-only overview page, a separate edit mode) + curriculum builder, orders (verify / refund), students, reviews, Q&A, coupons, bundles, **banners (home slider + offer pop-up)**, certificates, Coming-Soon notify lists, reports, team with **roles**, audit log, AI chatbot settings — CSV export everywhere |
 | **AI chatbot** | Workers AI by default, Gemini switchable in the admin (no code change), grounded in your live catalogue, honest “I’m not sure” with hand-off to the team |
 | **Security** | PBKDF2 + pepper, opaque sessions, strict CSP (no `unsafe-inline`), CSRF guard, RBAC on every route, rate limits, signed video and authenticated file access, audit log, webhook-driven idempotent payments — see [docs/security.md](docs/security.md) |
 | **Honesty guardrail** | No fabricated “X enrolled / Y watching” counters anywhere; ratings only from real reviews by enrolled students |
@@ -36,8 +36,8 @@ Requires **Node.js ≥ 20.19** (22 recommended). Local D1/KV/R2 run on your mach
 |---|---|
 | `npm run dev` | Everything for local work: builds, migrates a local database, runs the Worker (8787) and hot-reload servers for the student app (5173) and admin (5174) |
 | `npm run typecheck` | `tsc` in all four workspaces (required before any deploy) |
-| `npm test` | i18n completeness, script tests, and **183 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
-| `npm run build && npm run test:e2e` | **48 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows (typed key by key, like a person), accessibility (axe), 360 px phones |
+| `npm test` | i18n completeness, script tests, and **189 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
+| `npm run build && npm run test:e2e` | **53 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows (typed key by key, like a person), accessibility (axe), 360 px phones |
 | `npm run lighthouse:local` | Core Web Vitals gate on the public pages (mobile profile) |
 | `npm run setup:cloudflare -- --secrets` | Only for deploying from your own computer: creates D1/KV/R2, fills `wrangler.toml`, sets the secrets (`--dry-run` first). **GitHub’s Deploy workflow does all of this by itself** — see [deployment.md](docs/deployment.md) |
 | `npm run db:migrate:remote` · `npm run deploy` | Apply migrations / build and deploy (normally done by GitHub Actions on every push to `main`) |
