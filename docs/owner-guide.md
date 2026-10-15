@@ -218,6 +218,19 @@
 
 **সম্পাদনার পাতা (এডিট মোড)।** **“এই ক্লাস সম্পাদনা করুন”** বাটনে চাপুন (বা তালিকার সম্পাদনা আইকনে) — ওপরে **“সম্পাদনা মোড”** লেখা দেখাবে; আগের মতোই তথ্য, কারিকুলাম ও সার্চ (SEO) ট্যাব। ফিরতে **“← ক্লাসের সারসংক্ষেপ”**। পুরনো বুকমার্ক (যেমন `…?tab=curriculum`) সরাসরি সম্পাদনার পাতার কারিকুলাম ট্যাবে খোলে।
 
+## ১৯. সচরাচর জিজ্ঞাসা (FAQ)
+
+বাঁ মেনুর **সচরাচর জিজ্ঞাসা** খুলে **+ যোগ করুন** চাপুন। যা বদলাবেন সাথে সাথে ওয়েবসাইটে লাইভ হয়। শুরুতেই ১০টি প্রশ্ন দেওয়া আছে — সেগুলো সাইট আজ যেভাবে সত্যিই কাজ করে ঠিক সেভাবেই লেখা। আপনার নিয়ম আলাদা হলে (যেমন রিফান্ড) সম্পাদনা করে নিন।
+
+* **কোথায় দেখাবে:** *সচরাচর জিজ্ঞাসার পাতা (সবার জন্য)* — `/faq` পাতায় বিষয় অনুযায়ী (সাধারণ, পেমেন্ট, শেখা, সার্টিফিকেট, রিফান্ড) সাজানো থাকে। **“হোম পেজে দেখান”** টিক দিলে হোম পেজেও আসে (সর্বোচ্চ ৬টি, আপনার ক্রম অনুযায়ী)। অথবা *শুধু একটি ক্লাসে* — তখন ক্লাস বাছুন; প্রশ্নটি শুধু সেই ক্লাসের পাতায় দেখাবে। ক্লাসের পাতায় আগে ওই ক্লাসের নিজের প্রশ্ন, তারপর হোম পেজের প্রশ্নগুলো আসে — যাতে ক্রেতা সবসময় মূল তথ্য পান।
+* **লেখা:** প্রশ্ন ও উত্তর (বাংলা ও English)। একটি ভাষা ফাঁকা থাকলে অন্যটি দেখাবে; তবে অন্তত একটি ভাষায় প্রশ্ন ও উত্তর দুটোই লাগবে। উত্তরে সহজ ফরম্যাট চলে: `**গাঢ়**`, লাইনের শুরুতে `-` দিয়ে তালিকা, `[লিংকের লেখা](/courses/ক্লাসের-নাম)` দিয়ে লিংক। HTML বা স্ক্রিপ্ট চলে না (নিরাপত্তার জন্য)।
+* **ক্রম:** ছোট সংখ্যা আগে আসে (১, ২, ৩ …)।
+* **চালু / বন্ধ:** তালিকার সুইচে এক ক্লিকে। মুছলে **ট্র্যাশ**-এ যায় — সেখান থেকে **ফিরিয়ে আনুন** চাপলে আবার আসে।
+* **“আরও প্রশ্ন আছে?” কার্ড:** পাতার নিচে হোয়াটসঅ্যাপের বোতাম (সেটিংসে নম্বর দেওয়া থাকলে) ও যোগাযোগের বোতাম নিজে থেকেই আসে।
+* **চ্যাটবটও জানে:** আপনি যে প্রশ্নোত্তর চালু রেখেছেন চ্যাটবট সেগুলো দেখে উত্তর দেয়; তাই এখানে লেখা বদলালে চ্যাটবটের উত্তরও বদলায়।
+* **গুগলের জন্য:** পাতায় যে প্রশ্নগুলো দেখা যাচ্ছে ঠিক সেগুলোই গুগলকে জানানো হয় — একটিও বেশি নয়।
+* সম্পাদনা করতে পারেন সুপার অ্যাডমিন ও কনটেন্ট ম্যানেজার; বাকিরা দেখতে পান।
+
 ---
 
 # English
@@ -428,3 +441,16 @@ Open **Banners** in the left menu and press **+ Add**. Whatever you change is li
 * the class details (price, level, website address, descriptions), the curriculum and the latest reviews.
 
 **The edit page (edit mode).** Press **Edit this class** (or the edit icon in the list) — the page says **Edit mode** at the top; it has the same Details, Curriculum and Search (SEO) tabs as before. **← Class overview** takes you back. An old bookmark such as `…?tab=curriculum` still opens the edit page on its Curriculum tab.
+
+## 19. FAQ — the questions visitors ask
+
+Open **FAQ** in the left menu and press **+ Add**. Whatever you change is live on the website at once. Ten starter questions are already there — each describes what the site really does today and nothing else. If your rules are different (refunds, for example), edit them.
+
+* **Where it shows:** *FAQ page (everyone)* — the `/faq` page, grouped by topic (General, Payment, Learning, Certificates, Refunds). Tick **Show on the home page** and it also appears on the home page (at most 6, in your order). Or *One class only* — then pick the class; the question shows only on that class’s page. A class page shows that class’s own questions first and then the home-page ones, so a buyer always finds the basics.
+* **Words:** the question and the answer (Bangla and English). If one language is empty the other is shown — but one question and one answer are needed in at least one language. Simple formatting works in answers: `**bold**`, lines starting with `-` for a list, and `[link text](/courses/class-name)` for a link. HTML and scripts are not accepted (for safety).
+* **Order:** the smaller number comes first (1, 2, 3 …).
+* **On / off:** the switch in the list, one click. Deleting moves a question to **Trash**; press **Restore** there to bring it back.
+* **“Still have a question?” card:** at the bottom of the page, with a WhatsApp button (when a number is set in Settings) and a Contact button, added automatically.
+* **The chatbot knows them too:** it answers from the questions you keep switched on, so changing a question here changes its answers.
+* **For Google:** exactly the questions shown on the page are described to Google — never one more.
+* Super Admin and Content Manager can edit; everyone else can look.

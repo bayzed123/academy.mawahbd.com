@@ -9,6 +9,7 @@ import { blog, bundles, categories, coupons, courses, instructors } from "./cont
 import { curriculum } from "./curriculum";
 import { dashboard } from "./dashboard";
 import { engagement } from "./engagement";
+import { faqs } from "./faqs";
 import { media } from "./media";
 import { orders } from "./orders";
 import { reports } from "./reports";
@@ -29,6 +30,7 @@ adminApi.route("/categories", categories);
 adminApi.route("/blog", blog);
 adminApi.route("/bundles", bundles);
 adminApi.route("/banners", banners);
+adminApi.route("/faqs", faqs);
 adminApi.route("/coupons", coupons);
 adminApi.route("/courses", courses);
 

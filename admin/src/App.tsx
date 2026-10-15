@@ -18,6 +18,7 @@ const Blog = lazyPage(() => import("./pages/Content"), "Blog");
 const Bundles = lazyPage(() => import("./pages/Content"), "Bundles");
 const Coupons = lazyPage(() => import("./pages/Content"), "Coupons");
 const Banners = lazyPage(() => import("./pages/Banners"), "Banners");
+const Faqs = lazyPage(() => import("./pages/Faqs"), "Faqs");
 const Orders = lazyPage(() => import("./pages/Sales"), "Orders");
 const Students = lazyPage(() => import("./pages/Sales"), "Students");
 const Reviews = lazyPage(() => import("./pages/Engagement"), "Reviews");
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="coupons" element={guard("coupons:read", <Coupons />)} />
           <Route path="bundles" element={guard("bundles:read", <Bundles />)} />
           <Route path="banners" element={guard("banners:read", <Banners />)} />
+          <Route path="faqs" element={guard("faqs:read", <Faqs />)} />
           <Route path="certificates" element={guard("certificates:read", <Certificates />)} />
           <Route path="signups" element={guard("signups:read", <Signups />)} />
           <Route path="messages" element={guard("messages:read", <Messages />)} />

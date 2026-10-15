@@ -42,6 +42,7 @@ const CONTENT: Record<"bn" | "en", { title: string; groups: { title: string; ite
         title: "Students & feedback",
         items: [
           { q: "Reviews", a: ["Only students who bought a class can review it. New reviews wait for your approval (Reviews → ✓). Approved reviews appear on the class page and in Google search stars. You can reply publicly."] },
+          { q: "FAQ (what visitors ask before buying)", a: ["Open FAQ in the left menu and press + Add. A question can be for everyone (the FAQ page, and the home page if you tick it) or for one class only. Write Bangla and English if you can; if one is empty the other is shown. Switch a question off with the switch — it leaves the website at once."] },
           { q: "Questions on lessons", a: ["Students ask questions under each lesson. Answer them in Questions — answers are shown to classmates too."] },
           { q: "Certificates", a: ["A certificate is issued automatically when a student completes every lesson. It has a unique code anyone can check at /verify. You can revoke or re-issue one (for example to fix a misspelled name)."] },
           { q: "The 'notify me' list", a: ["Visitors can leave their email on a Coming Soon class. When you publish the class they are emailed automatically, once. You can see and export the list under Notify lists."] },
@@ -50,7 +51,7 @@ const CONTENT: Record<"bn" | "en", { title: string; groups: { title: string; ite
       {
         title: "AI assistant",
         items: [
-          { q: "How does the chatbot answer?", a: ["It only uses what you have published: classes, prices, your policies and the FAQ you write in AI Chatbot → Content. If it is not sure, it says so and sends the question to 'Hand-offs' for your team. Keep the FAQ up to date — it is the cheapest way to improve answers.", "You can switch between Cloudflare Workers AI and Google Gemini. Save the key, press Test connection, then Make active."] },
+          { q: "How does the chatbot answer?", a: ["It only uses what you have published: classes, prices, your policies, the questions you keep switched on in FAQ, and the FAQ you write in AI Chatbot → Content. If it is not sure, it says so and sends the question to 'Hand-offs' for your team. Keep the FAQ up to date — it is the cheapest way to improve answers.", "You can switch between Cloudflare Workers AI and Google Gemini. Save the key, press Test connection, then Make active."] },
         ],
       },
       {
@@ -114,6 +115,7 @@ const CONTENT: Record<"bn" | "en", { title: string; groups: { title: string; ite
         title: "শিক্ষার্থী ও মতামত",
         items: [
           { q: "রিভিউ", a: ["যিনি ক্লাস কিনেছেন শুধু তিনিই রিভিউ দিতে পারেন। নতুন রিভিউ আপনার অনুমোদনের অপেক্ষায় থাকে (রিভিউ → ✓)। অনুমোদিত রিভিউ ক্লাস পেজে এবং গুগল সার্চের তারকায় দেখা যায়। আপনি প্রকাশ্যে উত্তর দিতে পারেন।"] },
+          { q: "সচরাচর জিজ্ঞাসা (কেনার আগে দর্শকরা যা জানতে চান)", a: ["বাঁ মেনুর 'সচরাচর জিজ্ঞাসা' খুলে + যোগ করুন চাপুন। প্রশ্ন হতে পারে সবার জন্য (সচরাচর জিজ্ঞাসার পাতা, টিক দিলে হোম পেজেও) অথবা শুধু একটি ক্লাসের জন্য। পারলে বাংলা ও English দুটোই লিখুন; একটি ফাঁকা থাকলে অন্যটি দেখাবে। সুইচ বন্ধ করলে প্রশ্নটি সাথে সাথে ওয়েবসাইট থেকে সরে যায়।"] },
           { q: "লেসনের প্রশ্ন", a: ["শিক্ষার্থীরা প্রতিটি লেসনের নিচে প্রশ্ন করেন। 'প্রশ্নোত্তর'-এ উত্তর দিন — উত্তর সহপাঠীরাও দেখতে পান।"] },
           { q: "সার্টিফিকেট", a: ["শিক্ষার্থী সব লেসন শেষ করলে সার্টিফিকেট নিজে থেকেই তৈরি হয়। এতে একটি অনন্য কোড থাকে, যা /verify পেজে যে কেউ যাচাই করতে পারেন। নাম ভুল থাকলে বাতিল বা নতুন করে ইস্যু করা যায়।"] },
           { q: "'জানান' তালিকা", a: ["'শীঘ্রই আসছে' ক্লাসে দর্শকরা ইমেইল রেখে যান। ক্লাস প্রকাশ করলে তাদের একবার স্বয়ংক্রিয়ভাবে ইমেইল যায়। তালিকা 'জানান তালিকা' মেনুতে দেখা ও এক্সপোর্ট করা যায়।"] },
@@ -122,7 +124,7 @@ const CONTENT: Record<"bn" | "en", { title: string; groups: { title: string; ite
       {
         title: "এআই সহকারী",
         items: [
-          { q: "চ্যাটবট কীভাবে উত্তর দেয়?", a: ["আপনি যা প্রকাশ করেছেন শুধু সেটুকুই ব্যবহার করে: ক্লাস, মূল্য, নীতিমালা এবং 'এআই চ্যাটবট → বিষয়বস্তু'-তে লেখা এফএকিউ। নিশ্চিত না হলে সে তা বলে দেয় এবং প্রশ্নটি আপনার টিমের জন্য 'হ্যান্ড-অফ' তালিকায় পাঠায়। এফএকিউ হালনাগাদ রাখুন — উত্তরের মান বাড়ানোর সবচেয়ে সহজ উপায় এটি।", "ক্লাউডফ্লেয়ার ওয়ার্কার্স এআই ও গুগল জেমিনির মধ্যে বদলানো যায়। কী সংরক্ষণ করে 'সংযোগ পরীক্ষা' চাপুন, তারপর 'সক্রিয় করুন'।"] },
+          { q: "চ্যাটবট কীভাবে উত্তর দেয়?", a: ["আপনি যা প্রকাশ করেছেন শুধু সেটুকুই ব্যবহার করে: ক্লাস, মূল্য, নীতিমালা, 'সচরাচর জিজ্ঞাসা'-য় চালু রাখা প্রশ্নগুলো এবং 'এআই চ্যাটবট → বিষয়বস্তু'-তে লেখা এফএকিউ। নিশ্চিত না হলে সে তা বলে দেয় এবং প্রশ্নটি আপনার টিমের জন্য 'হ্যান্ড-অফ' তালিকায় পাঠায়। এফএকিউ হালনাগাদ রাখুন — উত্তরের মান বাড়ানোর সবচেয়ে সহজ উপায় এটি।", "ক্লাউডফ্লেয়ার ওয়ার্কার্স এআই ও গুগল জেমিনির মধ্যে বদলানো যায়। কী সংরক্ষণ করে 'সংযোগ পরীক্ষা' চাপুন, তারপর 'সক্রিয় করুন'।"] },
         ],
       },
       {

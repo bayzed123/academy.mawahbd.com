@@ -22,9 +22,11 @@ import {
   type CourseSort,
 } from "../services/catalog";
 import { liveBanners } from "../services/banners";
+import { faqsForClass, siteFaqs } from "../services/faqs";
 import { certificateByCode } from "../services/learning";
 import { CoursesPage } from "../views/pages/courses";
 import { CoursePage, RelatedFragment, ReviewList } from "../views/pages/course";
+import { FaqPage } from "../views/pages/faq";
 import { HomePage } from "../views/pages/home";
 import {
   AboutPage,
@@ -54,7 +56,7 @@ export function pageRoutes(lang: Lang) {
     const flash = flashOf(c);
     return cachedPage(c, { ttl: 120, bypass: !!flash }, async () => {
       const ctx = await pageCtxFor(c, lang, "/");
-      const [feat, beginners, instructors, counts, minRow, reviews, posts, banners] = await Promise.all([
+      const [feat, beginners, instructors, counts, minRow, reviews, posts, banners, faqs] = await Promise.all([
         listCourses(c.env, { featuredOnly: true, perPage: 9 }),
         listCourses(c.env, { level: "beginner", perPage: 4 }),
         listInstructors(c.env),
@@ -69,6 +71,7 @@ export function pageRoutes(lang: Lang) {
         ),
         all<PostRow>(c.env.DB, `SELECT ${POST_COLS} FROM blog_posts WHERE status = 'published' AND deleted_at IS NULL ORDER BY published_at DESC LIMIT 3`),
         liveBanners(c.env, "hero", 8),
+        siteFaqs(c.env, { featuredOnly: true, limit: 6 }),
       ]);
       let featured = feat.items;
       if (featured.length === 0) featured = (await listCourses(c.env, { perPage: 9 })).items;
@@ -79,6 +82,7 @@ export function pageRoutes(lang: Lang) {
           ctx={ctx}
           data={{
             banners,
+            faqs,
             featured,
             beginners: beginners.items,
             instructors: instructors.slice(0, 3),
@@ -118,8 +122,8 @@ export function pageRoutes(lang: Lang) {
       const ctx = await pageCtxFor(c, lang, `/courses/${slug}`);
       const course = await getCourseBySlug(c.env, slug);
       if (!course) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
-      const [curriculum, reviews, summary] = await Promise.all([getCurriculum(c.env, course.id), approvedReviews(c.env, course.id), reviewSummary(c.env, course.id)]);
-      return renderHtml(c, ctx, <CoursePage ctx={ctx} data={{ course, curriculum, reviews, summary, flash }} />);
+      const [curriculum, reviews, summary, faqs] = await Promise.all([getCurriculum(c.env, course.id), approvedReviews(c.env, course.id), reviewSummary(c.env, course.id), faqsForClass(c.env, course.id)]);
+      return renderHtml(c, ctx, <CoursePage ctx={ctx} data={{ course, curriculum, reviews, summary, faqs, flash }} />);
     });
   });
 
@@ -154,6 +158,13 @@ export function pageRoutes(lang: Lang) {
     cachedPage(c, { ttl: 600 }, async () => {
       const ctx = await pageCtxFor(c, lang, "/about");
       return renderHtml(c, ctx, <AboutPage ctx={ctx} />);
+    }),
+  );
+
+  r.get("/faq", (c) =>
+    cachedPage(c, { ttl: 300 }, async () => {
+      const ctx = await pageCtxFor(c, lang, "/faq");
+      return renderHtml(c, ctx, <FaqPage ctx={ctx} items={await siteFaqs(c.env)} />);
     }),
   );
 

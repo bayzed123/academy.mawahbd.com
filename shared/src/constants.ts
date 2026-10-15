@@ -52,6 +52,8 @@ export const PERMISSIONS = {
   "bundles:write": SA_CM,
   "banners:read": ALL,
   "banners:write": SA_CM,
+  "faqs:read": ALL,
+  "faqs:write": SA_CM,
   "coupons:read": ALL,
   "coupons:write": SA_CM,
   "media:write": SA_CM,
@@ -101,6 +103,7 @@ export const ADMIN_NAV = [
   { key: "coupons", path: "coupons", perm: "coupons:read" },
   { key: "bundles", path: "bundles", perm: "bundles:read" },
   { key: "banners", path: "banners", perm: "banners:read" },
+  { key: "faqs", path: "faqs", perm: "faqs:read" },
   { key: "certificates", path: "certificates", perm: "certificates:read" },
   { key: "signups", path: "signups", perm: "signups:read" },
   { key: "messages", path: "messages", perm: "messages:read" },
@@ -115,6 +118,10 @@ export const ADMIN_NAV = [
 /** Where a banner is shown: the slider at the top of the home page, or the offer pop-up. */
 export const BANNER_PLACEMENTS = ["hero", "popup"] as const;
 export type BannerPlacement = (typeof BANNER_PLACEMENTS)[number];
+
+/** What a question is about (site-wide questions are grouped by it on the FAQ page). */
+export const FAQ_TOPICS = ["general", "payment", "learning", "certificate", "refund"] as const;
+export type FaqTopic = (typeof FAQ_TOPICS)[number];
 
 /** Icons available for category tags and generated class banners (see marketing/public/sprite.svg). */
 export const CLASS_ICONS = ["cake", "snack", "glass", "bowl", "sweet", "snowflake", "cupcake", "brownie", "pastry", "pot", "crescent", "tiffin", "mango"] as const;
