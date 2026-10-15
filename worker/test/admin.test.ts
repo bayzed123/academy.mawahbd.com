@@ -479,7 +479,9 @@ describe("student management", () => {
     expect((await json(await student.client.get("/api/student/courses"))).courses.map((c: any) => c.course.slug)).toContain(course.slug);
     const detail = await json(await support.get(`/api/admin/students/${student.id}`));
     expect(detail.enrollments[0]).toMatchObject({ source: "admin", status: "active" });
-    expect(JSON.stringify(detail)).not.toMatch(/password|hash/i);
+    // the only thing said about the password is whether one is set — never the password, its hash or a reset token
+    expect(detail.student.has_password).toBe(1);
+    expect(JSON.stringify(detail)).not.toMatch(/password_hash|\bhash\b|\btoken\b|"password"/i);
 
     expect((await support.post(`/api/admin/students/${student.id}/revoke`, { course_id: course.id })).status).toBe(200);
     expect((await json(await student.client.get("/api/student/courses"))).courses).toHaveLength(0);

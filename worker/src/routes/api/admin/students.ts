@@ -84,7 +84,7 @@ students.get("/students/:id", requirePerm("students:read"), async (c) => {
   const id = intParam(c, "id");
   const student = await first(
     c.env.DB,
-    "SELECT id, name, email, phone, locale, blocked, blocked_reason, email_verified_at, marketing_opt_in, source, notes, created_at, last_login_at FROM students WHERE id = ?",
+    "SELECT id, name, email, phone, locale, blocked, blocked_reason, email_verified_at, marketing_opt_in, source, notes, created_at, last_login_at, (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password FROM students WHERE id = ?",
     id,
   );
   if (!student) throw notFound();

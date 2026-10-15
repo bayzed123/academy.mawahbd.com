@@ -536,6 +536,7 @@ const en = {
 
   /* ------------------------------------------------------------------------------ students: add by hand, edit, import */
   "adm.stu.add": "Add student",
+  "adm.stu.id": "Student ID",
   "adm.stu.import": "Import a list",
   "adm.stu.col.source": "How they joined",
   "adm.stu.filter.source": "How they joined",
@@ -1662,6 +1663,7 @@ const bn: Record<keyof typeof en, string> = {
 
   /* ------------------------------------------------------------------------------ students: add by hand, edit, import */
   "adm.stu.add": "শিক্ষার্থী যোগ করুন",
+  "adm.stu.id": "স্টুডেন্ট আইডি",
   "adm.stu.import": "তালিকা থেকে যোগ করুন",
   "adm.stu.col.source": "কীভাবে যুক্ত",
   "adm.stu.filter.source": "কীভাবে যুক্ত হয়েছেন",
