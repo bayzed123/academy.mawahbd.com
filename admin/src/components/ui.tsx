@@ -67,14 +67,14 @@ export const TextInput = ({ error, ...rest }: WithError<InputHTMLAttributes<HTML
 export const TextArea = ({ error, ...rest }: WithError<TextareaHTMLAttributes<HTMLTextAreaElement>>) => <textarea {...rest} className={`input ${rest.className ?? ""}`} {...invalid(rest.id, error)} />;
 export const Select = ({ error, ...rest }: WithError<SelectHTMLAttributes<HTMLSelectElement>>) => <select {...rest} className={`input ${rest.className ?? ""}`} {...invalid(rest.id, error)} />;
 
-export function Switch({ checked, onChange, label, id, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; id?: string; disabled?: boolean }) {
+export function Switch({ checked, onChange, label, id, disabled, hideLabel }: { checked: boolean; onChange: (v: boolean) => void; label: string; id?: string; disabled?: boolean; /** keep the label for screen readers only (a switch in a table row) */ hideLabel?: boolean }) {
   const auto = useId();
   const sid = id ?? auto;
   return (
     <label className="switch" htmlFor={sid}>
       <input id={sid} type="checkbox" role="switch" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} />
       <span className="track" aria-hidden="true" />
-      <span>{label}</span>
+      <span className={hideLabel ? "vh" : undefined}>{label}</span>
     </label>
   );
 }

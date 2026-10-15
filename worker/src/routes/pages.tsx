@@ -19,6 +19,7 @@ import {
   shortName,
   type CourseSort,
 } from "../services/catalog";
+import { liveBanners } from "../services/banners";
 import { certificateByCode } from "../services/learning";
 import { CoursesPage } from "../views/pages/courses";
 import { CoursePage, RelatedFragment, ReviewsFragment } from "../views/pages/course";
@@ -51,7 +52,7 @@ export function pageRoutes(lang: Lang) {
     const flash = flashOf(c);
     return cachedPage(c, { ttl: 120, bypass: !!flash }, async () => {
       const ctx = await pageCtxFor(c, lang, "/");
-      const [feat, beginners, instructors, counts, minRow, reviews, posts] = await Promise.all([
+      const [feat, beginners, instructors, counts, minRow, reviews, posts, banners] = await Promise.all([
         listCourses(c.env, { featuredOnly: true, perPage: 9 }),
         listCourses(c.env, { level: "beginner", perPage: 4 }),
         listInstructors(c.env),
@@ -65,6 +66,7 @@ export function pageRoutes(lang: Lang) {
            ORDER BY r.rating DESC, r.created_at DESC LIMIT 3`,
         ),
         all<PostRow>(c.env.DB, `SELECT ${POST_COLS} FROM blog_posts WHERE status = 'published' AND deleted_at IS NULL ORDER BY published_at DESC LIMIT 3`),
+        liveBanners(c.env, "hero", 8),
       ]);
       let featured = feat.items;
       if (featured.length === 0) featured = (await listCourses(c.env, { perPage: 9 })).items;
@@ -74,6 +76,7 @@ export function pageRoutes(lang: Lang) {
         <HomePage
           ctx={ctx}
           data={{
+            banners,
             featured,
             beginners: beginners.items,
             instructors: instructors.slice(0, 3),

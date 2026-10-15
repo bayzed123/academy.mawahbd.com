@@ -1,6 +1,7 @@
 import { common, createT, site, type CategoryDTO, type Lang } from "@mawah/shared";
 import type { Env } from "../env";
 import type { Settings } from "../lib/settings";
+import type { BannerDTO } from "../services/banners";
 
 const dict = {
   en: { ...common.en, ...site.en } as Record<string, string>,
@@ -22,6 +23,8 @@ export interface PageCtx {
   href: (path: string) => string;
   /** the same page in the other language */
   altHref: string;
+  /** the offer pop-up to show on this page (Admin → Banners), if any */
+  popup: BannerDTO | null;
   abs: (path: string) => string;
 }
 
@@ -46,6 +49,7 @@ export function makePageCtx(env: Env, settings: Settings, categories: CategoryDT
     t,
     href: (p) => localizedPath(lang, p),
     altHref: localizedPath(other, path),
+    popup: null,
     abs: (p) => `${base}${p}`,
   };
 }

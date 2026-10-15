@@ -9,7 +9,7 @@ import { Button, Icon, SlideOver, useDebounced } from "./ui";
 
 const NAV_ICON: Record<string, string> = {
   dashboard: "grid", courses: "book", instructors: "user", orders: "wallet", students: "users", reviews: "star", questions: "chat",
-  blog: "edit", coupons: "tag", bundles: "gift", certificates: "award", signups: "bell", messages: "inbox", chatbot: "bot",
+  blog: "edit", coupons: "tag", bundles: "gift", banners: "image", certificates: "award", signups: "bell", messages: "inbox", chatbot: "bot",
   reports: "chart", staff: "shield", settings: "settings", activity: "activity", help: "help",
 };
 
