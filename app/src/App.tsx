@@ -9,6 +9,7 @@ import { NotFound } from "./pages/NotFound";
 // heavier screens load on demand so the first paint (login / My Learning) stays small and fast
 const CourseOverview = lazy(() => import("./pages/Course").then((m) => ({ default: m.CourseOverview })));
 const LessonPlayer = lazy(() => import("./pages/Lesson").then((m) => ({ default: m.LessonPlayer })));
+const ReviewPage = lazy(() => import("./pages/Review").then((m) => ({ default: m.ReviewPage })));
 const Preview = lazy(() => import("./pages/Lesson").then((m) => ({ default: m.Preview })));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Orders = lazy(() => import("./pages/Orders").then((m) => ({ default: m.Orders })));
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="forgot" element={<Forgot />} />
           <Route path="reset/:token" element={<Reset />} />
           <Route path="preview/:lessonId" element={<Preview />} />
+          <Route path="review/:slug" element={guard(<ReviewPage />)} />
           <Route path="learn/:slug" element={guard(<CourseOverview />)} />
           <Route path="learn/:slug/:lessonId" element={guard(<LessonPlayer />)} />
           <Route path="checkout" element={guard(<Checkout />)} />

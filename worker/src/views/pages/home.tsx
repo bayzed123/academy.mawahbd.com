@@ -4,7 +4,7 @@ import { stripMarkdown } from "../../lib/markdown";
 import type { PageCtx } from "../ctx";
 import { HeroArt } from "../hero-art";
 import { Layout } from "../layout";
-import { CourseCard, Flash, Icon, SectionHead, Stars } from "../ui";
+import { CourseCard, Flash, Icon, InstructorBadges, SectionHead, Stars, shopOf } from "../ui";
 import { organizationLd, websiteLd } from "../seo";
 import type { BannerDTO } from "../../services/banners";
 import { BannerSlider } from "../banners";
@@ -32,6 +32,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
     { icon: "wallet", title: t("why.pay.title"), desc: t("why.pay.desc") },
     { icon: "chat", title: t("why.ask.title"), desc: t("why.ask.desc") },
   ];
+  const shop = shopOf(ctx);
   return (
     <Layout
       ctx={ctx}
@@ -157,6 +158,20 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
                 </span>
               </a>
             ))}
+            {shop && (
+              <a class="tile tile-shop" href={shop.href} target="_blank" rel="noopener noreferrer" data-shop>
+                <span class="tile-ico">
+                  <Icon name="shop" />
+                </span>
+                <span>
+                  <b>
+                    {shop.label} <Icon name="external" />
+                    <span class="vh"> ({t("shop.opens")})</span>
+                  </b>
+                  <small>{t("shop.tile.sub", { host: shop.host })}</small>
+                </span>
+              </a>
+            )}
           </div>
         </div>
       </section>
@@ -188,6 +203,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
                       <a href={ctx.href(`/instructors/${i.slug}`)}>{loc(i, "name", lang)}</a>
                     </h3>
                     <p class="muted">{loc(i, "headline", lang)}</p>
+                    <InstructorBadges ctx={ctx} rating={i.rating} />
                     <p>{stripMarkdown(loc(i, "bio", lang), 140)}</p>
                   </div>
                 </div>

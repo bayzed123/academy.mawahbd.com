@@ -24,6 +24,8 @@ publicRoutes.get("/site", async (c) => {
     site: {
       contact: { whatsapp: s.contact.whatsapp, phone: s.contact.phone, email: s.contact.email, facebook: s.contact.facebook },
       announcement: s.announcement,
+      // null when the owner switched the link off or left the address empty
+      shop: s.shop.enabled && /^https?:\/\//i.test(s.shop.url) ? { url: s.shop.url, label_bn: s.shop.label_bn, label_en: s.shop.label_en } : null,
       chat_enabled: s.chatbot.enabled,
       greeting: { bn: s.chatbot.greeting_bn, en: s.chatbot.greeting_en },
       turnstile_site_key: turnstileEnabled(c.env) ? c.env.TURNSTILE_SITE_KEY : "",

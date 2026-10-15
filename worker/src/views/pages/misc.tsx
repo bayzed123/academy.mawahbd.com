@@ -1,13 +1,14 @@
 import { raw } from "hono/html";
 import { formatDate, formatMoney, loc, type CourseCardDTO, type OrderDTO } from "@mawah/shared";
 import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
-import type { InstructorDTO } from "../../services/catalog";
+import type { InstructorDTO, InstructorReview } from "../../services/catalog";
 import type { CertRow } from "../../services/learning";
 import type { PageCtx } from "../ctx";
 import { Layout } from "../layout";
 import { qrSvg } from "../qr";
+import { ReviewList } from "./course";
 import { articleLd, breadcrumbLd, personLd } from "../seo";
-import { CourseCard, Crumbs, Flash, Icon, LogoImg, SectionHead } from "../ui";
+import { CourseCard, Crumbs, Flash, Icon, InstructorBadges, LogoImg, SectionHead } from "../ui";
 
 /* ======================================================================================== blog */
 export interface PostRow {
@@ -117,7 +118,7 @@ export function BlogPostPage({ ctx, post }: { ctx: PageCtx; post: PostRow }) {
 }
 
 /* ================================================================================== instructor */
-export function InstructorPage({ ctx, instructor, courses }: { ctx: PageCtx; instructor: InstructorDTO; courses: CourseCardDTO[] }) {
+export function InstructorPage({ ctx, instructor, courses, reviews }: { ctx: PageCtx; instructor: InstructorDTO; courses: CourseCardDTO[]; reviews: InstructorReview[] }) {
   const { t, lang } = ctx;
   const name = loc(instructor, "name", lang);
   return (
@@ -132,6 +133,7 @@ export function InstructorPage({ ctx, instructor, courses }: { ctx: PageCtx; ins
           <Crumbs items={[{ label: t("nav.home"), href: ctx.href("/") }, { label: name }]} />
           <h1>{name}</h1>
           <p>{loc(instructor, "headline", lang)}</p>
+          <InstructorBadges ctx={ctx} rating={instructor.rating} />
         </div>
       </section>
       <section class="section tight">
@@ -153,6 +155,12 @@ export function InstructorPage({ ctx, instructor, courses }: { ctx: PageCtx; ins
               )}
             </div>
           </div>
+        </div>
+      </section>
+      <section class="section tight" id="reviews">
+        <div class="wrap">
+          <SectionHead title={t("instructor.reviews_title", { name })} />
+          {reviews.length > 0 ? <ReviewList ctx={ctx} reviews={reviews} withClass /> : <p class="muted">{t("instructor.reviews_none")}</p>}
         </div>
       </section>
       <section class="section band">

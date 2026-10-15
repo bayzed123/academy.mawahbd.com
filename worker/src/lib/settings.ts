@@ -27,6 +27,8 @@ export interface Settings {
   about: { bn: string; en: string };
   analytics: { ga4: string; clarity: string; meta_pixel: string };
   chatbot: { enabled: boolean; greeting_bn: string; greeting_en: string; faq_bn: string; faq_en: string };
+  /** a link to the owner's shop (https://mawahbd.com): shown in the menus, the footer, the class list and the student app */
+  shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
   onboarding: { dismissed: boolean };
 }
 
@@ -46,6 +48,7 @@ export const SETTING_DEFAULTS: Settings = {
   about: { bn: "", en: "" },
   analytics: { ga4: "", clarity: "", meta_pixel: "" },
   chatbot: { enabled: true, greeting_bn: "", greeting_en: "", faq_bn: "", faq_en: "" },
+  shop: { enabled: true, url: "https://mawahbd.com", label_bn: "দোকান", label_en: "Shop" },
   onboarding: { dismissed: false },
 };
 

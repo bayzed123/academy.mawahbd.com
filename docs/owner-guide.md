@@ -173,6 +173,18 @@
 2. **পাসওয়ার্ড ও কী কাউকে পাঠাবেন না** — হোয়াটসঅ্যাপে, ইমেইলে, স্ক্রিনশটে কোথাও না। দরকার হলে ডেভেলপার সরাসরি Cloudflare-এ বসাবেন।
 3. **ভিডিও ও রেসিপির মূল কপি আপনার কাছে রাখুন, আর প্রতি সপ্তাহে ডেটাবেসের ব্যাকআপ নিন** (ডেভেলপার দেখিয়ে দেবেন — [ব্যাকআপ ও রিস্টোর](security.md#backup-and-restore))।
 
+## ১৬. রিভিউ, রেটিং ও শপ লিংক
+
+**রিভিউ কীভাবে কাজ করে**
+
+* শুধু যিনি ক্লাসে ভর্তি হয়েছেন তিনিই রিভিউ দিতে পারেন — ক্লাসের পাতায় বা “আমার ক্লাস”-এ **রিভিউ লিখুন** বোতামে। এতে প্রতিটি রেটিং আসল শিক্ষার্থীর।
+* রিভিউ প্রথমে **অপেক্ষমাণ** থাকে। *রিভিউ* মেনুতে ✓ চিহ্নে **অনুমোদন** করলে সাথে সাথে সেটি ক্লাসের পাতায়, ক্লাসের তালিকায় ও ইন্সট্রাক্টরের প্রোফাইলে দেখা যায়। 💬 চিহ্নে ক্লিক করে উত্তরও দিতে পারেন।
+* তারকা ও গড় রেটিং শুধু **অনুমোদিত** রিভিউ থেকে হিসাব হয়। কোনো ক্লাসে রিভিউ না থাকলে সাইটে লেখা থাকে “এখনো কোনো রিভিউ নেই” ও একটি **প্রথম রিভিউটি আপনি দিন** বোতাম — কোনো বানানো সংখ্যা কখনো দেখানো হয় না।
+* **ইন্সট্রাক্টরের রেটিং** = তাঁর সব প্রকাশিত ক্লাসের অনুমোদিত রিভিউর গড়। প্রোফাইলে “মাওয়াহ একাডেমির ইন্সট্রাক্টর” ব্যাজ, রেটিং ও ক্লাসের সংখ্যা দেখা যায়।
+* অনুমোদনের পর কেউ পুরোনো পাতা দেখলে পাতাটি একবার রিফ্রেশ করুন (সর্বোচ্চ প্রায় ১ মিনিট)।
+
+**শপ লিংক (https://mawahbd.com):** *সেটিংস → যোগাযোগ, ঘোষণা ও শপ* অংশে ঠিকানা, মেনুর নাম (বাংলা ও English) বদলানো যায় এবং এক ক্লিকে বন্ধ করা যায়। চালু থাকলে মেনু, মোবাইল মেনু, ফুটার, ক্লাসের তালিকা, হোম পাতা ও স্টুডেন্ট অ্যাপে “শপ” দেখা যায়; ক্লিক করলে শপ **নতুন ট্যাবে** খোলে।
+
 ## ১৭. ব্যানার — হোম পেজের স্লাইডার ও অফার পপ-আপ
 
 বাঁ মেনুর **ব্যানার** খুলে **+ যোগ করুন** চাপুন। যা বদলাবেন সাথে সাথে ওয়েবসাইটে লাইভ হয়।
@@ -351,6 +363,18 @@ When someone leaves, **deactivate** their account — their access ends at once.
 1. **Never invent numbers.** Do not write “1,000 learners” unless it is true. The system never shows made-up figures either.
 2. **Never send a password or key to anyone** — not on WhatsApp, e-mail or in a screenshot. If one must be set, your developer enters it straight into Cloudflare.
 3. **Keep the original videos and recipe files yourself, and take a database backup every week** (your developer will show you — [Backup and restore](security.md#backup-and-restore)).
+
+## 16. Reviews, ratings and the Shop link
+
+**How reviews work**
+
+* Only a student who has enrolled can review — with the **Write a review** button on the class page or in *My classes*. So every rating comes from a real learner.
+* A review starts as **Pending**. In *Reviews*, press ✓ to **approve** it and it appears at once on the class page, in the class list and on the instructor’s profile. The 💬 button lets you reply.
+* Stars and averages are calculated from **approved** reviews only. A class with none says “No reviews yet” and offers a **Be the first to review** button — the site never shows a made-up number.
+* **An instructor’s rating** is the average of the approved reviews on all their published classes. Their profile shows a “MAWAH Academy instructor” badge, the rating and the number of classes.
+* If someone still sees the old page after you approve, ask them to refresh once (at most about a minute).
+
+**The Shop link (https://mawahbd.com):** in *Settings → Contact, announcement & shop* you can change the address and the menu name (Bangla and English) and switch it off with one click. While it is on, “Shop” appears in the menu, the phone menu, the footer, the class list, the home page and the student app, and opens the shop in a **new tab**.
 
 ## 17. Banners — the home-page slider and the offer pop-up
 

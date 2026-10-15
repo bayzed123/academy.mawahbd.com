@@ -139,6 +139,13 @@ export interface CourseDetail extends CourseCardDTO {
   instructor: InstructorDTO | null;
 }
 
+/** What students think of an instructor: the average of the approved reviews of their live classes (real data only). */
+export interface InstructorRating {
+  avg: number;
+  count: number;
+  classes: number;
+}
+
 export interface InstructorDTO {
   id: number;
   slug: string;
@@ -151,6 +158,8 @@ export interface InstructorDTO {
   credentials: string;
   photo_key: string | null;
   links: { label: string; url: string }[];
+  /** filled in by the functions below that load instructors for a page */
+  rating?: InstructorRating;
 }
 
 interface InstructorRow extends Omit<InstructorDTO, "links"> {
@@ -158,6 +167,31 @@ interface InstructorRow extends Omit<InstructorDTO, "links"> {
 }
 
 const toInstructor = (r: InstructorRow): InstructorDTO => ({ ...r, links: safeJson(r.links, []) });
+
+/**
+ * Ratings per instructor, computed from their classes' approved-review totals (the same numbers the class pages show):
+ * a review-weighted average, so a class with 20 reviews counts for more than one with 1. Nothing here is ever invented —
+ * an instructor whose classes have no approved review has count 0.
+ */
+export async function instructorRatings(env: Env, ids: number[]): Promise<Map<number, InstructorRating>> {
+  const out = new Map<number, InstructorRating>();
+  const unique = [...new Set(ids)].filter((n) => Number.isInteger(n) && n > 0).slice(0, 100);
+  if (unique.length === 0) return out;
+  const rows = await all<{ instructor_id: number; classes: number; reviews: number; weighted: number }>(
+    env.DB,
+    `SELECT instructor_id, COUNT(*) AS classes, COALESCE(SUM(rating_count), 0) AS reviews, COALESCE(SUM(rating_avg * rating_count), 0) AS weighted
+     FROM courses WHERE instructor_id IN (${unique.map(() => "?").join(",")}) AND deleted_at IS NULL AND status IN ('published','coming_soon')
+     GROUP BY instructor_id`,
+    ...unique,
+  );
+  for (const r of rows) out.set(r.instructor_id, { avg: r.reviews > 0 ? Math.round((r.weighted / r.reviews) * 10) / 10 : 0, count: r.reviews, classes: r.classes });
+  return out;
+}
+
+async function withRatings(env: Env, list: InstructorDTO[]): Promise<InstructorDTO[]> {
+  const ratings = await instructorRatings(env, list.map((i) => i.id));
+  return list.map((i) => ({ ...i, rating: ratings.get(i.id) ?? { avg: 0, count: 0, classes: 0 } }));
+}
 
 export async function getCourseBySlug(env: Env, slug: string, opts: { includeHidden?: boolean } = {}): Promise<CourseDetail | null> {
   const row = await first<CardRow & Record<string, unknown>>(
@@ -186,7 +220,7 @@ export async function getCourseBySlug(env: Env, slug: string, opts: { includeHid
     published_at: (row.published_at as string | null) ?? null,
     launch_at: (row.launch_at as string | null) ?? null,
     updated_at: row.updated_at as string,
-    instructor: instructor ? toInstructor(instructor) : null,
+    instructor: instructor ? (await withRatings(env, [toInstructor(instructor)]))[0] : null,
   };
 }
 
@@ -201,12 +235,12 @@ export async function listCategories(env: Env): Promise<CategoryDTO[]> {
 
 export async function listInstructors(env: Env): Promise<InstructorDTO[]> {
   const rows = await all<InstructorRow>(env.DB, "SELECT * FROM instructors WHERE active = 1 AND deleted_at IS NULL ORDER BY sort, id");
-  return rows.map(toInstructor);
+  return withRatings(env, rows.map(toInstructor));
 }
 
 export async function getInstructorBySlug(env: Env, slug: string): Promise<InstructorDTO | null> {
   const row = await first<InstructorRow>(env.DB, "SELECT * FROM instructors WHERE slug = ? AND active = 1 AND deleted_at IS NULL", slug);
-  return row ? toInstructor(row) : null;
+  return row ? (await withRatings(env, [toInstructor(row)]))[0] : null;
 }
 
 export async function coursesByInstructor(env: Env, instructorId: number): Promise<CourseCardDTO[]> {
@@ -287,6 +321,50 @@ export async function approvedReviews(env: Env, courseId: number, limit = 10): P
     limit,
   );
   return rows.map(({ name, ...r }) => ({ ...r, author: shortName(name) }));
+}
+
+/** A review shown on an instructor's profile: it also says which of their classes it is about. */
+export interface InstructorReview extends PublicReview {
+  course_slug: string;
+  course_title_bn: string;
+  course_title_en: string;
+}
+
+/** The latest approved reviews on the instructor's live classes (a hidden or draft class never shows up here). */
+export async function reviewsByInstructor(env: Env, instructorId: number, limit = 6): Promise<InstructorReview[]> {
+  const rows = await all<Omit<InstructorReview, "author"> & { name: string }>(
+    env.DB,
+    `SELECT r.id, r.rating, r.body, r.reply, r.created_at, s.name, c.slug AS course_slug, c.title_bn AS course_title_bn, c.title_en AS course_title_en
+     FROM reviews r JOIN students s ON s.id = r.student_id JOIN courses c ON c.id = r.course_id
+     WHERE c.instructor_id = ? AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon') AND r.status = 'approved'
+     ORDER BY r.created_at DESC, r.id DESC LIMIT ?`,
+    instructorId,
+    limit,
+  );
+  return rows.map(({ name, ...r }) => ({ ...r, author: shortName(name) }));
+}
+
+export interface ReviewSummary {
+  /** average of the approved reviews, one decimal (0 when there are none) */
+  avg: number;
+  count: number;
+  /** how many approved reviews gave 1, 2, 3, 4 and 5 stars (index 0 = one star) */
+  dist: [number, number, number, number, number];
+}
+
+/** The numbers behind the rating summary on a class page: every figure is counted from approved reviews, nothing else. */
+export async function reviewSummary(env: Env, courseId: number): Promise<ReviewSummary> {
+  const rows = await all<{ rating: number; n: number }>(env.DB, "SELECT rating, COUNT(*) AS n FROM reviews WHERE course_id = ? AND status = 'approved' GROUP BY rating", courseId);
+  const dist: [number, number, number, number, number] = [0, 0, 0, 0, 0];
+  let sum = 0;
+  let count = 0;
+  for (const r of rows) {
+    if (r.rating < 1 || r.rating > 5) continue;
+    dist[r.rating - 1] = r.n;
+    sum += r.rating * r.n;
+    count += r.n;
+  }
+  return { avg: count ? Math.round((sum / count) * 10) / 10 : 0, count, dist };
 }
 
 export function shortName(full: string): string {

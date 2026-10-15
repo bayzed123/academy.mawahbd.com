@@ -4,7 +4,7 @@ import { turnstileEnabled } from "../lib/turnstile";
 import { BANNERS_JS, CSS, HAS_OG_IMAGE, SITE_JS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
-import { Brand, Icon, jsonLd } from "./ui";
+import { Brand, Icon, jsonLd, shopOf } from "./ui";
 
 export interface LayoutProps {
   ctx: PageCtx;
@@ -49,6 +49,8 @@ export function Layout(props: LayoutProps) {
   const fb = httpUrl(settings.contact.facebook);
   const yt = httpUrl(settings.contact.youtube);
   const ig = httpUrl(settings.contact.instagram);
+  const shop = shopOf(ctx);
+  const shopAttrs = { target: "_blank", rel: "noopener noreferrer", "data-shop": "" } as const;
 
   const nav = [
     { href: ctx.href("/courses"), label: t("nav.classes"), match: "/courses" },
@@ -121,6 +123,16 @@ export function Layout(props: LayoutProps) {
                       </a>
                     </li>
                   ))}
+                  {shop && (
+                    <li class="nav-shop">
+                      <a href={shop.href} {...shopAttrs}>
+                        <Icon name="shop" />
+                        {shop.label}
+                        <Icon name="external" />
+                        <span class="vh"> ({t("shop.opens")})</span>
+                      </a>
+                    </li>
+                  )}
                 </ul>
                 <div class="nav-actions">
                   <a class="lang-toggle" href={ctx.altHref} hreflang={lang === "bn" ? "en" : "bn"} lang={lang === "bn" ? "en" : "bn"} title={t("lang.switch")}>
@@ -141,6 +153,14 @@ export function Layout(props: LayoutProps) {
                       {nav.map((n) => (
                         <a href={n.href}>{n.label}</a>
                       ))}
+                      {shop && (
+                        <a class="menu-shop" href={shop.href} {...shopAttrs}>
+                          <Icon name="shop" />
+                          {shop.label}
+                          <Icon name="external" />
+                          <span class="vh"> ({t("shop.opens")})</span>
+                        </a>
+                      )}
                       <a href={ctx.href("/verify")}>
                         <Icon name="award" />
                         {t("nav.verify")}
@@ -215,6 +235,13 @@ export function Layout(props: LayoutProps) {
                     <li>
                       <a href={ctx.href("/verify")}>{t("nav.verify")}</a>
                     </li>
+                    {shop && (
+                      <li>
+                        <a href={shop.href} {...shopAttrs}>
+                          {shop.label} ↗<span class="vh"> ({t("shop.opens")})</span>
+                        </a>
+                      </li>
+                    )}
                   </ul>
                   <p class="foot-h mt">{t("footer.policies")}</p>
                   <ul>

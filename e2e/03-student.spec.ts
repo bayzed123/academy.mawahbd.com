@@ -72,6 +72,13 @@ test("a free class enrolls instantly; finishing it issues a verifiable certifica
   await page.goto(`/en/certificate/${code}`);
   await expect(page.locator("svg").first()).toBeVisible();
   await expect(page.locator("body")).toContainText("Rabeya Khatun");
+
+  // the class page's "Write a review" button leads to /app/review/<class>: not enrolled in that class yet -> a friendly
+  // explanation and the way to enroll, never a bare error (only enrolled students may review, so every rating is real)
+  await page.goto("/app/review/beginners-baking-class");
+  await expect(page.getByRole("heading", { name: "Rate this class" })).toBeVisible();
+  await expect(page.getByText("Only students who are enrolled in this class can review it.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Enroll to start learning" })).toHaveAttribute("href", /checkout\?c=beginners-baking-class/);
 });
 
 test("a paid class: test gateway -> webhook-confirmed enrollment -> lessons, progress, Q&A, review", async () => {
@@ -109,6 +116,11 @@ test("a paid class: test gateway -> webhook-confirmed enrollment -> lessons, pro
   await page.getByRole("button", { name: "5" }).click();
   await page.getByLabel("Tell others what you liked (optional)").fill("Clear and easy to follow.");
   await page.getByRole("button", { name: "Submit" }).click();
+  await expect(page.getByText("Waiting for approval")).toBeVisible();
+  // the same state is on the review page the public "Write a review" button leads to
+  await page.goto("/app/review/beginners-baking-class");
+  await expect(page.getByRole("heading", { level: 1, name: "Beginners Baking Class" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Rate this class" })).toBeVisible();
   await expect(page.getByText("Waiting for approval")).toBeVisible();
   const publicCourse = await (await page.request.get("/api/courses/beginners-baking-class")).json();
   expect(publicCourse.reviews).toHaveLength(0); // not public until approved
