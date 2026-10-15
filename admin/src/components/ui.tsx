@@ -171,16 +171,30 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 /* -------------------------------------------------------------------------------------------- slide-over */
+/** Drawers that are open right now, oldest first: only the top one answers Escape / Tab, and the page scrolls again once the last one closes. */
+const openDrawers: object[] = [];
+
 export function SlideOver({ open, onClose, title, children, footer, wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
   const { t } = useI18n();
   const panel = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  // Pages hand over a NEW onClose on every render, and a form re-renders on every keystroke. If the effect below depended
+  // on onClose it would run its clean-up and set-up again after each letter: focus went back to the button that opened the
+  // drawer and then to the first field — "the keyboard disappears after one character". So the latest onClose is read
+  // through a ref, and the effect only runs when the drawer opens or closes.
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
+    const me = {};
+    openDrawers.push(me);
     const previous = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (openDrawers[openDrawers.length - 1] !== me) return;
+      if (e.key === "Escape") closeRef.current();
       if (e.key === "Tab" && panel.current) {
         // keep keyboard focus inside the drawer
         const f = panel.current.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])');
@@ -198,13 +212,21 @@ export function SlideOver({ open, onClose, title, children, footer, wide }: { op
     };
     document.addEventListener("keydown", onKey);
     document.body.classList.add("no-scroll");
-    window.setTimeout(() => panel.current?.querySelector<HTMLElement>("input,select,textarea,button.close")?.focus(), 30);
+    // put the caret in the first field (the × button when the drawer has none) — unless the person was quicker and has already clicked into one
+    const focusTimer = window.setTimeout(() => {
+      const box = panel.current;
+      if (!box || box.contains(document.activeElement)) return;
+      const field = box.querySelector<HTMLElement>(".slide-body :is(input:not([type=hidden],[type=file],[type=checkbox],[type=radio]),select,textarea)");
+      (field ?? box.querySelector<HTMLElement>("button.close"))?.focus();
+    }, 30);
     return () => {
+      window.clearTimeout(focusTimer);
       document.removeEventListener("keydown", onKey);
-      document.body.classList.remove("no-scroll");
+      openDrawers.splice(openDrawers.indexOf(me), 1);
+      if (openDrawers.length === 0) document.body.classList.remove("no-scroll");
       previous?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   return (
