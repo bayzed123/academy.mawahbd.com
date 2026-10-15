@@ -16,12 +16,14 @@ import {
   listInstructors,
   publishedCounts,
   relatedCourses,
+  reviewSummary,
+  reviewsByInstructor,
   shortName,
   type CourseSort,
 } from "../services/catalog";
 import { certificateByCode } from "../services/learning";
 import { CoursesPage } from "../views/pages/courses";
-import { CoursePage, RelatedFragment, ReviewsFragment } from "../views/pages/course";
+import { CoursePage, RelatedFragment, ReviewList } from "../views/pages/course";
 import { HomePage } from "../views/pages/home";
 import {
   AboutPage,
@@ -113,8 +115,8 @@ export function pageRoutes(lang: Lang) {
       const ctx = await pageCtxFor(c, lang, `/courses/${slug}`);
       const course = await getCourseBySlug(c.env, slug);
       if (!course) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
-      const [curriculum, reviews] = await Promise.all([getCurriculum(c.env, course.id), approvedReviews(c.env, course.id)]);
-      return renderHtml(c, ctx, <CoursePage ctx={ctx} data={{ course, curriculum, reviews, flash }} />);
+      const [curriculum, reviews, summary] = await Promise.all([getCurriculum(c.env, course.id), approvedReviews(c.env, course.id), reviewSummary(c.env, course.id)]);
+      return renderHtml(c, ctx, <CoursePage ctx={ctx} data={{ course, curriculum, reviews, summary, flash }} />);
     });
   });
 
@@ -123,7 +125,8 @@ export function pageRoutes(lang: Lang) {
       const ctx = await pageCtxFor(c, lang, `/instructors/${c.req.param("slug")}`);
       const instructor = await getInstructorBySlug(c.env, c.req.param("slug"));
       if (!instructor) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
-      return renderHtml(c, ctx, <InstructorPage ctx={ctx} instructor={instructor} courses={await coursesByInstructor(c.env, instructor.id)} />);
+      const [courses, reviews] = await Promise.all([coursesByInstructor(c.env, instructor.id), reviewsByInstructor(c.env, instructor.id)]);
+      return renderHtml(c, ctx, <InstructorPage ctx={ctx} instructor={instructor} courses={courses} reviews={reviews} />);
     }),
   );
 
@@ -196,13 +199,18 @@ export function pageRoutes(lang: Lang) {
 /** Lazy-loaded HTML fragments for the course page (language comes from ?lang=). */
 export const fragmentRoutes = new Hono<AppEnv>();
 
+/**
+ * Reviews are part of the class page itself now (so search engines and no-script visitors get them). This route stays so
+ * that a page cached before the release can still fill its reviews instead of showing "Loading…" for the cache's lifetime.
+ */
 fragmentRoutes.get("/reviews/:slug", async (c) => {
   const lang: Lang = c.req.query("lang") === "en" ? "en" : "bn";
   return cachedPage(c, { ttl: 180, keep: ["lang"] }, async () => {
     const ctx = await pageCtxFor(c, lang, "/");
     const course = await getCourseBySlug(c.env, c.req.param("slug"));
     if (!course) throw new HttpError(404, "not_found");
-    const body = await (<ReviewsFragment ctx={ctx} reviews={await approvedReviews(c.env, course.id, 12)} />).toString();
+    const reviews = await approvedReviews(c.env, course.id, 12);
+    const body = await (reviews.length ? <ReviewList ctx={ctx} reviews={reviews} /> : <p class="muted">{ctx.t("reviews.empty.title")}</p>).toString();
     return new Response(body, { headers: { "Content-Type": "text/html; charset=utf-8", "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'" } });
   });
 });

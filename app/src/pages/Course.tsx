@@ -76,7 +76,7 @@ export function CurriculumList({ view, slug, currentId }: { view: CourseView; sl
 const BN = "০১২৩৪৫৬৭৮৯";
 const toBn = (n: number) => String(n).replace(/\d/g, (d) => BN[Number(d)]);
 
-function ReviewBox({ view, slug }: { view: CourseView; slug: string }) {
+export function ReviewBox({ view, slug }: { view: CourseView; slug: string }) {
   const { t } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
@@ -96,7 +96,7 @@ function ReviewBox({ view, slug }: { view: CourseView; slug: string }) {
 
   if (existing && !editing) {
     return (
-      <section className="panel">
+      <section className="panel" id="review">
         <h2>{t("app.course.review.title")}</h2>
         <div className="stars" aria-label={`${existing.rating}/5`}>
           {[1, 2, 3, 4, 5].map((n) => (
@@ -113,7 +113,7 @@ function ReviewBox({ view, slug }: { view: CourseView; slug: string }) {
     );
   }
   return (
-    <section className="panel">
+    <section className="panel" id="review">
       <h2>{t("app.course.review.title")}</h2>
       <div className="stars-input" role="group" aria-label={t("label.rating")}>
         {[1, 2, 3, 4, 5].map((n) => (
@@ -184,6 +184,9 @@ export function CourseOverview() {
           ) : (
             <span className="badge-soon">{t("app.course.noLessons")}</span>
           )}
+          <a className="btn btn-light" href="#review">
+            <Icon name="star" /> {t("app.course.rate")}
+          </a>
           <a className="btn btn-light" href={`${home}/courses/${slug}`}>
             {t("btn.readMore")}
           </a>

@@ -103,7 +103,7 @@ html[lang=bn] .step::before{content:counter(step,bengali)}
 .person h3{margin:0 0 .1em}
 .person .muted{margin:0 0 .5em;font-size:.95rem}
 .reviews{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
-.review{padding:20px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r)}
+.review{margin:0;padding:20px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r)}
 .review p{margin:.5rem 0}
 .review footer{font-size:.88rem;color:var(--ink-3)}
 .review .reply{margin-top:.7rem;padding:.7rem .9rem;border-radius:12px;background:var(--g-100);font-size:.92rem;border-left:3px solid var(--g-500)}
@@ -261,6 +261,77 @@ html[lang=bn] .cert-brand{letter-spacing:0;text-transform:none}
   .card-foot .btn{flex:1 1 100%}
   .nav-actions>.btn{display:none} /* log in / My Learning live in the menu on small phones */
   .menu-panel .menu-login{display:flex}
+}
+
+/* ---------- shop link, ratings, reviews ---------- */
+/* the owner's shop (an external site): a gold outlined pill, so it reads as "another place" and not as one more page */
+.nav-links .nav-shop a{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .85rem;border:1.5px solid var(--g-400);border-radius:999px;color:var(--g-300)}
+.nav-links .nav-shop a:hover{background:rgba(217,205,105,.14);color:#fff;border-color:var(--g-400)}
+.nav-shop .icon{width:1.05em;height:1.05em}
+.nav-shop .icon:last-of-type{width:.8em;height:.8em;opacity:.8}
+.menu-panel .menu-shop{color:var(--g-300)}
+.menu-panel .menu-shop .icon:last-of-type{width:.85em;height:.85em;margin-inline-start:auto;opacity:.8}
+/* the hidden "opens in a new tab" text is absolutely positioned: anchor it inside its link, or in a scrolling row it widens the whole page */
+[data-shop]{position:relative}
+.pill-shop{border-color:var(--g-500);background:var(--g-100);color:var(--g-900)}
+.pill-shop:hover{border-color:var(--g-700);color:var(--k-950);background:var(--g-300)}
+.pill-shop .icon:last-of-type{width:.8em;height:.8em;opacity:.75}
+.tile-shop{--accent:var(--g-600);border-style:dashed;border-left-style:solid}
+.tile-shop b .icon{width:.8em;height:.8em;opacity:.7}
+
+/* rating badge: real figures only — "Not rated yet" is shown instead of an invented number */
+.rating-badge{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .75rem;border-radius:999px;font-size:.92rem;font-weight:600;background:var(--g-100);color:var(--g-900);border:1px solid var(--g-300);text-decoration:none;line-height:1.3}
+.rating-badge .stars{display:inline-flex;gap:1px;color:var(--g-600)}
+.rating-badge .stars .icon{width:1em;height:1em}
+.rating-badge .stars .icon.off{color:var(--g-300)}
+.rating-badge.is-none{background:var(--ivory-2);color:var(--ink-2);border-color:var(--line-2);font-weight:500}
+a.rating-badge:hover{border-color:var(--g-600);color:var(--k-950)}
+.badge-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:.55rem 0}
+.badge-pro,.badge-plain{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .75rem;border-radius:999px;font-size:.9rem;font-weight:600;line-height:1.3}
+.badge-pro{background:var(--k-900);color:var(--g-300);border:1px solid rgba(217,205,105,.45)}
+.badge-pro .icon{width:1em;height:1em;color:var(--g-400)}
+.badge-plain{background:var(--ivory-2);color:var(--ink-2);border:1px solid var(--line-2);font-weight:500}
+.page-hero .badge-pro{border-color:rgba(217,205,105,.7)}
+.page-hero .badge-plain{background:rgba(255,255,255,.1);color:#f3ebe0;border-color:rgba(255,255,255,.3)}
+.facts .fact-rating a{display:inline-flex;align-items:center;gap:.45rem;color:inherit;text-decoration:none;border-bottom:1px dashed rgba(230,220,140,.55)}
+.facts .fact-rating a:hover{color:#fff;border-bottom-color:var(--g-400)}
+.facts .fact-rating .stars{display:inline-flex;gap:1px;color:var(--g-400)}
+.facts .fact-rating .stars .icon{width:1em;height:1em}
+.facts .fact-rating .stars .icon.off{color:rgba(230,220,140,.4)}
+
+/* reviews on the class page */
+.rev-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px;margin-bottom:14px}
+.rev-head h2{margin:0}
+.rev-sum{display:grid;gap:22px;grid-template-columns:minmax(0,210px) minmax(0,1fr);align-items:center;padding:20px 22px;margin-bottom:16px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r)}
+.rev-score{display:grid;justify-items:start;gap:.3rem}
+.rev-avg{font-family:var(--font-display);font-size:3.2rem;line-height:1;color:var(--k-900)}
+.rev-score .stars{display:inline-flex;gap:2px;color:var(--g-600)}
+.rev-score .stars .icon{width:1.25em;height:1.25em}
+.rev-score .stars .icon.off{color:var(--line-2)}
+.rev-bars{display:grid;gap:7px;margin:0;padding:0;list-style:none}
+.rev-bars li{display:grid;grid-template-columns:4.2rem minmax(0,1fr) 2.2rem;gap:10px;align-items:center;font-size:.92rem;color:var(--ink-2)}
+.rev-bars .num{text-align:end;font-variant-numeric:tabular-nums}
+.rev-bar{width:100%;height:10px;border-radius:999px;overflow:hidden}
+.rev-bar-bg{fill:var(--line)}
+.rev-bar-fg{fill:var(--g-500)}
+.rev-rule{display:flex;gap:.5rem;align-items:center;margin-top:14px}
+.rev-rule .icon{width:1.1em;height:1.1em;color:var(--g-700)}
+.rev-empty{display:grid;justify-items:center;text-align:center;gap:.55rem;padding:28px 20px;border:1.5px dashed var(--line-2);border-radius:var(--r);background:var(--paper)}
+.rev-empty .stars{display:inline-flex;gap:3px;color:var(--line-2)}
+.rev-empty .stars .icon{width:1.6em;height:1.6em}
+.rev-empty h3{margin:.2rem 0 0}
+.rev-empty p{margin:0;max-width:46ch;color:var(--ink-2)}
+.rev-empty .btn{margin-top:.4rem}
+.review .stars{display:inline-flex;gap:1px;color:var(--g-600)}
+.review .rev-class{margin:.35rem 0 0;font-size:.88rem;font-weight:600}
+.review .rev-class a{color:var(--red-700)}
+.review .stars .icon.off{color:var(--line-2)}
+.review time{white-space:nowrap}
+.buy .btn-outline{margin-top:10px}
+
+@media (max-width:640px){
+  .rev-sum{grid-template-columns:minmax(0,1fr);gap:14px;padding:16px}
+  .rev-avg{font-size:2.6rem}
 }
 
 /* ---------- rendering performance ---------- */

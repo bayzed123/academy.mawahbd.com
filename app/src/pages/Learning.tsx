@@ -88,6 +88,9 @@ export function MyLearning() {
                   <Link className="btn btn-primary" to={cta}>
                     {done ? t("app.learning.review") : m.progress.done > 0 ? t("app.learning.continue") : t("app.learning.start")}
                   </Link>
+                  <Link className="btn btn-outline" to={`/review/${m.course.slug}`}>
+                    <Icon name="star" /> {t("app.learning.rate")}
+                  </Link>
                 </div>
               </div>
             </article>

@@ -1,16 +1,17 @@
 import { raw } from "hono/html";
-import { formatDuration, formatNumber, loc, type CourseCardDTO, type CurriculumModuleDTO } from "@mawah/shared";
+import { formatDate, formatDuration, formatNumber, loc, type CourseCardDTO, type CurriculumModuleDTO } from "@mawah/shared";
 import { renderMarkdown } from "../../lib/markdown";
-import type { CourseDetail, PublicReview } from "../../services/catalog";
+import type { CourseDetail, PublicReview, ReviewSummary } from "../../services/catalog";
 import type { PageCtx } from "../ctx";
 import { Layout } from "../layout";
 import { breadcrumbLd, courseLd, personLd } from "../seo";
-import { CourseCard, Crumbs, Flash, Icon, NotifyForm, priceLabel, Stars } from "../ui";
+import { avgLabel, CourseCard, Crumbs, Flash, Icon, InstructorBadges, NotifyForm, numLabel, priceLabel, reviewsLabel, Stars } from "../ui";
 
 export interface CourseData {
   course: CourseDetail;
   curriculum: CurriculumModuleDTO[];
   reviews: PublicReview[];
+  summary: ReviewSummary;
   flash?: string;
 }
 
@@ -30,6 +31,8 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
   const duration = formatDuration(course.duration_sec, lang);
   const lessonTotal = data.curriculum.reduce((s, m) => s + m.lessons.length, 0);
   const checkout = `/app/checkout?c=${encodeURIComponent(course.slug)}`;
+  const reviewHref = `/app/review/${encodeURIComponent(course.slug)}`;
+  const preview = data.curriculum.flatMap((m) => m.lessons).find((l) => l.is_preview);
   const includes = [t("course.inc.lessons"), t("course.inc.progress"), t("course.inc.ask"), ...(course.cert_enabled ? [t("course.inc.cert")] : [])];
 
   return (
@@ -86,12 +89,18 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
                 {t("course.cert")}
               </li>
             )}
-            {course.rating_count > 0 && (
-              <li>
-                <Stars value={course.rating_avg} />
-                {lang === "bn" ? formatNumber(course.rating_avg, "bn") : course.rating_avg.toFixed(1)} ({num(course.rating_count)})
-              </li>
-            )}
+            <li class="fact-rating">
+              <a href="#reviews">
+                <Stars value={course.rating_count > 0 ? course.rating_avg : 0} />
+                {course.rating_count > 0 ? (
+                  <>
+                    <b>{avgLabel(ctx, course.rating_avg)}</b> ({num(course.rating_count)})
+                  </>
+                ) : (
+                  t("course.rating.first")
+                )}
+              </a>
+            </li>
           </ul>
         </div>
       </section>
@@ -179,19 +188,64 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
                     <a href={ctx.href(`/instructors/${course.instructor.slug}`)}>{loc(course.instructor, "name", lang)}</a>
                   </h3>
                   <p class="muted">{loc(course.instructor, "headline", lang)}</p>
+                  <InstructorBadges ctx={ctx} rating={course.instructor.rating} />
                 </div>
               </div>
             </section>
           )}
 
-          <section aria-labelledby="rev-h">
-            <h2 id="rev-h">{t("course.reviews")}</h2>
-            <div class="lazy" data-fragment={`/_f/reviews/${course.slug}?lang=${lang}`} aria-busy="true">
-              <noscript>
-                <p class="muted">{t("reviews.none")}</p>
-              </noscript>
-              <span>{t("reviews.loading")}</span>
+          <section id="reviews" class="rev-sec" aria-labelledby="rev-h">
+            <div class="rev-head">
+              <h2 id="rev-h">{t("course.reviews")}</h2>
+              {data.summary.count > 0 && (
+                <a class="btn btn-outline btn-sm" href={reviewHref}>
+                  <Icon name="star" />
+                  {t("reviews.write")}
+                </a>
+              )}
             </div>
+            {data.summary.count === 0 ? (
+              <div class="rev-empty">
+                <Stars value={0} />
+                <h3>{t("reviews.empty.title")}</h3>
+                <p>{t("reviews.empty.body")}</p>
+                <a class="btn btn-primary" href={reviewHref}>
+                  <Icon name="star" />
+                  {t("reviews.write.first")}
+                </a>
+                <p class="small muted">{t("reviews.rule")}</p>
+              </div>
+            ) : (
+              <>
+                <div class="rev-sum">
+                  <div class="rev-score">
+                    <b class="rev-avg">{avgLabel(ctx, data.summary.avg)}</b>
+                    <Stars value={data.summary.avg} />
+                    <span class="muted">{data.summary.count === 1 ? t("reviews.based.one") : t("reviews.based", { n: numLabel(ctx, data.summary.count) })}</span>
+                  </div>
+                  <ul class="rev-bars" aria-label={t("reviews.breakdown")}>
+                    {[5, 4, 3, 2, 1].map((star) => {
+                      const n = data.summary.dist[star - 1] ?? 0;
+                      return (
+                        <li>
+                          <span>{t("reviews.stars", { n: numLabel(ctx, star) })}</span>
+                          <svg class="rev-bar" aria-hidden="true" focusable="false">
+                            <rect class="rev-bar-bg" width="100%" height="100%" />
+                            <rect class="rev-bar-fg" width={`${Math.round((n / data.summary.count) * 100)}%`} height="100%" />
+                          </svg>
+                          <span class="num">{numLabel(ctx, n)}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+                <ReviewList ctx={ctx} reviews={data.reviews} />
+                <p class="small muted rev-rule">
+                  <Icon name="shield" />
+                  {t("reviews.rule")}
+                </p>
+              </>
+            )}
           </section>
         </div>
 
@@ -213,6 +267,12 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
                 {t("btn.enrollNow")}
                 <Icon name="arrow" />
               </a>
+              {preview && (
+                <a class="btn btn-outline btn-block" href={`/app/preview/${preview.id}?c=${encodeURIComponent(course.slug)}`}>
+                  <Icon name="play" />
+                  {t("course.preview_cta")}
+                </a>
+              )}
               <ul>
                 <li>
                   <Icon name="wallet" />
@@ -242,7 +302,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
             <h2>{t("sec.related")}</h2>
           </header>
           <div class="lazy" data-fragment={`/_f/related/${course.slug}?lang=${lang}`} aria-busy="true">
-            <span>{t("reviews.loading")}</span>
+            <span>{t("label.loading")}</span>
           </div>
         </div>
       </section>
@@ -268,18 +328,25 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
   );
 }
 
-/** HTML fragment: approved reviews only (lazy-loaded below the fold). */
-export function ReviewsFragment({ ctx, reviews }: { ctx: PageCtx; reviews: PublicReview[] }) {
+/** Approved reviews only, newest first (the students' own words; the team's reply, when there is one, sits under it). */
+type ListedReview = PublicReview & { course_slug?: string; course_title_bn?: string; course_title_en?: string };
+
+/** The review cards. `withClass` adds "about <class>" under the stars (an instructor's profile mixes reviews from several classes). */
+export function ReviewList({ ctx, reviews, withClass = false }: { ctx: PageCtx; reviews: ListedReview[]; withClass?: boolean }) {
   const { t, lang } = ctx;
-  if (reviews.length === 0) return <p class="muted">{t("reviews.none")}</p>;
   return (
     <div class="reviews">
       {reviews.map((r) => (
         <figure class="review">
           <Stars value={r.rating} />
+          {withClass && r.course_slug && (
+            <p class="rev-class">
+              <a href={ctx.href(`/courses/${r.course_slug}`)}>{lang === "bn" ? r.course_title_bn || r.course_title_en : r.course_title_en || r.course_title_bn}</a>
+            </p>
+          )}
           {r.body && <p>{r.body}</p>}
           <footer>
-            {r.author} · {t("reviews.verified")}
+            {r.author} · {t("reviews.verified")} · <time datetime={r.created_at}>{formatDate(r.created_at, lang)}</time>
           </footer>
           {r.reply && (
             <div class="reply">

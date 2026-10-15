@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
+import { useSite } from "../lib/hooks";
 import { useI18n } from "../lib/i18n";
 import { Icon, Spinner } from "./ui";
 
@@ -32,6 +33,8 @@ export function Shell() {
 
   const home = lang === "en" ? "/en" : "/";
   const initial = (student?.name ?? "?").trim().charAt(0).toUpperCase();
+  const shop = useSite().data?.shop ?? null;
+  const shopLabel = shop ? (lang === "bn" ? shop.label_bn || shop.label_en : shop.label_en || shop.label_bn) || t("app.nav.shop") : "";
 
   return (
     <>
@@ -54,6 +57,13 @@ export function Shell() {
                 </NavLink>
               ))}
             <a href={`${home === "/" ? "" : home}/courses`}>{t("app.nav.browse")}</a>
+            {shop && (
+              <a className="nav-shop" href={shop.url} target="_blank" rel="noopener noreferrer">
+                <Icon name="shop" /> {shopLabel}
+                <Icon name="external" />
+                <span className="vh"> ({t("app.nav.opensNew")})</span>
+              </a>
+            )}
           </nav>
           <button type="button" className="lang-btn" onClick={switchLang} lang={lang === "bn" ? "en" : "bn"}>
             {t("lang.switch")}
@@ -74,6 +84,12 @@ export function Shell() {
                 <a href={`${home === "/" ? "" : home}/courses`}>
                   <Icon name="search" /> {t("app.nav.browse")}
                 </a>
+                {shop && (
+                  <a href={shop.url} target="_blank" rel="noopener noreferrer">
+                    <Icon name="shop" /> {shopLabel}
+                    <span className="vh"> ({t("app.nav.opensNew")})</span>
+                  </a>
+                )}
                 <hr />
                 <button
                   onClick={async () => {
