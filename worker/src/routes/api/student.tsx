@@ -10,7 +10,7 @@ import { pageCtxFor } from "../../lib/pagectx";
 import { renderHtml } from "../../lib/render";
 import { requireStudent } from "../../middleware/auth";
 import { rateLimit } from "../../middleware/ratelimit";
-import { refreshCourseRating, shortName } from "../../services/catalog";
+import { getCourseBySlug, refreshCourseRating, shortName } from "../../services/catalog";
 import {
   activeEnrollment,
   certificatesFor,
@@ -20,6 +20,7 @@ import {
   resourceForDownload,
   setLessonComplete,
 } from "../../services/learning";
+import { facebookUrl, materialsForStudent, recordUse, usableMaterial } from "../../services/materials";
 import { orderForStudent, ordersForStudent } from "../../services/orders";
 import { manualPayInfo } from "../../services/payments";
 import { InvoicePage } from "../../views/pages/misc";
@@ -58,6 +59,117 @@ studentRoutes.get("/resources/:id/download", async (c) => {
       "X-Content-Type-Options": "nosniff",
     },
   });
+});
+
+/* ------------------------------------------- class materials: enrolled students only ------------------------------------------- */
+/**
+ * What the owner added to a class under Admin → Materials. The list carries no address and no file key: a file is fetched through
+ * /download and a link through /open — both check the enrolment, both are recorded, and a file is never reachable any other way.
+ */
+studentRoutes.get("/courses/:slug/materials", async (c) => {
+  const me = c.get("student")!;
+  const course = await getCourseBySlug(c.env, c.req.param("slug"), { includeHidden: true });
+  if (!course) throw notFound();
+  if (!(await activeEnrollment(c.env, me.id, course.id))) throw forbidden("not_enrolled");
+  return ok(c, { materials: await materialsForStudent(c.env, me.id, course.id) });
+});
+
+/** Not enrolled (403) and no such material (404) are told apart only for a material that is really on offer. */
+async function materialFor(c: import("../../env").Ctx) {
+  const id = intParam(c, "id");
+  const me = c.get("student")!;
+  const m = await usableMaterial(c.env, id, me.id);
+  if (m) return { m, me };
+  const exists = await first(c.env.DB, "SELECT id FROM materials WHERE id = ? AND active = 1 AND deleted_at IS NULL", id);
+  throw exists ? forbidden("not_enrolled") : notFound();
+}
+
+/** "bytes=0-99" → where to start and how long; null when it is not a single simple range inside the file. */
+function simpleRange(header: string | undefined, size: number): { start: number; end: number } | null {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header ?? "");
+  if (!m || (m[1] === "" && m[2] === "")) return null;
+  let start = m[1] === "" ? size - Number(m[2]) : Number(m[1]);
+  const end = m[1] === "" || m[2] === "" ? size - 1 : Math.min(Number(m[2]), size - 1);
+  start = Math.max(0, start);
+  return start <= end && start < size ? { start, end } : null;
+}
+
+studentRoutes.get("/materials/:id/download", async (c) => {
+  const { m, me } = await materialFor(c);
+  if (!m.r2_key) throw notFound(); // a link is opened, not downloaded
+  // a student downloads a handful of files, not thousands: a generous hourly limit keeps a scraper from emptying the bucket
+  const hour = `matdl:${me.id}:${Math.floor(Date.now() / 3_600_000)}`;
+  const used = Number((await c.env.KV.get(hour)) ?? 0);
+  if (used >= 80) throw new HttpError(429, "rate_limited");
+  await c.env.KV.put(hour, String(used + 1), { expirationTtl: 3700 });
+
+  const head = await c.env.R2.head(m.r2_key);
+  if (!head) throw notFound();
+  const range = simpleRange(c.req.header("range"), head.size);
+  const object = await c.env.R2.get(m.r2_key, range ? { range: { offset: range.start, length: range.end - range.start + 1 } } : undefined);
+  if (!object) throw notFound();
+  // a resumed or partial fetch of a big file is one download, not many
+  if (!range || range.start === 0) c.executionCtx.waitUntil(recordUse(c.env, m, me.id, "download"));
+  const name = m.filename || "file";
+  return new Response(object.body, {
+    status: range ? 206 : 200,
+    headers: {
+      "Content-Type": m.mime || "application/octet-stream",
+      "Content-Length": String(range ? range.end - range.start + 1 : head.size),
+      ...(range ? { "Content-Range": `bytes ${range.start}-${range.end}/${head.size}` } : {}),
+      "Accept-Ranges": "bytes",
+      "Content-Disposition": `attachment; filename="${name.replace(/[^\w.\- ]+/g, "_")}"; filename*=UTF-8''${encodeURIComponent(name)}`,
+      "Content-Security-Policy": "default-src 'none'; sandbox",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "private, no-store",
+    },
+  });
+});
+
+/** The address of a link, a live class or a group — given only to an enrolled student, and recorded. */
+studentRoutes.post("/materials/:id/open", async (c) => {
+  const { m, me } = await materialFor(c);
+  if (!m.url) throw notFound();
+  if (m.kind === "group" && m.ask_profile) {
+    // a private group with a profile question: the link comes after the student has answered it
+    const asked = await first(c.env.DB, "SELECT id FROM group_requests WHERE material_id = ? AND student_id = ?", m.id, me.id);
+    if (!asked) throw new HttpError(409, "profile_required");
+  }
+  c.executionCtx.waitUntil(recordUse(c.env, m, me.id, "open"));
+  return ok(c, { url: m.url });
+});
+
+const joinSchema = z.object({ profile_url: z.string().trim().max(300).default("") });
+/** Ask to join a private group: the student's Facebook profile link goes to the owner, who approves them in the group. */
+studentRoutes.post("/materials/:id/join", rateLimit("RL_FORM"), async (c) => {
+  const { m, me } = await materialFor(c);
+  if (m.kind !== "group" || !m.url) throw notFound();
+  const body = await parseBody(c, joinSchema);
+  let profile = "";
+  if (m.ask_profile) {
+    const typed = body.profile_url.replace(/^http:\/\//i, "https://");
+    const profileUrl = facebookUrl(/^https:\/\//i.test(typed) ? typed : `https://${typed}`);
+    if (!body.profile_url || !profileUrl) throw new HttpError(422, "validation", "validation", { profile_url: body.profile_url ? "must_be_facebook_profile" : "required" });
+    profile = profileUrl;
+  }
+  const now = nowIso();
+  // one request per student per group; a different profile link starts a new question for the owner, the same one changes nothing
+  await run(
+    c.env.DB,
+    `INSERT INTO group_requests (material_id, course_id, student_id, profile_url, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'pending', ?, ?)
+     ON CONFLICT(material_id, student_id) DO UPDATE SET
+       status = CASE WHEN group_requests.profile_url = excluded.profile_url THEN group_requests.status ELSE 'pending' END,
+       profile_url = excluded.profile_url, updated_at = excluded.updated_at`,
+    m.id,
+    m.course_id,
+    me.id,
+    profile,
+    now,
+    now,
+  );
+  const request = await first<{ status: "pending" | "approved" | "rejected" }>(c.env.DB, "SELECT status FROM group_requests WHERE material_id = ? AND student_id = ?", m.id, me.id);
+  c.executionCtx.waitUntil(recordUse(c.env, m, me.id, "open"));
+  return ok(c, { request: request ?? { status: "pending" }, url: m.url });
 });
 
 studentRoutes.get("/orders", async (c) => ok(c, { orders: await ordersForStudent(c.env, c.get("student")!.id) }));

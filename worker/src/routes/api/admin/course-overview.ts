@@ -19,7 +19,7 @@ courseOverview.get("/courses/:id/overview", requirePerm("courses:read"), async (
     id,
   );
   if (!course) throw notFound();
-  const [enrol, sales, reviewsWaiting, waiting, shape, reviews] = await Promise.all([
+  const [enrol, sales, reviewsWaiting, waiting, shape, reviews, materials] = await Promise.all([
     first<{ active: number; ever: number }>(c.env.DB, "SELECT COALESCE(SUM(status = 'active'), 0) AS active, COUNT(*) AS ever FROM enrollments WHERE course_id = ?", id),
     first<{ revenue: number; orders: number }>(
       c.env.DB,
@@ -40,6 +40,13 @@ courseOverview.get("/courses/:id/overview", requirePerm("courses:read"), async (
        FROM reviews r JOIN students s ON s.id = r.student_id WHERE r.course_id = ? ORDER BY r.created_at DESC, r.id DESC LIMIT 3`,
       id,
     ),
+    // what the class gives besides lessons (Admin → Materials): files to download, and links / live classes / groups
+    first<{ files: number; others: number }>(
+      c.env.DB,
+      `SELECT COALESCE(SUM(r2_key IS NOT NULL), 0) AS files, COALESCE(SUM(r2_key IS NULL), 0) AS others
+         FROM materials WHERE course_id = ? AND active = 1 AND deleted_at IS NULL`,
+      id,
+    ),
   ]);
   return ok(c, {
     stats: {
@@ -55,6 +62,8 @@ courseOverview.get("/courses/:id/overview", requirePerm("courses:read"), async (
       lessons: course.lesson_count,
       previews: shape?.previews ?? 0,
       minutes: Math.round(course.duration_sec / 60),
+      materials_files: materials?.files ?? 0,
+      materials_others: materials?.others ?? 0,
     },
     reviews,
   });

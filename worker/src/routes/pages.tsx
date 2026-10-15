@@ -23,6 +23,7 @@ import {
 } from "../services/catalog";
 import { liveBanners } from "../services/banners";
 import { faqsForClass, siteFaqs } from "../services/faqs";
+import { includedIn } from "../services/materials";
 import { certificateByCode } from "../services/learning";
 import { CoursesPage } from "../views/pages/courses";
 import { CoursePage, RelatedFragment, ReviewList } from "../views/pages/course";
@@ -122,8 +123,14 @@ export function pageRoutes(lang: Lang) {
       const ctx = await pageCtxFor(c, lang, `/courses/${slug}`);
       const course = await getCourseBySlug(c.env, slug);
       if (!course) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
-      const [curriculum, reviews, summary, faqs] = await Promise.all([getCurriculum(c.env, course.id), approvedReviews(c.env, course.id), reviewSummary(c.env, course.id), faqsForClass(c.env, course.id)]);
-      return renderHtml(c, ctx, <CoursePage ctx={ctx} data={{ course, curriculum, reviews, summary, faqs, flash }} />);
+      const [curriculum, reviews, summary, faqs, included] = await Promise.all([
+        getCurriculum(c.env, course.id),
+        approvedReviews(c.env, course.id),
+        reviewSummary(c.env, course.id),
+        faqsForClass(c.env, course.id),
+        includedIn(c.env, course.id),
+      ]);
+      return renderHtml(c, ctx, <CoursePage ctx={ctx} data={{ course, curriculum, reviews, summary, faqs, included, flash }} />);
     });
   });
 

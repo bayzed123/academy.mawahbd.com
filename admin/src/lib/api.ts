@@ -47,6 +47,37 @@ export async function api<T = unknown>(path: string, init: Init = {}): Promise<T
   return body as T;
 }
 
+/**
+ * Sends a file's raw bytes with a progress report (fetch cannot report upload progress, XMLHttpRequest can). The browser sets
+ * Content-Length itself, which the Worker needs to stream a big file straight into storage. Errors come back like api() errors;
+ * `signal` cancels the upload.
+ */
+export function upload<T = unknown>(path: string, file: Blob, opts: { onProgress?: (pct: number) => void; signal?: AbortSignal } = {}): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/api${path}`);
+    xhr.withCredentials = true;
+    xhr.responseType = "json";
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) opts.onProgress?.(Math.min(100, Math.round((e.loaded / e.total) * 100)));
+    };
+    xhr.onload = () => {
+      const body = xhr.response as (T & { ok?: boolean }) | ApiErrorBody | null;
+      if (xhr.status >= 200 && xhr.status < 300 && body && (body as { ok?: boolean }).ok !== false) resolve(body as T);
+      else {
+        const err = (body as ApiErrorBody | null)?.error;
+        reject(new ApiError(xhr.status, err?.code ?? (xhr.status === 413 ? "file_too_large" : xhr.status === 429 ? "rate_limited" : "generic"), err?.fields));
+      }
+    };
+    xhr.onerror = () => reject(new ApiError(0, "network"));
+    xhr.onabort = () => reject(new DOMException("Aborted", "AbortError"));
+    opts.signal?.addEventListener("abort", () => xhr.abort(), { once: true });
+    xhr.send(file);
+  });
+}
+
 /** Admin-scoped helper: adm("/orders") -> /api/admin/orders */
 export const adm = <T = unknown>(path: string, init?: Init) => api<T>(`/admin${path}`, init);
 

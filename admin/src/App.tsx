@@ -19,6 +19,9 @@ const Bundles = lazyPage(() => import("./pages/Content"), "Bundles");
 const Coupons = lazyPage(() => import("./pages/Content"), "Coupons");
 const Banners = lazyPage(() => import("./pages/Banners"), "Banners");
 const Faqs = lazyPage(() => import("./pages/Faqs"), "Faqs");
+const Materials = lazyPage(() => import("./pages/Materials"), "Materials");
+const GroupRequests = lazyPage(() => import("./pages/Materials"), "GroupRequests");
+const MaterialDownloads = lazyPage(() => import("./pages/Materials"), "MaterialDownloads");
 const Orders = lazyPage(() => import("./pages/Sales"), "Orders");
 const Students = lazyPage(() => import("./pages/Sales"), "Students");
 const Reviews = lazyPage(() => import("./pages/Engagement"), "Reviews");
@@ -50,6 +53,9 @@ export default function App() {
           <Route path="courses/new" element={guard("courses:write", <CourseEditor />)} />
           <Route path="courses/:id" element={guard("courses:read", <CourseView />)} />
           <Route path="courses/:id/edit" element={guard("courses:read", <CourseEditor />)} />
+          <Route path="materials" element={guard("materials:read", <Materials />)} />
+          <Route path="materials/requests" element={guard("materials:read", <GroupRequests />)} />
+          <Route path="materials/downloads" element={guard("materials:read", <MaterialDownloads />)} />
           <Route path="instructors" element={guard("instructors:read", <Instructors />)} />
           <Route path="categories" element={guard("categories:read", <Categories />)} />
           <Route path="orders" element={guard("orders:read", <Orders />)} />

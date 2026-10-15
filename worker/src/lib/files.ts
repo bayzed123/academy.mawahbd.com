@@ -48,6 +48,27 @@ export function sniffResource(b: Uint8Array, filename: string): Sniffed | null {
   return null;
 }
 
+/**
+ * Files a class MATERIAL may be (Admin → Materials): PDFs, ZIPs and Office files, e-books (EPUB) and videos (MP4 / MOV / WebM).
+ * The type comes from the file's own first bytes, never from the browser's word for it. Pictures, programs, scripts, web pages
+ * and SVG are not accepted here.
+ */
+export function sniffMaterial(b: Uint8Array, filename: string): Sniffed | null {
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+  if (startsWith(b, [0x25, 0x50, 0x44, 0x46])) return { mime: "application/pdf", ext: "pdf" }; // %PDF
+  if (startsWith(b, [0x50, 0x4b, 0x03, 0x04])) {
+    // ZIP, Office files and EPUB all start the same way: tell them apart by the (sanitised) extension, default to a plain ZIP
+    const mime = { ...DOC_BY_EXT, epub: "application/epub+zip" }[ext];
+    return mime ? { mime, ext } : { mime: DOC_BY_EXT.zip, ext: "zip" };
+  }
+  // MP4 / MOV: "ftyp" then the brand. Picture formats use the same box (AVIF, HEIC), so only video brands pass.
+  if (ascii(b, 4, 8) === "ftyp" && /^(isom|iso\d|mp4\d|avc1|M4V |qt {2}|dash|mmp4|msnv|3gp\d|3g2\d)/.test(ascii(b, 8, 12))) {
+    return ext === "mov" || ascii(b, 8, 12) === "qt  " ? { mime: "video/quicktime", ext: "mov" } : { mime: "video/mp4", ext: "mp4" };
+  }
+  if (startsWith(b, [0x1a, 0x45, 0xdf, 0xa3])) return { mime: "video/webm", ext: "webm" };
+  return null;
+}
+
 /** Display file name: no paths, no control characters, bounded length, extension preserved. */
 export function safeFilename(raw: string, fallback = "file"): string {
   const base = raw.split(/[\\/]/).pop() ?? "";

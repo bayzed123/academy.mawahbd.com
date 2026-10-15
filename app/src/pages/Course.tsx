@@ -5,6 +5,7 @@ import type { CertificateDTO, CurriculumModuleDTO, MyCourseDTO, Progress as Prog
 import { api, ApiError } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { Button, ErrorState, Icon, Progress, Spinner, useToast } from "../components/ui";
+import { MaterialsSection, useMaterials } from "../components/Materials";
 import { resumeLessonId } from "./Learning";
 
 export interface CourseView {
@@ -145,6 +146,9 @@ export function CourseOverview() {
   const { slug = "" } = useParams();
   const { t, lang, pick } = useI18n();
   const q = useCourseView(slug);
+  // only asked once the class has loaded (so a student who is not enrolled never makes the request); nothing is shown for a class with none
+  const mats = useMaterials(slug, !!q.data);
+  const materials = mats.data?.materials ?? [];
 
   if (q.isPending) return <Spinner />;
   if (q.isError) {
@@ -184,6 +188,11 @@ export function CourseOverview() {
           ) : (
             <span className="badge-soon">{t("app.course.noLessons")}</span>
           )}
+          {materials.length > 0 && (
+            <a className="btn btn-light" href="#materials">
+              <Icon name="download" /> {t("app.mat.jump")}
+            </a>
+          )}
           <a className="btn btn-light" href="#review">
             <Icon name="star" /> {t("app.course.rate")}
           </a>
@@ -204,6 +213,8 @@ export function CourseOverview() {
           </div>
         </div>
       )}
+
+      {materials.length > 0 && <MaterialsSection slug={slug} materials={materials} />}
 
       <section className="panel">
         <h2>{t("app.course.curriculum")}</h2>

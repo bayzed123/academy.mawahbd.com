@@ -10,6 +10,7 @@ import { curriculum } from "./curriculum";
 import { dashboard } from "./dashboard";
 import { engagement } from "./engagement";
 import { faqs } from "./faqs";
+import { materials } from "./materials";
 import { media } from "./media";
 import { orders } from "./orders";
 import { reports } from "./reports";
@@ -34,6 +35,6 @@ adminApi.route("/faqs", faqs);
 adminApi.route("/coupons", coupons);
 adminApi.route("/courses", courses);
 
-for (const router of [courseOverview, curriculum, media, orders, students, engagement, audience, chatbot, settings, reports, dashboard, staff]) {
+for (const router of [courseOverview, curriculum, materials, media, orders, students, engagement, audience, chatbot, settings, reports, dashboard, staff]) {
   adminApi.route("/", router);
 }

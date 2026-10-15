@@ -458,3 +458,10 @@ main>section:nth-of-type(n+3){content-visibility:auto;contain-intrinsic-size:aut
   .invoice{border:0;box-shadow:none;max-width:none}
   .cert-in::before{display:none}
 }
+
+/* ---------- class page: what the class includes beyond lessons (downloads, links, groups) ---------- */
+.inc-sub{margin:1.1rem 0 .5rem;font-size:1rem}
+.inc-list{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}
+.inc-list li{display:flex;gap:.6rem;align-items:center;padding:.55rem .8rem;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.inc-list .icon{flex:none;width:1.15em;height:1.15em;color:var(--red-600)}
+.inc-note{margin:.8rem 0 0;font-size:.92rem}
