@@ -73,15 +73,19 @@ export function Profile() {
   const fieldErrors = useFieldErrors();
   const [name, setName] = useState(student?.name ?? "");
   const [phone, setPhone] = useState(student?.phone ?? "");
+  const [address, setAddress] = useState(student?.address ?? "");
+  const [newEmail, setNewEmail] = useState("");
   const [fields, setFields] = useState<Record<string, string>>({});
   const [cur, setCur] = useState("");
   const [next, setNext] = useState("");
   const [pwFields, setPwFields] = useState<Record<string, string>>({});
 
   const save = useMutation({
-    mutationFn: async () => (await api<{ student: StudentMe }>("/auth/profile", { method: "PATCH", json: { name: name.trim(), phone: phone.trim(), locale: lang } })).student,
+    mutationFn: async () =>
+      (await api<{ student: StudentMe }>("/auth/profile", { method: "PATCH", json: { name: name.trim(), phone: phone.trim(), address: address.trim() || undefined, email: newEmail.trim() || undefined, locale: lang } })).student,
     onSuccess: (s) => {
       setStudent(s);
+      setNewEmail("");
       setFields({});
       toast(t("app.profile.saved"));
     },
@@ -128,11 +132,21 @@ export function Profile() {
         <Field id="p-code" label={t("app.account.id")}>
           <input id="p-code" className="input" value={student.code} readOnly />
         </Field>
-        <Field id="p-email" label={t("label.email")} hint={t("app.profile.emailNote")}>
-          <input id="p-email" className="input" value={student.email} readOnly disabled />
-        </Field>
+        {student.email ? (
+          <Field id="p-email" label={t("label.email")} hint={t("app.profile.emailNote")}>
+            <input id="p-email" className="input" value={student.email} readOnly disabled />
+          </Field>
+        ) : (
+          // a buyer who gave no e-mail can add one (it only ever adds a way in; the number keeps working)
+          <Field id="p-email" label={t("app.profile.addEmail")} hint={t("app.profile.addEmailHint")} error={fields.email}>
+            <TextInput id="p-email" type="email" inputMode="email" autoComplete="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} error={fields.email} />
+          </Field>
+        )}
         <Field id="p-phone" label={t("label.phone")} error={fields.phone}>
           <TextInput id="p-phone" type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={fields.phone} />
+        </Field>
+        <Field id="p-address" label={t("app.profile.address")} error={fields.address}>
+          <textarea id="p-address" className="input" rows={2} maxLength={300} autoComplete="street-address" aria-invalid={fields.address ? true : undefined} aria-describedby={fields.address ? "p-address-err" : undefined} value={address} onChange={(e) => setAddress(e.target.value)} />
         </Field>
         <Field id="p-lang" label={t("app.profile.language")}>
           <select id="p-lang" className="input" value={lang} onChange={(e) => setLang(e.target.value as "bn" | "en")}>
@@ -140,6 +154,7 @@ export function Profile() {
             <option value="en">English</option>
           </select>
         </Field>
+        <p className="hint">{t("app.profile.signinNote", { code: student.code })}</p>
         <Button type="submit" className="btn-dark" busy={save.isPending}>
           {t("btn.save")}
         </Button>

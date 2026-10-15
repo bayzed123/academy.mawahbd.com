@@ -65,17 +65,24 @@ export async function json<T = any>(res: Response): Promise<T> {
 let counter = 0;
 export const uniqueEmail = (prefix = "user") => `${prefix}${Date.now().toString(36)}${counter++}@example.test`;
 
+/** The address a test student has on file, so that buying does not stop to ask for it (pass `address: ""` for a student who has none). */
+export const TEST_ADDRESS = "House 12, Road 5, Dhanmondi, Dhaka";
+
 export async function registerStudent(client = new Client(), overrides: Record<string, unknown> = {}) {
   const email = (overrides.email as string) ?? uniqueEmail("student");
+  const { address = TEST_ADDRESS, ...rest } = overrides as { address?: string };
   const res = await client.post("/api/auth/register", {
     name: "Test Student",
     email,
     password: "correct-horse-battery",
     phone: "01712345678",
-    ...overrides,
+    ...rest,
   });
   const body = await json(res);
-  return { client, email, res, body, id: body.student?.id as number };
+  const id = body.student?.id as number;
+  // registering does not ask for an address (buying does); a student who is about to buy has one on file
+  if (id && address) await env.DB.prepare("UPDATE students SET address = ? WHERE id = ?").bind(address, id).run();
+  return { client, email, res, body, id };
 }
 
 /** Insert a staff member directly (bypasses the one-time setup flow) and return a logged-in client. */

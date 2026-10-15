@@ -67,14 +67,15 @@ const methodName = (m: string | null | undefined) => (m ? (METHODS[m] ?? m) : ""
 
 /** What each kind of note says. Callers give plain facts; the wording (English and Bangla) is here. */
 export const notices = {
-  orderPaid(d: { student: string; email: string; phone: string | null; items: string[]; total: number; method: string | null; invoiceNo: string; studentId?: string; newAccount?: boolean }): Notice {
+  orderPaid(d: { student: string; email: string; phone: string | null; address?: string; items: string[]; total: number; method: string | null; invoiceNo: string; studentId?: string; newAccount?: boolean }): Notice {
     return {
       kind: "order_paid",
       headline: `${d.total ? formatMoney(d.total, "en") : "Free"} · ${d.student}`,
       facts: [
         fact("Student", "শিক্ষার্থী", d.student),
-        fact("E-mail", "ইমেইল", d.email),
         fact("Phone", "ফোন", d.phone),
+        fact("E-mail", "ইমেইল", d.email || "— (gave none · দেননি)"),
+        fact("Address", "ঠিকানা", d.address),
         fact("Class", "ক্লাস", d.items.join("; ")),
         fact("Amount", "টাকা", d.total ? formatMoney(d.total, "en") : "Free · ফ্রি"),
         fact("Paid by", "যেভাবে দিয়েছেন", methodName(d.method)),
@@ -84,7 +85,7 @@ export const notices = {
       ],
     };
   },
-  paymentWaiting(d: { student: string; email: string; phone: string | null; items: string[]; total: number; method: string | null; trx: string | null; payer: string | null; hasImage: boolean; publicId: string }): Notice {
+  paymentWaiting(d: { student: string; email: string; phone: string | null; address?: string; items: string[]; total: number; method: string | null; trx: string | null; payer: string | null; hasImage: boolean; publicId: string }): Notice {
     const method = methodName(d.method) || "mobile";
     return {
       kind: "payment_waiting",
@@ -92,7 +93,8 @@ export const notices = {
       facts: [
         fact("Student", "শিক্ষার্থী", d.student),
         fact("Phone", "ফোন", d.phone),
-        fact("E-mail", "ইমেইল", d.email),
+        fact("E-mail", "ইমেইল", d.email || "— (gave none · দেননি)"),
+        fact("Address", "ঠিকানা", d.address),
         fact("Class", "ক্লাস", d.items.join("; ")),
         fact("Amount", "টাকা", formatMoney(d.total, "en")),
         fact("Paid by", "যেভাবে দিয়েছেন", method),
@@ -139,11 +141,11 @@ export const notices = {
       note: clip(d.question, 1200),
     };
   },
-  groupRequest(d: { student: string; email: string; group: string; course: string; profile: string }): Notice {
+  groupRequest(d: { student: string; email: string; phone?: string | null; group: string; course: string; profile: string }): Notice {
     return {
       kind: "group_request",
       headline: `${d.student} → ${d.group}`,
-      facts: [fact("Student", "শিক্ষার্থী", d.student), fact("E-mail", "ইমেইল", d.email), fact("Group", "গ্রুপ", d.group), fact("Class", "ক্লাস", d.course), fact("Facebook profile", "ফেসবুক প্রোফাইল", d.profile)],
+      facts: [fact("Student", "শিক্ষার্থী", d.student), fact("E-mail", "ইমেইল", d.email || "— (gave none · দেননি)"), fact("Phone", "ফোন", d.phone ?? null), fact("Group", "গ্রুপ", d.group), fact("Class", "ক্লাস", d.course), fact("Facebook profile", "ফেসবুক প্রোফাইল", d.profile)],
     };
   },
   notifyMe(d: { email: string; phone: string | null; course: string }): Notice {

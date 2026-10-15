@@ -34,7 +34,8 @@ async function makeCourse(price = 1500, status = "published") {
   return { id: courseId, slug, title: `Guest Course ${n}` };
 }
 
-const DETAILS = { name: "Rina Akter", phone: "01711223344", lang: "en" };
+const ADDRESS = "House 12, Road 5, Dhanmondi, Dhaka";
+const DETAILS = { name: "Rina Akter", phone: "01711223344", address: ADDRESS, lang: "en" };
 const guestBody = (course: { slug: string }, over: Record<string, unknown> = {}) => ({ ...DETAILS, email: uniqueEmail("guest"), courses: [course.slug], channel: "mock", ...over });
 const buy = (client: Client, body: Record<string, unknown>) => client.post("/api/checkout/guest", body);
 
@@ -329,11 +330,11 @@ describe("an e-mail that belongs to someone is never opened by typing it", () =>
 });
 
 describe("what is asked for, and what is checked before an account is made", () => {
-  it("name, a valid e-mail and a phone number are all required; Bangla digits and numbers from abroad are accepted", async () => {
+  it("name, a phone number and an address are required, and an e-mail is checked when given; Bangla digits and numbers from abroad are accepted", async () => {
     const course = await makeCourse(1500);
-    const bad = await buy(new Client(), { courses: [course.slug], channel: "mock", name: "A", email: "nope", phone: "" });
+    const bad = await buy(new Client(), { courses: [course.slug], channel: "mock", name: "A", email: "nope", phone: "", address: "" });
     expect(bad.status).toBe(422);
-    expect((await json(bad)).error.fields).toMatchObject({ name: "required", email: "invalid_email", phone: "required" });
+    expect((await json(bad)).error.fields).toMatchObject({ name: "required", email: "invalid_email", phone: "required", address: "required" });
     expect((await json(await buy(new Client(), guestBody(course, { phone: "12345" })))).error.fields.phone).toBe("invalid_phone");
 
     const bn = guestBody(course, { phone: "০১৭১২৩৪৫৬৭৮" });

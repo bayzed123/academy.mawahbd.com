@@ -9,6 +9,23 @@ export const emailSchema = z
   .max(254, "too_long")
   .pipe(z.email("invalid_email"));
 
+/** An e-mail that may be left out: nothing (or only spaces) means "none"; something typed must be a real address. */
+export const optionalEmailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(254, "too_long")
+  .optional()
+  .nullable()
+  .transform((value, ctx) => {
+    if (!value) return undefined;
+    if (!z.email().safeParse(value).success) {
+      ctx.addIssue({ code: "custom", message: "invalid_email" });
+      return z.NEVER;
+    }
+    return value;
+  });
+
 export const passwordSchema = z
   .string({ error: "required" })
   .min(8, "weak_password")
@@ -51,6 +68,12 @@ export const requiredPhoneSchema = z
     }
     return n;
   });
+
+/** Where someone lives, as they write it (one line or a few): 5–300 characters, no control characters, spaces tidied. */
+export const addressSchema = z
+  .string({ error: "required" })
+  .transform((s) => s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim())
+  .pipe(z.string().min(5, "required").max(300, "too_long"));
 
 export const langSchema = z.enum(["bn", "en"]);
 

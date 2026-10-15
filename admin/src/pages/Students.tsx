@@ -12,8 +12,10 @@ import { Button, Chip, ErrorState, Icon, KV, PageHeader, Progress, SlideOver, Sp
 interface StudentRow {
   id: number;
   name: string;
+  /** empty: the student gave none (they sign in with the mobile number or the student ID) */
   email: string;
   phone: string | null;
+  address: string;
   locale: "bn" | "en";
   blocked: number;
   source: string;
@@ -85,7 +87,7 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
                     act.mutate({
                       run: async () => {
                         const r = await adm<{ sent: boolean }>(`/students/${id}/send-reset`, { json: {} });
-                        if (!r.sent) throw new ApiError(0, "generic");
+                        if (!r.sent) throw new ApiError(0, "reset_not_sent");
                       },
                       ok: t("adm.student.resetSent"),
                     })
@@ -112,12 +114,13 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
             )}
           </div>
           {s.blocked_reason && <p className="notice bad-note">{s.blocked_reason}</p>}
-          {canWrite && !s.has_password && !s.blocked && <InviteBox studentId={id} name={s.name} hasPassword={false} />}
+          {canWrite && !s.has_password && !s.blocked && <InviteBox studentId={id} name={s.name} hasPassword={false} hasEmail={!!s.email} hasPhone={!!s.phone} />}
           <KV
             items={[
               { label: t("adm.stu.id"), value: <b className="student-code">{studentCode(s.id)}</b> },
-              { label: t("label.email"), value: s.email },
-              { label: t("label.phone"), value: s.phone },
+              { label: t("label.email"), value: s.email || <span className="muted">{t("adm.stu.noEmail")}</span> },
+              { label: t("label.phone"), value: s.phone ?? "—" },
+              { label: t("adm.stu.address"), value: s.address || "—" },
               { label: t("adm.f.language"), value: s.locale === "bn" ? "বাংলা" : "English" },
               { label: t("adm.stu.col.source"), value: sourceLabel(t, s.source) },
               { label: t("adm.student.lastLogin"), value: s.last_login_at ? dateTime(s.last_login_at) : "—" },
@@ -178,7 +181,7 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
       )}
       {editing && s && (
         <StudentFormDrawer
-          student={{ id: s.id, name: s.name, email: s.email, phone: s.phone ?? "", locale: s.locale, notes: s.notes, marketing: !!s.marketing_opt_in }}
+          student={{ id: s.id, name: s.name, email: s.email, phone: s.phone ?? "", address: s.address, locale: s.locale, notes: s.notes, marketing: !!s.marketing_opt_in }}
           onClose={() => setEditing(false)}
           onSaved={refresh}
         />
@@ -243,7 +246,7 @@ export function Students() {
               <span className="cell-title">
                 <b>{r.name}</b>
                 <small>
-                  {r.email} · {studentCode(r.id)}
+                  {r.email || r.phone || t("adm.stu.noEmailShort")} · {studentCode(r.id)}
                 </small>
               </span>
             ),

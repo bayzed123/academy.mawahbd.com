@@ -2,10 +2,13 @@ import {
   dhakaDayStamp,
   languageFromText,
   methodFromText,
+  isNoEmail,
+  noEmailAddress,
   normalizeAnyPhone,
   normKey,
   parseAmount,
   parseLooseDate,
+  shownEmail,
   splitClassCell,
   type ImportField,
   type ImportProblem,
@@ -19,10 +22,12 @@ import type { Env } from "../env";
 import { generatePublicOrderId } from "../lib/crypto";
 import { all, first, nowIso, qs } from "../lib/db";
 import { conflict, HttpError } from "../lib/http";
-import { sendMail, welcomeMail } from "../lib/mailer";
+import { welcomeMail } from "../lib/mailer";
+import { inviteSms } from "../lib/smsText";
 import { emailSchema } from "../lib/schemas";
 import { createPasswordResetLink } from "./auth";
 import { allocate } from "./orders";
+import { tellStudent } from "./studentMessages";
 
 /*
  * Students the owner adds by hand or imports from a spreadsheet: people who studied before the website existed (or paid in cash).
@@ -203,8 +208,10 @@ export async function planAccess(env: Env, email: string, haveIds: Set<number>, 
 
 export interface NewStudent {
   name: string;
+  /** what the account is stored under: the e-mail, or the made-up address of a student known only by mobile number (noEmailAddress) */
   email: string;
   phone: string | null;
+  address: string;
   locale: "bn" | "en";
   notes: string;
   marketing: boolean;
@@ -212,18 +219,21 @@ export interface NewStudent {
 
 function studentInsert(env: Env, s: NewStudent, source: "admin" | "import", createdAt: string, ignoreClash: boolean): D1PreparedStatement {
   return env.DB.prepare(
-    `INSERT INTO students (email, name, phone, locale, notes, source, marketing_opt_in, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8)${ignoreClash ? " ON CONFLICT(email) DO NOTHING" : ""}`,
-  ).bind(s.email, s.name, s.phone, s.locale, s.notes, source, s.marketing ? 1 : 0, createdAt);
+    `INSERT INTO students (email, name, phone, address, locale, notes, source, marketing_opt_in, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9)${ignoreClash ? " ON CONFLICT(email) DO NOTHING" : ""}`,
+  ).bind(s.email, s.name, s.phone, s.address, s.locale, s.notes, source, s.marketing ? 1 : 0, createdAt);
 }
+
+/** The error for a student who is already there: told by e-mail, or — for one known only by mobile number — by that number. */
+const alreadyHere = (key: string) => (isNoEmail(key) ? conflict("phone_taken", { phone: "phone_taken" }) : conflict("email_taken", { email: "email_taken" }));
 
 /** A new student the owner adds by hand, optionally with classes (and a payment) in the same step — all saved together or not at all. */
 export async function createStudent(env: Env, s: NewStudent, input: GrantInput, now: Date = new Date()): Promise<{ id: number; granted: number }> {
-  if (await first(env.DB, "SELECT id FROM students WHERE email = ?", s.email)) throw conflict("email_taken", { email: "email_taken" });
+  if (await first(env.DB, "SELECT id FROM students WHERE email = ?", s.email)) throw alreadyHere(s.email);
   const { plan } = await planAccess(env, s.email, new Set(), input, now);
   try {
     await env.DB.batch([studentInsert(env, s, "admin", plan?.at ?? nowIso(now), false), ...(plan ? accessStatements(env, plan) : [])]);
   } catch (err) {
-    if (/students\.email/.test(String(err))) throw conflict("email_taken", { email: "email_taken" });
+    if (/students\.email/.test(String(err))) throw alreadyHere(s.email);
     if (/orders\.gateway/.test(String(err))) throw conflict("trx_used", { "payment.txn_id": "trx_used" });
     throw err;
   }
@@ -253,23 +263,34 @@ export async function grantAccess(env: Env, studentId: number, input: GrantInput
 /* ================================================================================ the way in for a new student: set a password */
 export const INVITE_DAYS = 3;
 
-/** A link for the student to choose a password (valid for three days) — sent by e-mail, or handed back so staff can pass it on themselves. */
-export async function inviteStudent(env: Env, studentId: number, mode: "email" | "link"): Promise<{ sent?: boolean; link?: string; days: number }> {
-  const s = await first<{ id: number; email: string; name: string; locale: "bn" | "en"; blocked: number }>(env.DB, "SELECT id, email, name, locale, blocked FROM students WHERE id = ?", studentId);
+/**
+ * A link for the student to choose a password (valid for three days) — sent by e-mail or by text message to their mobile number, or handed
+ * back so staff can pass it on themselves (WhatsApp, Messenger).
+ */
+export async function inviteStudent(env: Env, studentId: number, mode: "email" | "sms" | "link"): Promise<{ sent?: boolean; link?: string; days: number }> {
+  const s = await first<{ id: number; email: string; phone: string | null; name: string; locale: "bn" | "en"; blocked: number }>(env.DB, "SELECT id, email, phone, name, locale, blocked FROM students WHERE id = ?", studentId);
   if (!s) throw new HttpError(404, "not_found");
   if (s.blocked) throw new HttpError(409, "account_blocked");
+  if (mode === "sms" && !s.phone) throw new HttpError(422, "validation", "validation", { phone: "required" });
   const link = await createPasswordResetLink(env, s.id, INVITE_DAYS * 86_400);
   if (mode === "link") return { link, days: INVITE_DAYS };
-  const sent = await sendMail(env, { to: s.email, ...welcomeMail(s.locale, s.name, link, INVITE_DAYS) });
-  return { sent: sent.ok, days: INVITE_DAYS };
+  const told = await tellStudent(
+    env,
+    mode === "sms" ? { email: null, phone: s.phone } : { email: s.email, phone: null },
+    mode === "sms" ? { sms: inviteSms(s.locale, { link, days: INVITE_DAYS }) } : { mail: welcomeMail(s.locale, s.name, link, INVITE_DAYS) },
+    { smsAlso: true },
+  );
+  return { sent: !!(told.mail?.ok || told.sms?.ok), days: INVITE_DAYS };
 }
 
 /* ================================================================================ a whole list at once */
 interface ReadRow {
   index: number;
   name: string;
+  /** what the student is stored under (see NewStudent.email) */
   email: string;
   phone: string | null;
+  address: string;
   locale: "bn" | "en";
   notes: string;
   classes: ClassRef[];
@@ -322,8 +343,7 @@ function readRow(raw: ImportRowIn, index: number, find: (t: string) => Found, to
 
   const emailText = oneLine(raw.email);
   let email = "";
-  if (!emailText) bad("email", "required");
-  else {
+  if (emailText) {
     const e = emailSchema.safeParse(emailText);
     if (e.success) email = e.data;
     else bad("email", "invalid_email", emailText);
@@ -335,6 +355,14 @@ function readRow(raw: ImportRowIn, index: number, find: (t: string) => Found, to
     phone = normalizeAnyPhone(phoneText);
     if (!phone) bad("phone", "invalid_phone", phoneText);
   }
+  // an old student who left no e-mail is known by their mobile number: kept under a made-up address and signs in with the number
+  if (!emailText) {
+    if (phone) email = noEmailAddress(phone);
+    else if (!phoneText) bad("email", "needs_contact");
+  }
+
+  const address = oneLine(raw.address);
+  if (address.length > 300) bad("address", "too_long");
 
   let locale: "bn" | "en" = "bn";
   const langText = oneLine(raw.language);
@@ -391,7 +419,7 @@ function readRow(raw: ImportRowIn, index: number, find: (t: string) => Found, to
   if (amount && classes.length === 0 && !classProblem) bad("amount", "amount_needs_class");
 
   const rawMethod = oneLine(raw.method);
-  return { index, name, email, phone, locale, notes, classes, enrolledOn, amount, paidOn, method: methodFromText(rawMethod), rawMethod, txnRaw: oneLine(raw.txn_id), problems };
+  return { index, name, email, phone, address, locale, notes, classes, enrolledOn, amount, paidOn, method: methodFromText(rawMethod), rawMethod, txnRaw: oneLine(raw.txn_id), problems };
 }
 
 export interface RowPlan {
@@ -399,7 +427,7 @@ export interface RowPlan {
   student: NewStudent;
   isNew: boolean;
   access: AccessPlan | null;
-  /** an existing student with a blank phone / note gets the one from the list */
+  /** an existing student with a blank phone / address / note gets the one from the list */
   fillBlanks: boolean;
 }
 export interface Analyzed {
@@ -418,17 +446,17 @@ export async function analyzeRows(env: Env, rows: ImportRowIn[], now: Date = new
   const read = rows.map((r, i) => readRow(r, i, find, today));
 
   // what the database already knows about these people (one query per 80 e-mails) and about the transaction ids
-  const known = new Map<string, { id: number; name: string; phone: string | null; notes: string; has: Set<number> }>();
+  const known = new Map<string, { id: number; name: string; phone: string | null; address: string; notes: string; has: Set<number> }>();
   for (const part of chunk([...new Set(read.map((r) => r.email).filter(Boolean))], 80)) {
-    const found = await all<{ id: number; email: string; name: string; phone: string | null; notes: string; course_id: number | null }>(
+    const found = await all<{ id: number; email: string; name: string; phone: string | null; address: string; notes: string; course_id: number | null }>(
       env.DB,
-      `SELECT s.id, s.email, s.name, s.phone, s.notes, e.course_id FROM students s
+      `SELECT s.id, s.email, s.name, s.phone, s.address, s.notes, e.course_id FROM students s
        LEFT JOIN enrollments e ON e.student_id = s.id AND e.status = 'active' WHERE s.email IN (${qs(part.length)})`,
       ...part,
     );
     for (const f of found) {
       const key = f.email.toLowerCase();
-      const entry = known.get(key) ?? { id: f.id, name: f.name, phone: f.phone, notes: f.notes, has: new Set<number>() };
+      const entry = known.get(key) ?? { id: f.id, name: f.name, phone: f.phone, address: f.address, notes: f.notes, has: new Set<number>() };
       if (f.course_id !== null) entry.has.add(f.course_id);
       known.set(key, entry);
     }
@@ -462,12 +490,12 @@ export async function analyzeRows(env: Env, rows: ImportRowIn[], now: Date = new
       }
     }
 
-    const student: NewStudent = { name: r.name, email: r.email, phone: r.phone, locale: r.locale, notes: r.notes, marketing: false };
+    const student: NewStudent = { name: r.name, email: r.email, phone: r.phone, address: r.address, locale: r.locale, notes: r.notes, marketing: false };
     const result: ImportRowResult = {
       index: r.index,
       status: problems.length ? "problem" : db || earlier !== undefined ? "existing" : "new",
       name: r.name,
-      email: r.email,
+      email: shownEmail(r.email),
       classes: r.classes.map((c) => ({ id: c.id, title_bn: c.title_bn, title_en: c.title_en, already: have.has(c.id) })),
       payment: sale ? { amount: sale.total, paid_on: paidDay, method: sale.method } : null,
       problems,
@@ -495,7 +523,7 @@ export async function analyzeRows(env: Env, rows: ImportRowIn[], now: Date = new
         student,
         isNew: !db && earlier === undefined,
         access: grant.length ? { email: r.email, grant, at, sale } : null,
-        fillBlanks: !!db && ((!db.phone && !!r.phone) || (!db.notes && !!r.notes)),
+        fillBlanks: !!db && ((!db.phone && !!r.phone) || (!db.address && !!r.address) || (!db.notes && !!r.notes)),
       },
     });
   }
@@ -531,9 +559,10 @@ export async function commitRows(env: Env, list: Analyzed[], now: Date = new Dat
     else if (plan.fillBlanks) {
       g.push(
         env.DB.prepare(
-          `UPDATE students SET phone = CASE WHEN COALESCE(phone, '') = '' THEN ?2 ELSE phone END, notes = CASE WHEN notes = '' THEN ?3 ELSE notes END, updated_at = ?4
+          `UPDATE students SET phone = CASE WHEN COALESCE(phone, '') = '' THEN ?2 ELSE phone END, address = CASE WHEN address = '' THEN ?3 ELSE address END,
+                 notes = CASE WHEN notes = '' THEN ?4 ELSE notes END, updated_at = ?5
            WHERE email = ?1`,
-        ).bind(plan.email, plan.student.phone, plan.student.notes, nowIso(now)),
+        ).bind(plan.email, plan.student.phone, plan.student.address, plan.student.notes, nowIso(now)),
       );
     }
     if (plan.access) g.push(...accessStatements(env, plan.access));

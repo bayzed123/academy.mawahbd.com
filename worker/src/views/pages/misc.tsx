@@ -435,7 +435,7 @@ export function CertificatePage({ ctx, cert }: { ctx: PageCtx; cert: CertRow }) 
 }
 
 /* ===================================================================================== invoice (print) */
-export function InvoicePage({ ctx, order, customer }: { ctx: PageCtx; order: OrderDTO; customer: { name: string; email: string; phone: string } }) {
+export function InvoicePage({ ctx, order, customer }: { ctx: PageCtx; order: OrderDTO; customer: { name: string; email: string; phone: string; address?: string } }) {
   const { t, lang } = ctx;
   const c = ctx.settings.contact;
   const title = `${lang === "bn" ? "ইনভয়েস" : "Invoice"} ${order.invoice_no ?? ""}`;
@@ -467,8 +467,8 @@ export function InvoicePage({ ctx, order, customer }: { ctx: PageCtx; order: Ord
             <small class="muted">{lang === "bn" ? "প্রাপক" : "Billed to"}</small>
             <br />
             <b>{customer.name}</b>
-            <br />
-            {customer.email}
+            {customer.address && <><br />{customer.address}</>}
+            {customer.email && <><br />{customer.email}</>}
             {customer.phone && <><br />{customer.phone}</>}
           </div>
           <div>

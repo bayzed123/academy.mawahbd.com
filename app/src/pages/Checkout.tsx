@@ -13,10 +13,11 @@ type Method = "bkash" | "nagad" | "rocket";
 type PayResult = { order: { public_id: string; status: string; total: number }; redirect_url?: string; student?: StudentMe };
 
 /**
- * Someone who typed the e-mail of a student account in "Your details". Nothing is opened for them: they sign in right here (and the
- * payment goes on at once), or — when that account has no password yet — they are e-mailed a link.
+ * Someone who typed the e-mail — or, with no e-mail, the mobile number — of a student account in "Your details". Nothing is opened for
+ * them: they sign in right here (and the payment goes on at once), or — when that account has no password yet — they are sent a link, by
+ * e-mail or by text message to the number. `who` is what they typed.
  */
-function ExistingAccount({ email, passwordless, onSignedIn, onOther }: { email: string; passwordless: boolean; onSignedIn: () => void; onOther: () => void }) {
+function ExistingAccount({ who, passwordless, onSignedIn, onOther }: { who: string; passwordless: boolean; onSignedIn: () => void; onOther: () => void }) {
   const { t, lang, err } = useI18n();
   const { login } = useAuth();
   const [password, setPassword] = useState("");
@@ -29,7 +30,7 @@ function ExistingAccount({ email, passwordless, onSignedIn, onOther }: { email: 
     setBusy(true);
     setError("");
     try {
-      await login(email, password);
+      await login(who, password);
       onSignedIn();
     } catch (x) {
       setError(err(x instanceof ApiError ? x.code : "generic"));
@@ -41,7 +42,7 @@ function ExistingAccount({ email, passwordless, onSignedIn, onOther }: { email: 
     setBusy(true);
     setError("");
     try {
-      await api("/auth/forgot", { json: { email, lang } });
+      await api("/auth/forgot", { json: { identifier: who, lang } });
       setSent(true);
     } catch (x) {
       setError(err(x instanceof ApiError ? x.code : "generic"));
@@ -56,7 +57,7 @@ function ExistingAccount({ email, passwordless, onSignedIn, onOther }: { email: 
       <div style={{ flex: 1, minWidth: 0 }}>
         <b id="exists-h">{t("app.checkout.exists.title")}</b>
         {sent ? (
-          <p aria-live="polite">{t("app.checkout.exists.sent", { email })}</p>
+          <p aria-live="polite">{t("app.checkout.exists.sent", { who })}</p>
         ) : passwordless ? (
           <>
             <p>{t("app.checkout.exists.link")}</p>
@@ -66,7 +67,7 @@ function ExistingAccount({ email, passwordless, onSignedIn, onOther }: { email: 
           </>
         ) : (
           <>
-            <p>{t("app.checkout.exists.body", { email })}</p>
+            <p>{t("app.checkout.exists.body", { who })}</p>
             <div className="field">
               <label htmlFor="x-password">{t("app.checkout.exists.password")}</label>
               <TextInput
@@ -122,10 +123,19 @@ export default function Checkout() {
   // buying needs no account: a visitor gives a name, a number and an e-mail, and the account is made for them
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(student?.phone ?? "");
+  const [address, setAddress] = useState(student?.address ?? "");
   const [captcha, setCaptcha] = useState("");
   const [bump, setBump] = useState(0);
-  const [exists, setExists] = useState<{ email: string; passwordless: boolean } | null>(null);
+  // `by` = which of the two said who they are: the e-mail, or (when they gave none) the mobile number
+  const [exists, setExists] = useState<{ who: string; by: "email" | "phone"; passwordless: boolean } | null>(null);
+
+  // the profile arrives after the first render: fill the boxes it can fill, without overwriting anything already typed
+  useEffect(() => {
+    if (!student) return;
+    setPhone((v) => v || (student.phone ?? ""));
+    setAddress((v) => v || (student.address ?? ""));
+  }, [student]);
 
   const slug = params.get("c") ?? "";
   const bundle = params.get("bundle");
@@ -169,8 +179,9 @@ export default function Checkout() {
     // "student": already signed in (or just signed in here); "guest": a visitor, with the details typed above
     mutationFn: async (as: "student" | "guest") => {
       const order = { ...cart, coupon, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined };
-      if (as === "student") return api<PayResult>("/checkout", { json: order });
-      return api<PayResult>("/checkout/guest", { json: { ...order, name: name.trim(), email: email.trim(), phone: phone.trim(), lang, turnstile: captcha || undefined } });
+      // a signed-in student whose profile lacks a mobile number or an address gives them here (the form shows only then)
+      if (as === "student") return api<PayResult>("/checkout", { json: { ...order, details: needsDetails ? { phone: phone.trim(), address: address.trim() } : undefined } });
+      return api<PayResult>("/checkout/guest", { json: { ...order, name: name.trim(), email: email.trim() || undefined, phone: phone.trim(), address: address.trim(), lang, turnstile: captcha || undefined } });
     },
     onSuccess: (res) => {
       if (res.student) setStudent(res.student); // the visitor now has an account and is signed in on this phone
@@ -186,7 +197,8 @@ export default function Checkout() {
       if (e instanceof ApiError && e.code === "account_exists") {
         setFields({});
         setFormError("");
-        setExists({ email: email.trim().toLowerCase(), passwordless: e.fields?.email === "account_exists_link" });
+        const by = e.fields?.phone ? "phone" : "email";
+        setExists({ who: by === "phone" ? phone.trim() : email.trim().toLowerCase(), by, passwordless: e.fields?.[by] === "account_exists_link" });
         return;
       }
       setFields(fieldErrors(e));
@@ -195,6 +207,8 @@ export default function Checkout() {
   });
 
   if (student === undefined) return <Spinner />;
+  // someone signed in who has no mobile number or address on file yet: the same two boxes as a visitor sees
+  const needsDetails = !!student && (!student.phone || !student.address);
   if (!slug && !bundle) {
     return (
       <Empty icon="book" title={t("app.checkout.empty")}>
@@ -225,17 +239,17 @@ export default function Checkout() {
     e.preventDefault();
     setFields({});
     setFormError("");
-    if (student) return pay.mutate("student");
+    // name, mobile number and address are needed (a signed-in student already has a name); the e-mail is up to them
     const missing: Record<string, string> = {};
-    if (!name.trim()) missing.name = t("err.required");
-    if (!email.trim()) missing.email = t("err.required");
-    if (!phone.trim()) missing.phone = t("err.required");
+    if (!student && !name.trim()) missing.name = t("err.required");
+    if ((!student || needsDetails) && !phone.trim()) missing.phone = t("err.required");
+    if ((!student || needsDetails) && address.trim().length < 5) missing.address = t("err.required");
     if (Object.keys(missing).length) {
       setFields(missing);
-      document.getElementById(missing.name ? "g-name" : missing.phone ? "g-phone" : "g-email")?.focus();
+      document.getElementById(missing.name ? "g-name" : missing.phone ? "g-phone" : "g-address")?.focus();
       return;
     }
-    pay.mutate("guest");
+    pay.mutate(student ? "student" : "guest");
   };
   const policy = lang === "en" ? "/en/policies" : "/policies";
 
@@ -246,27 +260,51 @@ export default function Checkout() {
       </div>
       <form className="checkout" onSubmit={submit} noValidate>
         <div className="stack">
-          {!student && (
+          {(!student || needsDetails) && (
             <section className="panel" aria-labelledby="you-h">
               <h2 id="you-h">{t("app.checkout.you.title")}</h2>
-              <p className="muted">{t("app.checkout.you.sub")}</p>
-              <Field id="g-name" label={t("app.checkout.you.name")} error={fields.name}>
-                <TextInput id="g-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} error={fields.name} />
+              <p className="muted">{student ? t("app.checkout.you.fixDetails") : t("app.checkout.you.sub")}</p>
+              {!student && (
+                <Field id="g-name" label={t("app.checkout.you.name")} required error={fields.name}>
+                  <TextInput id="g-name" autoComplete="name" aria-required="true" value={name} onChange={(e) => setName(e.target.value)} error={fields.name} />
+                </Field>
+              )}
+              <Field id="g-phone" label={t("app.checkout.you.phone")} required hint={t("app.checkout.you.phoneHint")} error={fields.phone}>
+                <TextInput id="g-phone" type="tel" inputMode="tel" autoComplete="tel" aria-required="true" placeholder="01XXXXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)} error={fields.phone} />
               </Field>
-              <Field id="g-phone" label={t("app.checkout.you.phone")} hint={t("app.checkout.you.phoneHint")} error={fields.phone}>
-                <TextInput id="g-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)} error={fields.phone} />
+              <Field id="g-address" label={t("app.checkout.you.address")} required hint={t("app.checkout.you.addressHint")} error={fields.address}>
+                <textarea id="g-address" className="input" rows={2} maxLength={300} autoComplete="street-address" aria-required="true" aria-invalid={fields.address ? true : undefined} aria-describedby={fields.address ? "g-address-err" : undefined} value={address} onChange={(e) => setAddress(e.target.value)} />
               </Field>
-              <Field id="g-email" label={t("app.checkout.you.email")} hint={t("app.checkout.you.emailHint")} error={fields.email}>
-                <TextInput id="g-email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={fields.email} />
-              </Field>
-              {site.data?.turnstile_site_key && <Turnstile siteKey={site.data.turnstile_site_key} onToken={setCaptcha} resetKey={bump} />}
-              <p className="small">
-                {t("app.checkout.you.haveAccount")}{" "}
-                <Link className="link" to={`/login?next=${encodeURIComponent(`/checkout${search}`)}`}>
-                  {t("app.checkout.you.login")}
-                </Link>
-              </p>
-              {exists && <ExistingAccount email={exists.email} passwordless={exists.passwordless} onSignedIn={() => { setExists(null); pay.mutate("student"); }} onOther={() => { setExists(null); setEmail(""); document.getElementById("g-email")?.focus(); }} />}
+              {!student && (
+                <Field id="g-email" label={t("app.checkout.you.email")} hint={t("app.checkout.you.emailHint")} error={fields.email}>
+                  <TextInput id="g-email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={fields.email} />
+                </Field>
+              )}
+              {!student && site.data?.turnstile_site_key && <Turnstile siteKey={site.data.turnstile_site_key} onToken={setCaptcha} resetKey={bump} />}
+              {!student && (
+                <p className="small">
+                  {t("app.checkout.you.haveAccount")}{" "}
+                  <Link className="link" to={`/login?next=${encodeURIComponent(`/checkout${search}`)}`}>
+                    {t("app.checkout.you.login")}
+                  </Link>
+                </p>
+              )}
+              {!student && exists && (
+                <ExistingAccount
+                  who={exists.who}
+                  passwordless={exists.passwordless}
+                  onSignedIn={() => {
+                    setExists(null);
+                    pay.mutate("student");
+                  }}
+                  onOther={() => {
+                    setExists(null);
+                    if (exists.by === "email") setEmail("");
+                    else setPhone("");
+                    document.getElementById(exists.by === "email" ? "g-email" : "g-phone")?.focus();
+                  }}
+                />
+              )}
             </section>
           )}
           <section className="panel">

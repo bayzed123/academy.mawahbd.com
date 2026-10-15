@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { shownEmail } from "@mawah/shared";
 import type { AppEnv } from "../../env";
 import { audit } from "../../lib/audit";
 import { all, first, nowIso, run } from "../../lib/db";
@@ -175,7 +176,7 @@ studentRoutes.post("/materials/:id/join", rateLimit("RL_FORM"), async (c) => {
       "SELECT m.title_en AS group_en, m.title_bn AS group_bn, c.title_en AS course FROM materials m JOIN courses c ON c.id = m.course_id WHERE m.id = ?",
       m.id,
     );
-    c.executionCtx.waitUntil(notifyOwner(c.env, notices.groupRequest({ student: me.name, email: me.email, group: where?.group_en || where?.group_bn || "", course: where?.course ?? "", profile })));
+    c.executionCtx.waitUntil(notifyOwner(c.env, notices.groupRequest({ student: me.name, email: shownEmail(me.email), phone: me.phone, group: where?.group_en || where?.group_bn || "", course: where?.course ?? "", profile })));
   }
   c.executionCtx.waitUntil(recordUse(c.env, m, me.id, "open"));
   return ok(c, { request: request ?? { status: "pending" }, url: m.url });
@@ -193,9 +194,9 @@ studentRoutes.get("/orders/:publicId", async (c) => {
 studentRoutes.get("/orders/:publicId/invoice", async (c) => {
   const me = c.get("student")!;
   const order = await orderForStudent(c.env, me.id, c.req.param("publicId"));
-  const customer = await first<{ customer_name: string; customer_email: string; customer_phone: string }>(
+  const customer = await first<{ customer_name: string; customer_email: string; customer_phone: string; customer_address: string }>(
     c.env.DB,
-    "SELECT customer_name, customer_email, customer_phone FROM orders WHERE public_id = ?",
+    "SELECT customer_name, customer_email, customer_phone, customer_address FROM orders WHERE public_id = ?",
     order.public_id,
   );
   const lang = c.req.query("lang") === "en" ? "en" : c.req.query("lang") === "bn" ? "bn" : me.locale;
@@ -203,7 +204,7 @@ studentRoutes.get("/orders/:publicId/invoice", async (c) => {
   return renderHtml(
     c,
     ctx,
-    <InvoicePage ctx={ctx} order={order} customer={{ name: customer?.customer_name ?? me.name, email: customer?.customer_email ?? me.email, phone: customer?.customer_phone ?? "" }} />,
+    <InvoicePage ctx={ctx} order={order} customer={{ name: customer?.customer_name ?? me.name, email: customer ? customer.customer_email : shownEmail(me.email), phone: customer?.customer_phone ?? "", address: customer?.customer_address ?? "" }} />,
     { cache: "private, no-store" },
   );
 });

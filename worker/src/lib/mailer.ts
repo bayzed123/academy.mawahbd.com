@@ -1,3 +1,4 @@
+import { isNoEmail } from "@mawah/shared";
 import { isDev, type Env } from "../env";
 import { escapeHtml } from "./html";
 
@@ -61,6 +62,8 @@ const refusedBecauseUnverified = (status: number, said: string) => status === 40
  * can be tested end to end without sending anything.
  */
 export async function sendMail(env: Env, msg: MailMessage): Promise<MailResult> {
+  // a buyer who gave no e-mail is kept under a made-up address: there is nobody to mail, and Resend must never be asked to
+  if (!msg.to || isNoEmail(msg.to)) return { ok: false, provider: "none", error: "no_email" };
   if (env.RESEND_API_KEY) {
     try {
       const res = await postEmail(env, env.MAIL_FROM, msg);

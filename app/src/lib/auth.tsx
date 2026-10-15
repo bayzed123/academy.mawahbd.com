@@ -6,7 +6,8 @@ import { api } from "./api";
 interface AuthState {
   /** undefined while the first check is running */
   student: StudentMe | null | undefined;
-  login: (email: string, password: string, turnstile?: string) => Promise<StudentMe>;
+  /** `identifier`: what they typed to sign in — an e-mail, a mobile number or a student ID */
+  login: (identifier: string, password: string, turnstile?: string) => Promise<StudentMe>;
   register: (input: { name: string; email: string; phone?: string; password: string; lang: string; marketing: boolean; turnstile?: string }) => Promise<StudentMe>;
   logout: () => Promise<void>;
   setStudent: (s: StudentMe) => void;
@@ -23,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const login = useMutation({
-    mutationFn: async (v: { email: string; password: string; turnstile?: string }) => (await api<{ student: StudentMe }>("/auth/login", { json: v })).student,
+    mutationFn: async (v: { identifier: string; password: string; turnstile?: string }) => (await api<{ student: StudentMe }>("/auth/login", { json: v })).student,
   });
   const register = useMutation({
     mutationFn: async (v: Parameters<AuthState["register"]>[0]) => (await api<{ student: StudentMe }>("/auth/register", { json: v })).student,
@@ -32,8 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthState>(
     () => ({
       student: me.isPending ? undefined : (me.data ?? null),
-      async login(email, password, turnstile) {
-        const s = await login.mutateAsync({ email, password, turnstile });
+      async login(identifier, password, turnstile) {
+        const s = await login.mutateAsync({ identifier, password, turnstile });
         qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" && q.queryKey[0] !== "site" });
         qc.setQueryData(["me"], s);
         return s;

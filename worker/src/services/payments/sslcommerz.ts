@@ -28,7 +28,7 @@ export interface SslValidation {
 export async function sslInit(
   env: Env,
   order: { public_id: string; total: number },
-  customer: { name: string; email: string; phone: string },
+  customer: { name: string; email: string; phone: string; address?: string },
   productName: string,
 ): Promise<{ redirectUrl: string; sessionKey: string }> {
   const form = new URLSearchParams({
@@ -43,7 +43,7 @@ export async function sslInit(
     ipn_url: `${env.SITE_URL}/api/payments/sslcommerz/ipn`,
     cus_name: customer.name.slice(0, 50),
     cus_email: customer.email,
-    cus_add1: "Dhaka",
+    cus_add1: (customer.address || "Dhaka").replace(/\s+/g, " ").slice(0, 50),
     cus_city: "Dhaka",
     cus_postcode: "1000",
     cus_country: "Bangladesh",

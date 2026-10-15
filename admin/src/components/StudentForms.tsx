@@ -137,16 +137,22 @@ export function AccessFields({ value, onChange, have = [], errors = {} }: { valu
 
 /* ================================================================================================ a way in */
 /**
- * A student added by hand has no password. Two ways to let them in: an e-mail with a link to choose one, or the link itself for the team
- * to send on WhatsApp / Messenger. Neither shows or sets a password — whoever has the link chooses it.
+ * A student added by hand has no password. Ways to let them in: an e-mail with a link to choose one (when they have an e-mail), a text
+ * message to their mobile number (when they have one), or the link itself for the team to send on WhatsApp / Messenger. None of them shows
+ * or sets a password — whoever has the link chooses it.
  */
-export function InviteBox({ studentId, name, hasPassword }: { studentId: number; name: string; hasPassword: boolean }) {
+export function InviteBox({ studentId, name, hasPassword, hasEmail = true, hasPhone = false }: { studentId: number; name: string; hasPassword: boolean; hasEmail?: boolean; hasPhone?: boolean }) {
   const { t, err } = useI18n();
   const toast = useToast();
   const [link, setLink] = useState<{ url: string; days: number } | null>(null);
   const mail = useMutation({
     mutationFn: () => adm<{ sent: boolean; days: number }>(`/students/${studentId}/invite`, { json: { mode: "email" } }),
     onSuccess: (r) => toast(r.sent ? t("adm.stu.inviteSent", { days: r.days }) : t("adm.stu.inviteNotSent"), !r.sent),
+    onError: (e) => toast(err(e instanceof ApiError ? e.code : "generic"), true),
+  });
+  const text = useMutation({
+    mutationFn: () => adm<{ sent: boolean; days: number }>(`/students/${studentId}/invite`, { json: { mode: "sms" } }),
+    onSuccess: (r) => toast(r.sent ? t("adm.stu.inviteSmsSent", { days: r.days }) : t("adm.stu.inviteNoSms"), !r.sent),
     onError: (e) => toast(err(e instanceof ApiError ? e.code : "generic"), true),
   });
   const getLink = useMutation({
@@ -169,9 +175,16 @@ export function InviteBox({ studentId, name, hasPassword }: { studentId: number;
       <div style={{ flex: 1, minWidth: 0 }}>
         <p>{t("adm.stu.noPassword")}</p>
         <div className="row">
-          <Button className="btn-outline" busy={mail.isPending} onClick={() => mail.mutate()}>
-            <Icon name="mail" /> {t("adm.stu.inviteMail")}
-          </Button>
+          {hasEmail && (
+            <Button className="btn-outline" busy={mail.isPending} onClick={() => mail.mutate()}>
+              <Icon name="mail" /> {t("adm.stu.inviteMail")}
+            </Button>
+          )}
+          {hasPhone && (
+            <Button className="btn-outline" busy={text.isPending} onClick={() => text.mutate()}>
+              <Icon name="phone" /> {t("adm.stu.inviteSms")}
+            </Button>
+          )}
           <Button className="btn-outline" busy={getLink.isPending} onClick={() => getLink.mutate()}>
             <Icon name="link" /> {t("adm.stu.inviteLink")}
           </Button>
@@ -198,12 +211,16 @@ export function InviteBox({ studentId, name, hasPassword }: { studentId: number;
 /* ================================================================================================ add / change a student */
 export interface StudentFormValue {
   name: string;
+  /** empty = the student has none (they sign in with the mobile number or the student ID) */
   email: string;
   phone: string;
+  address: string;
   locale: "bn" | "en";
   notes: string;
   marketing: boolean;
 }
+
+const blank: StudentFormValue = { name: "", email: "", phone: "", address: "", locale: "bn", notes: "", marketing: false };
 
 /** Add a student by hand (with classes and the payment already made), or change one. `onSaved(id)` runs after a save. */
 export function StudentFormDrawer({ student, onClose, onSaved, onOpenStudent }: { student?: { id: number } & StudentFormValue; onClose: () => void; onSaved: () => void; onOpenStudent?: (id: number) => void }) {
@@ -212,10 +229,12 @@ export function StudentFormDrawer({ student, onClose, onSaved, onOpenStudent }: 
   const qc = useQueryClient();
   const fieldErrors = useFieldErrors();
   const editing = !!student;
-  const [v, setV] = useState<StudentFormValue>(student ?? { name: "", email: "", phone: "", locale: "bn", notes: "", marketing: false });
+  const [v, setV] = useState<StudentFormValue>(student ?? blank);
   const [access, setAccess] = useState<AccessValue>(emptyAccess());
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [made, setMade] = useState<{ id: number; name: string; email: string } | null>(null);
+  const [made, setMade] = useState<{ id: number; name: string; hasEmail: boolean; hasPhone: boolean } | null>(null);
+  /** a student who had no e-mail when this form was opened: the e-mail box is for adding one, not for changing one */
+  const hadEmail = !!student?.email;
 
   const done = () => {
     void qc.invalidateQueries({ queryKey: ["/students"] });
@@ -224,7 +243,9 @@ export function StudentFormDrawer({ student, onClose, onSaved, onOpenStudent }: 
   };
   const save = useMutation({
     mutationFn: async () => {
-      const common = { name: v.name.trim(), email: v.email.trim(), phone: v.phone.trim(), locale: v.locale, notes: v.notes.trim(), marketing_opt_in: v.marketing };
+      // an empty e-mail is left out: a student may have none, and an existing e-mail cannot be taken away
+      const email = v.email.trim();
+      const common = { name: v.name.trim(), ...(email ? { email } : {}), phone: v.phone.trim(), address: v.address.trim(), locale: v.locale, notes: v.notes.trim(), marketing_opt_in: v.marketing };
       if (editing) return adm(`/students/${student!.id}`, { method: "PATCH", json: common });
       return adm<{ id: number; granted: number }>("/students", { json: { ...common, ...accessPayload(access) } });
     },
@@ -235,13 +256,13 @@ export function StudentFormDrawer({ student, onClose, onSaved, onOpenStudent }: 
         done();
         onClose();
       } else {
-        setMade({ id: (r as { id: number }).id, name: v.name.trim(), email: v.email.trim() });
+        setMade({ id: (r as { id: number }).id, name: v.name.trim(), hasEmail: !!v.email.trim(), hasPhone: !!v.phone.trim() });
         done();
       }
     },
     onError: (e) => {
       setErrors(fieldErrors(e));
-      if (!(e instanceof ApiError && (e.code === "validation" || e.code === "email_taken"))) toast(err(e instanceof ApiError ? e.code : "generic"), true);
+      if (!(e instanceof ApiError && (e.code === "validation" || e.code === "email_taken" || e.code === "phone_taken"))) toast(err(e instanceof ApiError ? e.code : "generic"), true);
     },
   });
   const set = <K extends keyof StudentFormValue>(k: K, val: StudentFormValue[K]) => setV((x) => ({ ...x, [k]: val }));
@@ -258,7 +279,7 @@ export function StudentFormDrawer({ student, onClose, onSaved, onOpenStudent }: 
               className="btn-ghost"
               onClick={() => {
                 setMade(null);
-                setV({ name: "", email: "", phone: "", locale: "bn", notes: "", marketing: false });
+                setV(blank);
                 setAccess(emptyAccess());
               }}
             >
@@ -283,7 +304,7 @@ export function StudentFormDrawer({ student, onClose, onSaved, onOpenStudent }: 
               </p>
             </div>
           </div>
-          <InviteBox studentId={made.id} name={made.name} hasPassword={false} />
+          <InviteBox studentId={made.id} name={made.name} hasPassword={false} hasEmail={made.hasEmail} hasPhone={made.hasPhone} />
         </div>
       </SlideOver>
     );
@@ -310,11 +331,14 @@ export function StudentFormDrawer({ student, onClose, onSaved, onOpenStudent }: 
         <Field id="sf-name" label={t("label.name")} error={errors.name}>
           <TextInput id="sf-name" autoComplete="off" value={v.name} error={errors.name} onChange={(e) => set("name", e.target.value)} />
         </Field>
-        <Field id="sf-email" label={t("label.email")} hint={editing ? t("adm.stu.fEmailHint") : undefined} error={errors.email}>
+        <Field id="sf-email" label={t("label.email")} hint={!editing ? t("adm.stu.fEmailOptional") : hadEmail ? t("adm.stu.fEmailHint") : t("adm.stu.fEmailNone")} error={errors.email}>
           <TextInput id="sf-email" type="email" inputMode="email" autoComplete="off" value={v.email} error={errors.email} onChange={(e) => set("email", e.target.value)} />
         </Field>
         <Field id="sf-phone" label={t("label.phone")} error={errors.phone}>
           <TextInput id="sf-phone" type="tel" inputMode="tel" autoComplete="off" placeholder="01XXXXXXXXX" value={v.phone} error={errors.phone} onChange={(e) => set("phone", e.target.value)} />
+        </Field>
+        <Field id="sf-address" label={t("adm.stu.fAddress")} hint={t("adm.stu.fAddressHint")} error={errors.address}>
+          <TextArea id="sf-address" rows={2} maxLength={300} autoComplete="off" value={v.address} error={errors.address} onChange={(e) => set("address", e.target.value)} />
         </Field>
         <Field id="sf-lang" label={t("adm.f.language")}>
           <Select id="sf-lang" value={v.locale} onChange={(e) => set("locale", e.target.value as "bn" | "en")}>

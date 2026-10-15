@@ -1,6 +1,7 @@
+import type { LoginId } from "@mawah/shared";
 import type { Env } from "../env";
 import { DUMMY_HASH, needsRehash, hashPassword, randomToken, sha256Hex, verifyPassword } from "../lib/crypto";
-import { addSeconds, first, nowIso, run } from "../lib/db";
+import { addSeconds, all, first, nowIso, run } from "../lib/db";
 
 export type AccountTable = "students" | "staff";
 
@@ -25,6 +26,19 @@ export type AuthResult =
 
 export const peppers = (env: Env): string[] =>
   [env.APP_SECRET, env.APP_SECRET_PREVIOUS].filter((s): s is string => !!s);
+
+/**
+ * The e-mail an account is stored under, for what someone typed in the sign-in box: an e-mail, a student ID, or a mobile number.
+ * A number counts only for accounts that have a password (a number shared by several is "ambiguous": they sign in with their ID or e-mail).
+ * null = no such account (or nothing usable was typed).
+ */
+export async function studentLoginFor(env: Env, id: LoginId | null): Promise<string | "ambiguous" | null> {
+  if (!id) return null;
+  if (id.kind === "email") return id.value;
+  if (id.kind === "code") return (await first<{ email: string }>(env.DB, "SELECT email FROM students WHERE id = ?", id.id))?.email ?? null;
+  const rows = await all<{ email: string }>(env.DB, "SELECT email FROM students WHERE phone = ? AND password_hash IS NOT NULL AND blocked = 0 LIMIT 3", id.value);
+  return rows.length === 0 ? null : rows.length === 1 ? rows[0].email : "ambiguous";
+}
 
 /**
  * Verify e-mail + password with brute-force protection:

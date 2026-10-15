@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { apiGet, apiPost, registerStudent, uniqueEmail, useLang } from "./helpers";
+import { apiGet, apiPost, LOGIN_ID, registerStudent, uniqueEmail, useLang } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -34,10 +34,10 @@ test("guests are sent to log in and brought back; registration, validation and l
   await page.locator(".user-menu summary").click();
   await page.getByRole("button", { name: "Log out" }).click();
   await expect(page).toHaveURL(/\/app\/login/);
-  await page.getByLabel(/^Email/).fill(creds.email);
+  await page.getByLabel(LOGIN_ID).fill(creds.email);
   await page.getByLabel(/^Password/).fill("wrong-password");
   await page.getByRole("button", { name: "Log in" }).last().click();
-  await expect(page.getByRole("alert")).toContainText("Wrong email or password");
+  await expect(page.getByRole("alert")).toContainText("Wrong sign-in details");
   await page.getByLabel(/^Password/).fill(creds.password);
   await page.getByRole("button", { name: "Log in" }).last().click();
   await expect(page.getByRole("heading", { name: "My Learning" })).toBeVisible();
@@ -230,7 +230,7 @@ test("profile: change password signs out other sessions; reset-by-email flow", a
   await useLang(other, "en");
   const op = await other.newPage();
   await op.goto("/app/login");
-  await op.getByLabel(/^Email/).fill(creds.email);
+  await op.getByLabel(LOGIN_ID).fill(creds.email);
   await op.getByLabel(/^Password/).fill(creds.password);
   await op.getByRole("button", { name: "Log in" }).last().click();
   await expect(op.getByRole("heading", { name: "My Learning" })).toBeVisible();
@@ -250,9 +250,9 @@ test("profile: change password signs out other sessions; reset-by-email flow", a
   await useLang(ctx, "en");
   const fp = await ctx.newPage();
   await fp.goto("/app/forgot");
-  await fp.getByLabel(/^Email/).fill(creds.email);
+  await fp.getByLabel(LOGIN_ID).fill(creds.email);
   await fp.getByRole("button", { name: "Send reset link" }).click();
-  await expect(fp.getByText("Check your inbox")).toBeVisible();
+  await expect(fp.getByText("Check your messages")).toBeVisible();
   const mails = await (await fp.request.get(`/api/dev/outbox?to=${encodeURIComponent(creds.email)}`)).json();
   const link = mails.messages.map((m: { text: string }) => m.text.match(/https?:\/\/\S+\/app\/reset\/\S+/)?.[0]).find(Boolean) as string;
   expect(link).toBeTruthy();
