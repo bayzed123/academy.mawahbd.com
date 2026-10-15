@@ -57,6 +57,8 @@ export interface StudentCtx {
   email: string;
   phone: string | null;
   locale: Lang;
+  /** false for an account made at checkout that has no password yet (absent = unknown, treated as having one) */
+  has_password?: boolean;
 }
 
 export interface StaffCtx {

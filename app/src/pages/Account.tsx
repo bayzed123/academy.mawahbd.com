@@ -5,6 +5,7 @@ import type { CertificateDTO, StudentMe } from "@mawah/shared";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
+import { KeepAccount } from "../components/KeepAccount";
 import { Button, Empty, ErrorState, Field, Icon, Spinner, TextInput, useFieldErrors, useToast } from "../components/ui";
 
 /* ------------------------------------------------------------------------------------------- certificates */
@@ -124,6 +125,9 @@ export function Profile() {
         <Field id="p-name" label={t("label.name")} error={fields.name}>
           <TextInput id="p-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} error={fields.name} />
         </Field>
+        <Field id="p-code" label={t("app.account.id")}>
+          <input id="p-code" className="input" value={student.code} readOnly />
+        </Field>
         <Field id="p-email" label={t("label.email")} hint={t("app.profile.emailNote")}>
           <input id="p-email" className="input" value={student.email} readOnly disabled />
         </Field>
@@ -141,6 +145,9 @@ export function Profile() {
         </Button>
       </form>
 
+      {/* an account made at checkout has no password yet: choosing one is the only thing to do here */}
+      {!student.has_password && <KeepAccount />}
+      {student.has_password && (
       <form className="panel" onSubmit={onChange} noValidate>
         <h2>{t("app.profile.password.title")}</h2>
         <Field id="pw-cur" label={t("app.profile.password.current")} error={pwFields.current}>
@@ -153,6 +160,7 @@ export function Profile() {
           {t("btn.save")}
         </Button>
       </form>
+      )}
     </>
   );
 }

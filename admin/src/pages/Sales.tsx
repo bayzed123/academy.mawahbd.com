@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { orderCode, ORDER_STATUSES, PAYMENT_METHODS } from "@mawah/shared";
+import { orderCode, ORDER_STATUSES, PAYMENT_METHODS, waNumber } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -48,6 +48,9 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
   // a manual order can be approved while it is still "pending" too: the student paid and told you on WhatsApp instead of using the form
   const approvable = !!o && (o.status === "awaiting_verification" || (o.status === "pending" && o.gateway === "manual"));
   const sentAfter = o?.proof_at && o.pay_by ? Math.round((Date.parse(o.proof_at) - Date.parse(o.pay_by)) / 60_000) : null;
+  // someone who started to buy and did not finish: the number they typed is a way to win the sale back
+  const unfinished = !!o && (o.status === "pending" || o.status === "cancelled" || o.status === "failed");
+  const phone = (o?.customer_phone || q.data?.student?.phone || "").trim();
   const reject = async () => {
     const r = await confirm({ title: t("adm.order.rejectTitle"), body: t("adm.order.rejectBody"), danger: true, confirmLabel: t("adm.order.reject"), reason: { label: t("adm.order.reason") } });
     if (r.ok) act.mutate({ path: "reject", body: { reason: r.reason } });
@@ -154,6 +157,23 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
               </tr>
             </tbody>
           </table>
+          {unfinished && phone && (
+            <div className="notice">
+              <Icon name="whatsapp" />
+              <div>
+                <b>{t("adm.order.followUp")}</b>
+                <p>{t("adm.order.followUpHint")}</p>
+                <a
+                  className="btn btn-outline btn-sm"
+                  href={`https://wa.me/${waNumber(phone)}?text=${encodeURIComponent(t("adm.order.followUpMsg", { name: o.customer_name.split(" ")[0], class: q.data.items.map((i) => pick(i, "title")).join(", ") }))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Icon name="whatsapp" /> {t("adm.order.followUp")}
+                </a>
+              </div>
+            </div>
+          )}
           {q.data.student && (
             <p>
               <b>{t("adm.nav.students")}:</b>{" "}

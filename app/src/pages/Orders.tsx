@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { OrderDTO, OrderStatus } from "@mawah/shared";
 import { api } from "../lib/api";
 import { useI18n } from "../lib/i18n";
+import { KeepAccount } from "../components/KeepAccount";
 import { Empty, ErrorState, Icon, Spinner } from "../components/ui";
 import { ManualPay, ManualWaiting } from "./ManualPay";
 
@@ -116,6 +117,7 @@ export function OrderDetail() {
         hero
       )}
       {manualOpen && o.status === "awaiting_verification" && <ManualWaiting order={o} />}
+      {o.status === "paid" && <KeepAccount />}
 
       <section className="panel">
         <h2>{t("app.orders.items")}</h2>

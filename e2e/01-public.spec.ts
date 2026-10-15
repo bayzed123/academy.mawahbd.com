@@ -41,7 +41,9 @@ test.describe("public site", () => {
     expect(Number(course.offers.price)).toBe(400);
     expect(course.aggregateRating).toBeUndefined(); // only real ratings may ever be published
     await page.getByRole("link", { name: /Enroll Now/ }).first().click();
-    await expect(page).toHaveURL(/\/app\/login\?next=.*checkout/); // guests are sent to log in, then straight to checkout
+    // no log-in page in between: a visitor is asked for a name, a number and an e-mail instead — a buyer sent to log in first is a buyer lost
+    await expect(page).toHaveURL(/\/app\/checkout\?c=beginners-baking-class/);
+    await expect(page.getByRole("heading", { name: "Your details" })).toBeVisible();
   });
 
   test("no fabricated social proof anywhere in the API or pages", async ({ page, request }) => {
