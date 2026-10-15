@@ -82,8 +82,8 @@ export async function setPassword(env: Env, table: AccountTable, id: number, new
   );
 }
 
-/** One-hour, single-use password-reset link for a student (previous links are voided). Only the token's SHA-256 is stored. */
-export async function createPasswordResetLink(env: Env, studentId: number): Promise<string> {
+/** Single-use password-reset link for a student, one hour by default (previous links are voided). Only the token's SHA-256 is stored. */
+export async function createPasswordResetLink(env: Env, studentId: number, ttlSeconds = 3600): Promise<string> {
   const token = randomToken(32);
   await run(env.DB, "DELETE FROM auth_tokens WHERE subject_type = 'student' AND subject_id = ? AND kind = 'password_reset'", studentId);
   await run(
@@ -91,7 +91,7 @@ export async function createPasswordResetLink(env: Env, studentId: number): Prom
     "INSERT INTO auth_tokens (kind, subject_type, subject_id, token_hash, expires_at) VALUES ('password_reset', 'student', ?, ?, ?)",
     studentId,
     await sha256Hex(token),
-    addSeconds(nowIso(), 3600),
+    addSeconds(nowIso(), ttlSeconds),
   );
   return `${env.SITE_URL}/app/reset/${token}`;
 }

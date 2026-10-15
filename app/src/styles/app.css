@@ -83,6 +83,8 @@ html[lang=bn] .brand-name{font-weight:400;letter-spacing:.02em;font-size:1.1rem;
 .mat-profile{display:grid;gap:8px;width:100%}
 .mat-profile .notice{margin:0}
 .notice.bad .icon{color:var(--red-700)}
+.keep-account .field{max-width:360px;margin:12px 0}
+.keep-account .student-code{display:inline;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em}
 .spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--line-2);border-top-color:var(--g-500);animation:spin .9s linear infinite;margin:48px auto}
 .spinner.sm{width:18px;height:18px;border-width:2px;margin:0;display:inline-block;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}

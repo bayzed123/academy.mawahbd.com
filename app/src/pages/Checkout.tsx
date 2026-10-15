@@ -1,21 +1,131 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toBnDigits, type Channel, type QuoteDTO } from "@mawah/shared";
+import { toBnDigits, type Channel, type QuoteDTO, type StudentMe } from "@mawah/shared";
 import { api, ApiError } from "../lib/api";
+import { useAuth } from "../lib/auth";
+import { useSite } from "../lib/hooks";
 import { useI18n } from "../lib/i18n";
-import { Button, Empty, ErrorState, Field, Icon, Spinner, TextInput, useFieldErrors, useToast } from "../components/ui";
+import { Button, Empty, ErrorState, Field, Icon, Spinner, TextInput, Turnstile, useFieldErrors, useToast } from "../components/ui";
 
 const CHANNEL_ICON: Record<Channel, string> = { sslcommerz: "wallet", bkash: "wallet", manual: "phone", mock: "sparkle" };
 type Method = "bkash" | "nagad" | "rocket";
+type PayResult = { order: { public_id: string; status: string; total: number }; redirect_url?: string; student?: StudentMe };
+
+/**
+ * Someone who typed the e-mail of a student account in "Your details". Nothing is opened for them: they sign in right here (and the
+ * payment goes on at once), or — when that account has no password yet — they are e-mailed a link.
+ */
+function ExistingAccount({ email, passwordless, onSignedIn, onOther }: { email: string; passwordless: boolean; onSignedIn: () => void; onOther: () => void }) {
+  const { t, lang, err } = useI18n();
+  const { login } = useAuth();
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
+
+  const signIn = async () => {
+    if (!password) return;
+    setBusy(true);
+    setError("");
+    try {
+      await login(email, password);
+      onSignedIn();
+    } catch (x) {
+      setError(err(x instanceof ApiError ? x.code : "generic"));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const sendLink = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await api("/auth/forgot", { json: { email, lang } });
+      setSent(true);
+    } catch (x) {
+      setError(err(x instanceof ApiError ? x.code : "generic"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="notice" role="region" aria-labelledby="exists-h" style={{ marginTop: 16 }}>
+      <Icon name="user" />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <b id="exists-h">{t("app.checkout.exists.title")}</b>
+        {sent ? (
+          <p aria-live="polite">{t("app.checkout.exists.sent", { email })}</p>
+        ) : passwordless ? (
+          <>
+            <p>{t("app.checkout.exists.link")}</p>
+            <Button type="button" className="btn-primary" busy={busy} onClick={() => void sendLink()}>
+              {t("app.checkout.exists.sendLink")}
+            </Button>
+          </>
+        ) : (
+          <>
+            <p>{t("app.checkout.exists.body", { email })}</p>
+            <div className="field">
+              <label htmlFor="x-password">{t("app.checkout.exists.password")}</label>
+              <TextInput
+                id="x-password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(ev) => setPassword(ev.target.value)}
+                onKeyDown={(ev) => {
+                  // Enter here signs in; it must not send the whole checkout form again
+                  if (ev.key === "Enter") {
+                    ev.preventDefault();
+                    void signIn();
+                  }
+                }}
+              />
+            </div>
+            <div className="row">
+              <Button type="button" className="btn-primary" busy={busy} disabled={!password} onClick={() => void signIn()}>
+                {t("app.checkout.exists.signIn")}
+              </Button>
+              <button type="button" className="link" onClick={() => void sendLink()} disabled={busy}>
+                {t("app.checkout.exists.forgot")}
+              </button>
+            </div>
+          </>
+        )}
+        {error && (
+          <p className="err-text" role="alert">
+            {error}
+          </p>
+        )}
+        <p className="small" style={{ marginTop: 10 }}>
+          <button type="button" className="link" onClick={onOther}>
+            {t("app.checkout.exists.other")}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function Checkout() {
   const { t, lang, pick, money, err } = useI18n();
   const [params] = useSearchParams();
+  const { search } = useLocation();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const toast = useToast();
   const fieldErrors = useFieldErrors();
+  const { student, setStudent } = useAuth();
+  const site = useSite();
+  // buying needs no account: a visitor gives a name, a number and an e-mail, and the account is made for them
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [captcha, setCaptcha] = useState("");
+  const [bump, setBump] = useState(0);
+  const [exists, setExists] = useState<{ email: string; passwordless: boolean } | null>(null);
 
   const slug = params.get("c") ?? "";
   const bundle = params.get("bundle");
@@ -56,11 +166,14 @@ export default function Checkout() {
   });
 
   const pay = useMutation({
-    mutationFn: async () =>
-      api<{ order: { public_id: string; status: string; total: number }; redirect_url?: string }>("/checkout", {
-        json: { ...cart, coupon, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined },
-      }),
+    // "student": already signed in (or just signed in here); "guest": a visitor, with the details typed above
+    mutationFn: async (as: "student" | "guest") => {
+      const order = { ...cart, coupon, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined };
+      if (as === "student") return api<PayResult>("/checkout", { json: order });
+      return api<PayResult>("/checkout/guest", { json: { ...order, name: name.trim(), email: email.trim(), phone: phone.trim(), lang, turnstile: captcha || undefined } });
+    },
     onSuccess: (res) => {
+      if (res.student) setStudent(res.student); // the visitor now has an account and is signed in on this phone
       void qc.invalidateQueries({ queryKey: ["orders"] });
       void qc.invalidateQueries({ queryKey: ["my-courses"] });
       if (res.redirect_url) {
@@ -69,11 +182,19 @@ export default function Checkout() {
       } else navigate(`/orders/${res.order.public_id}`, { replace: true });
     },
     onError: (e) => {
+      setBump((n) => n + 1);
+      if (e instanceof ApiError && e.code === "account_exists") {
+        setFields({});
+        setFormError("");
+        setExists({ email: email.trim().toLowerCase(), passwordless: e.fields?.email === "account_exists_link" });
+        return;
+      }
       setFields(fieldErrors(e));
       setFormError(e instanceof ApiError && e.code !== "validation" ? err(e.code) : "");
     },
   });
 
+  if (student === undefined) return <Spinner />;
   if (!slug && !bundle) {
     return (
       <Empty icon="book" title={t("app.checkout.empty")}>
@@ -104,7 +225,17 @@ export default function Checkout() {
     e.preventDefault();
     setFields({});
     setFormError("");
-    pay.mutate();
+    if (student) return pay.mutate("student");
+    const missing: Record<string, string> = {};
+    if (!name.trim()) missing.name = t("err.required");
+    if (!email.trim()) missing.email = t("err.required");
+    if (!phone.trim()) missing.phone = t("err.required");
+    if (Object.keys(missing).length) {
+      setFields(missing);
+      document.getElementById(missing.name ? "g-name" : missing.phone ? "g-phone" : "g-email")?.focus();
+      return;
+    }
+    pay.mutate("guest");
   };
   const policy = lang === "en" ? "/en/policies" : "/policies";
 
@@ -115,6 +246,29 @@ export default function Checkout() {
       </div>
       <form className="checkout" onSubmit={submit} noValidate>
         <div className="stack">
+          {!student && (
+            <section className="panel" aria-labelledby="you-h">
+              <h2 id="you-h">{t("app.checkout.you.title")}</h2>
+              <p className="muted">{t("app.checkout.you.sub")}</p>
+              <Field id="g-name" label={t("app.checkout.you.name")} error={fields.name}>
+                <TextInput id="g-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} error={fields.name} />
+              </Field>
+              <Field id="g-phone" label={t("app.checkout.you.phone")} hint={t("app.checkout.you.phoneHint")} error={fields.phone}>
+                <TextInput id="g-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" value={phone} onChange={(e) => setPhone(e.target.value)} error={fields.phone} />
+              </Field>
+              <Field id="g-email" label={t("app.checkout.you.email")} hint={t("app.checkout.you.emailHint")} error={fields.email}>
+                <TextInput id="g-email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} error={fields.email} />
+              </Field>
+              {site.data?.turnstile_site_key && <Turnstile siteKey={site.data.turnstile_site_key} onToken={setCaptcha} resetKey={bump} />}
+              <p className="small">
+                {t("app.checkout.you.haveAccount")}{" "}
+                <Link className="link" to={`/login?next=${encodeURIComponent(`/checkout${search}`)}`}>
+                  {t("app.checkout.you.login")}
+                </Link>
+              </p>
+              {exists && <ExistingAccount email={exists.email} passwordless={exists.passwordless} onSignedIn={() => { setExists(null); pay.mutate("student"); }} onOther={() => { setExists(null); setEmail(""); document.getElementById("g-email")?.focus(); }} />}
+            </section>
+          )}
           <section className="panel">
             <h2>{t("app.checkout.pay")}</h2>
             {free ? (

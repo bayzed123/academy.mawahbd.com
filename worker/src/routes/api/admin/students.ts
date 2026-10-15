@@ -9,6 +9,7 @@ import { passwordResetMail, sendMail } from "../../../lib/mailer";
 import { langSchema, nameSchema, phoneSchema, textSchema } from "../../../lib/schemas";
 import { requirePerm } from "../../../middleware/auth";
 import { createPasswordResetLink } from "../../../services/auth";
+import { REAL_STUDENT } from "../../../services/guests";
 
 export const students = new Hono<AppEnv>();
 
@@ -18,7 +19,8 @@ const LIST_COLS = `s.id, s.name, s.email, s.phone, s.locale, s.blocked, s.create
   (SELECT COALESCE(SUM(o.total), 0) FROM orders o WHERE o.student_id = s.id AND o.status = 'paid') AS spent`;
 
 function filters(q: Record<string, string>) {
-  const where: string[] = ["1=1"];
+  // a visitor who only started to buy is not a student yet: not listed, not counted, not exported
+  const where: string[] = [REAL_STUDENT];
   const params: (string | number)[] = [];
   if (q.blocked === "1") where.push("s.blocked = 1");
   if (q.course_id && /^\d+$/.test(q.course_id)) {

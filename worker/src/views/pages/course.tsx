@@ -305,6 +305,10 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
               )}
               <ul>
                 <li>
+                  <Icon name="user" />
+                  {t("course.no_login")}
+                </li>
+                <li>
                   <Icon name="wallet" />
                   {t("course.pay_with")}
                 </li>

@@ -203,7 +203,19 @@ export function passwordResetMail(lang: Lang, link: string): Omit<MailMessage, "
 
 export function orderReceiptMail(
   lang: Lang,
-  d: { name: string; invoiceNo: string; total: string; items: string[]; learnUrl: string; invoiceUrl: string },
+  d: {
+    name: string;
+    invoiceNo: string;
+    total: string;
+    items: string[];
+    learnUrl: string;
+    invoiceUrl: string;
+    /** the student's ID (STU-000123), shown so they can quote it */
+    studentId?: string;
+    /** an account made at checkout has no password: the link that lets its owner choose one */
+    setPasswordUrl?: string;
+    setPasswordDays?: number;
+  },
 ): Omit<MailMessage, "to"> {
   const subject = lang === "bn" ? "ভর্তি নিশ্চিত হয়েছে" : "Your enrollment is confirmed";
   const hello = lang === "bn" ? `আসসালামু আলাইকুম ${d.name},` : `Hello ${d.name},`;
@@ -218,15 +230,29 @@ export function orderReceiptMail(
       : `<p style="color:#4a3d3e">Invoice: <b>${escapeHtml(d.invoiceNo)}</b> · Total: <b>${escapeHtml(d.total)}</b></p>`;
   const cta = lang === "bn" ? "ক্লাস শুরু করুন" : "Start learning";
   const inv = lang === "bn" ? "ইনভয়েস দেখুন" : "View invoice";
+  const id = d.studentId
+    ? lang === "bn"
+      ? `<p style="color:#4a3d3e">আপনার স্টুডেন্ট আইডি: <b>${escapeHtml(d.studentId)}</b></p>`
+      : `<p style="color:#4a3d3e">Your student ID: <b>${escapeHtml(d.studentId)}</b></p>`
+    : "";
+  const keep = d.setPasswordUrl
+    ? lang === "bn"
+      ? `আপনার জন্য একটি স্টুডেন্ট অ্যাকাউন্ট তৈরি হয়েছে। যেকোনো ফোন বা কম্পিউটার থেকে ক্লাস খুলতে একটি পাসওয়ার্ড দিন (লিংকটি ${d.setPasswordDays ?? 3} দিন কাজ করবে):`
+      : `We made a student account for you. Choose a password to open your classes on any phone or computer (the link works for ${d.setPasswordDays ?? 3} days):`
+    : "";
+  const keepLabel = lang === "bn" ? "পাসওয়ার্ড দিন" : "Choose a password";
+  const keepHtml = d.setPasswordUrl ? `<p style="font-size:15px;line-height:1.6;margin-top:22px">${escapeHtml(keep)}</p>${button(d.setPasswordUrl, keepLabel)}` : "";
+  const idText = d.studentId ? `${lang === "bn" ? "স্টুডেন্ট আইডি" : "Student ID"}: ${d.studentId}\n` : "";
+  const keepText = d.setPasswordUrl ? `\n${keep}\n${d.setPasswordUrl}\n` : "";
   return {
     subject: `${subject} — ${d.invoiceNo}`,
     html: layout(
       lang,
       subject,
-      `<p style="font-size:16px">${escapeHtml(hello)}</p><p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p><ul style="line-height:1.8">${list}</ul>${meta}${button(d.learnUrl, cta)}<p><a href="${escapeHtml(d.invoiceUrl)}" style="color:#b50f12">${escapeHtml(inv)}</a></p>`,
+      `<p style="font-size:16px">${escapeHtml(hello)}</p><p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p><ul style="line-height:1.8">${list}</ul>${meta}${id}${button(d.learnUrl, cta)}<p><a href="${escapeHtml(d.invoiceUrl)}" style="color:#b50f12">${escapeHtml(inv)}</a></p>${keepHtml}`,
       brandName(lang),
     ),
-    text: `${hello}\n${intro}\n\n${d.items.join("\n")}\n\n${d.invoiceNo} · ${d.total}\n${d.learnUrl}\n${d.invoiceUrl}`,
+    text: `${hello}\n${intro}\n\n${d.items.join("\n")}\n\n${d.invoiceNo} · ${d.total}\n${idText}${d.learnUrl}\n${d.invoiceUrl}${keepText}`,
   };
 }
 

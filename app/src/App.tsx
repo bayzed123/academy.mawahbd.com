@@ -33,7 +33,7 @@ export default function App() {
           <Route path="review/:slug" element={guard(<ReviewPage />)} />
           <Route path="learn/:slug" element={guard(<CourseOverview />)} />
           <Route path="learn/:slug/:lessonId" element={guard(<LessonPlayer />)} />
-          <Route path="checkout" element={guard(<Checkout />)} />
+          <Route path="checkout" element={<Checkout />} />
           <Route path="orders" element={guard(<Orders />)} />
           <Route path="orders/:publicId" element={guard(<OrderDetail />)} />
           <Route path="certificates" element={guard(<Certificates />)} />

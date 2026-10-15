@@ -1,5 +1,5 @@
 import type { Channel, OrderDTO, OrderItemDTO, OrderStatus, PaymentMethod } from "@mawah/shared";
-import { dhakaDayStamp, formatMoney, loc, MANUAL_WINDOW_DEFAULT_MIN, MAX_PROOF_IMAGE_BYTES } from "@mawah/shared";
+import { dhakaDayStamp, formatMoney, loc, MANUAL_WINDOW_DEFAULT_MIN, MAX_PROOF_IMAGE_BYTES, studentCode } from "@mawah/shared";
 import type { Env, StudentCtx } from "../env";
 import { auditAs } from "../lib/audit";
 import { generatePublicOrderId, randomToken, sha256Hex } from "../lib/crypto";
@@ -7,13 +7,15 @@ import { all, first, nowIso, qs, run } from "../lib/db";
 import { sniffImage } from "../lib/files";
 import { conflict, HttpError, notFound } from "../lib/http";
 import { orderReceiptMail, sendMail } from "../lib/mailer";
+import { createPasswordResetLink } from "./auth";
 import { notices, notifyOwner } from "./notify";
 
 /* =================================================================================================
  *  Pricing  (server-side, always — the browser never tells us a price)
  * ============================================================================================== */
 export interface QuoteInput {
-  studentId: number;
+  /** null = a buyer without an account yet (nothing owned, no earlier coupon use) */
+  studentId: number | null;
   courseSlugs?: string[];
   bundleId?: number;
   coupon?: string;
@@ -95,12 +97,15 @@ export function allocate(amount: number, weights: number[]): number[] {
 export async function buildQuote(env: Env, input: QuoteInput): Promise<Quote> {
   const { courses, bundlePrice, bundleId } = await resolveCourses(env, input);
 
-  const owned = await all<{ course_id: number }>(
-    env.DB,
-    `SELECT course_id FROM enrollments WHERE student_id = ? AND status = 'active' AND course_id IN (${qs(courses.length)})`,
-    input.studentId,
-    ...courses.map((c) => c.id),
-  );
+  const owned =
+    input.studentId === null
+      ? []
+      : await all<{ course_id: number }>(
+          env.DB,
+          `SELECT course_id FROM enrollments WHERE student_id = ? AND status = 'active' AND course_id IN (${qs(courses.length)})`,
+          input.studentId,
+          ...courses.map((c) => c.id),
+        );
   if (owned.length) throw conflict("already_enrolled", { course_ids: owned.map((o) => o.course_id).join(",") });
 
   // price per item before any coupon: the list price, or the bundle price spread across its classes
@@ -130,7 +135,7 @@ export async function buildQuote(env: Env, input: QuoteInput): Promise<Quote> {
   return { items, subtotal, discount, total: subtotal - discount, coupon, bundle_id: bundleId };
 }
 
-async function applyCoupon(env: Env, studentId: number, code: string, courses: CourseLite[], base: number[]) {
+async function applyCoupon(env: Env, studentId: number | null, code: string, courses: CourseLite[], base: number[]) {
   const c = await first<CouponRow>(env.DB, "SELECT * FROM coupons WHERE code = ? AND deleted_at IS NULL", code.trim().slice(0, 40));
   if (!c || !c.active) throw new HttpError(422, "invalid_coupon");
   const now = Date.now();
@@ -138,12 +143,10 @@ async function applyCoupon(env: Env, studentId: number, code: string, courses: C
   if (c.expires_at && Date.parse(c.expires_at) < now) throw new HttpError(422, "coupon_expired");
   if (c.max_uses !== null && c.used_count >= c.max_uses) throw new HttpError(422, "coupon_used");
 
-  const used = await first<{ n: number }>(
-    env.DB,
-    "SELECT COUNT(*) AS n FROM orders WHERE coupon_id = ? AND student_id = ? AND status IN ('paid','awaiting_verification')",
-    c.id,
-    studentId,
-  );
+  const used =
+    studentId === null
+      ? null
+      : await first<{ n: number }>(env.DB, "SELECT COUNT(*) AS n FROM orders WHERE coupon_id = ? AND student_id = ? AND status IN ('paid','awaiting_verification')", c.id, studentId);
   if ((used?.n ?? 0) >= c.per_student_limit) throw new HttpError(422, "coupon_used");
 
   const scoped = await all<{ course_id: number }>(env.DB, "SELECT course_id FROM coupon_courses WHERE coupon_id = ?", c.id);
@@ -390,9 +393,25 @@ export async function markOrderPaid(env: Env, orderId: number, p: PaidInput): Pr
 /** The facts of an order that a note to the owner needs. */
 async function orderForNotice(env: Env, orderId: number) {
   const [order, items] = await Promise.all([
-    first<{ public_id: string; invoice_no: string | null; total: number; method: string | null; customer_name: string; customer_email: string; customer_phone: string; gateway_txn: string | null; payer_number: string | null; has_image: number }>(
+    first<{
+      public_id: string;
+      invoice_no: string | null;
+      total: number;
+      method: string | null;
+      customer_name: string;
+      customer_email: string;
+      customer_phone: string;
+      gateway_txn: string | null;
+      payer_number: string | null;
+      has_image: number;
+      student_id: number;
+      made_at_checkout: number;
+    }>(
       env.DB,
-      "SELECT public_id, invoice_no, total, method, customer_name, customer_email, customer_phone, gateway_txn, payer_number, (proof_key IS NOT NULL) AS has_image FROM orders WHERE id = ?",
+      `SELECT o.public_id, o.invoice_no, o.total, o.method, o.customer_name, o.customer_email, o.customer_phone, o.gateway_txn, o.payer_number,
+              (o.proof_key IS NOT NULL) AS has_image, o.student_id,
+              (s.source = 'checkout' AND NOT EXISTS (SELECT 1 FROM orders p WHERE p.student_id = o.student_id AND p.status IN ('paid','refunded') AND p.id <> o.id)) AS made_at_checkout
+       FROM orders o JOIN students s ON s.id = o.student_id WHERE o.id = ?`,
       orderId,
     ),
     all<{ title_en: string }>(env.DB, "SELECT title_en FROM order_items WHERE order_id = ? ORDER BY id", orderId),
@@ -406,7 +425,10 @@ export async function notifyPaid(env: Env, orderId: number): Promise<void> {
     const d = await orderForNotice(env, orderId);
     if (!d) return;
     const o = d.order;
-    await notifyOwner(env, notices.orderPaid({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, items: d.items, total: o.total, method: o.method, invoiceNo: o.invoice_no ?? "" }));
+    await notifyOwner(
+      env,
+      notices.orderPaid({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, items: d.items, total: o.total, method: o.method, invoiceNo: o.invoice_no ?? "", studentId: studentCode(o.student_id), newAccount: !!o.made_at_checkout }),
+    );
   } catch (err) {
     console.error("notify_paid_failed", orderId, err instanceof Error ? err.message : err);
   }
@@ -427,6 +449,9 @@ export async function notifyProof(env: Env, orderId: number): Promise<void> {
   }
 }
 
+/** How long the "choose your password" link in a receipt works — long enough to open the e-mail on another day. */
+const SET_PASSWORD_LINK_DAYS = 3;
+
 export async function sendReceipt(env: Env, orderId: number): Promise<void> {
   const order = await first<{ invoice_no: string; total: number; customer_name: string; customer_email: string; public_id: string; student_id: number }>(
     env.DB,
@@ -435,10 +460,12 @@ export async function sendReceipt(env: Env, orderId: number): Promise<void> {
   );
   if (!order?.invoice_no) return;
   const [student, items] = await Promise.all([
-    first<{ locale: "bn" | "en" }>(env.DB, "SELECT locale FROM students WHERE id = ?", order.student_id),
+    first<{ locale: "bn" | "en"; has_password: number }>(env.DB, "SELECT locale, (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password FROM students WHERE id = ?", order.student_id),
     all<{ title_bn: string; title_en: string }>(env.DB, "SELECT title_bn, title_en FROM order_items WHERE order_id = ?", orderId),
   ]);
   const lang = student?.locale ?? "bn";
+  // a student whose account was made at checkout has no password yet: the receipt carries the link to choose one (and so to open the classes on any phone)
+  const setPasswordUrl = student && !student.has_password ? await createPasswordResetLink(env, order.student_id, SET_PASSWORD_LINK_DAYS * 86_400) : undefined;
   const mail = orderReceiptMail(lang, {
     name: order.customer_name,
     invoiceNo: order.invoice_no,
@@ -446,6 +473,9 @@ export async function sendReceipt(env: Env, orderId: number): Promise<void> {
     items: items.map((i) => loc(i, "title", lang)),
     learnUrl: `${env.SITE_URL}/app/`,
     invoiceUrl: `${env.SITE_URL}/app/orders/${order.public_id}`,
+    studentId: studentCode(order.student_id),
+    setPasswordUrl,
+    setPasswordDays: SET_PASSWORD_LINK_DAYS,
   });
   await sendMail(env, { to: order.customer_email, ...mail });
 }

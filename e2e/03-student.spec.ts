@@ -208,8 +208,10 @@ test("a free preview lesson is watchable without an account, and leads to enroll
   const lockedId = detail.curriculum[0].lessons.find((l: { is_preview: boolean }) => !l.is_preview).id;
   expect((await p.request.get(`/api/preview/lessons/${lockedId}`)).status()).toBe(401); // "log in", not the content
   expect((await p.request.get(`/api/student/lessons/${lockedId}`)).status()).toBe(401);
+  // from the preview straight to the checkout — a visitor is asked for a name, a number and an e-mail, not to log in
   await p.getByRole("link", { name: "Enroll Now" }).click();
-  await expect(p).toHaveURL(/login/);
+  await expect(p).toHaveURL(/\/app\/checkout\?c=beginners-baking-class/);
+  await expect(p.getByRole("heading", { name: "Your details" })).toBeVisible();
   await ctx.close();
 });
 

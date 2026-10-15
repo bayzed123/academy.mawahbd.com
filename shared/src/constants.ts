@@ -21,6 +21,10 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export const NOTIFY_KINDS = ["order_paid", "payment_waiting", "contact_message", "new_student", "course_question", "review_pending", "chat_handoff", "group_request", "notify_me", "newsletter"] as const;
 export type NotifyKind = (typeof NOTIFY_KINDS)[number];
 
+/** Where a student account came from: they registered, they were made at checkout for a buyer who did not register, staff added them, or an old list was imported. */
+export const STUDENT_SOURCES = ["signup", "checkout", "admin", "import"] as const;
+export type StudentSource = (typeof STUDENT_SOURCES)[number];
+
 export const LESSON_TYPES = ["video", "external", "text", "resource"] as const;
 export type LessonType = (typeof LESSON_TYPES)[number];
 

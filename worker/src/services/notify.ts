@@ -67,7 +67,7 @@ const methodName = (m: string | null | undefined) => (m ? (METHODS[m] ?? m) : ""
 
 /** What each kind of note says. Callers give plain facts; the wording (English and Bangla) is here. */
 export const notices = {
-  orderPaid(d: { student: string; email: string; phone: string | null; items: string[]; total: number; method: string | null; invoiceNo: string }): Notice {
+  orderPaid(d: { student: string; email: string; phone: string | null; items: string[]; total: number; method: string | null; invoiceNo: string; studentId?: string; newAccount?: boolean }): Notice {
     return {
       kind: "order_paid",
       headline: `${d.total ? formatMoney(d.total, "en") : "Free"} · ${d.student}`,
@@ -79,6 +79,8 @@ export const notices = {
         fact("Amount", "টাকা", d.total ? formatMoney(d.total, "en") : "Free · ফ্রি"),
         fact("Paid by", "যেভাবে দিয়েছেন", methodName(d.method)),
         fact("Invoice", "ইনভয়েস", d.invoiceNo),
+        fact("Student ID", "স্টুডেন্ট আইডি", d.studentId),
+        fact("Account", "অ্যাকাউন্ট", d.newAccount ? "New — made automatically at checkout · নতুন — চেকআউটে নিজে থেকে তৈরি" : ""),
       ],
     };
   },

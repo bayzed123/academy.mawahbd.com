@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams, Navigate } from "react-router";
+import type { StudentMe } from "@mawah/shared";
 import { api, ApiError, safeNext } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useSite } from "../lib/hooks";
@@ -113,7 +114,7 @@ export function Login() {
 
 /* ------------------------------------------------------------------------------------------- register */
 export function Register() {
-  const { t, lang } = useI18n();
+  const { t, lang, err } = useI18n();
   const { student, register } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -165,6 +166,14 @@ export function Register() {
         <Field id="email" label={t("label.email")} error={fields.email}>
           <TextInput id="email" type="email" autoComplete="email" inputMode="email" required value={form.email} onChange={set("email")} error={fields.email} />
         </Field>
+        {fields.email && fields.email === err("email_taken") && (
+          <p className="hint">
+            {t("app.register.takenHint")}{" "}
+            <Link className="link" to="/forgot">
+              {t("app.login.forgot")}
+            </Link>
+          </p>
+        )}
         <Field id="phone" label={`${t("label.phone")} (${t("label.optional")})`} error={fields.phone} hint={t("app.register.phoneHint")}>
           <TextInput id="phone" type="tel" autoComplete="tel" inputMode="tel" placeholder="01XXXXXXXXX" value={form.phone} onChange={set("phone")} error={fields.phone} />
         </Field>
@@ -237,6 +246,8 @@ export function Forgot() {
 export function Reset() {
   const { t } = useI18n();
   const { token = "" } = useParams();
+  const { setStudent } = useAuth();
+  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [done, setDone] = useState(false);
   const { busy, error, fields, run } = useSubmit();
@@ -244,7 +255,13 @@ export function Reset() {
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     void run(async () => {
-      await api("/auth/reset", { json: { token, password } });
+      const res = await api<{ student?: StudentMe }>("/auth/reset", { json: { token, password } });
+      // choosing the first password of an account made at checkout (the link in the receipt) also signs this phone in
+      if (res.student) {
+        setStudent(res.student);
+        navigate("/", { replace: true });
+        return;
+      }
       setDone(true);
     });
   };

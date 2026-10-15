@@ -44,6 +44,10 @@ export interface StudentMe {
   email: string;
   phone: string | null;
   locale: "bn" | "en";
+  /** the student ID shown on the profile and the receipts (STU-000123) */
+  code: string;
+  /** false for an account made at checkout until its owner sets a password (the profile then offers to) */
+  has_password: boolean;
 }
 
 export interface StaffMe {

@@ -56,10 +56,20 @@ describe("route guards (enumerated from the router)", () => {
     expect(writable).toEqual([]);
   });
 
-  it("student and checkout endpoints need a student login", async () => {
+  it("student and checkout endpoints need a student login — except the two a visitor must be able to use to buy", async () => {
     const open: string[] = [];
-    const guarded = apiRoutes.filter((x) => x.path.startsWith("/api/student/") || x.path.startsWith("/api/checkout") || x.path === "/api/auth/profile" || x.path === "/api/auth/change-password");
+    // seeing the price and buying without an account are public on purpose (see guest-checkout.test.ts); everything else about an order is not
+    const visitorMayUse = ["/api/checkout/quote", "/api/checkout/guest"];
+    const guarded = apiRoutes.filter(
+      (x) =>
+        x.path.startsWith("/api/student/") ||
+        (x.path.startsWith("/api/checkout") && !visitorMayUse.includes(x.path)) ||
+        ["/api/auth/profile", "/api/auth/change-password", "/api/auth/set-password"].includes(x.path),
+    );
     expect(guarded.length).toBeGreaterThan(12);
+    for (const path of visitorMayUse) expect(apiRoutes.some((r) => r.path === path && r.method === "POST"), path).toBe(true);
+    // they answer a visitor (here: "what is the basket?"), they do not ask them to log in
+    for (const path of visitorMayUse) expect((await new Client().post(path, {})).status, path).toBe(422);
     for (const r of guarded) {
       const res = await new Client().fetch(concrete(r.path), { method: r.method, ...(r.method === "GET" || r.method === "DELETE" ? {} : { json: {} }) });
       if (res.status !== 401) open.push(`${label(r)} -> ${res.status}`);

@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import type { StudentMe } from "@mawah/shared";
 import type { AppEnv, Ctx } from "../../env";
 import { audit } from "../../lib/audit";
 import { randomToken, sha256Hex } from "../../lib/crypto";
 import { addSeconds, first, nowIso, run } from "../../lib/db";
 import { HttpError, ok, parseBody } from "../../lib/http";
+import { toMe } from "../../lib/me";
 import { passwordResetMail, sendMail } from "../../lib/mailer";
 import { emailSchema, langSchema, nameSchema, passwordSchema, phoneSchema, turnstileField } from "../../lib/schemas";
 import { createSession, destroySession } from "../../lib/session";
@@ -17,15 +17,6 @@ import { authenticate, createPasswordResetLink, setPassword } from "../../servic
 import { notices, notifyOwner } from "../../services/notify";
 
 export const authRoutes = new Hono<AppEnv>();
-
-const toMe = (s: { id: number; name: string; email: string; phone: string | null; locale: "bn" | "en" }): StudentMe => ({
-  kind: "student",
-  id: s.id,
-  name: s.name,
-  email: s.email,
-  phone: s.phone,
-  locale: s.locale,
-});
 
 async function guardBots(c: Ctx, token: string | undefined) {
   if (!(await verifyTurnstile(c.env, token, c.get("ip")))) throw new HttpError(400, "captcha");
@@ -144,9 +135,22 @@ authRoutes.post("/reset", rateLimit("RL_AUTH"), async (c) => {
   );
   if (!row || row.used_at || Date.parse(row.expires_at) < Date.now()) throw new HttpError(400, "invalid_token");
 
+  // an account made at checkout has no password yet: choosing its first one (the link in the receipt) also signs this phone in
+  const before = await first<{ first_password: number; blocked: number }>(
+    c.env.DB,
+    "SELECT (password_hash IS NULL AND google_sub IS NULL) AS first_password, blocked FROM students WHERE id = ?",
+    row.subject_id,
+  );
   await run(c.env.DB, "UPDATE auth_tokens SET used_at = ? WHERE id = ?", nowIso(), row.id);
   await setPassword(c.env, "students", row.subject_id, body.password);
-  await audit(c, { action: "student.password_reset", entity: "student", entityId: row.subject_id });
+  await audit(c, { action: before?.first_password ? "student.password_set" : "student.password_reset", entity: "student", entityId: row.subject_id });
+  if (before?.first_password && !before.blocked) {
+    const me = await first<{ id: number; name: string; email: string; phone: string | null; locale: "bn" | "en" }>(c.env.DB, "SELECT id, name, email, phone, locale FROM students WHERE id = ?", row.subject_id);
+    if (me) {
+      await createSession(c, "student", me.id);
+      return ok(c, { student: toMe({ ...me, has_password: true }) });
+    }
+  }
   return ok(c);
 });
 
@@ -163,6 +167,24 @@ authRoutes.post("/change-password", requireStudent, rateLimit("RL_AUTH"), async 
   await createSession(c, "student", me.id);
   await audit(c, { action: "student.password_changed", entity: "student", entityId: me.id });
   return ok(c);
+});
+
+const setPasswordSchema = z.object({ password: passwordSchema });
+
+/**
+ * An account made at checkout has no password: its owner, signed in on the phone that bought, chooses one here (the receipt e-mail has a link
+ * for other devices). Accounts that already have a password use "change password", which asks for the current one.
+ */
+authRoutes.post("/set-password", requireStudent, rateLimit("RL_AUTH"), async (c) => {
+  const body = await parseBody(c, setPasswordSchema);
+  const me = c.get("student")!;
+  const row = await first<{ has_password: number }>(c.env.DB, "SELECT (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password FROM students WHERE id = ?", me.id);
+  if (!row || row.has_password) throw new HttpError(409, "password_already_set");
+  await setPassword(c.env, "students", me.id, body.password);
+  // the current device stays signed in with a fresh session
+  await createSession(c, "student", me.id);
+  await audit(c, { action: "student.password_set", entity: "student", entityId: me.id });
+  return ok(c, { student: toMe({ ...me, has_password: true }) });
 });
 
 const profileSchema = z.object({ name: nameSchema, phone: phoneSchema, locale: langSchema });

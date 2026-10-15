@@ -6,6 +6,7 @@ import { ok } from "../../../lib/http";
 import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_TEST_KEY } from "../../../lib/mailer";
 import { getSettings } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
+import { REAL_STUDENT } from "../../../services/guests";
 import { can } from "@mawah/shared";
 
 export const dashboard = new Hono<AppEnv>();
@@ -162,8 +163,8 @@ dashboard.get("/dashboard", requirePerm("dashboard:read"), async (c) => {
     first<{ v: number }>(db, "SELECT COALESCE(SUM(total), 0) AS v FROM orders WHERE status = 'paid' AND date(paid_at, '+6 hours') >= ?", since30),
     first<{ v: number }>(db, "SELECT COALESCE(SUM(total), 0) AS v FROM orders WHERE status = 'paid' AND date(paid_at, '+6 hours') >= ? AND date(paid_at, '+6 hours') < ?", since60, since30),
     count("SELECT COUNT(*) AS n FROM orders WHERE status = 'paid' AND total > 0 AND date(paid_at, '+6 hours') >= ?", since30), // free enrolments are not sales
-    count("SELECT COUNT(*) AS n FROM students"),
-    count("SELECT COUNT(*) AS n FROM students WHERE date(created_at, '+6 hours') >= ?", since30),
+    count(`SELECT COUNT(*) AS n FROM students s WHERE ${REAL_STUDENT}`),
+    count(`SELECT COUNT(*) AS n FROM students s WHERE ${REAL_STUDENT} AND date(s.created_at, '+6 hours') >= ?`, since30),
     count("SELECT COUNT(*) AS n FROM enrollments WHERE status = 'active'"),
     count("SELECT COUNT(*) AS n FROM orders WHERE status = 'awaiting_verification'"),
     count("SELECT COUNT(*) AS n FROM lesson_questions WHERE status = 'open'"),
