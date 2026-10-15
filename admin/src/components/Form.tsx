@@ -7,23 +7,23 @@ import { useI18n } from "../lib/i18n";
 import type { CourseRow, ListResponse } from "../lib/types";
 import { Button, Field, Icon, Select, Switch, TextArea, TextInput, useToast } from "./ui";
 
-type Common = { key: string; label: string; half?: boolean; hint?: string; required?: boolean };
+type Common = { key: string; label: string; half?: boolean; hint?: string; required?: boolean; /** show this field only while the form is in a state it applies to (e.g. pop-up settings) */ showIf?: (values: Values) => boolean };
 export type FieldDef =
   | (Common & { type: "text" | "url" | "date" | "password"; maxLength?: number; placeholder?: string; nullable?: boolean })
   | (Common & { type: "textarea" | "markdown"; rows?: number; maxLength?: number })
   | (Common & { type: "number"; min?: number; max?: number; nullable?: boolean; suffix?: string })
   | (Common & { type: "select"; options: { value: string; label: string }[]; nullable?: boolean; numeric?: boolean })
   | (Common & { type: "switch" })
-  | (Common & { type: "image"; folder: "banners" | "photos" | "blog"; maxWidth: number })
+  | (Common & { type: "image"; folder: "banners" | "photos" | "blog"; maxWidth: number; /** a wide preview, for banner pictures */ wide?: boolean })
   | (Common & { type: "courses" })
   | (Common & { type: "links" })
   | (Common & { type: "icon" })
-  | { type: "section"; key: string; label: string; half?: boolean; hint?: string; required?: boolean };
+  | { type: "section"; key: string; label: string; half?: boolean; hint?: string; required?: boolean; showIf?: (values: Values) => boolean };
 
 export type Values = Record<string, unknown>;
 
 /* ------------------------------------------------------------------------------------------- image upload */
-function ImageField({ value, onChange, folder, maxWidth, id, error }: { value: string | null; onChange: (v: string | null) => void; folder: string; maxWidth: number; id: string; error?: string }) {
+function ImageField({ value, onChange, folder, maxWidth, id, error, wide }: { value: string | null; onChange: (v: string | null) => void; folder: string; maxWidth: number; id: string; error?: string; wide?: boolean }) {
   const { t, err } = useI18n();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -42,7 +42,7 @@ function ImageField({ value, onChange, folder, maxWidth, id, error }: { value: s
   };
   return (
     <div className="image-field">
-      <div className="thumb">{value ? <img src={`/media/${value}`} alt="" /> : <Icon name="sparkle" />}</div>
+      <div className={`thumb${wide ? " wide" : ""}`}>{value ? <img src={`/media/${value}`} alt="" /> : <Icon name="sparkle" />}</div>
       <div className="stack">
         <input id={id} type="file" accept="image/jpeg,image/png,image/webp,image/avif" onChange={(e) => pick(e.target.files?.[0])} aria-invalid={error ? true : undefined} />
         <div className="row">
@@ -115,6 +115,7 @@ export function FormFields({ fields, values, onChange, errors = {}, idPrefix = "
   return (
     <div className="form-grid">
       {fields.map((f) => {
+        if (f.showIf && !f.showIf(values)) return null;
         const id = `${idPrefix}-${f.key}`;
         const err = errors[f.key];
         const v = values[f.key];
@@ -193,7 +194,7 @@ export function FormFields({ fields, values, onChange, errors = {}, idPrefix = "
               </div>
             );
           case "image":
-            control = <ImageField id={id} value={(v as string | null) ?? null} folder={f.folder} maxWidth={f.maxWidth} onChange={(x) => onChange(f.key, x)} error={err} />;
+            control = <ImageField id={id} value={(v as string | null) ?? null} folder={f.folder} maxWidth={f.maxWidth} wide={f.wide} onChange={(x) => onChange(f.key, x)} error={err} />;
             break;
           case "courses":
             control = <CourseCheckList value={(v as number[]) ?? []} onChange={(x) => onChange(f.key, x)} />;

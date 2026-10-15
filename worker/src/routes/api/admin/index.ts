@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../../../env";
 import { requireStaff } from "../../../middleware/auth";
 import { audience } from "./audience";
+import { banners } from "./banners";
 import { chatbot } from "./chatbot";
 import { courseOverview } from "./course-overview";
 import { blog, bundles, categories, coupons, courses, instructors } from "./content";
@@ -27,6 +28,7 @@ adminApi.route("/instructors", instructors);
 adminApi.route("/categories", categories);
 adminApi.route("/blog", blog);
 adminApi.route("/bundles", bundles);
+adminApi.route("/banners", banners);
 adminApi.route("/coupons", coupons);
 adminApi.route("/courses", courses);
 
