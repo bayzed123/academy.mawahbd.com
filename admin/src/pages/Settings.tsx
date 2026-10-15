@@ -9,12 +9,13 @@ import { Button, ErrorState, Field, Icon, PageHeader, Panel, Spinner, Switch, Ta
 interface S {
   contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string };
   announcement: { bn: string; en: string };
+  shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
   payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number };
   policies: { refund_bn: string; refund_en: string; privacy_bn: string; privacy_en: string; terms_bn: string; terms_en: string };
   about: { bn: string; en: string };
   analytics: { ga4: string; clarity: string; meta_pixel: string };
 }
-type Key = keyof Pick<S, "contact" | "announcement" | "payments" | "policies" | "about" | "analytics">;
+type Key = keyof Pick<S, "contact" | "announcement" | "shop" | "payments" | "policies" | "about" | "analytics">;
 type Tab = "contact" | "payments" | "policies" | "about" | "analytics";
 
 /** One settings group: local edits, one Save button, server-side validation errors shown per field. */
@@ -127,6 +128,27 @@ export function Settings() {
                   </Field>
                   <Field id="an-en" label={t("adm.settings.announcementEn")} error={e.en}>
                     <TextInput id="an-en" value={v.en} maxLength={200} error={e.en} disabled={!canWrite} onChange={(x) => set({ en: x.target.value })} />
+                  </Field>
+                </div>
+              )}
+            </Group>
+            <hr className="sep" />
+            <h3>{t("adm.shop.title")}</h3>
+            <p className="muted">{t("adm.shop.sub")}</p>
+            <Group name="shop" data={s.shop} canWrite={canWrite}>
+              {(v, set, e) => (
+                <div className="form-grid">
+                  <div className="field wide">
+                    <Switch checked={v.enabled} disabled={!canWrite} onChange={(x) => set({ enabled: x })} label={t("adm.shop.enabled")} />
+                  </div>
+                  <Field id="sh-url" label={t("adm.shop.url")} hint={t("adm.shop.urlHint")} error={e.url} wide>
+                    <TextInput id="sh-url" inputMode="url" placeholder="https://mawahbd.com" value={v.url} error={e.url} disabled={!canWrite} onChange={(x) => set({ url: x.target.value.trim() })} />
+                  </Field>
+                  <Field id="sh-bn" label={t("adm.shop.labelBn")} error={e.label_bn}>
+                    <TextInput id="sh-bn" value={v.label_bn} maxLength={24} error={e.label_bn} disabled={!canWrite} onChange={(x) => set({ label_bn: x.target.value })} />
+                  </Field>
+                  <Field id="sh-en" label={t("adm.shop.labelEn")} error={e.label_en}>
+                    <TextInput id="sh-en" value={v.label_en} maxLength={24} error={e.label_en} disabled={!canWrite} onChange={(x) => set({ label_en: x.target.value })} />
                   </Field>
                 </div>
               )}

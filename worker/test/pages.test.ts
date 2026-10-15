@@ -174,15 +174,20 @@ describe("course detail page", () => {
     expect(html).not.toContain("data:text/html");
   });
 
-  it("lazy-loads reviews and related classes as cacheable HTML fragments", async () => {
+  it("puts reviews in the page itself and lazy-loads only the related classes, as a cacheable HTML fragment", async () => {
     const html = await text(await new Client().get("/en/courses/beginners-baking-class"));
-    expect(html).toContain('data-fragment="/_f/reviews/beginners-baking-class?lang=en"');
+    expect(html).toContain('id="reviews"');
+    expect(html).not.toContain('data-fragment="/_f/reviews');
     expect(html).toContain('data-fragment="/_f/related/beginners-baking-class?lang=en"');
 
-    const reviews = await text(await new Client().get("/_f/reviews/beginners-baking-class?lang=en"));
-    expect(reviews).toContain("No reviews yet");
     const related = await text(await new Client().get("/_f/related/beginners-baking-class?lang=bn"));
     expect(related).toContain("card-title");
+    expect((await new Client().get("/_f/related/nope")).status).toBe(404);
+  });
+
+  it("still answers the old reviews fragment, so a page cached before the release can fill its reviews", async () => {
+    const reviews = await text(await new Client().get("/_f/reviews/beginners-baking-class?lang=en"));
+    expect(reviews).toContain("No reviews yet");
     expect((await new Client().get("/_f/reviews/nope")).status).toBe(404);
   });
 });

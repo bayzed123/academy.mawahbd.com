@@ -3,7 +3,7 @@ import type { CourseSort } from "../../services/catalog";
 import type { PageCtx } from "../ctx";
 import { Layout } from "../layout";
 import { breadcrumbLd } from "../seo";
-import { CourseCard, Crumbs, Icon, Pager } from "../ui";
+import { CourseCard, Crumbs, Icon, Pager, shopOf } from "../ui";
 
 export interface ListData {
   courses: CourseCardDTO[];
@@ -30,6 +30,7 @@ export function CoursesPage({ ctx, data }: { ctx: PageCtx; data: ListData }) {
   };
   const n = (v: number) => (lang === "bn" ? formatNumber(v, "bn") : String(v));
   const title = activeCat ? `${loc(activeCat, "name", lang)} — ${t("brand.name")}` : t("meta.courses.title");
+  const shop = shopOf(ctx);
 
   return (
     <Layout
@@ -87,6 +88,14 @@ export function CoursesPage({ ctx, data }: { ctx: PageCtx; data: ListData }) {
                   {loc(c, "name", lang)}
                 </a>
               ))}
+              {shop && (
+                <a class="pill pill-shop" href={shop.href} target="_blank" rel="noopener noreferrer" data-shop>
+                  <Icon name="shop" />
+                  {shop.label}
+                  <Icon name="external" />
+                  <span class="vh"> ({t("shop.opens")})</span>
+                </a>
+              )}
             </nav>
             <span class="muted">{t("courses.count", { n: n(data.total) })}</span>
           </div>

@@ -2,6 +2,7 @@ import { raw } from "hono/html";
 import type { Accent, CategoryDTO, CourseCardDTO } from "@mawah/shared";
 import { formatMoney, formatNumber, loc } from "@mawah/shared";
 import type { PageCtx } from "./ctx";
+import type { InstructorRating } from "../services/catalog";
 
 /* ------------------------------------------------------------------ icons & brand */
 export const Icon = ({ name, class: cls = "" }: { name: string; class?: string }) => (
@@ -37,6 +38,71 @@ export const Stars = ({ value }: { value: number }) => (
       </svg>
     ))}
   </span>
+);
+
+/** "1,234" in Bangla digits when the page is Bangla. */
+export const numLabel = (ctx: PageCtx, n: number) => (ctx.lang === "bn" ? formatNumber(n, "bn") : String(n));
+/** "4.8" (one decimal, Bangla digits on the Bangla site). */
+export const avgLabel = (ctx: PageCtx, avg: number) => (ctx.lang === "bn" ? formatNumber(Math.round(avg * 10) / 10, "bn") : avg.toFixed(1));
+export const reviewsLabel = (ctx: PageCtx, n: number) => (n === 1 ? ctx.t("reviews.count.one") : ctx.t("reviews.count", { n: numLabel(ctx, n) }));
+
+/**
+ * The owner's shop link (Admin → Settings → Contact → Shop), or null when it is switched off or has no valid address.
+ * It leaves the site, so it always opens in a new tab and says so for screen readers.
+ */
+export function shopOf(ctx: PageCtx): { href: string; label: string; host: string } | null {
+  const s = ctx.settings.shop;
+  if (!s.enabled || !/^https?:\/\//i.test(s.url)) return null;
+  let host = "";
+  try {
+    host = new URL(s.url).host.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+  const label = (ctx.lang === "bn" ? s.label_bn || s.label_en : s.label_en || s.label_bn) || ctx.t("nav.shop");
+  return { href: s.url, label, host };
+}
+
+/**
+ * A small rating badge: "★ 4.8 · 23 reviews" when students have rated, otherwise an honest "Not rated yet".
+ * The numbers are always real (see InstructorRating); there is no way to show a made-up figure here.
+ */
+export const RatingBadge = ({ ctx, avg, count, href, hint }: { ctx: PageCtx; avg: number; count: number; href?: string; hint?: string }) => {
+  const inner =
+    count > 0 ? (
+      <>
+        <Stars value={avg} />
+        <b>{avgLabel(ctx, avg)}</b>
+        <span>· {reviewsLabel(ctx, count)}</span>
+      </>
+    ) : (
+      <>
+        <Stars value={0} />
+        <span>{ctx.t("rating.none")}</span>
+      </>
+    );
+  const cls = `rating-badge${count > 0 ? "" : " is-none"}`;
+  return href ? (
+    <a class={cls} href={href} title={hint}>
+      {inner}
+    </a>
+  ) : (
+    <span class={cls} title={hint}>
+      {inner}
+    </span>
+  );
+};
+
+/** Instructor trust badges: who they are, how students rate them, how many classes they teach. */
+export const InstructorBadges = ({ ctx, rating }: { ctx: PageCtx; rating?: InstructorRating }) => (
+  <div class="badge-row">
+    <span class="badge-pro">
+      <Icon name="award" />
+      {ctx.t("instructor.badge")}
+    </span>
+    <RatingBadge ctx={ctx} avg={rating?.avg ?? 0} count={rating?.count ?? 0} hint={ctx.t("instructor.rating_hint")} />
+    {rating && rating.classes > 0 && <span class="badge-plain">{ctx.t("instructor.classes_n", { n: numLabel(ctx, rating.classes) })}</span>}
+  </div>
 );
 
 export const SectionHead = ({

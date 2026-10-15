@@ -52,7 +52,12 @@ export interface CacheOptions {
   bypass?: boolean;
 }
 
-const browserCache = (ttl: number) => `public, max-age=${Math.min(60, ttl)}, stale-while-revalidate=${ttl * 4}`;
+/**
+ * What the visitor's own browser may keep. The edge cache above is refreshed the moment the owner changes something (the
+ * content version in its key), so the browser must not hold a page much longer than that: a returning visitor — the owner
+ * checking an edit, a student looking for the review just approved — would otherwise be shown an old page first.
+ */
+const browserCache = (ttl: number) => `public, max-age=${Math.min(30, ttl)}, stale-while-revalidate=${Math.min(30, ttl)}`;
 
 export async function cachedPage(c: Ctx, opts: CacheOptions, render: () => Promise<Response>): Promise<Response> {
   const cacheable = c.req.method === "GET" && !opts.bypass && isProd(c.env);

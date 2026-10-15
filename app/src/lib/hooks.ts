@@ -4,6 +4,8 @@ import { api } from "./api";
 export interface SiteConfig {
   contact: { whatsapp: string; phone: string; email: string; facebook: string };
   announcement: { bn: string; en: string };
+  /** the owner's shop (an external site), or null when the link is switched off */
+  shop: { url: string; label_bn: string; label_en: string } | null;
   chat_enabled: boolean;
   turnstile_site_key: string;
   environment: string;
