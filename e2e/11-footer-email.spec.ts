@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminLogin, apiGet, STAFF, useLang } from "./helpers";
+import { adminLogin, apiGet, apiPost, STAFF, useLang } from "./helpers";
 
 /*
  * Two things the owner asked for. (1) The footer's "We accept" row shows the real marks — the owner's bKash, Nagad and Rocket
@@ -131,4 +131,104 @@ test("a refusal is explained in plain words with the steps, in English and Bangl
   await expect(admin.getByRole("alert")).toContainText("Resend বলছে:");
   await admin.unroute("**/api/admin/settings/email/test");
   await admin.getByRole("banner").getByRole("button", { name: "English" }).click();
+});
+
+test.describe("Settings → E-mail → Notifications to you", () => {
+  const OWNER_INBOX = "mawahacademy@gmail.com";
+  const panel = () => admin.locator(".notify-panel");
+  const inbox = async (to: string) => (await apiGet<{ messages: { to: string; subject: string; text?: string; owner?: boolean; replyTo?: string }[] }>(admin, `/dev/outbox?to=${encodeURIComponent(to)}`)).messages;
+
+  test("by default every kind is on and everything goes to the shop's Gmail; the test notification arrives there", async () => {
+    await admin.goto("/admin/settings?tab=email");
+    await expect(panel().getByRole("heading", { name: "Notifications to you" })).toBeVisible();
+    await expect(panel().getByText(`Now going to: ${OWNER_INBOX}`)).toBeVisible();
+
+    // all ten kinds are switched on, each with a sentence that says what it is
+    const switches = panel().getByRole("switch");
+    await expect(switches).toHaveCount(10);
+    for (const sw of await switches.all()) await expect(sw).toBeChecked();
+    await expect(panel().getByRole("switch", { name: "a payment needs my check" })).toBeChecked();
+    await expect(panel().getByText("A student sent a TrxID or a screenshot for a send-money payment.")).toBeVisible();
+
+    const before = (await inbox(OWNER_INBOX)).length;
+    await panel().getByRole("button", { name: "Send a test notification" }).click();
+    await expect(panel().getByText(`Sent to ${OWNER_INBOX}.`)).toBeVisible();
+    const after = await inbox(OWNER_INBOX);
+    expect(after.length).toBe(before + 1);
+    const note = after.at(-1)!;
+    expect(note.subject).toContain("TEST");
+    expect(note.text).toContain("This is only a test");
+    expect(note.owner).toBe(true);
+  });
+
+  test("another address replaces the default, a bad one is explained, a kind can be switched off and on, and the default comes back", async () => {
+    await admin.goto("/admin/settings?tab=email");
+    const field = panel().getByLabel("Send notifications to");
+
+    // a mistyped address is refused with a plain sentence, and nothing is saved
+    await field.fill("not-an-address");
+    await panel().getByRole("button", { name: "Save the addresses" }).click();
+    await expect(panel().getByText("Please enter a valid email address.")).toBeVisible();
+    await expect(panel().getByText(`Now going to: ${OWNER_INBOX}`)).toBeVisible();
+
+    // two addresses: both get the test note
+    await field.fill("second@e2e.test, third@e2e.test");
+    await panel().getByRole("button", { name: "Save the addresses" }).click();
+    await expect(panel().getByText("Now going to: second@e2e.test, third@e2e.test")).toBeVisible();
+    const [secondBefore, thirdBefore] = [(await inbox("second@e2e.test")).length, (await inbox("third@e2e.test")).length];
+    await panel().getByRole("button", { name: "Send a test notification" }).click();
+    await expect(panel().getByText("Sent to second@e2e.test.")).toBeVisible();
+    await expect(panel().getByText("Sent to third@e2e.test.")).toBeVisible();
+    expect((await inbox("second@e2e.test")).at(-1)!.subject).toContain("TEST");
+    expect(await inbox("second@e2e.test")).toHaveLength(secondBefore + 1);
+    expect(await inbox("third@e2e.test")).toHaveLength(thirdBefore + 1);
+
+    // a kind is switched off: it is saved (a reload shows it), and the other nine stay on
+    await panel().locator("label.switch", { hasText: "someone sends a message" }).click();
+    await expect(panel().getByRole("switch", { name: "someone sends a message" })).not.toBeChecked();
+    await admin.reload();
+    await expect(panel().getByRole("switch", { name: "someone sends a message" })).not.toBeChecked();
+    await expect(panel().getByRole("switch", { checked: true })).toHaveCount(9);
+    expect((await apiGet<{ notify: { off: string[] } }>(admin, "/admin/settings/email")).notify.off).toEqual(["contact_message"]);
+
+    // …and back on; an empty list means "use the shop's Gmail again"
+    await panel().locator("label.switch", { hasText: "someone sends a message" }).click();
+    await expect(panel().getByRole("switch", { checked: true })).toHaveCount(10);
+    await panel().getByLabel("Send notifications to").fill("");
+    await panel().getByRole("button", { name: "Save the addresses" }).click();
+    await expect(panel().getByText(`Now going to: ${OWNER_INBOX}`)).toBeVisible();
+  });
+
+  test("a message from the contact page reaches the shop's Gmail with the sender's details, and replies go to the Gmail", async ({ browser }) => {
+    const ctx = await browser.newContext({ locale: "en-US" });
+    const visitor = await ctx.newPage();
+    await visitor.goto("/en");
+    const sent = await apiPost(visitor, "/contact", { name: "Notice Tester", email: "notice-tester@e2e.test", phone: "", message: "Is there a beginners class in Chattogram?", lang: "en" });
+    expect(sent.status).toBe(200);
+    await ctx.close();
+
+    await expect
+      .poll(async () => (await inbox(OWNER_INBOX)).some((m) => m.subject.includes("Notice Tester")), { message: "the owner's copy of the contact message" })
+      .toBe(true);
+    const note = (await inbox(OWNER_INBOX)).filter((m) => m.subject.includes("Notice Tester")).at(-1)!;
+    expect(note.text).toContain("notice-tester@e2e.test");
+    expect(note.text).toContain("Is there a beginners class in Chattogram?");
+    expect(note.text).toContain("/admin/messages");
+    // the sender also got the usual thank-you note
+    await expect.poll(async () => (await inbox("notice-tester@e2e.test")).length).toBeGreaterThan(0);
+  });
+
+  test("the panel is readable in Bangla and passes the accessibility scan", async () => {
+    await admin.goto("/admin/settings?tab=email");
+    await expect(panel().getByRole("heading", { name: "Notifications to you" })).toBeVisible();
+    const axe = await new AxeBuilder({ page: admin }).include(".notify-panel").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id)).toEqual([]);
+
+    await admin.getByRole("banner").getByRole("button", { name: "বাংলা" }).click();
+    await expect(panel().getByRole("heading", { name: "আপনার কাছে নোটিফিকেশন" })).toBeVisible();
+    await expect(panel().getByRole("switch", { name: "পেমেন্ট আমার যাচাইয়ের অপেক্ষায় থাকলে" })).toBeChecked();
+    await expect(panel().getByRole("button", { name: "একটি পরীক্ষামূলক নোটিফিকেশন পাঠান" })).toBeVisible();
+    await admin.getByRole("banner").getByRole("button", { name: "English" }).click();
+    await expect(panel().getByRole("heading", { name: "Notifications to you" })).toBeVisible();
+  });
 });

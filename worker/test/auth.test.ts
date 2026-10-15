@@ -31,7 +31,10 @@ describe("student registration & login", () => {
 
   it("never stores a plain password and never returns the hash", async () => {
     const { email, body } = await registerStudent(undefined, { password: "my-secret-password" });
-    expect(JSON.stringify(body)).not.toContain("password");
+    // the answer says whether a password is set (a yes/no), never the password or anything derived from it
+    const text = JSON.stringify(body);
+    for (const secret of ["my-secret-password", "password_hash", "pbkdf2", "sessions_valid_after"]) expect(text).not.toContain(secret);
+    expect(body.student.has_password).toBe(true);
     const row = await env.DB.prepare("SELECT password_hash FROM students WHERE email = ?").bind(email).first<{ password_hash: string }>();
     expect(row!.password_hash).toMatch(/^pbkdf2-sha256\$100000\$/);
     expect(row!.password_hash).not.toContain("my-secret-password");

@@ -1,15 +1,16 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { MANUAL_WINDOW_RANGE_MIN } from "@mawah/shared";
+import { MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS } from "@mawah/shared";
 import { isDev, type AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { all } from "../../../lib/db";
 import { HttpError, ok, parseBody } from "../../../lib/http";
-import { MAIL_LAST_TEST_KEY, mailProblem, sendMail, testMail, type MailLastTest } from "../../../lib/mailer";
+import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_TEST_KEY, mailProblem, sendMail, testMail, type MailLastTest } from "../../../lib/mailer";
 import { emailSchema, textSchema } from "../../../lib/schemas";
 import { getSettings, SETTING_KEYS, setSetting, type SettingKey } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
 import { rateLimit } from "../../../middleware/ratelimit";
+import { notices, notificationRecipients, sendNotice } from "../../../services/notify";
 
 /** Every business setting (contacts, payment options, policies, analytics …) is edited here — nothing needs a redeploy. */
 export const settings = new Hono<AppEnv>();
@@ -47,6 +48,10 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
   }),
   chatbot: z.object({ enabled: z.boolean(), greeting_bn: textSchema(300), greeting_en: textSchema(300), faq_bn: long(6000), faq_en: long(6000) }),
   shop: z.object({ enabled: z.boolean(), url: urlOrEmpty, label_bn: textSchema(24), label_en: textSchema(24) }),
+  notifications: z.object({
+    emails: z.array(emailSchema).max(5, "too_long").transform((a) => [...new Set(a)]),
+    off: z.array(z.enum(NOTIFY_KINDS)).max(NOTIFY_KINDS.length).transform((a) => [...new Set(a)]),
+  }),
   onboarding: z.object({ dismissed: z.boolean() }),
 };
 
@@ -81,12 +86,17 @@ settings.put("/settings/:key", requirePerm("settings:write"), async (c) => {
 const senderDomain = (from: string) => from.match(/@([^>\s]+)>?\s*$/)?.[1]?.toLowerCase() ?? "";
 
 settings.get("/settings/email", requirePerm("settings:read"), async (c) => {
-  const last = await c.env.KV.get<MailLastTest>(MAIL_LAST_TEST_KEY, "json");
+  const [last, refusedAt, s] = await Promise.all([c.env.KV.get<MailLastTest>(MAIL_LAST_TEST_KEY, "json"), c.env.KV.get(MAIL_DOMAIN_REFUSED_KEY), getSettings(c.env, { fresh: true })]);
+  const who = notificationRecipients(c.env, s);
   return ok(c, {
     configured: !!c.env.RESEND_API_KEY,
     provider: c.env.RESEND_API_KEY ? "resend" : isDev(c.env) ? "dev-outbox" : "none",
     from: c.env.MAIL_FROM,
     domain: senderDomain(c.env.MAIL_FROM),
+    reply_to: c.env.MAIL_REPLY_TO ?? "",
+    // the last time Resend turned a message away because the sending domain is not verified (cleared by a test that goes through the real domain)
+    domain_refused_at: refusedAt,
+    notify: { to: who.to, custom: who.custom, default_to: (c.env.NOTIFY_EMAIL ?? "").trim().toLowerCase(), off: s.notifications.off },
     last,
   });
 });
@@ -104,10 +114,26 @@ settings.post("/settings/email/test", requirePerm("settings:write"), rateLimit("
 
   const at = new Date().toISOString();
   const when = new Intl.DateTimeFormat(lang === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" }).format(new Date(at));
-  const sent = await sendMail(c.env, { to: staff.email, ...testMail(lang, { name: staff.name, when }) });
-  const problem = mailProblem(sent);
-  const last: MailLastTest = { at, sent: sent.ok, provider: sent.provider, problem, by: staff.name };
+  const sent = await sendMail(c.env, { to: staff.email, ...testMail(lang, { name: staff.name, when }), owner: true });
+  // a message that only got through Resend's test sender proves the key works, not that students' e-mails will arrive
+  const viaSandbox = sent.ok && !!sent.viaSandbox;
+  const problem = viaSandbox ? "domain_not_verified" : mailProblem(sent);
+  const last: MailLastTest = { at, sent: sent.ok, provider: sent.provider, problem, by: staff.name, ...(viaSandbox ? { viaSandbox: true } : {}) };
   await c.env.KV.put(MAIL_LAST_TEST_KEY, JSON.stringify(last));
+  if (sent.ok && !viaSandbox) await c.env.KV.delete(MAIL_DOMAIN_REFUSED_KEY); // it went through the real domain: the warning is over
   await audit(c, { action: "email.tested", entity: "settings", entityId: "email", meta: { ok: sent.ok, problem, provider: sent.provider } });
   return ok(c, { ...last, to: staff.email, from: c.env.MAIL_FROM, domain: senderDomain(c.env.MAIL_FROM), status: sent.status ?? null, detail: sent.detail ?? null });
+});
+
+/** "Send a test notification": one sample note to every address that gets notes, with what Resend said for each. */
+settings.post("/settings/email/notify-test", requirePerm("settings:write"), rateLimit("RL_FORM"), async (c) => {
+  const staff = c.get("staff")!;
+  const used = `notifytest:${staff.id}:${Math.floor(Date.now() / 3_600_000)}`;
+  const count = Number((await c.env.KV.get(used)) ?? 0);
+  if (count >= 6) throw new HttpError(429, "rate_limited");
+  await c.env.KV.put(used, String(count + 1), { expirationTtl: 3700 });
+  const sent = await sendNotice(c.env, await getSettings(c.env, { fresh: true }), notices.test());
+  const results = sent.map((r) => ({ to: r.to, sent: r.result.ok, via_sandbox: !!r.result.viaSandbox, problem: mailProblem(r.result), status: r.result.status ?? null, detail: r.result.detail ?? null }));
+  await audit(c, { action: "email.notify_tested", entity: "settings", entityId: "email", meta: { to: results.length, sent: results.filter((r) => r.sent).length } });
+  return ok(c, { results, domain: senderDomain(c.env.MAIL_FROM), from: c.env.MAIL_FROM });
 });

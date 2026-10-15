@@ -450,3 +450,13 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
 .kind-ico{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--k-900);color:var(--g-300)}
 .kind-ico .icon{width:17px;height:17px}
 .ext-link{display:inline-flex;align-items:center;gap:.3rem;color:var(--red-700);font-weight:600}
+
+/* Settings → E-mail → notifications */
+.notify-kinds{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
+.notify-kinds li{display:grid;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.notify-kinds li small{padding-left:52px}
+.notify-results{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+.notify-results li{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#fff}
+.notify-results li.ok{border-color:#9bd3a8;background:#f1faf3}
+.notify-results li.warn{border-color:#e6cf7a;background:#fff9e3}
+.notify-results li.bad{border-color:#e9a0a0;background:#fff1f1}

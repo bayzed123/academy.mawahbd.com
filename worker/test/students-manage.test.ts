@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { mockSignature } from "../src/services/payments";
 import { Client, env, json, loginStaff, registerStudent, uniqueEmail } from "./helpers";
 
 /*
@@ -610,5 +611,32 @@ describe("the student list and its spreadsheet", () => {
     expect(csv).toContain(`"'=HYPERLINK(""http://evil.test"",""click"")"`);
     expect(csv).toContain("'+SUM(1)");
     expect(csv).toContain(",admin,");
+  });
+});
+
+describe("students who came through checkout", () => {
+  it("are listed only once they have a class, are found by their student ID, and say how they joined", async () => {
+    const admin = await as();
+    const cls = await newClass(500);
+    const email = uniqueEmail("buyer");
+    const out = await json(await new Client().post("/api/checkout/guest", { name: "Buyer One", email, phone: "01711000111", lang: "en", courses: [cls.slug], channel: "mock" }));
+    const code = out.student.code as string;
+    expect(code).toMatch(/^STU-\d{6,}$/);
+    // started, not paid: not a student yet — not even when searched for by ID
+    expect((await json(await admin.get(`/api/admin/students?q=${code}`))).items).toEqual([]);
+
+    const sig = await mockSignature(env, out.order.public_id, "paid");
+    await new Client().fetch("/api/payments/mock/webhook", { method: "POST", form: { order: out.order.public_id, status: "paid", sig } });
+    const byCode = (await json(await admin.get(`/api/admin/students?q=${code.toLowerCase()}`))).items as { email: string; source: string; enrollments: number }[];
+    expect(byCode.map((x) => x.email)).toEqual([email]);
+    expect(byCode[0]).toMatchObject({ source: "checkout", enrollments: 1 });
+    expect((await json(await admin.get(`/api/admin/students?source=checkout&q=${encodeURIComponent(email)}`))).items).toHaveLength(1);
+    expect((await json(await admin.get(`/api/admin/students?source=signup&q=${encodeURIComponent(email)}`))).items).toHaveLength(0);
+
+    // the spreadsheet carries the ID and how they joined
+    const csv = await (await admin.get(`/api/admin/students/export.csv?q=${encodeURIComponent(email)}`)).text();
+    expect(csv.split("\n")[0]).toContain("Student ID");
+    expect(csv).toContain(code);
+    expect(csv).toContain("checkout");
   });
 });

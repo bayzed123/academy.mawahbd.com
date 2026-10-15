@@ -23,6 +23,10 @@ export interface Env {
   DEFAULT_LANG: string;
   PAYMENT_MODE: string;
   MAIL_FROM: string;
+  /** where notifications (payments, messages, questions …) go unless Admin → Settings → E-mail names other addresses */
+  NOTIFY_EMAIL?: string;
+  /** a student who replies to a receipt reaches this inbox (the Resend sender address itself is a no-reply one) */
+  MAIL_REPLY_TO?: string;
   STREAM_CUSTOMER_CODE: string;
   TURNSTILE_SITE_KEY: string;
 
@@ -53,6 +57,8 @@ export interface StudentCtx {
   email: string;
   phone: string | null;
   locale: Lang;
+  /** false for an account made at checkout that has no password yet (absent = unknown, treated as having one) */
+  has_password?: boolean;
 }
 
 export interface StaffCtx {

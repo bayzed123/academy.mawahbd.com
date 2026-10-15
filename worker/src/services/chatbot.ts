@@ -4,6 +4,7 @@ import { AiError, getProvider, getProviderRow, resolveApiKey, type ChatMessage, 
 import { all, first, nowIso, run } from "../lib/db";
 import { markdownToText } from "../lib/markdown";
 import { contentVersion, getSettings } from "../lib/settings";
+import { notices, notifyOwner } from "./notify";
 import { courseFaqs, siteFaqs, type FaqDTO } from "./faqs";
 
 /**
@@ -26,6 +27,8 @@ export interface ChatInput {
   lang: Lang;
   courseId?: number | null;
   studentId?: number | null;
+  /** lets the route finish telling the owner after the visitor has their answer */
+  waitUntil?: (p: Promise<unknown>) => void;
 }
 
 export interface ChatOutput {
@@ -134,12 +137,16 @@ async function buildSystemPrompt(env: Env, lang: Lang, courseId?: number | null)
 }
 
 /* ------------------------------------------------------------------------------------------------ answer */
-export async function recordEscalation(env: Env, e: { courseId?: number | null; studentId?: number | null; lang: Lang; question: string; reason: string }): Promise<void> {
+export async function recordEscalation(env: Env, e: { courseId?: number | null; studentId?: number | null; lang: Lang; question: string; reason: string; waitUntil?: (p: Promise<unknown>) => void }): Promise<void> {
   const q = clip(clean(e.question), 500);
   if (!q) return;
   const dup = await first(env.DB, "SELECT id FROM chat_escalations WHERE question = ? AND status = 'open' AND created_at > ?", q, nowIso(new Date(Date.now() - 86_400_000)));
   if (dup) return;
   await run(env.DB, "INSERT INTO chat_escalations (course_id, student_id, lang, question, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)", e.courseId ?? null, e.studentId ?? null, e.lang, q, e.reason, nowIso());
+  // the owner hears about it, but the visitor's answer does not wait for that
+  const told = notifyOwner(env, notices.chatHandoff({ question: q, lang: e.lang, reason: e.reason, student: e.studentId ? `student #${e.studentId}` : null }));
+  if (e.waitUntil) e.waitUntil(told);
+  else await told;
 }
 
 export async function activeProvider(env: Env): Promise<{ row: ProviderRow; apiKey: string | null } | null> {
@@ -161,7 +168,7 @@ export async function answerQuestion(env: Env, input: ChatInput): Promise<ChatOu
   if (!last) return { reply: NOT_SURE[input.lang], escalate: false };
 
   const escalate = async (reason: string, reply: string): Promise<ChatOutput> => {
-    await recordEscalation(env, { courseId: input.courseId, studentId: input.studentId, lang: input.lang, question: last.content, reason });
+    await recordEscalation(env, { courseId: input.courseId, studentId: input.studentId, lang: input.lang, question: last.content, reason, waitUntil: input.waitUntil });
     return { reply, escalate: true };
   };
 

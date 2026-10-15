@@ -17,8 +17,12 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const PAYMENT_METHODS = ["bkash", "nagad", "rocket", "card", "manual", "free", "mock"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
-/** How a student came to have an account: they signed up, the owner added them by hand, or a list was imported. */
-export const STUDENT_SOURCES = ["signup", "admin", "import"] as const;
+/** Everything the owner can be told about by e-mail the moment it happens (Admin → Settings → E-mail → Notifications). */
+export const NOTIFY_KINDS = ["order_paid", "payment_waiting", "contact_message", "new_student", "course_question", "review_pending", "chat_handoff", "group_request", "notify_me", "newsletter"] as const;
+export type NotifyKind = (typeof NOTIFY_KINDS)[number];
+
+/** Where a student account came from: they registered, they were made at checkout for a buyer who did not register, staff added them, or an old list was imported. */
+export const STUDENT_SOURCES = ["signup", "checkout", "admin", "import"] as const;
 export type StudentSource = (typeof STUDENT_SOURCES)[number];
 
 export const LESSON_TYPES = ["video", "external", "text", "resource"] as const;

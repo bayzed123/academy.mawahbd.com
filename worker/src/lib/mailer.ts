@@ -6,11 +6,20 @@ export interface MailMessage {
   subject: string;
   html: string;
   text: string;
+  /** where a reply goes; by default MAIL_REPLY_TO (the sender address itself is a no-reply one) */
+  replyTo?: string;
+  /**
+   * A note for the owner's own inbox. While the sending domain is not verified at Resend the message may leave through Resend's
+   * test sender instead — Resend delivers that only to the address of the account itself, which is the owner's.
+   */
+  owner?: boolean;
 }
 
 export interface MailResult {
   ok: boolean;
   provider: "resend" | "dev-outbox" | "none";
+  /** true when the message went out through Resend's test sender because the real sending domain is not verified yet */
+  viaSandbox?: boolean;
   error?: string;
   /** When Resend refused the message: its HTTP status, its error name (e.g. "validation_error") and its own words. */
   status?: number;
@@ -21,6 +30,31 @@ export interface MailResult {
 /** Resend's own words for what went wrong, shortened, and never with anything that looks like a key in it. */
 const scrub = (s: string) => s.replace(/\bre_[A-Za-z0-9_]{6,}/g, "re_…").slice(0, 300);
 
+/** Resend's own test sender: it needs no verified domain, and Resend delivers it only to the e-mail address of the account itself. */
+export const SANDBOX_FROM = "MAWAH Academy <onboarding@resend.dev>";
+/** Set (for three days) whenever Resend refuses a message because the sending domain is not verified; the dashboard reads it. */
+export const MAIL_DOMAIN_REFUSED_KEY = "mail:domain-refused";
+
+const sameAddress = (a: string, b: string | undefined) => !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+
+function postEmail(env: Env, from: string, msg: MailMessage): Promise<Response> {
+  const replyTo = msg.replyTo ?? env.MAIL_REPLY_TO;
+  return fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from,
+      to: [msg.to],
+      subject: msg.subject,
+      html: msg.html,
+      text: msg.text,
+      ...(replyTo && !sameAddress(msg.to, replyTo) ? { reply_to: [replyTo] } : {}),
+    }),
+  });
+}
+
+const refusedBecauseUnverified = (status: number, said: string) => status === 403 && /not verified|verify (a|your) domain/i.test(said);
+
 /**
  * Transactional e-mail through Resend's HTTPS API (RESEND_API_KEY is a Wrangler secret).
  * In development with no key, messages are kept in a KV "outbox" so flows (password reset, receipts)
@@ -29,23 +63,20 @@ const scrub = (s: string) => s.replace(/\bre_[A-Za-z0-9_]{6,}/g, "re_…").slice
 export async function sendMail(env: Env, msg: MailMessage): Promise<MailResult> {
   if (env.RESEND_API_KEY) {
     try {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: env.MAIL_FROM, to: [msg.to], subject: msg.subject, html: msg.html, text: msg.text }),
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { name?: unknown; message?: unknown } | null;
-        return {
-          ok: false,
-          provider: "resend",
-          error: `resend_${res.status}`,
-          status: res.status,
-          code: typeof body?.name === "string" ? body.name.slice(0, 60) : undefined,
-          detail: typeof body?.message === "string" ? scrub(body.message) : undefined,
-        };
+      const res = await postEmail(env, env.MAIL_FROM, msg);
+      if (res.ok) return { ok: true, provider: "resend" };
+      const body = (await res.json().catch(() => null)) as { name?: unknown; message?: unknown } | null;
+      const code = typeof body?.name === "string" ? body.name.slice(0, 60) : undefined;
+      const detail = typeof body?.message === "string" ? scrub(body.message) : undefined;
+      if (refusedBecauseUnverified(res.status, `${code ?? ""} ${detail ?? ""}`)) {
+        await env.KV.put(MAIL_DOMAIN_REFUSED_KEY, new Date().toISOString(), { expirationTtl: 3 * 86_400 }).catch(() => undefined);
+        // The owner's own notifications must not wait for DNS: send them through Resend's test sender (it reaches the account's own inbox).
+        if (msg.owner && sameAddress(msg.to, env.NOTIFY_EMAIL)) {
+          const again = await postEmail(env, SANDBOX_FROM, msg).catch(() => null);
+          if (again?.ok) return { ok: true, provider: "resend", viaSandbox: true };
+        }
       }
-      return { ok: true, provider: "resend" };
+      return { ok: false, provider: "resend", error: `resend_${res.status}`, status: res.status, code, detail };
     } catch (err) {
       return { ok: false, provider: "resend", error: err instanceof Error ? err.message : "network" };
     }
@@ -68,6 +99,8 @@ export interface MailLastTest {
   provider: string;
   problem: MailProblem | null;
   by: string;
+  /** the message arrived, but only through Resend's test sender: the sending domain is still not verified, so students' e-mails will not arrive */
+  viaSandbox?: boolean;
 }
 
 /** What went wrong with a message, as a code the admin screen explains in plain words (and the owner can act on). */
@@ -105,7 +138,7 @@ export async function sendBatch(env: Env, msgs: MailMessage[]): Promise<boolean[
       const res = await fetch("https://api.resend.com/emails/batch", {
         method: "POST",
         headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify(chunk.map((m) => ({ from: env.MAIL_FROM, to: [m.to], subject: m.subject, html: m.html, text: m.text }))),
+        body: JSON.stringify(chunk.map((m) => ({ from: env.MAIL_FROM, to: [m.to], subject: m.subject, html: m.html, text: m.text, ...(env.MAIL_REPLY_TO && !sameAddress(m.to, env.MAIL_REPLY_TO) ? { reply_to: [m.replyTo ?? env.MAIL_REPLY_TO] } : {}) }))),
       });
       batchOk = res.ok;
     } catch {
@@ -120,9 +153,16 @@ export async function sendBatch(env: Env, msgs: MailMessage[]): Promise<boolean[
   return results;
 }
 
+/** The newest messages in the local test inbox, oldest first. Keys sort by time, so the newest are the last ones of the listing. */
 export async function readOutbox(env: Env, to?: string): Promise<(MailMessage & { at: string })[]> {
-  const list = await env.KV.list({ prefix: "outbox:", limit: 100 });
-  const rows = await Promise.all(list.keys.map((k) => env.KV.get<MailMessage & { at: string }>(k.name, "json")));
+  const names: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const page: KVNamespaceListResult<unknown> = await env.KV.list({ prefix: "outbox:", limit: 1000, cursor });
+    for (const k of page.keys) names.push(k.name);
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor && names.length < 5000);
+  const rows = await Promise.all(names.slice(-150).map((name) => env.KV.get<MailMessage & { at: string }>(name, "json")));
   return rows.filter((r): r is MailMessage & { at: string } => !!r && (!to || r.to.toLowerCase() === to.toLowerCase()));
 }
 
@@ -183,7 +223,19 @@ export function welcomeMail(lang: Lang, name: string, link: string, days: number
 
 export function orderReceiptMail(
   lang: Lang,
-  d: { name: string; invoiceNo: string; total: string; items: string[]; learnUrl: string; invoiceUrl: string },
+  d: {
+    name: string;
+    invoiceNo: string;
+    total: string;
+    items: string[];
+    learnUrl: string;
+    invoiceUrl: string;
+    /** the student's ID (STU-000123), shown so they can quote it */
+    studentId?: string;
+    /** an account made at checkout has no password: the link that lets its owner choose one */
+    setPasswordUrl?: string;
+    setPasswordDays?: number;
+  },
 ): Omit<MailMessage, "to"> {
   const subject = lang === "bn" ? "ভর্তি নিশ্চিত হয়েছে" : "Your enrollment is confirmed";
   const hello = lang === "bn" ? `আসসালামু আলাইকুম ${d.name},` : `Hello ${d.name},`;
@@ -198,15 +250,29 @@ export function orderReceiptMail(
       : `<p style="color:#4a3d3e">Invoice: <b>${escapeHtml(d.invoiceNo)}</b> · Total: <b>${escapeHtml(d.total)}</b></p>`;
   const cta = lang === "bn" ? "ক্লাস শুরু করুন" : "Start learning";
   const inv = lang === "bn" ? "ইনভয়েস দেখুন" : "View invoice";
+  const id = d.studentId
+    ? lang === "bn"
+      ? `<p style="color:#4a3d3e">আপনার স্টুডেন্ট আইডি: <b>${escapeHtml(d.studentId)}</b></p>`
+      : `<p style="color:#4a3d3e">Your student ID: <b>${escapeHtml(d.studentId)}</b></p>`
+    : "";
+  const keep = d.setPasswordUrl
+    ? lang === "bn"
+      ? `আপনার জন্য একটি স্টুডেন্ট অ্যাকাউন্ট তৈরি হয়েছে। যেকোনো ফোন বা কম্পিউটার থেকে ক্লাস খুলতে একটি পাসওয়ার্ড দিন (লিংকটি ${d.setPasswordDays ?? 3} দিন কাজ করবে):`
+      : `We made a student account for you. Choose a password to open your classes on any phone or computer (the link works for ${d.setPasswordDays ?? 3} days):`
+    : "";
+  const keepLabel = lang === "bn" ? "পাসওয়ার্ড দিন" : "Choose a password";
+  const keepHtml = d.setPasswordUrl ? `<p style="font-size:15px;line-height:1.6;margin-top:22px">${escapeHtml(keep)}</p>${button(d.setPasswordUrl, keepLabel)}` : "";
+  const idText = d.studentId ? `${lang === "bn" ? "স্টুডেন্ট আইডি" : "Student ID"}: ${d.studentId}\n` : "";
+  const keepText = d.setPasswordUrl ? `\n${keep}\n${d.setPasswordUrl}\n` : "";
   return {
     subject: `${subject} — ${d.invoiceNo}`,
     html: layout(
       lang,
       subject,
-      `<p style="font-size:16px">${escapeHtml(hello)}</p><p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p><ul style="line-height:1.8">${list}</ul>${meta}${button(d.learnUrl, cta)}<p><a href="${escapeHtml(d.invoiceUrl)}" style="color:#b50f12">${escapeHtml(inv)}</a></p>`,
+      `<p style="font-size:16px">${escapeHtml(hello)}</p><p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p><ul style="line-height:1.8">${list}</ul>${meta}${id}${button(d.learnUrl, cta)}<p><a href="${escapeHtml(d.invoiceUrl)}" style="color:#b50f12">${escapeHtml(inv)}</a></p>${keepHtml}`,
       brandName(lang),
     ),
-    text: `${hello}\n${intro}\n\n${d.items.join("\n")}\n\n${d.invoiceNo} · ${d.total}\n${d.learnUrl}\n${d.invoiceUrl}`,
+    text: `${hello}\n${intro}\n\n${d.items.join("\n")}\n\n${d.invoiceNo} · ${d.total}\n${idText}${d.learnUrl}\n${d.invoiceUrl}${keepText}`,
   };
 }
 
@@ -262,6 +328,36 @@ export function contactAckMail(lang: Lang, d: { name: string }): Omit<MailMessag
     html: layout(lang, subject, `<p style="font-size:16px;line-height:1.6">${escapeHtml(body)}</p>`, brandName(lang)),
     text: body,
   };
+}
+
+/**
+ * A note to the owner's inbox about something that just happened (a payment, a message, a question …). English and Bangla together —
+ * the owner reads either — with the facts in a small table and one button to the right admin page.
+ */
+export function ownerNoticeMail(d: {
+  title: { en: string; bn: string };
+  headline: string;
+  facts: { en: string; bn: string; value: string }[];
+  /** a longer text, e.g. the message someone wrote */
+  note?: string;
+  open: { url: string; en: string; bn: string };
+}): Omit<MailMessage, "to"> {
+  const subject = `${d.title.en} · ${d.title.bn}${d.headline ? ` — ${d.headline}` : ""}`;
+  const rows = d.facts
+    .filter((f) => f.value)
+    .map((f) => `<tr><td style="padding:5px 14px 5px 0;color:#6d5f60;font-size:14px;vertical-align:top;white-space:nowrap">${escapeHtml(f.en)} · ${escapeHtml(f.bn)}</td><td style="padding:5px 0;font-size:15px;font-weight:600;color:#1b1213">${escapeHtml(f.value)}</td></tr>`)
+    .join("");
+  const note = d.note ? `<blockquote style="margin:16px 0;padding:12px 16px;background:#f5efe1;border-left:3px solid #db1718;border-radius:6px;font-size:15px;line-height:1.6;white-space:pre-wrap">${escapeHtml(d.note)}</blockquote>` : "";
+  const html = layout(
+    "en",
+    d.title.en,
+    `<p style="margin:-6px 0 14px;font-size:17px;color:#4a3d3e">${escapeHtml(d.title.bn)}</p><table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">${rows}</table>${note}${button(d.open.url, `${d.open.en} · ${d.open.bn}`)}<p style="color:#6d5f60;font-size:13px">This note was sent to you by your MAWAH Academy website. Change who gets these notes, or switch some off, in Admin → Settings → E-mail.</p>`,
+    "MAWAH Academy",
+  );
+  const text = [`${d.title.en} · ${d.title.bn}`, d.headline, "", ...d.facts.filter((f) => f.value).map((f) => `${f.en} · ${f.bn}: ${f.value}`), d.note ? `\n${d.note}` : "", "", `${d.open.en} · ${d.open.bn}: ${d.open.url}`]
+    .filter((l, i, a) => l !== "" || a[i - 1] !== "")
+    .join("\n");
+  return { subject, html, text };
 }
 
 /** To the owner's contact address when a student sends payment proof, so a payment never waits unseen. Bilingual: the owner reads either. */

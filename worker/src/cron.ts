@@ -3,6 +3,7 @@ import type { Env } from "./env";
 import { auditAs } from "./lib/audit";
 import { all, nowIso, run } from "./lib/db";
 import { retryPendingLaunches } from "./services/launch";
+import { purgeAbandonedGuests } from "./services/guests";
 import { cleanupOrphanUploads } from "./services/materials";
 
 /**
@@ -12,6 +13,7 @@ import { cleanupOrphanUploads } from "./services/materials";
  *  - expired login / reset tokens and old rate-limit counters are removed
  *  - launch announcements that were interrupted are finished
  *  - class-material uploads that were never saved into a material are removed after two days
+ *  - a visitor who started to buy without an account and never paid loses the hidden account and the unpaid attempts after 30 days
  */
 export async function runScheduled(env: Env, _cron: string): Promise<void> {
   const now = new Date();
@@ -23,6 +25,7 @@ export async function runScheduled(env: Env, _cron: string): Promise<void> {
     ["old_events", () => run(env.DB, "DELETE FROM payment_events WHERE created_at < ? AND verified = 0", nowIso(new Date(now.getTime() - 90 * 86400 * 1000)))],
     ["launch_retry", () => retryPendingLaunches(env)],
     ["orphan_uploads", () => cleanupOrphanUploads(env)],
+    ["abandoned_guests", () => purgeAbandonedGuests(env, now)],
   ];
   const failed: string[] = [];
   for (const [name, fn] of steps) {

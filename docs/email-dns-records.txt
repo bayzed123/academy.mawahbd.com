@@ -1,0 +1,33 @@
+; ---------------------------------------------------------------------------------------------------------------
+; mawahacademy.com — the four DNS records Resend needs before it will send e-mail "from" this domain.
+;
+; HOW TO ADD THEM (about 3 minutes, once):
+;   Cloudflare dashboard → Websites → mawahacademy.com → DNS → Records → "Import and export" (top right)
+;   → Import → choose this file (or paste it) → Next → Import.      Every record must stay "DNS only" (grey cloud).
+;   Then, at resend.com → Domains → mawahacademy.com, press "Verify DNS Records" (usually done in a few minutes).
+;   Or add the same four rows by hand with "Add record" — the values are below, one record per line.
+;
+; These are PUBLIC records (the key below is the public half of the signing key — nothing secret is in this file).
+; They are for the Resend account where the domain mawahacademy.com was added on 2026-10-15. If you ever remove the
+; domain from Resend and add it again, Resend shows a NEW key: copy the new rows from Resend instead of using this file.
+; They do not touch the website itself (mawahacademy.com / www) — only the names "resend._domainkey", "send" and "rsend".
+; ---------------------------------------------------------------------------------------------------------------
+
+; 1. DKIM — proves the message was really sent by this domain
+resend._domainkey.mawahacademy.com. 1 IN TXT "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDwIXZoqsIz6jDnXpepig1rY29FZbdEqogqyCJHIXtxkzH4AhHz8rxQiORe9wPdmljritdBRNd2McqL+R0y4e40wTjC1LY8Zeo1wwmLOKqI87WvwNCmKUOB8XlKrFJjpVzRgHdFnLdFNUscqvoPOC/DlqzPGROG+uJTGm/p7jnVWwIDAQAB"
+
+; 2. SPF, part one — where bounces go (MX, priority 10)
+send.mawahacademy.com. 1 IN MX 10 feedback-smtp.us-east-1.amazonses.com.
+
+; 3. SPF, part two — which servers may send for the domain
+send.mawahacademy.com. 1 IN TXT "v=spf1 include:amazonses.com ~all"
+
+; 4. Resend's return-path helper
+rsend.mawahacademy.com. 1 IN CNAME send.forge.rmta.net.
+
+; ---------------------------------------------------------------------------------------------------------------
+; OPTIONAL, recommended once the four above are verified: a DMARC policy that only *reports* (it blocks nothing) and
+; sends the daily summaries to the shop's own inbox. Add it ONLY if the domain has no "_dmarc" TXT record yet
+; (a domain may have just one). To use it, delete the leading ";" on the next line before importing.
+; ---------------------------------------------------------------------------------------------------------------
+; _dmarc.mawahacademy.com. 1 IN TXT "v=DMARC1; p=none; rua=mailto:mawahacademy@gmail.com"

@@ -242,6 +242,14 @@
 * ইমেইলের কী (key) কখনো স্ক্রিনে দেখানো হয় না। কোথাও (চ্যাট, ইমেইল) কী পাঠিয়ে ফেললে সেটি আর গোপন নেই — Resend-এ নতুন কী বানিয়ে পুরনোটি মুছে দিন।
 * শুধু মালিক (সুপার অ্যাডমিন) পরীক্ষা পাঠাতে পারেন।
 
+**আপনার জিমেইলে সব খবর — `mawahacademy@gmail.com`**
+
+* ওয়েবসাইটে যা-ই ঘটে, আপনার জিমেইলে একটি ইমেইল আসে: নতুন পেমেন্ট (পেইড অর্ডার), যাচাইয়ের অপেক্ষায় থাকা পেমেন্ট, যোগাযোগ ফর্মের বার্তা, নতুন শিক্ষার্থী, ক্লাসে প্রশ্ন, রিভিউ অনুমোদনের অপেক্ষায়, চ্যাটবট থেকে আপনার কাছে হস্তান্তর, প্রাইভেট গ্রুপে যোগ দেওয়ার অনুরোধ, “জানাও” সাইন-আপ এবং নিউজলেটার সাইন-আপ। প্রতিটি ইমেইলে সংক্ষেপে কী ঘটেছে আর কোথায় ক্লিক করে দেখবেন তা থাকে।
+* **সেটিংস → ইমেইল → আপনার কাছে নোটিফিকেশন** থেকে আরও ঠিকানা যোগ করা যায়, প্রতিটি ধরন আলাদাভাবে বন্ধ/চালু করা যায়, আর **একটি পরীক্ষামূলক নোটিফিকেশন পাঠান** বোতামে এখনই একটা নমুনা পাঠিয়ে দেখা যায়।
+* ইমেইলগুলো আসে `no-reply@mawahacademy.com` ঠিকানা থেকে (জিমেইল ঠিকানা থেকে সরাসরি পাঠানো Resend-এ সম্ভব নয়)। **রিপ্লাই** চাপলে উত্তর আপনার জিমেইলেই যায়।
+* ডোমেইন যাচাই না হওয়া পর্যন্ত আপনার নিজের নোটিফিকেশনগুলো Resend-এর পরীক্ষামূলক প্রেরক (`onboarding@resend.dev`) দিয়ে আসে — তাই আপনি খবর পেতে থাকেন — কিন্তু **শিক্ষার্থীদের** রসিদ ও পাসওয়ার্ড-সেট লিংক যায় না। ডোমেইন যাচাই করতে `docs/email-dns-records.txt` ফাইলটি Cloudflare → DNS → Import and export থেকে ইমপোর্ট করুন (চারটি রেকর্ডই **DNS only**), তারপর Resend → Domains-এ **Verify DNS Records** চাপুন।
+* কী (API key) বদলাতে হলে শুধু GitHub-এর `RESEND_API_KEY` সিক্রেট বদলান এবং Deploy চালান — প্রতিবার ডিপ্লয়ে নতুন কী ওয়েবসাইটে বসে যায়।
+
 ## ২১. ম্যাটেরিয়াল — ফাইল, লিংক, লাইভ ক্লাস ও প্রাইভেট গ্রুপ
 
 লেসনের বাইরে ক্লাসের সঙ্গে যা দিতে চান — রেসিপি কার্ডের পিডিএফ, জিপ ফাইল, বই, রেকর্ড করা ভিডিও, লাইভ ক্লাসের লিংক, প্রাইভেট গ্রুপ — সব এক জায়গা থেকে। বাঁ মেনুর **ম্যাটেরিয়াল** খুলুন, অথবা কোনো ক্লাসের সারসংক্ষেপ পাতায় **ম্যাটেরিয়াল যোগ করুন** চাপুন।
@@ -260,6 +268,16 @@
 * সম্পাদনা এবং গ্রুপের অনুরোধ অনুমোদন করতে পারেন সুপার অ্যাডমিন ও কনটেন্ট ম্যানেজার; বাকিরা শুধু দেখতে পান।
 
 ---
+
+## ২২. লগইন ছাড়াই কেনা — পেমেন্টের সাথে সাথে স্টুডেন্ট প্রোফাইল নিজে থেকে
+
+* ক্রেতাকে আর লগইন বা রেজিস্ট্রেশন করতে হয় না। ক্লাস পেজে “এখনই ভর্তি হন” চাপলে সরাসরি চেকআউট পাতা খোলে। সেখানে শুধু **নাম, মোবাইল নম্বর ও ইমেইল** দিতে হয় — তারপর পেমেন্ট।
+* পেমেন্ট হলে (অনলাইনে, অথবা সেন্ড-মানি আপনি অনুমোদন করলে) ক্রেতা নিজে থেকেই **স্টুডেন্ট**: নিজস্ব **স্টুডেন্ট আইডি** (যেমন `STU-000123`), ক্লাস খোলা, আর রসিদ ইমেইলে। যে ফোন থেকে কিনেছেন সেখানে তিনি আগে থেকেই লগইন অবস্থায় থাকেন।
+* রসিদের ইমেইলে **পাসওয়ার্ড দেওয়ার লিংক** থাকে (৩ দিন চলে)। সেটি খুলে পাসওয়ার্ড দিলে অন্য যেকোনো ফোন বা কম্পিউটারেও ক্লাস খোলা যায়। চাইলে ক্লাসের ভেতর থেকেই (আমার শেখা / প্রোফাইল) পাসওয়ার্ড দেওয়া যায়।
+* **যিনি কেনা শুরু করে শেষ করেননি:** তাঁর নাম, ফোন, ইমেইল **অর্ডার** তালিকায় থাকে (“অপেক্ষমান” বা পরে “বাতিল”) — আপনি ফোনে বা হোয়াটসঅ্যাপে যোগাযোগ করে বিক্রি ফিরিয়ে আনতে পারেন। তিনি **শিক্ষার্থী** তালিকায় আসেন না, শিক্ষার্থীর সংখ্যাতেও ধরা হয় না; ৩০ দিনেও না কিনলে তাঁর অস্থায়ী অ্যাকাউন্টটি মুছে যায়। যিনি কিনেছেন বা যাঁর পেমেন্ট আপনার অনুমোদনের অপেক্ষায়, তাঁকে কখনো মোছা হয় না।
+* **নিরাপত্তা:** কেউ আগে থেকে থাকা শিক্ষার্থীর ইমেইল লিখলে সেই অ্যাকাউন্ট কখনো খোলে না — তাঁকে সেখানেই পাসওয়ার্ড দিয়ে সাইন ইন করতে বলা হয় (পাসওয়ার্ড না থাকলে ইমেইলে লিংক যায়)। পেমেন্ট এরপর স্বাভাবিকভাবে চলে।
+* আপনার জিমেইলে “নতুন পেমেন্ট এসেছে” ইমেইলে লেখা থাকে ক্রেতার স্টুডেন্ট আইডি, আর অ্যাকাউন্টটি চেকআউটে নতুন তৈরি হয়েছে কি না।
+* অচেনা কেউ যেন অজস্র অ্যাকাউন্ট না বানাতে পারে সেজন্য একই ঠিকানা থেকে দিনে ৩০টির বেশি নতুন অ্যাকাউন্ট হয় না। আরও নিরাপত্তা চাইলে Cloudflare Turnstile চালু করুন (docs/deployment.md)।
 
 # English
 
@@ -494,6 +512,14 @@ Receipts, password resets and “the class is open” announcements go out by e-
 * The e-mail key is never shown on screen. If a key was ever pasted somewhere (a chat, an e-mail) it is no longer private — create a new one at Resend and delete the old one.
 * Only the owner (Super Admin) can send a test.
 
+**Everything that happens, in your Gmail — `mawahacademy@gmail.com`**
+
+* Whatever happens on the website, an e-mail lands in your Gmail: a paid order, a payment waiting to be checked, a contact-form message, a new student, a question on a class, a review waiting for approval, a chatbot hand-over, a private-group request, a “notify me” sign-up and a newsletter sign-up. Each e-mail says in a few lines what happened and where to click.
+* **Settings → E-mail → Notifications to you** adds more addresses, switches single kinds on or off, and has a **Send a test notification** button that sends a sample right now.
+* The e-mails come *from* `no-reply@mawahacademy.com` (Resend cannot send directly from a Gmail address). Pressing **Reply** answers to your Gmail inbox.
+* Until the domain is verified, your own notifications arrive through Resend’s test sender (`onboarding@resend.dev`) — so you keep getting the news — but **students’** receipts and set-your-password links are not sent. To verify the domain, import `docs/email-dns-records.txt` in Cloudflare → DNS → Import and export (all four rows **DNS only**), then press **Verify DNS Records** at Resend → Domains.
+* To change the key (the API key), just change the GitHub secret `RESEND_API_KEY` and run Deploy — every deploy puts the current key on the website.
+
 ## 21. Materials — files, links, live classes and private groups
 
 Whatever you give a class besides its lessons — a PDF of recipe cards, a ZIP, a book, a recorded video, a live-class link, a private group — is added from one place. Open **Materials** in the left menu, or press **Add material** on a class’s overview page.
@@ -510,3 +536,13 @@ Whatever you give a class besides its lessons — a PDF of recipe cards, a ZIP, 
 * **On the public class page:** before buying, a visitor sees which kinds of material the class includes (with counts) — never a file or a link. After enrolling, they open inside the class.
 * An upload that was never saved (you left the form after uploading) is cleaned up automatically after a few days.
 * Super Admin and Content Manager can edit materials and approve group requests; everyone else can look.
+
+## 22. Buying without logging in — the student profile is made for them
+
+* A buyer no longer has to log in or register. “Enroll Now” on a class page opens the checkout straight away, and asks only for a **name, a mobile number and an e-mail** — then the payment.
+* When the payment arrives (online, or you approve a send-money payment) the buyer is a **student** on their own: with a **student ID** (like `STU-000123`), the class open, and the receipt in their e-mail. On the phone they bought with they are already signed in.
+* The receipt e-mail has a **“choose a password” link** (it works for 3 days). Opened on another phone or computer, it lets them set a password and opens their classes there too. They can also set a password inside the app (My Learning / Profile).
+* **Someone who started to buy and did not finish:** their name, phone and e-mail are in **Orders** (“pending”, later “cancelled”) — call or WhatsApp them to win the sale back. They are **not** in the Students list or in the student counts; if they never buy, the temporary account is removed after 30 days. Someone who paid, or whose payment is waiting for you to approve, is never removed.
+* **Safety:** if someone types the e-mail of a student who already exists, that account is never opened — they are asked to sign in right there with the password (or are e-mailed a link when the account has none), and the payment then goes on as normal.
+* The “New payment received” e-mail in your Gmail shows the buyer’s student ID and whether the account was made at checkout.
+* To stop one visitor making piles of accounts, one address can make at most 30 new accounts a day. For more protection switch on Cloudflare Turnstile (docs/deployment.md).

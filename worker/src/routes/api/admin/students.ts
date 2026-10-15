@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { IMPORT_FIELDS, IMPORT_MAX_ROWS, MAX_PAST_AMOUNT, PAST_METHODS, STUDENT_SOURCES } from "@mawah/shared";
+import { IMPORT_FIELDS, IMPORT_MAX_ROWS, MAX_PAST_AMOUNT, PAST_METHODS, parseStudentCode, STUDENT_SOURCES, studentCode } from "@mawah/shared";
 import type { AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { csvResponse, toCsv } from "../../../lib/csv";
@@ -11,6 +11,7 @@ import { emailSchema, idSchema, langSchema, nameSchema, phoneSchema, textSchema 
 import { requirePerm } from "../../../middleware/auth";
 import { createPasswordResetLink } from "../../../services/auth";
 import { analyzeRows, commitRows, createStudent, grantAccess, inviteStudent, summarize } from "../../../services/students";
+import { REAL_STUDENT } from "../../../services/guests";
 
 export const students = new Hono<AppEnv>();
 
@@ -20,7 +21,8 @@ const LIST_COLS = `s.id, s.name, s.email, s.phone, s.locale, s.blocked, s.source
   (SELECT COALESCE(SUM(o.total), 0) FROM orders o WHERE o.student_id = s.id AND o.status = 'paid') AS spent`;
 
 function filters(q: Record<string, string>) {
-  const where: string[] = ["1=1"];
+  // a visitor who only started to buy is not a student yet: not listed, not counted, not exported
+  const where: string[] = [REAL_STUDENT];
   const params: (string | number)[] = [];
   if (q.blocked === "1") where.push("s.blocked = 1");
   if ((STUDENT_SOURCES as readonly string[]).includes(q.source ?? "")) {
@@ -33,8 +35,10 @@ function filters(q: Record<string, string>) {
   }
   if (q.q?.trim()) {
     const like = `%${likeEscape(q.q.trim().slice(0, 80))}%`;
-    where.push("(s.name LIKE ? ESCAPE '\\' OR s.email LIKE ? ESCAPE '\\' OR s.phone LIKE ? ESCAPE '\\')");
-    params.push(like, like, like);
+    // a student ID (STU-000123, stu123) finds that student, too
+    const id = parseStudentCode(q.q);
+    where.push(`(s.name LIKE ? ESCAPE '\\' OR s.email LIKE ? ESCAPE '\\' OR s.phone LIKE ? ESCAPE '\\'${id ? " OR s.id = ?" : ""})`);
+    params.push(like, like, like, ...(id ? [id] : []));
   }
   const sorts: Record<string, string> = { created_at: "s.created_at", name: "s.name", last_login_at: "s.last_login_at", spent: "spent" };
   const key = (q.sort ?? "-created_at").replace(/^-/, "");
@@ -54,11 +58,12 @@ students.get("/students", requirePerm("students:read"), async (c) => {
 
 students.get("/students/export.csv", requirePerm("students:read"), async (c) => {
   const f = filters(c.req.query());
-  const rows = await all<Record<string, unknown>>(c.env.DB, `SELECT ${LIST_COLS} FROM students s WHERE ${f.where} ORDER BY ${f.order} LIMIT 5000`, ...f.params);
+  const found = await all<Record<string, unknown>>(c.env.DB, `SELECT ${LIST_COLS} FROM students s WHERE ${f.where} ORDER BY ${f.order} LIMIT 5000`, ...f.params);
+  const rows = found.map((r) => ({ ...r, code: studentCode(r.id as number) }));
   return csvResponse(
     "students",
     toCsv(rows, [
-      { key: "id", label: "ID" },
+      { key: "code", label: "Student ID" },
       { key: "name", label: "Name" },
       { key: "email", label: "Email" },
       { key: "phone", label: "Phone" },

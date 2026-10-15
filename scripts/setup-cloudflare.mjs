@@ -15,7 +15,7 @@
  *   --domain <host>      e.g. mawahacademy.com — enables the custom-domain route and sets SITE_URL
  *                        (the domain's DNS zone must already be on this Cloudflare account)
  *   --www                with --domain: also attach www.<host> (the site sends visitors of the www name on to <host>)
- *   --secrets            also create APP_SECRET (random, never printed) and SETUP_TOKEN if absent; with --ci also RESEND_API_KEY (the e-mail key)
+ *   --secrets            also create APP_SECRET (random, never printed) and SETUP_TOKEN if absent; with --ci also set RESEND_API_KEY (the e-mail key) from the GitHub secret of that name, on every run
  *                        from the GitHub secret of that name, once, if the Worker has none yet. By hand the token is random
  *                        and printed ONCE; with --ci it comes from the SETUP_TOKEN environment variable (the GitHub secret of
  *                        that name) — it is never invented and never printed
@@ -174,7 +174,7 @@ if (has("--secrets")) {
   if (DRY) {
     info(
       CI
-        ? "(dry run) would create APP_SECRET (random, never printed), SETUP_TOKEN and RESEND_API_KEY (from the environment variables of those names) — each only if it does not exist yet"
+        ? "(dry run) would create APP_SECRET (random, never printed) and SETUP_TOKEN (from the environment variable) if they do not exist yet, and set RESEND_API_KEY from the environment variable of that name whenever one is given"
         : "(dry run) would create APP_SECRET (random, never printed) and SETUP_TOKEN (random, printed once) — each only if it does not exist yet",
     );
   } else if (present.includes("APP_SECRET")) info("APP_SECRET already set — left untouched (changing it would sign everyone out and break stored passwords; see docs/security.md → key rotation)");
@@ -199,19 +199,19 @@ if (has("--secrets")) {
     info(green("SETUP_TOKEN created"));
   }
 
-  // The e-mail key (Resend). Automation takes it from the GitHub secret RESEND_API_KEY, once: if the Worker has one already it is
-  // never replaced (to change it, edit it in Cloudflare → Workers → Variables and Secrets, or delete it there and deploy again).
-  // By hand the owner sets it with `npx wrangler secret put RESEND_API_KEY`, as before.
+  // The e-mail key (Resend). Automation takes it from the GitHub secret RESEND_API_KEY on every deploy, so that secret is the one
+  // place to change it: a new key (say, after the old one was rotated or the Resend account changed) reaches the Worker on the next
+  // Deploy. With no GitHub secret of that name, a key set in Cloudflare is left exactly as it is. By hand the owner sets it with
+  // `npx wrangler secret put RESEND_API_KEY`, as before.
   if (!DRY && CI) {
-    if (present.includes("RESEND_API_KEY")) info("RESEND_API_KEY already set — left untouched");
-    else {
-      const key = (process.env.RESEND_API_KEY ?? "").trim();
-      if (/^re_[A-Za-z0-9_]{16,}$/.test(key)) {
-        wrangler(["secret", "put", "RESEND_API_KEY"], { input: key });
-        info(green("RESEND_API_KEY created") + " from the GitHub secret RESEND_API_KEY (not shown)");
-      } else if (key) info(yellow("the GitHub secret RESEND_API_KEY does not look like a Resend key (they start with re_) — not used"));
-      else info(yellow("no RESEND_API_KEY yet — receipts and password-reset e-mails are not sent until you add one: the GitHub secret RESEND_API_KEY, then run Deploy again (docs/deployment.md, section 3a)"));
-    }
+    const have = present.includes("RESEND_API_KEY");
+    const key = (process.env.RESEND_API_KEY ?? "").trim();
+    if (/^re_[A-Za-z0-9_]{16,}$/.test(key)) {
+      wrangler(["secret", "put", "RESEND_API_KEY"], { input: key });
+      info(green(have ? "RESEND_API_KEY updated" : "RESEND_API_KEY created") + " from the GitHub secret RESEND_API_KEY (not shown)");
+    } else if (key) info(yellow(`the GitHub secret RESEND_API_KEY does not look like a Resend key (they start with re_) — not used${have ? "; the key already on the Worker stays" : ""}`));
+    else if (have) info("RESEND_API_KEY is set on the Worker — left untouched (there is no GitHub secret of that name to replace it with)");
+    else info(yellow("no RESEND_API_KEY yet — receipts and password-reset e-mails are not sent until you add one: the GitHub secret RESEND_API_KEY, then run Deploy again (docs/deployment.md, section 3a)"));
   }
 }
 

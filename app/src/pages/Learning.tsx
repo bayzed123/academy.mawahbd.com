@@ -5,6 +5,7 @@ import type { CourseStatus, CurriculumModuleDTO, MyCourseDTO, OrderDTO } from "@
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
+import { KeepAccount } from "../components/KeepAccount";
 import { accentClass, Banner, Empty, ErrorState, Icon, Progress } from "../components/ui";
 
 export function MyLearning() {
@@ -23,6 +24,8 @@ export function MyLearning() {
         <h1>{t("app.learning.title")}</h1>
         <p>{student ? t("app.learning.hello", { name: student.name.split(" ")[0] }) : ""} {t("app.learning.sub")}</p>
       </div>
+
+      <KeepAccount />
 
       {unfinished.map((o) => (
         <Link key={o.public_id} to={`/orders/${o.public_id}`} className="notice">

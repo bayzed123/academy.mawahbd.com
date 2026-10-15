@@ -121,6 +121,17 @@ export function normalizeAnyPhone(input: string): string | null {
   return m ? `+${m[1]}` : null;
 }
 
+/** The student ID people quote to the shop and see on their profile and receipts: STU-000123 (the account number, at least six digits). */
+export function studentCode(id: number): string {
+  return `STU-${String(id).padStart(6, "0")}`;
+}
+
+/** The account number behind what someone typed as a student ID ("STU-000123", "stu123", "123"), or null when it is not one. */
+export function parseStudentCode(input: string): number | null {
+  const m = input.trim().match(/^(?:stu-?)?0*(\d{1,9})$/i);
+  return m ? Number(m[1]) : null;
+}
+
 /** The short code of an order that people read out or type into a payment reference: the first 8 characters of its public id. */
 export function orderCode(publicId: string): string {
   return publicId.slice(0, 8).toUpperCase();

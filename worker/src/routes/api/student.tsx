@@ -21,6 +21,7 @@ import {
   setLessonComplete,
 } from "../../services/learning";
 import { facebookUrl, materialsForStudent, recordUse, usableMaterial } from "../../services/materials";
+import { notices, notifyOwner } from "../../services/notify";
 import { orderForStudent, ordersForStudent } from "../../services/orders";
 import { manualPayInfo } from "../../services/payments";
 import { InvoicePage } from "../../views/pages/misc";
@@ -168,6 +169,14 @@ studentRoutes.post("/materials/:id/join", rateLimit("RL_FORM"), async (c) => {
     now,
   );
   const request = await first<{ status: "pending" | "approved" | "rejected" }>(c.env.DB, "SELECT status FROM group_requests WHERE material_id = ? AND student_id = ?", m.id, me.id);
+  if (m.ask_profile && request?.status === "pending") {
+    const where = await first<{ group_en: string; group_bn: string; course: string }>(
+      c.env.DB,
+      "SELECT m.title_en AS group_en, m.title_bn AS group_bn, c.title_en AS course FROM materials m JOIN courses c ON c.id = m.course_id WHERE m.id = ?",
+      m.id,
+    );
+    c.executionCtx.waitUntil(notifyOwner(c.env, notices.groupRequest({ student: me.name, email: me.email, group: where?.group_en || where?.group_bn || "", course: where?.course ?? "", profile })));
+  }
   c.executionCtx.waitUntil(recordUse(c.env, m, me.id, "open"));
   return ok(c, { request: request ?? { status: "pending" }, url: m.url });
 });
@@ -230,6 +239,8 @@ studentRoutes.post("/reviews", rateLimit("RL_FORM"), async (c) => {
   );
   await refreshCourseRating(c.env, body.course_id); // an edited, previously approved review leaves the public average until re-approved
   await audit(c, { action: "review.submitted", entity: "course", entityId: body.course_id, meta: { rating: body.rating } });
+  const reviewed = await first<{ title_en: string }>(c.env.DB, "SELECT title_en FROM courses WHERE id = ?", body.course_id);
+  c.executionCtx.waitUntil(notifyOwner(c.env, notices.reviewPending({ student: me.name, course: reviewed?.title_en ?? "", rating: body.rating, body: body.body })));
   return ok(c, { status: "pending" }, 201);
 });
 
@@ -260,7 +271,7 @@ studentRoutes.get("/questions", async (c) => {
 studentRoutes.post("/questions", rateLimit("RL_FORM"), async (c) => {
   const body = await parseBody(c, questionSchema);
   const me = c.get("student")!;
-  const lesson = await first<{ course_id: number }>(c.env.DB, "SELECT course_id FROM lessons WHERE id = ?", body.lesson_id);
+  const lesson = await first<{ course_id: number; title_en: string }>(c.env.DB, "SELECT course_id, title_en FROM lessons WHERE id = ?", body.lesson_id);
   if (!lesson) throw notFound();
   if (!(await activeEnrollment(c.env, me.id, lesson.course_id))) throw forbidden("not_enrolled");
   const res = await run(
@@ -272,6 +283,8 @@ studentRoutes.post("/questions", rateLimit("RL_FORM"), async (c) => {
     body.body,
   );
   await audit(c, { action: "question.asked", entity: "lesson", entityId: body.lesson_id });
+  const asked = await first<{ title_en: string }>(c.env.DB, "SELECT title_en FROM courses WHERE id = ?", lesson.course_id);
+  c.executionCtx.waitUntil(notifyOwner(c.env, notices.courseQuestion({ student: me.name, course: asked?.title_en ?? "", lesson: lesson.title_en, body: body.body })));
   return ok(c, { id: res.meta.last_row_id }, 201);
 });
 

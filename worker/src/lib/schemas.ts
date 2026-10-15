@@ -37,6 +37,21 @@ export const phoneSchema = z
     return n;
   });
 
+/** A phone number that must be given (checkout without an account: the shop follows up by call or WhatsApp). Same rules as phoneSchema. */
+export const requiredPhoneSchema = z
+  .string({ error: "required" })
+  .trim()
+  .min(1, "required")
+  .max(20, "invalid_phone")
+  .transform((value, ctx) => {
+    const n = normalizeAnyPhone(value);
+    if (!n) {
+      ctx.addIssue({ code: "custom", message: "invalid_phone" });
+      return z.NEVER;
+    }
+    return n;
+  });
+
 export const langSchema = z.enum(["bn", "en"]);
 
 /** Free text with a hard cap; control characters stripped. */
