@@ -99,6 +99,8 @@ html[lang=bn] .brand-name{font-weight:400;letter-spacing:.02em;font-size:1.1rem;
 .btn-ghost:hover{background:var(--red-50);color:var(--red-800)}
 .err-text{color:var(--red-700);font-size:.9rem;font-weight:600;margin:.1rem 0 0}
 .hint{color:var(--ink-3);font-size:.88rem;margin:.1rem 0 0}
+.req{color:var(--red-700);font-weight:700}
+textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .field .input[aria-invalid=true]{border-color:var(--red-600)}
 .check{display:flex;gap:.7rem;align-items:flex-start;font-size:.95rem;line-height:1.5;cursor:pointer}
 .check input{width:22px;height:22px;margin-top:.1rem;accent-color:var(--red-600);flex:none}

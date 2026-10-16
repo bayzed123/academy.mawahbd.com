@@ -91,8 +91,8 @@ describe("mapColumns / tableToRows", () => {
     const table = parseTable(csv).rows;
     const map = mapColumns(table[0]);
     expect(map.ignored).toEqual([]);
-    expect(map.found).toHaveLength(11);
-    expect(tableToRows(table, map)[0]).toMatchObject({ email: "rina@example.com", classes: "beginners-baking-class", amount: "1500" });
+    expect(map.found).toHaveLength(12);
+    expect(tableToRows(table, map)[0]).toMatchObject({ email: "rina@example.com", address: "House 12, Road 5, Dhanmondi, Dhaka", classes: "beginners-baking-class", amount: "1500" });
   });
 });
 

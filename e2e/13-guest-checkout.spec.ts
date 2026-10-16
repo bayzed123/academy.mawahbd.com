@@ -1,11 +1,12 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminLogin, apiGet, apiPost, registerStudent, STAFF, uniqueEmail, useLang } from "./helpers";
+import { adminLogin, apiGet, apiPost, apiSend, registerStudent, STAFF, TEST_ADDRESS, uniqueEmail, uniquePhone, useLang } from "./helpers";
 
 /*
  * Buying without an account. The owner's worry: a buyer sent to a log-in page first is a buyer lost. So a visitor gives a name, a mobile
- * number and an e-mail, pays, and is in — the student profile (with its own ID) is made for them, and the receipt carries the link to choose
- * a password for other phones. What must never happen: typing the e-mail of an existing student opens that student's classes.
+ * number and an address (an e-mail only if they want to), pays, and is in — the student profile (with its own ID) is made for them, and the
+ * receipt carries the link to choose a password for other phones. A buyer with no e-mail is known by the number and texted instead.
+ * What must never happen: typing the e-mail (or the number) of an existing student opens that student's classes.
  * Runs after the admin spec (the owner exists).
  */
 test.describe.configure({ mode: "serial" });
@@ -31,17 +32,19 @@ const orderBox = async (to: string) => (await apiGet<{ messages: { subject: stri
 const adminOrders = async (email: string) => (await apiGet<{ items: { status: string; customer_name: string; customer_phone: string; id: number }[] }>(admin, `/admin/orders?q=${encodeURIComponent(email)}`)).items;
 const adminStudents = async (email: string) => (await apiGet<{ items: { email: string; enrollments: number }[] }>(admin, `/admin/students?q=${encodeURIComponent(email)}`)).items;
 
-async function fillDetails(page: Page, d: { name: string; phone: string; email: string }) {
-  await page.getByLabel("Full name", { exact: true }).fill(d.name);
-  await page.getByLabel("Mobile number", { exact: true }).fill(d.phone);
-  await page.getByLabel("E-mail", { exact: true }).fill(d.email);
+/** Name, mobile number and address are asked for; the e-mail only if `email` is given (it is optional). */
+async function fillDetails(page: Page, d: { name: string; phone: string; email?: string; address?: string }) {
+  await page.getByLabel(/^Full name/).fill(d.name);
+  await page.getByLabel(/^Mobile number/).fill(d.phone);
+  await page.getByLabel(/^Address/).fill(d.address ?? TEST_ADDRESS);
+  if (d.email) await page.getByLabel(/^E-mail/).fill(d.email);
 }
 
-test("a visitor buys with a name, a number and an e-mail — no log-in — and the class opens on that phone, with a student ID", async ({ browser }) => {
+test("a visitor buys with a name, a number, an address and an e-mail — no log-in — and the class opens on that phone, with a student ID", async ({ browser }) => {
   const { ctx, page } = await visitor(browser);
   const email = uniqueEmail("guest");
   await page.goto("/en/courses/beginners-baking-class");
-  await expect(page.getByText("No log-in needed — just your name, number and e-mail").first()).toBeVisible();
+  await expect(page.getByText("No log-in needed — just your name, number and address").first()).toBeVisible();
   await page.getByRole("link", { name: /Enroll Now/ }).first().click();
   // straight to the checkout: no log-in page in between
   await expect(page).toHaveURL(/\/app\/checkout\?c=beginners-baking-class/);
@@ -70,6 +73,7 @@ test("a visitor buys with a name, a number and an e-mail — no log-in — and t
   // the owner: the payment is there with the details typed, and the buyer is now a student
   const orders = await adminOrders(email);
   expect(orders[0]).toMatchObject({ status: "paid", customer_name: "Nusrat Jahan", customer_phone: "01712345678" });
+  expect((await apiGet<{ items: { customer_address: string }[] }>(admin, `/admin/orders?q=${encodeURIComponent(email)}`)).items[0].customer_address).toBe(TEST_ADDRESS);
   const students = await adminStudents(email);
   expect(students).toHaveLength(1);
   expect(students[0].enrollments).toBe(1);
@@ -78,6 +82,8 @@ test("a visitor buys with a name, a number and an e-mail — no log-in — and t
   await expect.poll(async () => (await orderBox(email)).some((m) => /enrollment is confirmed/.test(m.subject))).toBe(true);
   const receipt = (await orderBox(email)).find((m) => /enrollment is confirmed/.test(m.subject))!;
   expect(receipt.text).toContain(code);
+  // …and the same news by text message to the number
+  await expect.poll(async () => (await orderBox("01712345678")).some((m) => m.text.includes(code))).toBe(true);
   const link = receipt.text.match(/\/app\/reset\/[A-Za-z0-9_-]+/)![0];
   const other = await visitor(browser);
   await other.page.goto(link);
@@ -126,7 +132,7 @@ test("an e-mail that already belongs to a student is not opened: the buyer signs
 
   await panel.getByLabel("Password").fill("not-the-password-1");
   await panel.getByRole("button", { name: "Sign in and continue" }).click();
-  await expect(panel.getByRole("alert")).toContainText("Wrong email or password.");
+  await expect(panel.getByRole("alert")).toContainText("Wrong sign-in details");
   await panel.getByLabel("Password").fill(made.password);
   await panel.getByRole("button", { name: "Sign in and continue" }).click();
 
@@ -221,14 +227,158 @@ test("the details form reads well in Bangla, fits a 360 px phone and passes the 
   const page = await ctx.newPage();
   await page.goto("/app/checkout?c=beginners-baking-class");
   await expect(page.getByRole("heading", { name: "আপনার তথ্য" })).toBeVisible();
-  await expect(page.getByLabel("পুরো নাম", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("মোবাইল নম্বর", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("ইমেইল", { exact: true })).toBeVisible();
+  await expect(page.getByLabel(/^পুরো নাম/)).toBeVisible();
+  await expect(page.getByLabel(/^মোবাইল নম্বর/)).toBeVisible();
+  await expect(page.getByLabel(/^ঠিকানা/)).toBeVisible();
+  await expect(page.getByLabel(/^ইমেইল \(ঐচ্ছিক\)/)).toBeVisible();
   await page.getByText("টেস্ট পেমেন্ট").click();
   await page.getByRole("button", { name: /৳৪০০/ }).last().click();
   await expect(page.getByText("এই ঘরটি পূরণ করা আবশ্যক।")).toHaveCount(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
   const axe = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
+  await ctx.close();
+});
+
+test("no e-mail at all: a visitor gives a name, a number and an address, is texted, and signs in with the number or the student ID", async ({ browser }) => {
+  const { ctx, page } = await visitor(browser);
+  const phone = uniquePhone();
+  await page.goto("/app/checkout?c=beginners-baking-class");
+  // the e-mail box says it is optional; the other three say they are needed
+  await expect(page.getByLabel(/^E-mail \(optional\)/)).toBeVisible();
+  for (const label of [/^Full name/, /^Mobile number/, /^Address/]) await expect(page.getByLabel(label)).toHaveAttribute("aria-required", "true");
+
+  await fillDetails(page, { name: "Tania Rahman", phone });
+  await page.getByText("Test payment").click();
+  await page.getByRole("button", { name: /Pay ৳400/ }).click();
+  await page.getByRole("button", { name: "Simulate successful payment" }).click();
+  await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
+  await expect(page.locator(".user-menu summary")).toContainText("Tania");
+  const code = (await page.locator(".keep-account .student-code").textContent())!.trim();
+  expect(code).toMatch(/^STU-\d{6,}$/);
+
+  // the owner sees a student with no e-mail — never the made-up address — and the address that was typed
+  const students = (await apiGet<{ items: { email: string; address: string; phone: string; enrollments: number }[] }>(admin, `/admin/students?q=${phone}`)).items;
+  expect(students).toHaveLength(1);
+  expect(students[0]).toMatchObject({ email: "", address: TEST_ADDRESS, phone, enrollments: 1 });
+  await admin.goto(`/admin/students?q=${phone}`);
+  const row = admin.getByRole("row", { name: /Tania Rahman/ });
+  await expect(row).toContainText(code);
+  await expect(row).toContainText(phone); // the number stands where the e-mail would be
+  await expect(admin.locator("body")).not.toContainText("no-email.invalid");
+  await row.click();
+  await expect(admin.getByRole("dialog")).toContainText("No e-mail (signs in with the mobile number)");
+  await expect(admin.getByRole("dialog")).toContainText("Dhanmondi");
+  await expect(admin.getByRole("dialog")).not.toContainText("no-email.invalid");
+  await admin.keyboard.press("Escape");
+
+  // the receipt came by text message: the student ID, and a link to choose a password
+  await expect.poll(async () => (await orderBox(phone)).some((m) => /payment received/.test(m.text))).toBe(true);
+  const sms = (await orderBox(phone)).find((m) => /payment received/.test(m.text))!;
+  expect(sms.text).toContain(code);
+  const link = sms.text.match(/\/app\/reset\/[A-Za-z0-9_-]+/)![0];
+  const other = await visitor(browser);
+  await other.page.goto(link);
+  await other.page.getByLabel("New password").fill("my-first-password-9");
+  await other.page.getByRole("button", { name: "Save" }).click();
+  await expect(other.page.getByRole("heading", { name: "My Learning" })).toBeVisible();
+  await other.ctx.close();
+
+  // later, on a fresh phone: the number, then the student ID, each with the password
+  for (const who of [phone, code]) {
+    const back = await visitor(browser);
+    await back.page.goto("/app/login");
+    await back.page.getByLabel("Mobile number, student ID or e-mail").fill(who);
+    await back.page.getByLabel("Password").fill("my-first-password-9");
+    await back.page.getByRole("button", { name: "Log in" }).last().click();
+    await expect(back.page.getByRole("heading", { name: "My Learning" })).toBeVisible();
+    await expect(back.page.getByText("Beginners Baking Class")).toBeVisible();
+    await back.ctx.close();
+  }
+
+  // a forgotten password: ask by number, and the link comes by text message
+  const forgot = await visitor(browser);
+  await forgot.page.goto("/app/forgot");
+  await forgot.page.getByLabel("Mobile number, student ID or e-mail").fill(phone);
+  await forgot.page.getByRole("button", { name: "Send reset link" }).click();
+  await expect(forgot.page.getByText("Check your messages")).toBeVisible();
+  await expect.poll(async () => (await orderBox(phone)).some((m) => /choose a new password/.test(m.text))).toBe(true);
+  await forgot.ctx.close();
+  await ctx.close();
+});
+
+test("a number that already belongs to a student is not opened by typing it: the buyer is told to sign in", async ({ browser }) => {
+  const phone = uniquePhone();
+  const reg = await visitor(browser);
+  await registerStudent(reg.page, { name: "Number Owner" });
+  const mine = await apiGet<{ student: { name: string; phone: string; locale: string } }>(reg.page, "/auth/me");
+  expect((await apiSend(reg.page, "PATCH", "/auth/profile", { name: mine.student.name, phone, address: TEST_ADDRESS, locale: mine.student.locale })).status).toBe(200);
+  await reg.ctx.close();
+
+  const { ctx, page } = await visitor(browser);
+  await page.goto("/app/checkout?c=beginners-baking-class");
+  await fillDetails(page, { name: "Someone Else", phone }); // no e-mail: the number is who they are
+  await page.getByText("Test payment").click();
+  await page.getByRole("button", { name: /Pay ৳400/ }).click();
+  const panel = page.getByRole("region", { name: "You already have an account" });
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText(phone);
+  expect((await apiGet<{ student: unknown }>(page, "/auth/me")).student).toBeNull();
+  await ctx.close();
+});
+
+test("a signed-in student with no address on file is asked for it — only for it — at checkout, and not again", async ({ browser }) => {
+  const { ctx, page } = await visitor(browser);
+  await registerStudent(page, { name: "No Address Yet", address: "" });
+  await page.goto("/app/checkout?c=beginners-baking-class");
+  await expect(page.getByRole("heading", { name: "Your details" })).toBeVisible();
+  await expect(page.getByLabel(/^Full name/)).toHaveCount(0); // they have a name
+  await expect(page.getByLabel(/^E-mail/)).toHaveCount(0); // and an e-mail
+  await expect(page.getByLabel(/^Mobile number/)).toHaveValue("01712345678"); // the number on their profile
+  await page.getByText("Test payment").click();
+  await page.getByRole("button", { name: /Pay ৳400/ }).click();
+  await expect(page.getByText("This field is required.")).toHaveCount(1);
+  await page.getByLabel(/^Address/).fill("Flat 3, Road 1, Uttara, Dhaka");
+  await page.getByRole("button", { name: /Pay ৳400/ }).click();
+  await page.getByRole("button", { name: "Simulate successful payment" }).click();
+  await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
+
+  // kept on the profile for next time
+  await page.goto("/app/profile");
+  await expect(page.getByLabel(/^Address/)).toHaveValue("Flat 3, Road 1, Uttara, Dhaka");
+  await page.goto("/app/checkout?c=free-taster-class");
+  await expect(page.getByRole("heading", { name: "Your details" })).toHaveCount(0);
+  await ctx.close();
+});
+
+test("a returning student whose profile has no address signs in in the middle of checkout: what was typed fills the gap, the payment goes on, nothing is asked twice", async ({ browser }) => {
+  // a registered student with a password of their own, a number on file, and no address yet
+  const reg = await visitor(browser);
+  const made = await registerStudent(reg.page, { name: "Gap Filler", address: "" });
+  await reg.ctx.close();
+
+  const typedAddress = "Flat 9, Road 2, Mirpur, Dhaka";
+  const { ctx, page } = await visitor(browser);
+  await page.goto("/app/checkout?c=beginners-baking-class");
+  await fillDetails(page, { name: "Someone Typed", phone: "01912345670", email: made.email, address: typedAddress });
+  await page.getByText("Test payment").click();
+  await page.getByRole("button", { name: /Pay ৳400/ }).click();
+
+  const panel = page.getByRole("region", { name: "You already have an account" });
+  await expect(panel).toBeVisible();
+  await panel.getByLabel("Password").fill(made.password);
+  await panel.getByRole("button", { name: "Sign in and continue" }).click();
+
+  // no second stop to ask for the address again: the payment carries on with what was typed
+  await page.getByRole("button", { name: "Simulate successful payment" }).click();
+  await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
+  await expect(page.getByText("This field is required.")).toHaveCount(0);
+
+  // the address typed above is now on the account (and on the order); the number already on file is kept, and so is the name
+  const found = (await apiGet<{ items: { name: string; phone: string; address: string; enrollments: number }[] }>(admin, `/admin/students?q=${encodeURIComponent(made.email)}`)).items;
+  expect(found).toHaveLength(1);
+  expect(found[0]).toMatchObject({ name: "Gap Filler", phone: "01712345678", address: typedAddress, enrollments: 1 });
+  const orders = (await apiGet<{ items: { status: string; customer_address: string }[] }>(admin, `/admin/orders?q=${encodeURIComponent(made.email)}`)).items;
+  expect(orders[0]).toMatchObject({ status: "paid", customer_address: typedAddress });
   await ctx.close();
 });

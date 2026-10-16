@@ -1,14 +1,16 @@
 import type { Channel, OrderDTO, OrderItemDTO, OrderStatus, PaymentMethod } from "@mawah/shared";
-import { dhakaDayStamp, formatMoney, loc, MANUAL_WINDOW_DEFAULT_MIN, MAX_PROOF_IMAGE_BYTES, studentCode } from "@mawah/shared";
+import { dhakaDayStamp, formatMoney, loc, MANUAL_WINDOW_DEFAULT_MIN, MAX_PROOF_IMAGE_BYTES, shownEmail, studentCode } from "@mawah/shared";
 import type { Env, StudentCtx } from "../env";
 import { auditAs } from "../lib/audit";
 import { generatePublicOrderId, randomToken, sha256Hex } from "../lib/crypto";
 import { all, first, nowIso, qs, run } from "../lib/db";
 import { sniffImage } from "../lib/files";
 import { conflict, HttpError, notFound } from "../lib/http";
-import { orderReceiptMail, sendMail } from "../lib/mailer";
+import { orderReceiptMail } from "../lib/mailer";
+import { receiptSms } from "../lib/smsText";
 import { createPasswordResetLink } from "./auth";
 import { notices, notifyOwner } from "./notify";
+import { tellStudent } from "./studentMessages";
 
 /* =================================================================================================
  *  Pricing  (server-side, always — the browser never tells us a price)
@@ -192,8 +194,8 @@ export async function createOrder(
   const payBy = isManual ? nowIso(new Date(created.getTime() + windowMin * 60_000)) : null;
   const insert = env.DB.prepare(
     `INSERT INTO orders (public_id, student_id, status, subtotal, discount, total, coupon_id, coupon_code, bundle_id, method, gateway,
-                         gateway_txn, payer_number, customer_name, customer_email, customer_phone, pay_by, proof_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                         gateway_txn, payer_number, customer_name, customer_email, customer_phone, customer_address, pay_by, proof_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     publicId,
     student.id,
@@ -209,8 +211,9 @@ export async function createOrder(
     manual?.trx_id ?? null,
     manual?.payer_number ?? null,
     student.name,
-    student.email,
+    shownEmail(student.email),
     student.phone ?? "",
+    student.address ?? "",
     payBy,
     withProof ? now : null,
     now,
@@ -401,6 +404,7 @@ async function orderForNotice(env: Env, orderId: number) {
       customer_name: string;
       customer_email: string;
       customer_phone: string;
+      customer_address: string;
       gateway_txn: string | null;
       payer_number: string | null;
       has_image: number;
@@ -408,7 +412,7 @@ async function orderForNotice(env: Env, orderId: number) {
       made_at_checkout: number;
     }>(
       env.DB,
-      `SELECT o.public_id, o.invoice_no, o.total, o.method, o.customer_name, o.customer_email, o.customer_phone, o.gateway_txn, o.payer_number,
+      `SELECT o.public_id, o.invoice_no, o.total, o.method, o.customer_name, o.customer_email, o.customer_phone, o.customer_address, o.gateway_txn, o.payer_number,
               (o.proof_key IS NOT NULL) AS has_image, o.student_id,
               (s.source = 'checkout' AND NOT EXISTS (SELECT 1 FROM orders p WHERE p.student_id = o.student_id AND p.status IN ('paid','refunded') AND p.id <> o.id)) AS made_at_checkout
        FROM orders o JOIN students s ON s.id = o.student_id WHERE o.id = ?`,
@@ -427,7 +431,7 @@ export async function notifyPaid(env: Env, orderId: number): Promise<void> {
     const o = d.order;
     await notifyOwner(
       env,
-      notices.orderPaid({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, items: d.items, total: o.total, method: o.method, invoiceNo: o.invoice_no ?? "", studentId: studentCode(o.student_id), newAccount: !!o.made_at_checkout }),
+      notices.orderPaid({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, address: o.customer_address, items: d.items, total: o.total, method: o.method, invoiceNo: o.invoice_no ?? "", studentId: studentCode(o.student_id), newAccount: !!o.made_at_checkout }),
     );
   } catch (err) {
     console.error("notify_paid_failed", orderId, err instanceof Error ? err.message : err);
@@ -442,7 +446,7 @@ export async function notifyProof(env: Env, orderId: number): Promise<void> {
     const o = d.order;
     await notifyOwner(
       env,
-      notices.paymentWaiting({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, items: d.items, total: o.total, method: o.method, trx: o.gateway_txn, payer: o.payer_number, hasImage: !!o.has_image, publicId: o.public_id }),
+      notices.paymentWaiting({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, address: o.customer_address, items: d.items, total: o.total, method: o.method, trx: o.gateway_txn, payer: o.payer_number, hasImage: !!o.has_image, publicId: o.public_id }),
     );
   } catch (err) {
     console.error("notify_proof_failed", orderId, err instanceof Error ? err.message : err);
@@ -453,14 +457,14 @@ export async function notifyProof(env: Env, orderId: number): Promise<void> {
 const SET_PASSWORD_LINK_DAYS = 3;
 
 export async function sendReceipt(env: Env, orderId: number): Promise<void> {
-  const order = await first<{ invoice_no: string; total: number; customer_name: string; customer_email: string; public_id: string; student_id: number }>(
+  const order = await first<{ invoice_no: string; total: number; customer_name: string; customer_email: string; customer_phone: string; public_id: string; student_id: number }>(
     env.DB,
-    "SELECT invoice_no, total, customer_name, customer_email, public_id, student_id FROM orders WHERE id = ?",
+    "SELECT invoice_no, total, customer_name, customer_email, customer_phone, public_id, student_id FROM orders WHERE id = ?",
     orderId,
   );
   if (!order?.invoice_no) return;
   const [student, items] = await Promise.all([
-    first<{ locale: "bn" | "en"; has_password: number }>(env.DB, "SELECT locale, (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password FROM students WHERE id = ?", order.student_id),
+    first<{ locale: "bn" | "en"; phone: string | null; has_password: number }>(env.DB, "SELECT locale, phone, (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password FROM students WHERE id = ?", order.student_id),
     all<{ title_bn: string; title_en: string }>(env.DB, "SELECT title_bn, title_en FROM order_items WHERE order_id = ?", orderId),
   ]);
   const lang = student?.locale ?? "bn";
@@ -477,7 +481,12 @@ export async function sendReceipt(env: Env, orderId: number): Promise<void> {
     setPasswordUrl,
     setPasswordDays: SET_PASSWORD_LINK_DAYS,
   });
-  await sendMail(env, { to: order.customer_email, ...mail });
+  // by e-mail when they gave one, and by text message to their mobile number (the only way for a buyer who gave no e-mail)
+  await tellStudent(
+    env,
+    { email: order.customer_email, phone: order.customer_phone || student?.phone },
+    { mail, sms: receiptSms(lang, { total: order.total, learnUrl: `${env.SITE_URL}/app/`, code: studentCode(order.student_id), setPasswordUrl }) },
+  );
 }
 
 /** Mark an unpaid order failed/cancelled (gateway fail/cancel redirects). No-op once paid. */

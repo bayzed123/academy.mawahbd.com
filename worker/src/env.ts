@@ -41,6 +41,9 @@ export interface Env {
   BKASH_USERNAME?: string;
   BKASH_PASSWORD?: string;
   RESEND_API_KEY?: string;
+  /** the SMS company (msg.mram.com.bd): the key from its panel, and its address (the website's own address is enough) */
+  SMS_API_KEY?: string;
+  SMS_API_URL?: string;
   GEMINI_API_KEY?: string;
   TURNSTILE_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
@@ -54,8 +57,11 @@ export type Lang = "bn" | "en";
 export interface StudentCtx {
   id: number;
   name: string;
+  /** a buyer who gave no e-mail has a made-up address here (see isNoEmail in @mawah/shared): never mail it, never show it */
   email: string;
   phone: string | null;
+  /** where they live, as given at checkout (absent = unknown) */
+  address?: string;
   locale: Lang;
   /** false for an account made at checkout that has no password yet (absent = unknown, treated as having one) */
   has_password?: boolean;

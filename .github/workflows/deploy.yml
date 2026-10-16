@@ -125,10 +125,15 @@ jobs:
       # name (optional) — an existing APP_SECRET or SETUP_TOKEN is never replaced. RESEND_API_KEY (the e-mail key) is the exception: when
       # the repository secret of that name looks like a Resend key it is set on the Worker at every deploy, so changing or rotating the
       # key is one edit of the GitHub secret and one run of Deploy. With no such GitHub secret, a key set in Cloudflare is left alone.
+      # The same goes for SMS_API_KEY / SMS_API_URL (the SMS company) and SSLCOMMERZ_STORE_ID / SSLCOMMERZ_STORE_PASSWORD (online payments).
       - name: Give the Worker its secrets
         env:
           SETUP_TOKEN: ${{ secrets.SETUP_TOKEN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SMS_API_KEY: ${{ secrets.SMS_API_KEY }}
+          SMS_API_URL: ${{ secrets.SMS_API_URL }}
+          SSLCOMMERZ_STORE_ID: ${{ secrets.SSLCOMMERZ_STORE_ID }}
+          SSLCOMMERZ_STORE_PASSWORD: ${{ secrets.SSLCOMMERZ_STORE_PASSWORD }}
         run: node scripts/setup-cloudflare.mjs --ci --no-resources --secrets
 
       # The free workers.dev address answers as soon as the code is published, whatever state the custom domain is in.

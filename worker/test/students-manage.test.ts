@@ -619,7 +619,7 @@ describe("students who came through checkout", () => {
     const admin = await as();
     const cls = await newClass(500);
     const email = uniqueEmail("buyer");
-    const out = await json(await new Client().post("/api/checkout/guest", { name: "Buyer One", email, phone: "01711000111", lang: "en", courses: [cls.slug], channel: "mock" }));
+    const out = await json(await new Client().post("/api/checkout/guest", { name: "Buyer One", email, phone: "01711000111", address: "House 3, Road 4, Gulshan, Dhaka", lang: "en", courses: [cls.slug], channel: "mock" }));
     const code = out.student.code as string;
     expect(code).toMatch(/^STU-\d{6,}$/);
     // started, not paid: not a student yet — not even when searched for by ID

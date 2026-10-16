@@ -31,6 +31,8 @@ export interface Settings {
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
   /** who is e-mailed about what happens on the site (payments, messages, questions …); no addresses = the default one from NOTIFY_EMAIL */
   notifications: { emails: string[]; off: NotifyKind[] };
+  /** text messages to students (Admin → Settings → SMS): the sender name the SMS company approved, and when messages go out */
+  sms: { enabled: boolean; sender_id: string; with_email: boolean };
   onboarding: { dismissed: boolean };
 }
 
@@ -52,6 +54,7 @@ export const SETTING_DEFAULTS: Settings = {
   chatbot: { enabled: true, greeting_bn: "", greeting_en: "", faq_bn: "", faq_en: "" },
   shop: { enabled: true, url: "https://mawahbd.com", label_bn: "দোকান", label_en: "Shop" },
   notifications: { emails: [], off: [] },
+  sms: { enabled: true, sender_id: "", with_email: true },
   onboarding: { dismissed: false },
 };
 

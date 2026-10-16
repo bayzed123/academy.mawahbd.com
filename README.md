@@ -36,8 +36,8 @@ Requires **Node.js ≥ 20.19** (22 recommended). Local D1/KV/R2 run on your mach
 |---|---|
 | `npm run dev` | Everything for local work: builds, migrates a local database, runs the Worker (8787) and hot-reload servers for the student app (5173) and admin (5174) |
 | `npm run typecheck` | `tsc` in all four workspaces (required before any deploy) |
-| `npm test` | i18n completeness, script tests, and **370 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
-| `npm run build && npm run test:e2e` | **94 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows (typed key by key, like a person), accessibility (axe), 360 px phones |
+| `npm test` | i18n completeness, script tests, and **422 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
+| `npm run build && npm run test:e2e` | **102 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows (typed key by key, like a person), accessibility (axe), 360 px phones |
 | `npm run lighthouse:local` | Core Web Vitals gate on the public pages (mobile profile) |
 | `npm run setup:cloudflare -- --secrets` | Only for deploying from your own computer: creates D1/KV/R2, fills `wrangler.toml`, sets the secrets (`--dry-run` first). **GitHub’s Deploy workflow does all of this by itself** — see [deployment.md](docs/deployment.md) |
 | `npm run db:migrate:remote` · `npm run deploy` | Apply migrations / build and deploy (normally done by GitHub Actions on every push to `main`) |
@@ -70,7 +70,8 @@ Push to `main` → GitHub Actions runs every check → looks at the Cloudflare a
 * **Payment gateways were never exercised against the real services.** The SSLCommerz and direct-bKash adapters are covered by tests with simulated responses; the whole chain is proven end-to-end with the built-in test gateway and manual send-money. Do the [sandbox checklist](docs/deployment.md#payment-go-live-checklist) before launch. Nagad is available *through* SSLCommerz (no separate direct integration).
 * **Nothing was deployed or tested on a real Cloudflare account**, and the GitHub workflows have not yet run on GitHub — the first pull-request run is their first real test. Stream and Workers AI are reached through bindings that exist only on Cloudflare; their code paths are tested with mocks.
 * **PDF**: invoices and certificates are print-styled pages; *Print / Save as PDF* in the browser produces the PDF (this shapes Bangla correctly). A server-generated PDF is on the roadmap.
-* **Not built yet:** Stripe, SMS, referral/loyalty, quizzes, PWA/offline lessons, Google sign-in, two-factor authentication, self-service account deletion, Meta Conversions API.
+* **Text messages (SMS) were never exercised against the real SMS company.** The adapter follows the part of the company’s documentation that was visible and is covered by tests with simulated answers; *Admin → Settings → SMS* (credit check, test message, the company’s own answer in plain words) is how the owner verifies it on the live site. If the company only accepts approved server addresses, that restriction must be switched off at the company ([docs/deployment.md §3b](docs/deployment.md#3b-text-messages-sms-the-key-the-address-and-the-one-click-check)).
+* **Not built yet:** Stripe, one-time-code (OTP) sign-in by SMS, referral/loyalty, quizzes, PWA/offline lessons, Google sign-in, two-factor authentication, self-service account deletion, Meta Conversions API.
 * **Content:** the 26 classes are published **without lessons** (the dashboard flags them); instructor, policies and contact details are placeholders for the owner to fill in.
 
 ## Contributing

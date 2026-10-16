@@ -22,6 +22,9 @@ export async function useLang(ctx: BrowserContext, lang: "bn" | "en") {
 }
 
 let seq = 0;
+let phoneSeq = Math.floor(Math.random() * 8_000_000) + 1_000_000;
+/** A mobile number no other test uses (a number is a way to sign in, so tests must not share one). */
+export const uniquePhone = () => `0171${String(phoneSeq++).padStart(7, "0")}`;
 export const uniqueEmail = (prefix: string) => `${prefix}${Date.now().toString(36)}${++seq}@e2e.test`;
 
 /** A real, valid 2x2 PNG (magic bytes the server checks). */
@@ -76,7 +79,17 @@ export function photoPng(width: number, height: number, seed: number) {
 }
 export const PDF = Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
 
-export async function registerStudent(page: Page, opts: { name?: string; email?: string; password?: string } = {}) {
+/** The box where a student types who they are on the sign-in and "forgot password" pages: a mobile number, a student ID or an e-mail. */
+export const LOGIN_ID = /^Mobile number, student ID or e-mail|^মোবাইল নম্বর, স্টুডেন্ট আইডি বা ইমেইল/;
+
+/** The address the test students buy with (buying asks for one; registering does not). */
+export const TEST_ADDRESS = "House 12, Road 5, Dhanmondi, Dhaka";
+
+/**
+ * Registers through the form. The new student also gets an address on their profile — unless `address` is "" — so that buying does not stop
+ * to ask for it (the checkout asks a signed-in student only for what their profile lacks).
+ */
+export async function registerStudent(page: Page, opts: { name?: string; email?: string; password?: string; address?: string } = {}) {
   const email = opts.email ?? uniqueEmail("student");
   const password = opts.password ?? randomPassword();
   await page.goto("/app/register");
@@ -86,6 +99,12 @@ export async function registerStudent(page: Page, opts: { name?: string; email?:
   await page.getByLabel(/^Password|^পাসওয়ার্ড/).fill(password);
   await page.getByRole("button", { name: /Sign up|নিবন্ধন/ }).click();
   await expect(page).toHaveURL(/\/app\/?$/);
+  const address = opts.address ?? TEST_ADDRESS;
+  if (address) {
+    const me = (await apiGet<{ student: { name: string; phone: string; locale: string } }>(page, "/auth/me")).student;
+    const res = await apiSend(page, "PATCH", "/auth/profile", { name: me.name, phone: me.phone, address, locale: me.locale });
+    expect(res.status).toBe(200);
+  }
   return { email, password };
 }
 
@@ -107,15 +126,17 @@ export async function adminSetup(page: Page) {
 }
 
 /** JSON helper that runs in the page context (cookies included) — handy for arranging test data. */
-export async function apiPost(page: Page, path: string, json: unknown) {
+export async function apiSend(page: Page, method: "POST" | "PATCH" | "PUT", path: string, json: unknown) {
   return page.evaluate(
-    async ([p, body]) => {
-      const res = await fetch(`/api${p}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    async ([m, p, body]) => {
+      const res = await fetch(`/api${p}`, { method: m, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       return { status: res.status, body: await res.json().catch(() => null) };
     },
-    [path, json] as const,
+    [method, path, json] as const,
   );
 }
+
+export const apiPost = (page: Page, path: string, json: unknown) => apiSend(page, "POST", path, json);
 
 export async function apiGet<T = unknown>(page: Page, path: string): Promise<T> {
   return page.evaluate(async (p) => (await fetch(`/api${p}`)).json(), path) as Promise<T>;

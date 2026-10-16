@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { orderCode, ORDER_STATUSES, PAYMENT_METHODS, waNumber } from "@mawah/shared";
+import { orderCode, ORDER_STATUSES, PAYMENT_METHODS, studentCode, waNumber } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -14,6 +14,7 @@ interface OrderDetailData {
   order: OrderRow;
   items: { course_id: number; title_bn: string; title_en: string; list_price: number; price: number }[];
   events: { id: number; provider: string; event: string; verified: number; created_at: string }[];
+  /** email is empty when the buyer gave none */
   student: { id: number; name: string; email: string; phone: string | null; blocked: number } | null;
 }
 
@@ -114,6 +115,7 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
               { label: t("adm.order.gateway"), value: o.gateway },
               { label: t("adm.order.txn"), value: o.gateway_txn ? <code className="code">{o.gateway_txn}</code> : "—" },
               { label: t("adm.order.payer"), value: o.payer_number },
+              { label: t("adm.order.address"), value: o.customer_address || "—" },
               { label: t("adm.order.coupon"), value: o.coupon_code },
               { label: t("adm.order.note"), value: o.note || "—" },
               ...(o.gateway === "manual"
@@ -177,10 +179,10 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
           {q.data.student && (
             <p>
               <b>{t("adm.nav.students")}:</b>{" "}
-              <Link className="link" to={`/students?q=${encodeURIComponent(q.data.student.email)}`} onClick={onClose}>
+              <Link className="link" to={`/students?q=${studentCode(q.data.student.id)}`} onClick={onClose}>
                 {q.data.student.name}
               </Link>{" "}
-              · {q.data.student.email} {q.data.student.phone ? `· ${q.data.student.phone}` : ""}
+              · {q.data.student.email || t("adm.stu.noEmailShort")} {q.data.student.phone ? `· ${q.data.student.phone}` : ""}
             </p>
           )}
           {q.data.events.length > 0 && (
@@ -229,7 +231,7 @@ export function Orders() {
         }}
         columns={[
           { key: "invoice", label: t("adm.order.invoice"), className: "nowrap", render: (r) => <b>{r.invoice_no ?? orderCode(r.public_id)}</b> },
-          { key: "customer", label: t("adm.nav.students"), render: (r) => (<span className="cell-title"><b>{r.customer_name}</b><small>{r.customer_email}</small></span>) },
+          { key: "customer", label: t("adm.nav.students"), render: (r) => (<span className="cell-title"><b>{r.customer_name}</b><small>{r.customer_email || r.customer_phone}</small></span>) },
           { key: "items", label: t("adm.nav.courses"), desktopOnly: true, render: (r) => <span className="clip">{r.items ?? ""}</span> },
           { key: "total", label: t("label.total"), sort: "total", className: "num", render: (r) => money(r.total) },
           { key: "method", label: t("adm.order.method"), desktopOnly: true, render: (r) => (r.method ? t(`method.${r.method}` as "method.bkash") : (r.gateway ?? "—")) },

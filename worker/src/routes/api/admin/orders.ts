@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { ORDER_STATUSES, PAYMENT_METHODS } from "@mawah/shared";
+import { ORDER_STATUSES, PAYMENT_METHODS, shownEmail } from "@mawah/shared";
 import type { AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { csvResponse, toCsv } from "../../../lib/csv";
 import { all, first, likeEscape, pageInfo, pageParams } from "../../../lib/db";
 import { HttpError, intParam, notFound, ok, parseBody } from "../../../lib/http";
-import { manualPaymentRejectedMail, sendMail } from "../../../lib/mailer";
+import { manualPaymentRejectedMail } from "../../../lib/mailer";
+import { rejectedSms } from "../../../lib/smsText";
+import { tellStudent } from "../../../services/studentMessages";
 import { textSchema } from "../../../lib/schemas";
 import { requirePerm } from "../../../middleware/auth";
 import { markOrderPaid, refundOrder, rejectManualOrder } from "../../../services/orders";
@@ -14,7 +16,7 @@ import { markOrderPaid, refundOrder, rejectManualOrder } from "../../../services
 export const orders = new Hono<AppEnv>();
 
 const COLS = `o.id, o.public_id, o.invoice_no, o.status, o.subtotal, o.discount, o.total, o.coupon_code, o.method, o.gateway, o.gateway_txn,
-  o.payer_number, o.customer_name, o.customer_email, o.customer_phone, o.note, o.created_at, o.paid_at, o.refunded_at, o.student_id,
+  o.payer_number, o.customer_name, o.customer_email, o.customer_phone, o.customer_address, o.note, o.created_at, o.paid_at, o.refunded_at, o.student_id,
   o.pay_by, o.proof_at, (o.proof_key IS NOT NULL) AS has_proof_image,
   (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS item_count,
   (SELECT group_concat(oi.title_en, ' · ') FROM order_items oi WHERE oi.order_id = o.id) AS items`;
@@ -92,6 +94,7 @@ orders.get("/orders/export.csv", requirePerm("orders:read"), async (c) => {
       { key: "customer_name", label: "Student" },
       { key: "customer_email", label: "Email" },
       { key: "customer_phone", label: "Phone" },
+      { key: "customer_address", label: "Address" },
       { key: "items", label: "Classes" },
       { key: "subtotal", label: "Subtotal (BDT)" },
       { key: "discount", label: "Discount (BDT)" },
@@ -114,7 +117,8 @@ orders.get("/orders/:id", requirePerm("orders:read"), async (c) => {
     all(c.env.DB, "SELECT id, provider, event, verified, created_at FROM payment_events WHERE order_id = ? ORDER BY id", id),
     first(c.env.DB, "SELECT id, name, email, phone, blocked FROM students WHERE id = ?", order.student_id as number),
   ]);
-  return ok(c, { order, items, events, student });
+  // a buyer who gave no e-mail is kept under a made-up address: the screen says "none", never that address
+  return ok(c, { order, items, events, student: student ? { ...student, email: shownEmail((student as { email: string }).email) } : null });
 });
 
 /** The payment screenshot a student sent. Private: only staff who verify payments can open it, and browsers are told not to keep it. */
@@ -156,15 +160,23 @@ orders.post("/orders/:id/approve", requirePerm("orders:verify"), async (c) => {
 orders.post("/orders/:id/reject", requirePerm("orders:verify"), async (c) => {
   const id = intParam(c, "id");
   const body = await parseBody(c, z.object({ reason: textSchema(300) }));
-  const order = await first<{ id: number; customer_name: string; customer_email: string; student_id: number }>(
+  const order = await first<{ id: number; customer_name: string; customer_email: string; customer_phone: string; student_id: number }>(
     c.env.DB,
-    "SELECT id, customer_name, customer_email, student_id FROM orders WHERE id = ?",
+    "SELECT id, customer_name, customer_email, customer_phone, student_id FROM orders WHERE id = ?",
     id,
   );
   if (!order) throw notFound();
   if (!(await rejectManualOrder(c.env, id, body.reason))) throw new HttpError(409, "not_awaiting_verification");
-  const student = await first<{ locale: "bn" | "en" }>(c.env.DB, "SELECT locale FROM students WHERE id = ?", order.student_id);
-  c.executionCtx.waitUntil(sendMail(c.env, { to: order.customer_email, ...manualPaymentRejectedMail(student?.locale ?? "bn", { name: order.customer_name, reason: body.reason }) }).then(() => undefined));
+  const student = await first<{ locale: "bn" | "en"; phone: string | null }>(c.env.DB, "SELECT locale, phone FROM students WHERE id = ?", order.student_id);
+  const lang = student?.locale ?? "bn";
+  // by e-mail when they gave one, and by text message to their number (the only way for a buyer who gave no e-mail)
+  c.executionCtx.waitUntil(
+    tellStudent(
+      c.env,
+      { email: order.customer_email, phone: order.customer_phone || student?.phone },
+      { mail: manualPaymentRejectedMail(lang, { name: order.customer_name, reason: body.reason }), sms: rejectedSms(lang, { reason: body.reason }) },
+    ).then(() => undefined),
+  );
   await audit(c, { action: "order.rejected", entity: "order", entityId: id, summary: body.reason });
   return ok(c);
 });

@@ -277,7 +277,7 @@ export function StudentImport() {
                         <td>
                           <b>{r.name || "—"}</b>
                           <br />
-                          <small>{r.email}</small>
+                          <small>{r.email || t("adm.stu.noEmailShort")}</small>
                         </td>
                         <td>
                           {r.classes.map((c) => (

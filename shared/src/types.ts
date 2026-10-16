@@ -41,8 +41,11 @@ export interface StudentMe {
   kind: "student";
   id: number;
   name: string;
+  /** empty for a buyer who gave no e-mail (their mobile number is how they sign in) */
   email: string;
   phone: string | null;
+  /** where they live, as given at checkout (empty when not given) */
+  address: string;
   locale: "bn" | "en";
   /** the student ID shown on the profile and the receipts (STU-000123) */
   code: string;

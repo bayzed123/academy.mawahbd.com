@@ -216,6 +216,54 @@ test("no GitHub secret RESEND_API_KEY: nothing is invented, and the output says 
   assert.ok(!r2.out.includes("not-a-resend-key"), "even a wrong value is not echoed");
 });
 
+// Made-up values of the right shape, built here so nothing key-like sits in the source.
+const fakeSmsKey = () => ["Ab", "Cd", "Ef", "Gh", "12", "34"].join("") + ".5678";
+const SMS_URL = "https://msg.example-sms.test";
+
+test("the SMS key and address come from the GitHub secrets SMS_API_KEY / SMS_API_URL and are never printed", () => {
+  const sb = sandbox();
+  const key = fakeSmsKey();
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { SETUP_TOKEN: "my-own-long-setup-token-42", SMS_API_KEY: `${key}\n`, SMS_API_URL: `${SMS_URL}\n` });
+  assert.equal(r.code, 0, r.out);
+  assert.equal(sb.state().secretValues.SMS_API_KEY, key, "the owner's key, trimmed");
+  assert.equal(sb.state().secretValues.SMS_API_URL, SMS_URL);
+  assert.ok(!r.out.includes(key), "the key is not in the output");
+  assert.match(r.out, /SMS_API_KEY created/);
+  assert.match(r.out, /SMS_API_URL created/);
+});
+
+test("the SSLCommerz store ID and password can come from GitHub secrets too, and replace the ones on the Worker", () => {
+  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "SSLCOMMERZ_STORE_ID"], secretValues: { SSLCOMMERZ_STORE_ID: "oldstoreid" } });
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { SSLCOMMERZ_STORE_ID: "newstoreid", SSLCOMMERZ_STORE_PASSWORD: "store-password-for-tests" });
+  assert.equal(r.code, 0, r.out);
+  assert.equal(sb.state().secretValues.SSLCOMMERZ_STORE_ID, "newstoreid");
+  assert.equal(sb.state().secretValues.SSLCOMMERZ_STORE_PASSWORD, "store-password-for-tests");
+  assert.match(r.out, /SSLCOMMERZ_STORE_ID updated/);
+  assert.ok(!r.out.includes("store-password-for-tests"), "the password is not in the output");
+});
+
+test("an SMS key set in Cloudflare stays when there is no GitHub secret, and a wrong-looking GitHub secret never replaces it", () => {
+  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "SMS_API_KEY", "SMS_API_URL"], secretValues: { SMS_API_KEY: "already-on-the-worker", SMS_API_URL: SMS_URL } });
+  const none = sb.run(["--ci", "--no-resources", "--secrets"]);
+  assert.equal(none.code, 0, none.out);
+  assert.deepEqual(creates(sb.state().calls), [], "nothing is touched");
+  assert.match(none.out, /SMS_API_KEY is set on the Worker — left untouched/);
+
+  const wrong = sb.run(["--ci", "--no-resources", "--secrets"], { SMS_API_KEY: "has spaces in it", SMS_API_URL: "http://not-https.test" });
+  assert.equal(wrong.code, 0, wrong.out);
+  assert.deepEqual(creates(sb.state().calls), []);
+  assert.match(wrong.out, /SMS_API_URL does not look right.*already on the Worker stays/);
+  assert.equal(sb.state().secretValues.SMS_API_KEY, "already-on-the-worker");
+  assert.ok(!wrong.out.includes("has spaces in it"), "even a wrong value is not echoed");
+});
+
+test("with no SMS or SSLCommerz secrets anywhere the script says nothing about them and invents nothing", () => {
+  const sb = sandbox();
+  const r = sb.run(["--ci", "--no-resources", "--secrets"]);
+  assert.equal(r.code, 0, r.out);
+  for (const name of ["SMS_API_KEY", "SMS_API_URL", "SSLCOMMERZ_STORE_ID", "SSLCOMMERZ_STORE_PASSWORD"]) assert.ok(!(name in sb.state().secretValues), name);
+});
+
 test("R2 not switched on: stops with the plain instruction", () => {
   const sb = sandbox({ r2Disabled: true });
   const r = sb.run(["--ci"]);

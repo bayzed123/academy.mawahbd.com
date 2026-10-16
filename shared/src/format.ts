@@ -132,6 +132,38 @@ export function parseStudentCode(input: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/** The ending of the made-up address kept for a buyer who gave no e-mail. `.invalid` is reserved for addresses that can never receive mail. */
+export const NO_EMAIL_DOMAIN = "no-email.invalid";
+
+/** What a buyer who gave no e-mail is stored under: their mobile number stands in for it (it is their way in, with a password they choose later). */
+export function noEmailAddress(phone: string): string {
+  return `p${phone.replace(/\D/g, "")}@${NO_EMAIL_DOMAIN}`;
+}
+
+/** True for the made-up address above — never mailed, never shown. */
+export function isNoEmail(email: string | null | undefined): boolean {
+  return !!email && email.toLowerCase().endsWith(`@${NO_EMAIL_DOMAIN}`);
+}
+
+/** The e-mail to show people and to export: nothing at all for a made-up one. */
+export function shownEmail(email: string | null | undefined): string {
+  return !email || isNoEmail(email) ? "" : email;
+}
+
+/** What someone typed in the sign-in box: an e-mail, a student ID (STU-000123), or a mobile number. */
+export type LoginId = { kind: "email"; value: string } | { kind: "code"; id: number } | { kind: "phone"; value: string };
+
+export function parseLoginId(input: string): LoginId | null {
+  const s = input.trim();
+  if (!s) return null;
+  if (s.includes("@")) return { kind: "email", value: s.toLowerCase() };
+  // a student ID must say STU: bare digits are a mobile number
+  const code = s.match(/^stu-?(\d{1,9})$/i);
+  if (code) return { kind: "code", id: Number(code[1]) };
+  const phone = normalizeAnyPhone(s);
+  return phone ? { kind: "phone", value: phone } : null;
+}
+
 /** The short code of an order that people read out or type into a payment reference: the first 8 characters of its public id. */
 export function orderCode(publicId: string): string {
   return publicId.slice(0, 8).toUpperCase();
