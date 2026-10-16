@@ -166,13 +166,28 @@ async function ownSales(env: Env, from: string, to: string): Promise<Map<number,
 /** Failures that mean "nothing will work until the owner fixes the setup" (as opposed to one panel Google would not answer). */
 const SETUP_PROBLEMS: ReadonlySet<Ga4Problem> = new Set(["not_configured", "key_invalid", "key_rejected", "api_disabled", "no_access", "property_missing", "network", "quota", "google_error"]);
 
+/** At most `n` at a time. Google lets a property have ten questions in flight at once; two people opening the screen together must not trip over each other. */
+async function mapLimit<T, R>(items: readonly T[], n: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(n, items.length) }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        out[i] = await fn(items[i]!);
+      }
+    }),
+  );
+  return out;
+}
+
 export async function buildReport(env: Env, range: RangeKey): Promise<AnalyticsReport | NotConnected> {
   const q = questions(range);
   const keys = Object.keys(q) as (keyof typeof q)[];
   // the overview goes first and alone: if the setup is not right, one answer says so, instead of ten identical refusals
   const first = await runReport(env, q.overview);
   if (!first.ok && SETUP_PROBLEMS.has(first.problem)) return { connected: false, problem: first.problem, detail: first.detail, status: first.status };
-  const rest = await Promise.all(keys.filter((k) => k !== "overview").map(async (k) => [k, await runReport(env, q[k])] as const));
+  const rest = await mapLimit(keys.filter((k) => k !== "overview"), 4, async (k) => [k, await runReport(env, q[k])] as const);
   const got = new Map<string, Table | Failure>([["overview", first.ok ? first.data : first], ...rest.map(([k, a]) => [k, a.ok ? a.data : a] as const)]);
   const table = (k: string) => {
     const v = got.get(k);

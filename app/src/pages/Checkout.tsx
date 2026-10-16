@@ -183,9 +183,9 @@ export default function Checkout() {
       setCouponError("");
       track("coupon_applied", { coupon: code });
     },
-    onError: (e, code) => {
+    onError: (e) => {
       setCouponError(err(e instanceof ApiError ? e.code : "generic"));
-      track("coupon_failed", { coupon: code, reason: e instanceof ApiError ? e.code : "generic" });
+      track("coupon_failed", { reason: e instanceof ApiError ? e.code : "generic" }); // never what was typed: the box takes anything a person pastes
     },
   });
 

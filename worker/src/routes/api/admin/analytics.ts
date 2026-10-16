@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { can } from "@mawah/shared";
 import type { AppEnv, Ctx } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { csvResponse, toCsv } from "../../../lib/csv";
@@ -7,7 +8,7 @@ import { HttpError, ok } from "../../../lib/http";
 import { getSettings } from "../../../lib/settings";
 import { trackingFor } from "../../../lib/tracking";
 import { requirePerm } from "../../../middleware/auth";
-import { buildRealtime, buildReport, RANGE_KEYS, type AnalyticsReport, type NotConnected, type Realtime, type RangeKey } from "../../../services/analytics";
+import { buildRealtime, buildReport, RANGE_KEYS, type AnalyticsReport, type ClassRow, type NotConnected, type Realtime, type RangeKey } from "../../../services/analytics";
 
 /*
  * Admin → Analytics. Reads the shop's Google Analytics numbers with the service-account key (lib/ga4.ts). Reports are kept for ten minutes (the
@@ -67,25 +68,36 @@ const rangeOf = (c: Ctx): RangeKey => {
   return asked && RANGE_KEYS.includes(asked) ? asked : "28d";
 };
 
-/** The report for a range: the one kept for ten minutes, or a fresh answer from Google (kept, if it worked). */
+/** The report for a range: the one kept for ten minutes, or a fresh answer from Google (kept, if it was whole). */
 async function reportFor(c: Ctx, range: RangeKey): Promise<AnalyticsReport | NotConnected> {
   const cached = await c.env.KV.get<AnalyticsReport>(reportKey(range), "json");
   if (cached) return cached;
   const report = await buildReport(c.env, range);
   if (report.connected) {
-    await c.env.KV.put(reportKey(range), JSON.stringify(report), { expirationTtl: REPORT_TTL_S });
+    // a report with a panel Google would not answer (too many questions at once, a hiccup) is not kept: the next look asks again
+    if (report.problems.length === 0) await c.env.KV.put(reportKey(range), JSON.stringify(report), { expirationTtl: REPORT_TTL_S });
     await remember(c, true);
   } else await remember(c, false, report.problem, report.detail);
   return report;
 }
 
-analytics.get("/analytics/report", requirePerm("analytics:read"), async (c) => ok(c, { report: await reportFor(c, rangeOf(c)) }));
+/** The report is kept for everybody; each person is given what their role may see. The money in the shop's own records is for the roles that may see revenue. */
+const mayCountMoney = (c: Ctx) => can(c.get("staff")!.role, "reports:revenue");
+type ViewedClass = Omit<ClassRow, "revenue"> & { revenue: number | null };
+function forRole(report: AnalyticsReport | NotConnected, money: boolean) {
+  if (!report.connected) return report;
+  const classes: ViewedClass[] = report.classes.map((k) => ({ ...k, revenue: money ? k.revenue : null }));
+  return { ...report, money, classes };
+}
+
+analytics.get("/analytics/report", requirePerm("analytics:read"), async (c) => ok(c, { report: forRole(await reportFor(c, rangeOf(c)), mayCountMoney(c)) }));
 
 /** The class table as a spreadsheet file (the same figures as on the screen). */
 analytics.get("/analytics/classes.csv", requirePerm("analytics:read"), async (c) => {
   const range = rangeOf(c);
   const report = await reportFor(c, range);
   if (!report.connected) throw new HttpError(409, "analytics_not_connected");
+  const money = mayCountMoney(c);
   return csvResponse(
     `classes-${range}-${report.from}_${report.to}`,
     toCsv(report.classes.map((k) => ({ ...k, title: k.title_en || k.title_bn || k.slug })) as unknown as Record<string, unknown>[], [
@@ -98,7 +110,7 @@ analytics.get("/analytics/classes.csv", requirePerm("analytics:read"), async (c)
       { key: "checkouts", label: "Opened checkout" },
       { key: "ga_purchases", label: "Bought (Google saw)" },
       { key: "paid_sales", label: "Paid sales (shop records)" },
-      { key: "revenue", label: "Money (BDT, shop records)" },
+      ...(money ? [{ key: "revenue", label: "Money (BDT, shop records)" }] : []),
     ]),
   );
 });

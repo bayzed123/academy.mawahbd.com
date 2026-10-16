@@ -49,6 +49,9 @@ const ASK_FIRST = new Set([
   "IS", "LI", "NO", // the rest of the EEA
   "GB", "CH",
   "T1",
+  // places Cloudflare reports under their own code although their law is the EU's or the UK's: the EU as a whole, the French overseas regions, Åland,
+  // Saint-Barthélemy and Saint-Martin, Gibraltar and the three Crown Dependencies
+  "EU", "RE", "GP", "MQ", "GF", "YT", "BL", "MF", "AX", "GI", "GG", "JE", "IM",
 ]);
 
 /**

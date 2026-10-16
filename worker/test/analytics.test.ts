@@ -1,9 +1,11 @@
 import { env, exports } from "cloudflare:workers";
 import { GA_EVENTS, GA_EVENT_GROUPS, GA_FUNNEL } from "@mawah/shared";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { generateCertificateCode } from "../src/lib/crypto";
 import { checkConnection, classify, forgetPass, parseServiceAccount, scrub, serviceAccountEmail, signedNote } from "../src/lib/ga4";
 import { getSettings, resetSettingsCache, setSetting } from "../src/lib/settings";
 import { isTracking, measuringAllowed, NO_TRACKING, regionOf, trackingFor } from "../src/lib/tracking";
+import { mockSignature } from "../src/services/payments";
 import { gaCardAttr, gaItem, gaListAttr } from "../src/views/ga";
 import { Client, firstCourse, json, loginStaff, registerStudent } from "./helpers";
 
@@ -105,6 +107,11 @@ const googleError = (status: number, message: string, state = "") => new Respons
 interface Stand {
   tokens: { url: string; grant: string | null; note: string }[];
   data: DataCall[];
+  /** how many questions are waiting for an answer right now, and the most there ever were together */
+  inflight: number;
+  peak: number;
+  /** answer after this many milliseconds (so that questions asked together can be seen to overlap) */
+  delayMs?: number;
   /** change how Google answers from now on */
   tokenReply?: (n: number) => Response | undefined;
   dataReply?: (call: DataCall, n: number) => Response | Raw | undefined;
@@ -153,7 +160,7 @@ function healthy(call: DataCall): Raw {
 
 /** Installs the stand-in for `fetch`. Anything that is not Google goes to the real `fetch`. */
 function google(): Stand {
-  const stand: Stand = { tokens: [], data: [] };
+  const stand: Stand = { tokens: [], data: [], inflight: 0, peak: 0 };
   const real = globalThis.fetch;
   vi.spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -167,9 +174,15 @@ function google(): Stand {
       const headers = new Headers(init?.headers);
       const call: DataCall = { url, auth: headers.get("authorization"), kind: url.split(":").pop() ?? "", body: JSON.parse(String(init?.body ?? "{}")) };
       stand.data.push(call);
-      const custom = stand.dataReply?.(call, stand.data.length);
-      if (custom instanceof Response) return custom;
-      return new Response(JSON.stringify(custom ?? healthy(call)), { status: 200, headers: { "Content-Type": "application/json" } });
+      stand.peak = Math.max(stand.peak, ++stand.inflight);
+      try {
+        if (stand.delayMs) await new Promise((done) => setTimeout(done, stand.delayMs));
+        const custom = stand.dataReply?.(call, stand.data.length);
+        if (custom instanceof Response) return custom;
+        return new Response(JSON.stringify(custom ?? healthy(call)), { status: 200, headers: { "Content-Type": "application/json" } });
+      } finally {
+        stand.inflight--;
+      }
     }
     return real(input as never, init);
   }) as typeof fetch);
@@ -243,6 +256,12 @@ describe("who is counted", () => {
       expect(regionOf(unknown, "eu"), String(unknown)).toBe("eu");
     }
     expect(regionOf("BD", "eu")).toBe("row"); // a known country is never overruled
+  });
+
+  it("also asks first in the places that follow European law although Cloudflare gives them a code of their own (the French overseas regions, Åland, Gibraltar, the Crown Dependencies)", () => {
+    for (const country of ["EU", "RE", "GP", "MQ", "GF", "YT", "BL", "MF", "AX", "GI", "GG", "JE", "IM"]) expect(regionOf(country), country).toBe("eu");
+    // the list is the places named above, not every territory
+    for (const country of ["PR", "GU", "HK", "MO"]) expect(regionOf(country), country).toBe("row");
   });
 });
 
@@ -466,6 +485,81 @@ describe("the student app and the admin", () => {
   });
 });
 
+describe("documents that carry a person's name, or whose address is the key to them", () => {
+  /** A student who bought a class (a paid order, so there is an invoice) and holds the certificate for it. */
+  async function holder() {
+    // a class that the sales tables of the report do not look at (they use the first three)
+    const course = (await env.DB.prepare("SELECT id, slug FROM courses WHERE status = 'published' ORDER BY id DESC LIMIT 1").first<{ id: number; slug: string }>())!;
+    const { client, id: studentId } = await registerStudent(new Client(), { name: "Fatema Khatun" });
+    const publicId = (await json(await client.post("/api/checkout", { courses: [course.slug], channel: "mock" }))).order.public_id as string;
+    await new Client().fetch("/api/payments/mock/webhook", { method: "POST", form: { order: publicId, status: "paid", sig: await mockSignature(env, publicId, "paid") } });
+    const code = generateCertificateCode("MWH");
+    await env.DB.prepare("INSERT INTO certificates (code, student_id, course_id, student_name, course_title_bn, course_title_en) SELECT ?, ?, id, ?, title_bn, title_en FROM courses WHERE slug = ?")
+      .bind(code, studentId, "Fatema Khatun", course.slug)
+      .run();
+    return { client, publicId, code };
+  }
+
+  /** Everything a measured page would carry — in the page, or in the policy that lets Google in. */
+  const TRACES = ["mawah:ga4", "mawah:clarity", "mawah:pixel", "mawah-ga", "analytics.", "data-ga-", "googletagmanager", "google-analytics", "clarity.ms", "facebook"];
+
+  it("never count a certificate: no tag, no script, no door in the policy, no region cookie — and no referrer passed on from its address", async () => {
+    const { code } = await holder();
+    await setOwnId(OWN_ID, "abc123xyz9", "123456789012345");
+    await measured(async () => {
+      for (const path of [`/en/certificate/${code}`, `/certificate/${code}`]) {
+        const res = await at(`http://localhost${path}`, { "cf-ipcountry": "BD" });
+        expect(res.status, path).toBe(200);
+        const html = await res.text();
+        expect(html, path).toContain("Fatema Khatun"); // it is the real page
+        for (const trace of TRACES) expect(html + (res.headers.get("content-security-policy") ?? ""), `${path} ${trace}`).not.toContain(trace);
+        expect(res.headers.get("referrer-policy"), path).toBe("no-referrer");
+        expect(res.headers.getSetCookie().some((c) => c.startsWith("mawah_geo=")), path).toBe(false);
+      }
+      // a certificate that is not there (or was taken back) is no more counted, and says nothing about where the visitor came from either
+      await env.DB.prepare("UPDATE certificates SET revoked_at = strftime('%Y-%m-%dT%H:%M:%SZ','now') WHERE code = ?").bind(code).run();
+      for (const gone of [`/en/certificate/${code}`, `/en/certificate/${generateCertificateCode("MWH")}`]) {
+        const res = await at(`http://localhost${gone}`, { "cf-ipcountry": "BD" });
+        expect(res.status, gone).toBe(404);
+        const html = await res.text();
+        for (const trace of TRACES) expect(html + (res.headers.get("content-security-policy") ?? ""), `${gone} ${trace}`).not.toContain(trace);
+        expect(res.headers.get("referrer-policy"), gone).toBe("no-referrer");
+      }
+    });
+  });
+
+  it("never count an invoice either (it has the buyer's name, number and address), and keep its address to itself", async () => {
+    const { client, publicId } = await holder();
+    await setOwnId(OWN_ID, "abc123xyz9", "123456789012345");
+    await measured(async () => {
+      const res = await client.fetch(`/api/student/orders/${publicId}/invoice?lang=en`, { headers: { "cf-ipcountry": "BD" } });
+      expect(res.status).toBe(200);
+      const html = await res.text();
+      expect(html).toMatch(/INV-MWH-\d{8}-\d{4}/); // it is the real page
+      for (const trace of TRACES) expect(html + (res.headers.get("content-security-policy") ?? ""), trace).not.toContain(trace);
+      expect(res.headers.get("referrer-policy")).toBe("no-referrer");
+      expect(res.headers.get("cache-control")).toContain("no-store");
+    });
+  });
+
+  it("count the page that checks a certificate (the script cuts the code out of the address it reports), but pass no referrer on whenever the address holds a code", async () => {
+    const { code } = await holder();
+    await setOwnId(OWN_ID);
+    await measured(async () => {
+      for (const path of [`/en/verify/${code}`, `/verify/${code}`, `/en/verify?code=${code}`]) {
+        const res = await at(`http://localhost${path}`, { "cf-ipcountry": "BD" });
+        expect(res.status, path).toBe(200);
+        expect(await res.text(), path).toContain('name="mawah:ga4"');
+        expect(res.headers.get("referrer-policy"), path).toBe("no-referrer");
+      }
+      // the page without a code is an ordinary page
+      const bare = await at("http://localhost/en/verify", { "cf-ipcountry": "BD" });
+      expect(await bare.text()).toContain('name="mawah:ga4"');
+      expect(bare.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+    });
+  });
+});
+
 describe("what a class looks like to the script", () => {
   it("is one shape: the address name, the English name first, the category and the price", () => {
     expect(gaItem({ slug: "cake-1", title_en: "Cake Class", title_bn: "কেক", price: 1200, category: { name_en: "Cakes", name_bn: "কেক" } })).toEqual({ item_id: "cake-1", item_name: "Cake Class", item_category: "Cakes", price: 1200 });
@@ -523,11 +617,12 @@ describe("the key file", () => {
     const flattened = JSON.stringify({ type: "service_account", client_email: KEY.email, private_key: KEY.pem.replace(/\n/g, "\\n") });
     const fixed = parseServiceAccount(flattened);
     expect(fixed.ok && fixed.account.private_key).toContain("\n");
-    // added in the Cloudflare dashboard as a "JSON" variable, the Worker receives the file already parsed
-    const asObject = parseServiceAccount(JSON.parse(KEY.file));
-    expect(asObject.ok && asObject.account.client_email).toBe(KEY.email);
+    // typed into the Cloudflare dashboard as a "JSON" variable the file reaches the Worker as an object — "set, but cannot be read" (the next deploy would remove such a
+    // variable anyway): never accepted, and told apart from "no key at all"
+    expect(parseServiceAccount(JSON.parse(KEY.file))).toEqual({ ok: false, problem: "key_invalid" });
     expect(parseServiceAccount({})).toEqual({ ok: false, problem: "key_invalid" });
-    expect(parseServiceAccount(42)).toEqual({ ok: false, problem: "not_configured" });
+    expect(parseServiceAccount(42)).toEqual({ ok: false, problem: "key_invalid" });
+    expect(parseServiceAccount(null)).toEqual({ ok: false, problem: "not_configured" });
     for (const bad of ["not json at all", "{", "[]", "null", "{}", JSON.stringify({ client_email: "a@b.c" }), JSON.stringify({ client_email: "nope", private_key: KEY.pem }), JSON.stringify({ type: "authorized_user", client_email: "a@b.c", private_key: KEY.pem }), JSON.stringify({ client_email: "a@b.c", private_key: "-----BEGIN PUBLIC KEY-----\nabc\n-----END PUBLIC KEY-----" }), "%%%not-base64%%%"]) {
       expect(parseServiceAccount(bad), bad.slice(0, 30)).toEqual({ ok: false, problem: "key_invalid" });
     }
@@ -537,6 +632,7 @@ describe("the key file", () => {
     expect(serviceAccountEmail({ GOOGLE_SERVICE_ACCOUNT: KEY.file } as never)).toBe(KEY.email);
     expect(serviceAccountEmail({} as never)).toBeNull();
     expect(serviceAccountEmail({ GOOGLE_SERVICE_ACCOUNT: "junk" } as never)).toBeNull();
+    expect(serviceAccountEmail({ GOOGLE_SERVICE_ACCOUNT: JSON.parse(KEY.file) } as never)).toBeNull(); // an object (a dashboard "JSON" variable) is not read
   });
 
   it("signs the note Google asks for: RS256, the account, read-only scope, the sign-in address, an hour — and the signature is real", async () => {
@@ -591,15 +687,16 @@ describe("signing in to Google and asking", () => {
     expect(stand.data[0]!.body).toEqual({ dateRanges: [{ startDate: "7daysAgo", endDate: "today" }], metrics: [{ name: "activeUsers" }] });
   });
 
-  it("works when the key file arrives as an object (a \"JSON\" variable added in the Cloudflare dashboard instead of a secret)", async () => {
+  it("does not read a key that arrived as an object (a \"JSON\" variable typed into the Cloudflare dashboard) — the screen says to save it as a Secret, and Google is not asked", async () => {
     const stand = google();
     await withEnv({ GOOGLE_SERVICE_ACCOUNT: JSON.parse(KEY.file), GA_PROPERTY_ID: PROPERTY }, async () => {
-      expect((await checkConnection(env)).ok).toBe(true);
-      expect(serviceAccountEmail(env)).toBe(KEY.email);
+      expect(await checkConnection(env)).toMatchObject({ ok: false, problem: "key_invalid" });
+      expect(serviceAccountEmail(env)).toBeNull();
       const { client } = await loginStaff();
-      expect(await json(await client.get("/api/admin/analytics/status"))).toMatchObject({ key_set: true, key_problem: null, service_email: KEY.email });
+      expect(await json(await client.get("/api/admin/analytics/status"))).toMatchObject({ key_set: true, key_problem: "key_invalid", service_email: null });
     });
-    expect(stand.tokens).toHaveLength(1);
+    expect(stand.tokens).toHaveLength(0);
+    expect(stand.data).toHaveLength(0);
   });
 
   it("signs in again when Google no longer accepts the pass — once, not in a loop", async () => {
@@ -753,6 +850,7 @@ describe("Admin → Analytics: who may look and who may change", () => {
 
 describe("Admin → Analytics: the connection", () => {
   it("shows what is set up and the address to add in Google Analytics — never the key", async () => {
+    await setOwnId(REAL_ID);
     const { client } = await loginStaff();
     await connected(async () => {
       const res = await client.get("/api/admin/analytics/status");
@@ -973,6 +1071,70 @@ describe("Admin → Analytics: the report", () => {
       await client.get("/api/admin/analytics/report");
       expect(stand.data.length).toBeGreaterThan(before);
     });
+  });
+
+  it("gives the shop's money only to the roles that may see revenue: the others get the same table without it, on the screen and in the spreadsheet", async () => {
+    google();
+    const { course } = await seedSales();
+    await connected(async () => {
+      // the owner and the viewer: the money is there (and the owner's look fills the kept report, from which everybody is served)
+      for (const role of ["super_admin", "viewer"] as const) {
+        const { client } = await loginStaff(role);
+        const report = (await json(await client.get("/api/admin/analytics/report?range=28d"))).report;
+        expect(report.money, role).toBe(true);
+        expect(report.classes.find((c: { slug: string }) => c.slug === course.slug).revenue, role).toBe(1200);
+        const csv = await (await client.get("/api/admin/analytics/classes.csv?range=28d")).text();
+        expect(csv, role).toContain("Money (BDT, shop records)");
+        expect(csv, role).toContain(`,${SLUGS.a},150,75,56,20,10,4,2,1200`);
+      }
+      // the content manager may read the analytics but not the money
+      const { client: manager } = await loginStaff("content_manager");
+      const res = await manager.get("/api/admin/analytics/report?range=28d");
+      const report = (await json(res)).report;
+      expect(report.money).toBe(false);
+      expect(report.classes.length).toBeGreaterThan(5);
+      for (const k of report.classes) expect(k.revenue, k.slug).toBeNull();
+      // how many sold is not money: it stays
+      expect(report.classes.find((c: { slug: string }) => c.slug === course.slug)).toMatchObject({ views: 150, paid_sales: 2, revenue: null });
+      const csv = await (await manager.get("/api/admin/analytics/classes.csv?range=28d")).text();
+      const lines = csv.replace(/^\uFEFF/, "").trim().split("\r\n");
+      expect(lines[0]).toBe("Class,Address name,Page views,People,Seconds on page per person,Pressed Enroll now,Opened checkout,Bought (Google saw),Paid sales (shop records)");
+      expect(csv).not.toContain("Money");
+      expect(lines.some((l) => l.endsWith(`,${SLUGS.a},150,75,56,20,10,4,2`))).toBe(true);
+    });
+  });
+
+  it("does not keep a report in which Google would not answer one of the questions — the next look asks again, and a whole report is kept", async () => {
+    const stand = google();
+    stand.dataReply = (call) => (call.body.dimensions?.[0]?.name === "searchTerm" ? googleError(503, "The service is currently unavailable.", "UNAVAILABLE") : undefined);
+    const { client } = await loginStaff();
+    await connected(async () => {
+      const first = (await json(await client.get("/api/admin/analytics/report"))).report;
+      expect(first.problems).toEqual([{ section: "searches", problem: "google_error", detail: expect.any(String) }]);
+      const asked = stand.data.length;
+
+      stand.dataReply = undefined;
+      const second = (await json(await client.get("/api/admin/analytics/report"))).report;
+      expect(stand.data.length).toBeGreaterThan(asked);
+      expect(second.problems).toEqual([]);
+      expect(second.searches).toEqual([{ term: "cake", count: 9 }]);
+
+      // this one was whole, so it is kept
+      const kept = stand.data.length;
+      await client.get("/api/admin/analytics/report");
+      expect(stand.data).toHaveLength(kept);
+    });
+  });
+
+  it("asks Google at most four questions at a time (it lets a property have ten at once, and two people may open the screen together)", async () => {
+    const stand = google();
+    stand.delayMs = 5;
+    const { client } = await loginStaff();
+    await connected(async () => json(await client.get("/api/admin/analytics/report")));
+    expect(stand.data.length).toBeGreaterThan(8);
+    expect(stand.peak).toBeGreaterThan(1); // still together, not one by one
+    expect(stand.peak).toBeLessThanOrEqual(4);
+    expect(stand.inflight).toBe(0);
   });
 
   it("writes the same class table as a spreadsheet, formula-safe, and refuses when there is nothing to write", async () => {

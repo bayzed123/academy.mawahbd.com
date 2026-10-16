@@ -46,7 +46,8 @@ interface ClassRow {
   checkouts: number;
   ga_purchases: number;
   paid_sales: number;
-  revenue: number;
+  /** null: this person's role may not see the shop's money (see reports:revenue) */
+  revenue: number | null;
 }
 interface Bucket {
   name: string;
@@ -55,6 +56,8 @@ interface Bucket {
 }
 interface Report {
   connected: true;
+  /** may this person see the shop's money? (the Money column is left out when not) */
+  money: boolean;
   range: Range;
   fetched_at: string;
   from: string;
@@ -285,6 +288,7 @@ function Connection({ status: s, problem, checked, canManage, checking, onCheck,
           <li key={n}>{t(`adm.an.steps.${n}` as "adm.an.steps.1")}</li>
         ))}
       </ol>
+      <p className="hint mt">{t("adm.an.outbound")}</p>
     </>
   );
 
@@ -399,7 +403,7 @@ function Dashboard({ report: r, live }: { report: Report; live: Live | null }) {
                   <th className="num">{t("adm.an.c.checkouts")}</th>
                   <th className="num">{t("adm.an.c.bought")}</th>
                   <th className="num">{t("adm.an.c.sales")}</th>
-                  <th className="num">{t("adm.an.c.money")}</th>
+                  {r.money && <th className="num">{t("adm.an.c.money")}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -425,9 +429,11 @@ function Dashboard({ report: r, live }: { report: Report; live: Live | null }) {
                     <td className="num">
                       <b>{num(c.paid_sales)}</b>
                     </td>
-                    <td className="num">
-                      <b>{money(c.revenue)}</b>
-                    </td>
+                    {r.money && (
+                      <td className="num">
+                        <b>{money(c.revenue ?? 0)}</b>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

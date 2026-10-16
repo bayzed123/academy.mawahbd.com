@@ -1,7 +1,7 @@
 import { raw } from "hono/html";
 import { loc } from "@mawah/shared";
 import { turnstileEnabled } from "../lib/turnstile";
-import { isTracking } from "../lib/tracking";
+import { isTracking, NO_TRACKING } from "../lib/tracking";
 import { ANALYTICS_JS, BANNERS_JS, CSS, GALLERY_JS, HAS_OG_IMAGE, SITE_JS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
@@ -40,7 +40,8 @@ export function Layout(props: LayoutProps) {
   const chrome = props.chrome !== false;
   const canonical = ctx.abs(props.canonicalPath ?? ctx.href(ctx.path));
   const image = props.image ?? ctx.abs(HAS_OG_IMAGE ? "/og-default.jpg" : "/icon-512.png");
-  const ids = ctx.track;
+  // a certificate or an invoice (chrome off) carries a person's name and a secret address: it is never measured, whatever the request
+  const ids = chrome ? ctx.track : NO_TRACKING;
   const measuring = isTracking(ids);
   const tsKey = turnstileEnabled(env) ? env.TURNSTILE_SITE_KEY : "";
   const announcement = lang === "bn" ? settings.announcement.bn || settings.announcement.en : settings.announcement.en || settings.announcement.bn;

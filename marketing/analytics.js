@@ -25,8 +25,9 @@
   var asked = n.doNotTrack === "1" || w.doNotTrack === "1" || n.msDoNotTrack === "1" || n.globalPrivacyControl === true; // the browser itself says "do not track me"
   if (automated || asked) return;
 
-  var europe = /(?:^|;\s*)mawah_geo=eu(?:;|$)/.test(d.cookie || ""); // set by the server from the visitor's country; see worker/src/middleware/geo.ts
-  var off = function () { return read("mawah_ga") === "off" || (europe && read("mawah_consent") === "no"); };
+  var geo = /(?:^|;\s*)mawah_geo=(eu|row)(?:;|$)/.exec(d.cookie || ""); // set by the server from the visitor's country; see worker/src/middleware/geo.ts
+  var europe = !geo || geo[1] === "eu"; // no cookie at all (cookies blocked, a page restored from the browser's cache): ask first, never count first
+  var off = function () { return read("mawah_ga") === "off" || read("mawah_consent") === "no"; }; // a "no" stays a "no" wherever the visitor is next
   var needsAnswer = function () { return europe && read("mawah_consent") !== "yes" && read("mawah_consent") !== "no" && read("mawah_ga") !== "off"; };
 
   /* ------------------------------------------------------------------------------------------ what may leave the page */
@@ -40,6 +41,25 @@
     return v;
   }
 
+  /* The address of a page is reported with everything the page does. A code or token in it, and any value of the query that looks like a person's own
+     details, are cut out first (a certificate check has the code in its address). Search words stay: they are what the "searched for" figures are made of. */
+  var SECRET_PARAM = /^(?:code|token|key|secret|pass|password|pwd|otp|e-?mail|phone|mobile|tel|name|address)$/i;
+  function cleanUrl(href) {
+    try {
+      var u = new URL(href, location.href);
+      var path = u.pathname.replace(/^(\/(?:en\/)?(?:verify|certificate))\/[^/]+/i, "$1/(code)").replace(/^(\/app\/reset)\/[^/]+/i, "$1/(token)");
+      if (path !== u.pathname) u.pathname = path;
+      var keys = [];
+      u.searchParams.forEach(function (v, k) { keys.push(k); });
+      keys.forEach(function (k) {
+        var v = u.searchParams.get(k) || "";
+        var c = SECRET_PARAM.test(k) ? "(removed)" : scrub(v);
+        if (c !== v) u.searchParams.set(k, c);
+      });
+      return u.toString();
+    } catch (e) { return ""; }
+  }
+
   /* ------------------------------------------------------------------------------------------ sending */
   var live = false, waiting = true, queue = [], started = false;
   function gtag() { w.dataLayer.push(arguments); }
@@ -50,6 +70,7 @@
   w.mawahTrack = function (name, params) { try { emit(String(name).slice(0, 40), scrub(params || {})); } catch (e) { /* counting must never break a page */ } };
 
   function begin() {
+    if (off()) return; // said no between the page loading and this moment (the footer switch, another tab): nothing starts
     if (started) { live = true; waiting = false; if (ga) w["ga-disable-" + ga] = false; return; }
     started = true;
     if (ga) {
@@ -57,6 +78,9 @@
       w["ga-disable-" + ga] = false;
       gtag("js", new Date());
       var cfg = { transport_type: "beacon", allow_google_signals: false, allow_ad_personalization_signals: false };
+      var here = cleanUrl(location.href), from = d.referrer ? cleanUrl(d.referrer) : "";
+      if (here && here !== location.href) cfg.page_location = here; // only when something had to be cut out (a fixed address would hide the student app's own page changes)
+      if (from && from !== d.referrer) cfg.page_referrer = from;
       if (/[?&]ga_debug=1(?:&|$)/.test(location.search)) cfg.debug_mode = true; // open any page with ?ga_debug=1 and watch it in GA4 → Admin → DebugView
       gtag("config", ga, cfg);
       var g = d.createElement("script");
@@ -94,6 +118,8 @@
     waiting = false;
     queue = [];
     if (ga) w["ga-disable-" + ga] = true; // Google's own switch: nothing more is sent from this page
+    try { if (w.clarity) w.clarity("stop"); } catch (e) { /* the tool may not have started */ }
+    try { if (w.fbq) w.fbq("consent", "revoke"); } catch (e) { /* idem */ }
   }
   function afterLoad(fn) {
     var go = function () { if (w.requestIdleCallback) w.requestIdleCallback(fn, { timeout: 2000 }); else w.setTimeout(fn, 800); };
@@ -106,8 +132,10 @@
     en: { label: "Cookies and visit counting", text: "We count visits with Google Analytics to see which classes people read. Names, e-mails and phone numbers are never sent.", yes: "Accept", no: "No thanks", more: "Privacy policy", href: "/en/policies/privacy" },
   }[lang];
   function style(el, rules) { Object.keys(rules).forEach(function (k) { el.style[k] = rules[k]; }); }
+  var banner = null;
   function ask() {
     var box = d.createElement("div");
+    banner = box;
     box.setAttribute("role", "region");
     box.setAttribute("aria-label", TEXT.label);
     style(box, { position: "fixed", left: "0", right: "0", bottom: "0", zIndex: "2147483000", background: "#070304", color: "#fff", padding: "14px 16px", display: "flex", flexWrap: "wrap", gap: "10px 16px", alignItems: "center", justifyContent: "center", boxShadow: "0 -6px 24px rgba(0,0,0,.35)", fontSize: "15px", lineHeight: "1.5", fontFamily: "inherit" });
@@ -128,8 +156,8 @@
       return b;
     };
     box.appendChild(p);
-    box.appendChild(mk(TEXT.yes, true, function () { write("mawah_consent", "yes"); box.remove(); begin(); syncChoice(); }));
-    box.appendChild(mk(TEXT.no, false, function () { write("mawah_consent", "no"); box.remove(); stop(); syncChoice(); }));
+    box.appendChild(mk(TEXT.yes, true, function () { write("mawah_ga", null); write("mawah_consent", "yes"); box.remove(); banner = null; begin(); syncChoice(); }));
+    box.appendChild(mk(TEXT.no, false, function () { write("mawah_consent", "no"); box.remove(); banner = null; stop(); syncChoice(); }));
     d.body.appendChild(box);
   }
 
@@ -148,6 +176,7 @@
       } else {
         write("mawah_ga", "off");
         if (europe) write("mawah_consent", "no");
+        if (banner) { banner.remove(); banner = null; }
         stop();
       }
       syncChoice();
@@ -156,6 +185,11 @@
   }
 
   if (off()) stop(); // an earlier "no": nothing is queued or sent — the footer switch can still turn counting back on
+  // a "no" given in another tab, or a page brought back from the browser's cache after one: this page stops too
+  w.addEventListener("storage", function (ev) {
+    if ((ev.key === "mawah_ga" || ev.key === "mawah_consent") && off()) { if (banner) { banner.remove(); banner = null; } stop(); syncChoice(); }
+  });
+  w.addEventListener("pageshow", function (ev) { if (ev.persisted && off()) { stop(); syncChoice(); } });
 
   /* ------------------------------------------------------------------------------------------ what the page tells us */
   var page = {};

@@ -62,20 +62,19 @@ const decodeUtf8Base64 = (b64: string): string => {
 };
 
 /**
- * Reads the secret: the key file as Google gives it, or that file's text in base64 (some places cannot hold a multi-line value), or the file as an
- * object (what the Worker receives when the owner adds it in the Cloudflare dashboard as a "JSON" variable instead of a secret). Never throws.
+ * Reads the secret: the key file as Google gives it, or that file's text in base64 (some places cannot hold a multi-line value). Never throws.
+ * Anything that is not text — a "JSON" variable typed into the Cloudflare dashboard arrives as an object, and the next deploy removes such a variable
+ * anyway — is "set, but cannot be read": the owner is told to save it as a Secret.
  */
 export function parseServiceAccount(raw: unknown): { ok: true; account: ServiceAccount } | { ok: false; problem: "not_configured" | "key_invalid" } {
+  if (raw && typeof raw !== "string") return { ok: false, problem: "key_invalid" };
+  const text = typeof raw === "string" ? raw.trim() : "";
+  if (!text) return { ok: false, problem: "not_configured" };
   let json: unknown;
-  if (raw && typeof raw === "object") json = raw;
-  else {
-    const text = typeof raw === "string" ? raw.trim() : "";
-    if (!text) return { ok: false, problem: "not_configured" };
-    try {
-      json = JSON.parse(text.startsWith("{") ? text : decodeUtf8Base64(text));
-    } catch {
-      return { ok: false, problem: "key_invalid" };
-    }
+  try {
+    json = JSON.parse(text.startsWith("{") ? text : decodeUtf8Base64(text));
+  } catch {
+    return { ok: false, problem: "key_invalid" };
   }
   const j = json as Record<string, unknown> | null;
   const email = typeof j?.client_email === "string" ? j.client_email.trim() : "";

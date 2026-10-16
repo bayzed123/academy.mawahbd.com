@@ -55,8 +55,8 @@ export interface Env {
    * The Google "service account" key file (the whole JSON, or that text in base64) of an account the owner added as a Viewer of the
    * Google Analytics property: it lets Admin → Analytics read the numbers. A secret — never committed, never shown, never logged.
    */
-  /** the Google service-account key file: text (a secret), or the object itself when it was added in the dashboard as a "JSON" variable */
-  GOOGLE_SERVICE_ACCOUNT?: string | Record<string, unknown>;
+  /** the Google service-account key file (a Secret): the file's text, or that text in base64 */
+  GOOGLE_SERVICE_ACCOUNT?: string;
   /** Local development / tests only: enables the simulated payment gateway. */
   ALLOW_MOCK_PAYMENTS?: string;
   /** Local development / tests only: lets pages carry the analytics tag (it never does outside the real site otherwise). Ignored in production. */

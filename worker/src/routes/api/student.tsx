@@ -9,6 +9,7 @@ import { textSchema } from "../../lib/schemas";
 import { getSettings } from "../../lib/settings";
 import { pageCtxFor } from "../../lib/pagectx";
 import { renderHtml } from "../../lib/render";
+import { NO_TRACKING } from "../../lib/tracking";
 import { requireStudent } from "../../middleware/auth";
 import { rateLimit } from "../../middleware/ratelimit";
 import { getCourseBySlug, refreshCourseRating, shortName } from "../../services/catalog";
@@ -201,11 +202,12 @@ studentRoutes.get("/orders/:publicId/invoice", async (c) => {
   );
   const lang = c.req.query("lang") === "en" ? "en" : c.req.query("lang") === "bn" ? "bn" : me.locale;
   const ctx = await pageCtxFor(c, lang, `/invoice/${order.public_id}`);
+  ctx.track = NO_TRACKING; // a document with the buyer's name, number and address: never measured
   return renderHtml(
     c,
     ctx,
     <InvoicePage ctx={ctx} order={order} customer={{ name: customer?.customer_name ?? me.name, email: customer ? customer.customer_email : shownEmail(me.email), phone: customer?.customer_phone ?? "", address: customer?.customer_address ?? "" }} />,
-    { cache: "private, no-store" },
+    { cache: "private, no-store", noReferrer: true },
   );
 });
 

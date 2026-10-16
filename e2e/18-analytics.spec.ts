@@ -263,6 +263,87 @@ test("anyone can stop being counted from the footer, and start again — the cho
   await v.ctx.close();
 });
 
+test("a visitor who says no the moment the page is open is never counted, even though the script was just about to start", async ({ browser }) => {
+  const v = await visitor(browser, { country: "BD" });
+  // the script starts when the browser is idle: hold that moment back until the test lets it go, so that the choice can be made first
+  await v.ctx.addInitScript(() => {
+    const held: (() => void)[] = [];
+    (window as unknown as Record<string, unknown>).requestIdleCallback = (fn: () => void) => held.push(fn);
+    (window as unknown as Record<string, unknown>).__letItStart = () => held.splice(0).forEach((fn) => fn());
+  });
+  await v.page.goto("/en");
+  await v.page.getByRole("button", { name: "Stop counting my visits" }).click();
+  await expect(v.page.getByText("Your visits are no longer counted on this device.")).toBeAttached();
+  await v.page.evaluate(() => (window as unknown as { __letItStart: () => void }).__letItStart());
+  await v.page.waitForTimeout(800);
+  expect(v.seen.tag, "the tag is never asked for").toBe(0);
+  expect(await layer(v.page)).toEqual([]);
+  await v.ctx.close();
+});
+
+test("when the page cannot tell which country the visitor is in (cookies blocked, a page taken out of the browser's memory) the visitor is asked first", async ({ browser }) => {
+  const v = await visitor(browser, { country: "BD" });
+  await v.ctx.addInitScript(() => {
+    // as if the country cookie never arrived
+    const own = Object.getOwnPropertyDescriptor(Document.prototype, "cookie")!;
+    Object.defineProperty(document, "cookie", { configurable: true, get: () => own.get!.call(document).replace(/mawah_geo=[^;]*;?\s*/g, ""), set: (x: string) => own.set!.call(document, x) });
+  });
+  await v.page.goto("/en/courses");
+  const bar = v.page.getByRole("region", { name: "Cookies and visit counting" });
+  await expect(bar).toBeVisible();
+  await v.page.waitForTimeout(500);
+  expect(v.seen.tag, "nothing is counted before the answer").toBe(0);
+  expect(await layer(v.page)).toEqual([]);
+  await bar.getByRole("button", { name: "Accept" }).click();
+  await expect.poll(() => v.seen.tag).toBeGreaterThan(0);
+  await v.ctx.close();
+});
+
+test("a no given in Europe is still a no when the visitor is somewhere else the next time", async ({ browser }) => {
+  const v = await visitor(browser, { country: "DE" });
+  await v.page.goto("/en/courses");
+  const bar = v.page.getByRole("region", { name: "Cookies and visit counting" });
+  await expect(bar).toBeVisible();
+  await bar.getByRole("button", { name: "No thanks" }).click();
+  await expect(bar).toBeHidden();
+
+  // the visitor has travelled: the shop now sees Bangladesh (the country cookie is corrected by the server)
+  await v.ctx.setExtraHTTPHeaders({ "cf-ipcountry": "BD" });
+  await v.page.goto("/en/courses");
+  await expect.poll(async () => (await v.ctx.cookies()).find((c) => c.name === "mawah_geo")?.value).toBe("row");
+  await v.page.waitForTimeout(2600);
+  expect(v.seen.tag, "the no travels with the visitor").toBe(0);
+  expect(await layer(v.page)).toEqual([]);
+  await expect(v.page.getByRole("region", { name: "Cookies and visit counting" })).toHaveCount(0); // and is not asked again
+  await expect(v.page.getByRole("button", { name: "Count my visits again" })).toBeVisible(); // but can change their mind in the footer
+  await v.ctx.close();
+});
+
+test("the address of a certificate check is reported without the code in it, and without anything that looks like the visitor's own details — the check itself is still counted", async ({ browser }) => {
+  const v = await visitor(browser, { country: "BD" });
+  const code = "MWH-7K3M-9P2Q-XR4T";
+  await v.page.goto(`/en/verify/${code}?utm_source=newsletter&email=someone@example.com`);
+  const result = await wait(v.page, "certificate_verify");
+  expect(["found", "not_found"]).toContain(result.params.result);
+  const config = (await layer(v.page)).find((a) => a[0] === "config")!;
+  const reported = String((config[2] as Record<string, unknown>).page_location);
+  expect(reported).not.toContain(code);
+  expect(reported).not.toContain("someone");
+  expect(decodeURIComponent(reported)).toContain("/en/verify/(code)");
+  expect(decodeURIComponent(reported)).toContain("email=(removed)");
+  expect(reported, "campaign tags are what Google reads: they stay").toContain("utm_source=newsletter");
+  expect(JSON.stringify(v.log)).not.toContain(code);
+
+  // an ordinary page is reported as it is (the tag then uses the address itself)
+  const plain = await visitor(browser, { country: "BD" });
+  await plain.page.goto("/en/courses");
+  await expect.poll(() => plain.seen.tag).toBeGreaterThan(0);
+  const plainConfig = (await layer(plain.page)).find((a) => a[0] === "config")!;
+  expect(Object.keys(plainConfig[2] as object)).not.toContain("page_location");
+  await v.ctx.close();
+  await plain.ctx.close();
+});
+
 test("the student app carries the tag, the admin never does — and a purchase is counted once, with the class under the same name as on the website", async ({ browser }) => {
   const v = await visitor(browser, { country: "BD" });
   // the app's page and its policy
@@ -292,6 +373,15 @@ test("the student app carries the tag, the admin never does — and a purchase i
   const begin = await waitLogged(v, "begin_checkout");
   expect(begin.params).toMatchObject({ currency: "BDT", value: 400 });
   expect(begin.params.items[0]).toMatchObject({ item_id: CLASS, item_name: "Beginners Baking Class", price: 400 });
+
+  // a coupon that does not work is counted — but not what was typed in the box (it takes anything that is pasted into it)
+  await v.page.getByLabel("Have a coupon code?").fill("secret-word-99");
+  await v.page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(v.page.locator(".err-text")).toBeVisible();
+  const failed = await waitLogged(v, "coupon_failed");
+  expect(Object.keys(failed.params)).toEqual(["reason"]);
+  expect(JSON.stringify(v.log).toLowerCase()).not.toContain("secret-word-99");
+  await v.page.getByLabel("Have a coupon code?").fill("");
 
   const buyer = { name: "Counting Buyer", phone: "01711000555", email: uniqueEmail("counted") };
   await v.page.getByLabel(/^Full name/).fill(buyer.name);
@@ -399,6 +489,29 @@ test.describe("Admin → Analytics", () => {
     await admin.setViewportSize({ width: 1440, height: 900 });
   });
 
+  test("a person who may not see the shop's money gets the same table without that column", async () => {
+    await admin.route("**/api/admin/analytics/report**", async (route) => {
+      const res = await route.fetch();
+      const body = await res.json();
+      body.report.money = false;
+      for (const c of body.report.classes) c.revenue = null;
+      await route.fulfill({ response: res, json: body });
+    });
+    try {
+      await admin.goto("/admin/analytics");
+      const table = admin.getByTestId("an-classes");
+      await expect(table).toBeVisible();
+      await expect(table.locator("tr", { hasText: "Beginners Baking Class" }).locator("td").nth(1)).toHaveText("150"); // the rest of the table is there
+      await expect(table.getByRole("columnheader", { name: "Money" })).toHaveCount(0);
+      await expect(table.locator("thead th")).toHaveCount(await table.locator("tbody tr").first().locator("td").count());
+    } finally {
+      await admin.unroute("**/api/admin/analytics/report**");
+    }
+    // …and with the money (the owner's own view) the column is there
+    await admin.goto("/admin/analytics");
+    await expect(admin.getByTestId("an-classes").getByRole("columnheader", { name: "Money" })).toBeVisible();
+  });
+
   test("explains each way Google can say no, in plain words, with what to do next — and checking again after fixing it brings the numbers back", async () => {
     const cases: [string, string, RegExp][] = [
       ["api_disabled", "The Analytics Data API is switched off", /Google Analytics Data API has not been used in project/],
@@ -457,6 +570,8 @@ test.describe("Admin → Analytics", () => {
     const steps = admin.locator(".an-steps li");
     await expect(steps).toHaveCount(5);
     await expect(steps.nth(3)).toContainText("GOOGLE_SERVICE_ACCOUNT");
+    // the one setting in Google Analytics that keeps the private links of live classes and groups from being reported
+    await expect(admin.getByText(/“Outbound clicks” off/)).toBeVisible();
     await expect(admin.getByText("Account e-mail to add in Google Analytics")).toHaveCount(0); // there is no account yet
     const scan = await new AxeBuilder({ page: admin }).withTags(WCAG).analyze();
     expect(scan.violations.map((v) => `${v.id}: ${v.nodes[0]?.target}`)).toEqual([]);
