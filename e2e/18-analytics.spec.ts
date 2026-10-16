@@ -51,12 +51,16 @@ async function visitor(browser: Browser, wish: Wish = {}) {
   }, wish);
   // everything the pages give to the tag, kept here too: a redirect to a payment page throws the page's own copy away with the page
   const log: unknown[][] = [];
-  await ctx.exposeFunction("__ga", (entry: unknown[]) => void log.push(entry));
+  const paths: string[] = []; // the page each entry was given on
+  await ctx.exposeFunction("__ga", (entry: unknown[], path: string) => {
+    log.push(entry);
+    paths.push(path);
+  });
   await ctx.addInitScript(() => {
     const layer: unknown[] = [];
     const push = layer.push.bind(layer);
     layer.push = (...items: unknown[]) => {
-      for (const item of items) (window as unknown as { __ga?: (e: unknown[]) => void }).__ga?.(Array.from(item as ArrayLike<unknown>));
+      for (const item of items) (window as unknown as { __ga?: (e: unknown[], p: string) => void }).__ga?.(Array.from(item as ArrayLike<unknown>), location.pathname);
       return push(...items);
     };
     (window as unknown as { dataLayer: unknown[] }).dataLayer = layer;
@@ -66,7 +70,7 @@ async function visitor(browser: Browser, wish: Wish = {}) {
     seen.tag++;
     return route.fulfill({ status: 200, contentType: "application/javascript", body: "/* a stand-in for Google's tag */" });
   });
-  return { ctx, page: await ctx.newPage(), seen, log };
+  return { ctx, page: await ctx.newPage(), seen, log, paths };
 }
 
 interface Hit {
@@ -279,7 +283,7 @@ test("the student app carries the tag, the admin never does — and a purchase i
   expect(secretPage!.headers()["content-security-policy"]).not.toContain("googletagmanager");
   await expect(v.page.locator(`meta[name="mawah:ga4"]`)).toHaveCount(0);
   await v.page.waitForTimeout(2600);
-  expect(v.log.filter((a) => a[0] === "config" || a[0] === "event"), "nothing was told to Google on that page").toEqual([]);
+  expect(v.log.filter((_, i) => v.paths[i]!.startsWith("/app/reset/")), "nothing was told to Google on that page").toEqual([]);
 
   // buying as a guest, the way a visitor does
   await v.page.goto(`/en/courses/${CLASS}`);
