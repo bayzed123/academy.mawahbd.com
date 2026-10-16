@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Link, useParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { OrderDTO, OrderStatus } from "@mawah/shared";
+import { CURRENCY, firstTime, gaItem, track } from "../lib/analytics";
 import { api } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { KeepAccount } from "../components/KeepAccount";
@@ -75,6 +76,24 @@ export function OrderDetail() {
     if (status === "paid") void qc.invalidateQueries({ queryKey: ["my-courses"] });
   }, [status, qc]);
 
+  // what happened to the payment, said once per order on this device: a sale is counted once however often this page is opened
+  // (and Google counts one "transaction_id" once as well). A manual payment is a sale only when staff have confirmed it.
+  const order = q.data;
+  useEffect(() => {
+    if (!order) return;
+    const base = {
+      transaction_id: order.public_id,
+      currency: CURRENCY,
+      value: order.total,
+      coupon: order.coupon_code ?? undefined,
+      payment_type: order.method ?? order.gateway ?? undefined,
+      items: order.items.map((i) => gaItem(i)),
+    };
+    if (order.status === "paid" && firstTime(`purchase:${order.public_id}`)) track("purchase", base);
+    else if (order.status === "awaiting_verification" && firstTime(`waiting:${order.public_id}`)) track("payment_pending", base);
+    else if ((order.status === "failed" || order.status === "cancelled") && firstTime(`${order.status}:${order.public_id}`)) track("payment_failed", { ...base, reason: order.status });
+  }, [order?.status, order?.public_id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (q.isPending) return <Spinner />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const o = q.data;
@@ -101,7 +120,7 @@ export function OrderDetail() {
           </Link>
         )}
         {o.status === "paid" && (
-          <a className="btn btn-outline" href={`/api/student/orders/${o.public_id}/invoice?lang=${lang}`} target="_blank" rel="noopener noreferrer">
+          <a className="btn btn-outline" href={`/api/student/orders/${o.public_id}/invoice?lang=${lang}`} target="_blank" rel="noopener noreferrer" onClick={() => track("invoice_download", { transaction_id: o.public_id })}>
             <Icon name="download" /> {t("app.orders.invoice")}
           </a>
         )}

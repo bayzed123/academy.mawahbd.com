@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { orderCode, toBnDigits, waNumber, type OrderDTO } from "@mawah/shared";
+import { track } from "../lib/analytics";
 import { api, ApiError, apiUpload } from "../lib/api";
 import { useSite } from "../lib/hooks";
 import { shrinkImage } from "../lib/image";
@@ -142,6 +143,7 @@ export function ManualPay({ order, skewMs }: { order: OrderDTO; skewMs: number }
     },
     onSuccess: () => {
       toast(t("app.manual.sentToast"));
+      track("payment_proof_sent", { transaction_id: order.public_id, payment_type: order.method ?? undefined, has_trxid: !!trx.trim(), has_screenshot: !!shot || order.has_proof_image });
       void qc.invalidateQueries({ queryKey: ["order", order.public_id] });
       void qc.invalidateQueries({ queryKey: ["orders"] });
     },

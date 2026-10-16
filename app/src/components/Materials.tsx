@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { MaterialKind } from "@mawah/shared";
+import { track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { Button, Field, Icon, TextInput, useToast } from "./ui";
@@ -98,6 +99,7 @@ function MaterialCard({ slug, m }: { slug: string; m: StudentMaterial }) {
       }
     },
     onSuccess: ({ url, tab }) => {
+      track("material_open", { material_id: m.id, material_type: m.kind });
       if (tab) {
         tab.opener = null;
         tab.location.href = url;
@@ -113,6 +115,7 @@ function MaterialCard({ slug, m }: { slug: string; m: StudentMaterial }) {
     mutationFn: () => api<{ request: { status: "pending" | "approved" | "rejected" }; url: string }>(`/student/materials/${m.id}/join`, { method: "POST", json: { profile_url: profile } }),
     onSuccess: () => {
       setProfileError("");
+      track("material_join_request", { material_id: m.id });
       toast(t("app.mat.group.sent"));
       void qc.invalidateQueries({ queryKey: materialsKey(slug) });
     },
@@ -147,7 +150,7 @@ function MaterialCard({ slug, m }: { slug: string; m: StudentMaterial }) {
 
       <div className="mat-actions">
         {m.delivery === "file" ? (
-          <a className="btn btn-primary" href={`/api/student/materials/${m.id}/download`} download>
+          <a className="btn btn-primary" href={`/api/student/materials/${m.id}/download`} download onClick={() => track("material_download", { material_id: m.id, material_type: m.kind })}>
             <Icon name="download" /> {t("app.mat.download")}
             <span className="vh">: {title}</span>
           </a>

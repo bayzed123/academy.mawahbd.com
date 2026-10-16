@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../../../env";
 import { requireStaff } from "../../../middleware/auth";
+import { analytics } from "./analytics";
 import { audience } from "./audience";
 import { banners } from "./banners";
 import { chatbot } from "./chatbot";
@@ -35,6 +36,6 @@ adminApi.route("/faqs", faqs);
 adminApi.route("/coupons", coupons);
 adminApi.route("/courses", courses);
 
-for (const router of [courseOverview, curriculum, materials, media, orders, students, engagement, audience, chatbot, settings, reports, dashboard, staff]) {
+for (const router of [courseOverview, curriculum, materials, media, orders, students, engagement, audience, analytics, chatbot, settings, reports, dashboard, staff]) {
   adminApi.route("/", router);
 }

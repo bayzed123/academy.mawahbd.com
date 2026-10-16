@@ -1,7 +1,8 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toBnDigits, type Channel, type QuoteDTO, type StudentMe } from "@mawah/shared";
+import { CURRENCY, gaItem, track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useSite } from "../lib/hooks";
@@ -164,20 +165,44 @@ export default function Checkout() {
     if (channels.length && !channels.includes(channel as Channel)) setChannel(channels.includes("sslcommerz") ? "sslcommerz" : channels[0]);
   }, [channels, channel]);
 
+  // the basket is on screen: one "begin_checkout" per basket (docs/analytics.md)
+  const began = useRef("");
+  useEffect(() => {
+    const q = quote.data;
+    const key = `${slug}|${bundle ?? ""}`;
+    if (!q || began.current === key) return;
+    began.current = key;
+    track("begin_checkout", { currency: CURRENCY, value: q.total, coupon: q.coupon_code ?? undefined, items: q.items.map((i) => gaItem(i)) });
+  }, [quote.data, slug, bundle]);
+
   const apply = useMutation({
     mutationFn: async (code: string) => (await api<{ quote: QuoteDTO }>("/checkout/quote", { json: { ...cart, coupon: code } })).quote,
     onSuccess: (q, code) => {
       qc.setQueryData(["quote", slug, bundle, code], q);
       setCoupon(code);
       setCouponError("");
+      track("coupon_applied", { coupon: code });
     },
-    onError: (e) => setCouponError(err(e instanceof ApiError ? e.code : "generic")),
+    onError: (e, code) => {
+      setCouponError(err(e instanceof ApiError ? e.code : "generic"));
+      track("coupon_failed", { coupon: code, reason: e instanceof ApiError ? e.code : "generic" });
+    },
   });
 
   const pay = useMutation({
     // "student": already signed in (or just signed in here — `gaps` then says what their profile lacks, which the details typed above fill);
     // "guest": a visitor, with the details typed above
     mutationFn: async (v: { as: "student" | "guest"; gaps?: { phone: boolean; address: boolean } }) => {
+      const basket = quote.data;
+      if (basket) {
+        track("add_payment_info", {
+          currency: CURRENCY,
+          value: basket.total,
+          coupon: basket.coupon_code ?? undefined,
+          payment_type: basket.total === 0 ? "free" : channel === "manual" ? `manual_${chosenMethod}` : channel || "unknown",
+          items: basket.items.map((i) => gaItem(i)),
+        });
+      }
       const order = { ...cart, coupon, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined };
       if (v.as === "student") {
         // a signed-in student whose profile lacks a mobile number or an address gives them here (the form shows only then)
@@ -186,8 +211,9 @@ export default function Checkout() {
       }
       return api<PayResult>("/checkout/guest", { json: { ...order, name: name.trim(), email: email.trim() || undefined, phone: phone.trim(), address: address.trim(), lang, turnstile: captcha || undefined } });
     },
-    onSuccess: (res) => {
+    onSuccess: (res, v) => {
       if (res.student) setStudent(res.student); // the visitor now has an account and is signed in on this phone
+      if (res.student && v.as === "guest") track("sign_up", { method: "checkout" });
       void qc.invalidateQueries({ queryKey: ["orders"] });
       void qc.invalidateQueries({ queryKey: ["my-courses"] });
       if (res.redirect_url) {
@@ -204,6 +230,7 @@ export default function Checkout() {
         setExists({ who: by === "phone" ? phone.trim() : email.trim().toLowerCase(), by, passwordless: e.fields?.[by] === "account_exists_link" });
         return;
       }
+      track("checkout_error", { code: e instanceof ApiError ? e.code : "generic" });
       setFields(fieldErrors(e));
       setFormError(e instanceof ApiError && e.code !== "validation" ? err(e.code) : "");
     },

@@ -18,8 +18,10 @@ const answerHtml = (ctx: PageCtx, markdown: string) => renderMarkdown(markdown).
 export const faqText = (ctx: PageCtx, f: FaqDTO) => ({ question: loc(f, "question", ctx.lang), answer: loc(f, "answer", ctx.lang) });
 
 export function FaqItems({ ctx, items }: { ctx: PageCtx; items: FaqDTO[] }) {
+  // where the questions are shown, for the visit counter (docs/analytics.md): a class page, the home page, or the FAQ page
+  const scope = ctx.path.startsWith("/courses/") ? "class" : ctx.path === "/" ? "home" : "site";
   return (
-    <div class="faq">
+    <div class="faq" {...(ctx.track.ga4 ? { "data-ga-faq": scope } : {})}>
       {items.map((f) => {
         const { question, answer } = faqText(ctx, f);
         return (

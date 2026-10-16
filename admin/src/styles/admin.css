@@ -478,3 +478,14 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
 .imp-sum{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
 .imp-table tr.imp-problem{background:var(--red-50)}
 .imp-table td,.imp-table th{vertical-align:top}
+
+/* ---------- Analytics ---------- */
+.plain{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.an-live{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.an-live .big{display:block;font-size:2.4rem;line-height:1;font-weight:800;color:var(--red-700)}
+.an-funnel{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.an-funnel li{display:grid;gap:2px}
+.an-steps{margin:0;padding-left:1.3em;display:grid;gap:10px}
+.an-conn{margin-bottom:18px}
+.an-conn>summary{cursor:pointer;padding:2px 0}
+.an-conn[open]>summary{margin-bottom:12px}

@@ -11,6 +11,7 @@ import { adminApi } from "./admin";
 import { authRoutes } from "./auth";
 import { chatRoutes } from "./chat";
 import { checkoutRoutes } from "./checkout";
+import { devGoogle } from "./dev-google";
 import { paymentRoutes } from "./payments";
 import { publicRoutes } from "./public";
 import { studentRoutes } from "./student";
@@ -49,6 +50,9 @@ api.route("/checkout", checkoutRoutes);
 api.route("/payments", paymentRoutes);
 api.route("/chat", chatRoutes);
 api.route("/", publicRoutes);
+
+// development and tests only: a stand-in for Google, so Admin → Analytics can be exercised without a Google account
+api.route("/dev/google", devGoogle);
 
 // development only: read e-mails the app "sent" (password-reset links etc.) so flows can be tested end to end
 api.get("/dev/outbox", async (c) => {

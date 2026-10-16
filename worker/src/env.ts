@@ -29,6 +29,9 @@ export interface Env {
   MAIL_REPLY_TO?: string;
   STREAM_CUSTOMER_CODE: string;
   TURNSTILE_SITE_KEY: string;
+  /** Google Analytics 4: the property and the data stream of the shop (public numbers; the report in Admin → Analytics reads that property) */
+  GA_PROPERTY_ID?: string;
+  GA_STREAM_ID?: string;
 
   // ---- secrets (`wrangler secret put`) — never committed ----
   APP_SECRET: string;
@@ -48,8 +51,17 @@ export interface Env {
   TURNSTILE_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  /**
+   * The Google "service account" key file (the whole JSON, or that text in base64) of an account the owner added as a Viewer of the
+   * Google Analytics property: it lets Admin → Analytics read the numbers. A secret — never committed, never shown, never logged.
+   */
+  GA4_SERVICE_ACCOUNT_JSON?: string;
   /** Local development / tests only: enables the simulated payment gateway. */
   ALLOW_MOCK_PAYMENTS?: string;
+  /** Local development / tests only: lets pages carry the analytics tag (it never does outside the real site otherwise). Ignored in production. */
+  ANALYTICS_DEV?: string;
+  /** Local development / tests only: where "Google" is (a stand-in served by the dev Worker itself). Ignored in production. */
+  GOOGLE_API_BASE?: string;
 }
 
 export type Lang = "bn" | "en";
