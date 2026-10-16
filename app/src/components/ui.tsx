@@ -79,10 +79,18 @@ export function Button({ busy, children, className = "btn-primary", ...rest }: B
   );
 }
 
-export function Field({ label, error, hint, id, children }: { label: string; error?: string; hint?: string; id: string; children: ReactNode }) {
+export function Field({ label, error, hint, id, required, children }: { label: string; error?: string; hint?: string; id: string; /** shows the red star of a box that must be filled in */ required?: boolean; children: ReactNode }) {
   return (
     <div className="field">
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id}>
+        {label}
+        {required && (
+          <span className="req" aria-hidden="true">
+            {" "}
+            *
+          </span>
+        )}
+      </label>
       {children}
       {error ? (
         <p className="err-text" id={`${id}-err`} role="alert">
@@ -106,7 +114,7 @@ export function useFieldErrors() {
     (e: unknown): Record<string, string> => {
       if (!(e instanceof ApiError) || !e.fields) return {};
       const out: Record<string, string> = {};
-      for (const [k, code] of Object.entries(e.fields)) out[k.replace(/^manual\./, "")] = code === "required" ? t("err.required") : err(code === "invalid" ? "validation" : code);
+      for (const [k, code] of Object.entries(e.fields)) out[k.replace(/^(manual|details)\./, "")] = code === "required" ? t("err.required") : err(code === "invalid" ? "validation" : code);
       return out;
     },
     [err, t],

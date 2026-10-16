@@ -1,12 +1,14 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS } from "@mawah/shared";
-import { isDev, type AppEnv } from "../../../env";
+import { isDev, type AppEnv, type Ctx } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { all } from "../../../lib/db";
 import { HttpError, ok, parseBody } from "../../../lib/http";
 import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_TEST_KEY, mailProblem, sendMail, testMail, type MailLastTest } from "../../../lib/mailer";
-import { emailSchema, textSchema } from "../../../lib/schemas";
+import { emailSchema, langSchema, requiredPhoneSchema, textSchema } from "../../../lib/schemas";
+import { SMS_LAST_KEY, sendSms, smsBalance, smsConfigured, smsEndpoints, type SmsLast } from "../../../lib/sms";
+import { testSms } from "../../../lib/smsText";
 import { getSettings, SETTING_KEYS, setSetting, type SettingKey } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
 import { rateLimit } from "../../../middleware/ratelimit";
@@ -52,6 +54,8 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     emails: z.array(emailSchema).max(5, "too_long").transform((a) => [...new Set(a)]),
     off: z.array(z.enum(NOTIFY_KINDS)).max(NOTIFY_KINDS.length).transform((a) => [...new Set(a)]),
   }),
+  // the sender ID is the short name the SMS company approved for the shop (letters and digits); empty = the company's own default
+  sms: z.object({ enabled: z.boolean(), sender_id: z.string().trim().max(15, "too_long").regex(/^[A-Za-z0-9 ._-]*$/, "invalid_id"), with_email: z.boolean() }),
   onboarding: z.object({ dismissed: z.boolean() }),
 };
 
@@ -136,4 +140,57 @@ settings.post("/settings/email/notify-test", requirePerm("settings:write"), rate
   const results = sent.map((r) => ({ to: r.to, sent: r.result.ok, via_sandbox: !!r.result.viaSandbox, problem: mailProblem(r.result), status: r.result.status ?? null, detail: r.result.detail ?? null }));
   await audit(c, { action: "email.notify_tested", entity: "settings", entityId: "email", meta: { to: results.length, sent: results.filter((r) => r.sent).length } });
   return ok(c, { results, domain: senderDomain(c.env.MAIL_FROM), from: c.env.MAIL_FROM });
+});
+
+/* ------------------------------------------------------------------------------------------------
+ * SMS. A buyer who gave no e-mail is told by text message, and everyone else can be too. From the outside there is no way to tell whether the
+ * SMS company accepts the key, so the owner can ask for the credit left and send ONE test message to a number they type, and read — in plain
+ * words — what the company said. The key itself is never shown or returned: only whether one is set, and the host it goes to.
+ * ---------------------------------------------------------------------------------------------- */
+
+settings.get("/settings/sms", requirePerm("settings:read"), async (c) => {
+  const [last, s] = await Promise.all([c.env.KV.get<SmsLast>(SMS_LAST_KEY, "json"), getSettings(c.env, { fresh: true })]);
+  const configured = smsConfigured(c.env);
+  return ok(c, {
+    configured,
+    key_set: !!c.env.SMS_API_KEY?.trim(),
+    url_set: !!c.env.SMS_API_URL?.trim(),
+    // where messages go, as a host name only (the key is part of some addresses, and never leaves the Worker)
+    host: smsEndpoints(c.env.SMS_API_URL)?.origin.replace(/^https:\/\//, "") ?? null,
+    provider: configured ? "sms" : isDev(c.env) ? "dev-outbox" : "none",
+    enabled: s.sms.enabled,
+    sender_id: s.sms.sender_id,
+    with_email: s.sms.with_email,
+    last,
+  });
+});
+
+/** Both checks cost the shop a request (and a test message costs credit): a few per hour per person. */
+async function underHourlyCap(c: Ctx, name: string, max: number): Promise<void> {
+  const used = `${name}:${c.get("staff")!.id}:${Math.floor(Date.now() / 3_600_000)}`;
+  const count = Number((await c.env.KV.get(used)) ?? 0);
+  if (count >= max) throw new HttpError(429, "rate_limited");
+  await c.env.KV.put(used, String(count + 1), { expirationTtl: 3700 });
+}
+
+settings.post("/settings/sms/balance", requirePerm("settings:write"), rateLimit("RL_FORM"), async (c) => {
+  await underHourlyCap(c, "smsbalance", 20);
+  const r = await smsBalance(c.env);
+  await audit(c, { action: "sms.balance_checked", entity: "settings", entityId: "sms", meta: { ok: r.ok, problem: r.problem ?? null } });
+  // the answer is never `{ ok: false }`: the admin client reads that as a failed request, and the plain-words explanation would never be shown
+  const { ok: read, ...rest } = r;
+  return ok(c, { read, ...rest });
+});
+
+const smsTestSchema = z.object({ to: requiredPhoneSchema, lang: langSchema.default("en") });
+
+settings.post("/settings/sms/test", requirePerm("settings:write"), rateLimit("RL_FORM"), async (c) => {
+  const body = await parseBody(c, smsTestSchema);
+  await underHourlyCap(c, "smstest", 6);
+  const sender = (await getSettings(c.env, { fresh: true })).sms.sender_id;
+  const sent = await sendSms(c.env, { to: body.to, text: testSms(body.lang) }, { sender });
+  // the audit trail records that a test happened and how it ended — never the number or the company's words
+  await audit(c, { action: "sms.tested", entity: "settings", entityId: "sms", meta: { ok: sent.ok, problem: sent.problem ?? null, provider: sent.provider } });
+  const { ok: delivered, ...rest } = sent;
+  return ok(c, { sent: delivered, ...rest, to: body.to });
 });

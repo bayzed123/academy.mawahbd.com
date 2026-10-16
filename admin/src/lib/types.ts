@@ -64,6 +64,7 @@ export interface OrderRow {
   customer_name: string;
   customer_email: string;
   customer_phone: string;
+  customer_address: string;
   note: string;
   created_at: string;
   paid_at: string | null;

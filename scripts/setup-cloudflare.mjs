@@ -58,6 +58,14 @@ const KV_TITLES = [`${WORKER_NAME}-KV`, "KV", "mawah-academy-KV"];
 const R2_NAME = "mawah-academy-media";
 const MIN_SETUP_TOKEN = 12;
 
+/** Optional keys that may come from GitHub secrets (see the "Secrets" step): how each must look, so a pasted-in mistake is refused instead of breaking the site. */
+const OPTIONAL_SECRETS = [
+  { name: "SMS_API_KEY", valid: (v) => /^[\x21-\x7e]{8,200}$/.test(v), hint: "the key from your SMS company's panel, with no spaces" },
+  { name: "SMS_API_URL", valid: (v) => /^https:\/\/[^\s/]+\.[^\s/]+(\/\S*)?$/.test(v), hint: "an https address such as https://msg.mram.com.bd" },
+  { name: "SSLCOMMERZ_STORE_ID", valid: (v) => /^[\x21-\x7e]{3,80}$/.test(v), hint: "the Store ID from the SSLCommerz panel, with no spaces" },
+  { name: "SSLCOMMERZ_STORE_PASSWORD", valid: (v) => /^[\x21-\x7e]{3,120}$/.test(v), hint: "the Store Password from the SSLCommerz panel (not your login password), with no spaces" },
+];
+
 const bold = (s) => `\x1b[1m${s}\x1b[0m`;
 const green = (s) => `\x1b[32m${s}\x1b[0m`;
 const yellow = (s) => `\x1b[33m${s}\x1b[0m`;
@@ -212,6 +220,21 @@ if (has("--secrets")) {
     } else if (key) info(yellow(`the GitHub secret RESEND_API_KEY does not look like a Resend key (they start with re_) — not used${have ? "; the key already on the Worker stays" : ""}`));
     else if (have) info("RESEND_API_KEY is set on the Worker — left untouched (there is no GitHub secret of that name to replace it with)");
     else info(yellow("no RESEND_API_KEY yet — receipts and password-reset e-mails are not sent until you add one: the GitHub secret RESEND_API_KEY, then run Deploy again (docs/deployment.md, section 3a)"));
+  }
+
+  // The other keys the owner may prefer to keep as GitHub secrets: the SMS company's key and address, and the SSLCommerz store ID and password.
+  // Same rule as the e-mail key: a GitHub secret of that name is copied to the Worker at every deploy (so changing it is one edit and one run
+  // of Deploy); with none, whatever is set in Cloudflare is left exactly as it is. Values are checked for shape only and never printed.
+  if (!DRY && CI) {
+    for (const { name, valid, hint } of OPTIONAL_SECRETS) {
+      const have = present.includes(name);
+      const value = (process.env[name] ?? "").trim();
+      if (value && valid(value)) {
+        wrangler(["secret", "put", name], { input: value });
+        info(green(have ? `${name} updated` : `${name} created`) + ` from the GitHub secret ${name} (not shown)`);
+      } else if (value) info(yellow(`the GitHub secret ${name} does not look right (${hint}) — not used${have ? "; the value already on the Worker stays" : ""}`));
+      else if (have) info(`${name} is set on the Worker — left untouched (there is no GitHub secret of that name to replace it with)`);
+    }
   }
 }
 

@@ -5,6 +5,7 @@ import { all, first } from "../../../lib/db";
 import { ok } from "../../../lib/http";
 import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_TEST_KEY } from "../../../lib/mailer";
 import { getSettings } from "../../../lib/settings";
+import { SMS_LAST_KEY, smsConfigured, type SmsLast } from "../../../lib/sms";
 import { requirePerm } from "../../../middleware/auth";
 import { REAL_STUDENT } from "../../../services/guests";
 import { can } from "@mawah/shared";
@@ -30,7 +31,7 @@ const fill = (labels: string[], rows: { period: string; v: number }[]) => {
 
 export type HealthStatus = "ok" | "warn" | "error" | "info";
 export interface HealthCheck {
-  key: "database" | "storage" | "payments" | "email" | "video" | "chatbot" | "security";
+  key: "database" | "storage" | "payments" | "email" | "sms" | "video" | "chatbot" | "security";
   status: HealthStatus;
   /** machine codes the admin UI translates, e.g. ["sslcommerz_keys_missing"] */
   issues: string[];
@@ -95,6 +96,11 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
   else if (lastMailTest && !lastMailTest.sent) mail.push("email_test_failed");
   else if (domainRefused) mail.push("email_domain_unverified"); // Resend refused a message in the last days because the sending domain is not verified
   checks.push({ key: "email", status: mail.length ? "warn" : "ok", issues: mail });
+  // text messages: the secrets are set — and if the last message the company was given did not go through, say so
+  const sms: string[] = [];
+  if (!smsConfigured(env)) sms.push("sms_not_configured");
+  else if ((await env.KV.get<SmsLast>(SMS_LAST_KEY, "json"))?.ok === false) sms.push("sms_last_failed");
+  checks.push({ key: "sms", status: sms.length ? "warn" : "ok", issues: sms });
   checks.push({ key: "video", status: env.STREAM ? "ok" : "warn", issues: env.STREAM ? [] : ["stream_not_configured"] });
 
   const chat: string[] = [];

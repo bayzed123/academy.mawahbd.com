@@ -99,7 +99,7 @@ export function parseTable(input: string, delimiter?: Delimiter): ParsedTable {
 }
 
 /* ============================================================================================ columns */
-export const IMPORT_FIELDS = ["name", "email", "phone", "language", "notes", "classes", "enrolled_on", "amount", "paid_on", "method", "txn_id"] as const;
+export const IMPORT_FIELDS = ["name", "email", "phone", "address", "language", "notes", "classes", "enrolled_on", "amount", "paid_on", "method", "txn_id"] as const;
 export type ImportField = (typeof IMPORT_FIELDS)[number];
 /** One line of the list, as text exactly as it was written in the sheet. */
 export type ImportRowIn = Partial<Record<ImportField, string>>;
@@ -109,6 +109,7 @@ const HEADERS: Record<ImportField, string[]> = {
   name: ["name", "full name", "student", "student name", "নাম", "শিক্ষার্থীর নাম", "ছাত্রের নাম"],
   email: ["email", "e-mail", "email address", "mail", "ইমেইল", "ই-মেইল", "ইমেল", "ইমেইল ঠিকানা"],
   phone: ["phone", "mobile", "mobile number", "phone number", "contact", "whatsapp", "cell", "ফোন", "মোবাইল", "মোবাইল নম্বর", "ফোন নম্বর", "মোবাইল নাম্বার"],
+  address: ["address", "home address", "postal address", "location", "ঠিকানা", "বাসার ঠিকানা", "বর্তমান ঠিকানা"],
   language: ["language", "lang", "locale", "ভাষা"],
   notes: ["notes", "note", "remarks", "remark", "comment", "comments", "নোট", "মন্তব্য"],
   classes: ["classes", "class", "course", "courses", "class name", "class slug", "enrolled in", "ক্লাস", "কোর্স", "ক্লাসের নাম"],
@@ -167,8 +168,8 @@ export function tableToRows(table: string[][], map: ColumnMap): ImportRowIn[] {
 
 /** The header and one example line of the template people download; Excel opens it correctly because of the byte-order mark. */
 export const IMPORT_TEMPLATE = {
-  header: ["name", "email", "phone", "language", "classes", "enrolled_on", "amount", "paid_on", "method", "txn_id", "notes"],
-  example: ["Rina Akter", "rina@example.com", "01712345678", "bn", "beginners-baking-class", "2024-03-15", "1500", "2024-03-15", "bkash", "8N7A6D5E", "Joined by WhatsApp group"],
+  header: ["name", "email", "phone", "address", "language", "classes", "enrolled_on", "amount", "paid_on", "method", "txn_id", "notes"],
+  example: ["Rina Akter", "rina@example.com", "01712345678", "House 12, Road 5, Dhanmondi, Dhaka", "bn", "beginners-baking-class", "2024-03-15", "1500", "2024-03-15", "bkash", "8N7A6D5E", "Joined by WhatsApp group"],
 } as const;
 
 export function templateCsv(): string {
@@ -270,6 +271,8 @@ export function languageFromText(input: string): "bn" | "en" | null {
 /* ============================================================================================ what the Worker answers */
 export type ProblemCode =
   | "required"
+  /** neither an e-mail nor a mobile number: there is no way to tell who the student is */
+  | "needs_contact"
   | "invalid_email"
   | "too_long"
   | "invalid_phone"

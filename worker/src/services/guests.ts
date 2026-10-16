@@ -1,15 +1,19 @@
+import { noEmailAddress } from "@mawah/shared";
 import type { Env, StudentCtx } from "../env";
 import { HttpError } from "../lib/http";
 import { all, first, nowIso, qs, run } from "../lib/db";
 
 /*
- * Buying without an account. The buyer gives a name, a mobile number and an e-mail; the shop makes the student account for them
- * (no password yet, signed in on that phone) and the account becomes a real student the moment the payment arrives. Someone who only
- * started to buy is kept apart: hidden from the student lists and counts, and removed after GUEST_KEEP_DAYS.
+ * Buying without an account. The buyer gives a name, a mobile number and an address — and an e-mail only if they want to; the shop makes
+ * the student account for them (no password yet, signed in on that phone) and the account becomes a real student the moment the payment
+ * arrives. Someone who only started to buy is kept apart: hidden from the student lists and counts, and removed after GUEST_KEEP_DAYS.
  *
- * The one rule that keeps this safe: a buyer is only ever signed in to an account that has nothing in it. An e-mail that already belongs
- * to a student (a password, a class, a payment, an account staff added) is never opened by typing it — that person signs in, or is
- * e-mailed a link.
+ * Who a buyer is: their e-mail when they gave one, otherwise their mobile number (the account is kept under a made-up address, see
+ * noEmailAddress, and the student signs in with the number).
+ *
+ * The one rule that keeps this safe: a buyer is only ever signed in to an account that has nothing in it. An e-mail — or, for a buyer who
+ * gave none, a mobile number — that already belongs to a student (a password, a class, a payment, an account staff added) is never opened
+ * by typing it: that person signs in, or is sent a link (by e-mail, or by text message to that number).
  */
 
 /** How long a visitor who started to buy but never paid keeps a (hidden) account. */
@@ -24,8 +28,10 @@ export const REAL_STUDENT = "(s.source <> 'checkout' OR EXISTS (SELECT 1 FROM en
 
 export interface GuestDetails {
   name: string;
-  email: string;
+  /** absent = the buyer gave none: their mobile number is who they are */
+  email?: string;
   phone: string;
+  address: string;
   lang: "bn" | "en";
 }
 
@@ -34,8 +40,8 @@ export type GuestAccount =
   | { kind: "new"; student: StudentCtx }
   /** the e-mail belonged to an earlier visitor who never paid and has nothing in the account: the same account, with the details just typed */
   | { kind: "again"; student: StudentCtx }
-  /** a real student owns this e-mail: nothing is opened, the buyer must sign in or be sent a link */
-  | { kind: "exists"; hasPassword: boolean };
+  /** a real student owns this e-mail (or this number, for a buyer who gave no e-mail): nothing is opened, the buyer must sign in or be sent a link */
+  | { kind: "exists"; hasPassword: boolean; by: "email" | "phone" };
 
 interface Existing {
   id: number;
@@ -46,20 +52,20 @@ interface Existing {
   settled: number;
 }
 
-const find = (env: Env, email: string) =>
-  first<Existing>(
-    env.DB,
-    `SELECT s.id, s.source, s.blocked, (s.password_hash IS NOT NULL OR s.google_sub IS NOT NULL) AS has_password,
+const SELECT_ACCOUNT = `SELECT s.id, s.source, s.blocked, (s.password_hash IS NOT NULL OR s.google_sub IS NOT NULL) AS has_password,
             (SELECT COUNT(*) FROM enrollments e WHERE e.student_id = s.id) AS enrolled,
             (SELECT COUNT(*) FROM orders o WHERE o.student_id = s.id AND o.status IN ('paid','awaiting_verification','refunded')) AS settled
-     FROM students s WHERE s.email = ?`,
-    email,
-  );
+     FROM students s`;
 
-/** An account nobody has used: made at checkout, no password, no class, no payment sent or settled. Only such an account may be opened by typing its e-mail. */
+const find = (env: Env, email: string) => first<Existing>(env.DB, `${SELECT_ACCOUNT} WHERE s.email = ?`, email);
+/** Every account that has this mobile number (a few families share one): a handful at most. */
+const findByPhone = (env: Env, phone: string) => all<Existing>(env.DB, `${SELECT_ACCOUNT} WHERE s.phone = ? LIMIT 20`, phone);
+
+/** An account nobody has used: made at checkout, no password, no class, no payment sent or settled. Only such an account may be opened by typing its e-mail (or number). */
 const nothingInIt = (r: Existing) => r.source === "checkout" && !r.has_password && !r.blocked && r.enrolled === 0 && r.settled === 0;
 
-const ctx = (id: number, d: GuestDetails): StudentCtx => ({ id, name: d.name, email: d.email, phone: d.phone, locale: d.lang, has_password: false });
+/** The account as the rest of the Worker sees it. `key` is what the account is stored under: the e-mail, or the made-up address of a buyer who gave none. */
+const ctx = (id: number, key: string, d: GuestDetails): StudentCtx => ({ id, name: d.name, email: key, phone: d.phone, address: d.address, locale: d.lang, has_password: false });
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -80,43 +86,51 @@ async function countNewAccount(env: Env, ip: string): Promise<void> {
  * `ip` is the visitor's address, for the daily cap on new accounts.
  */
 export async function resolveGuestAccount(env: Env, d: GuestDetails, ip: string): Promise<GuestAccount> {
+  const key = d.email ?? noEmailAddress(d.phone);
+  const by = d.email ? "email" : "phone";
   for (let attempt = 0; attempt < 2; attempt++) {
-    const row = await find(env, d.email);
+    const row = await find(env, key);
     if (row) {
-      if (!nothingInIt(row)) return { kind: "exists", hasPassword: !!row.has_password };
+      if (!nothingInIt(row)) return { kind: "exists", hasPassword: !!row.has_password, by };
       const now = nowIso();
       // the same visitor coming back (maybe on another phone): take the details they typed now, and let go of the unpaid send-money attempts
       // they left behind, so the number they said they would pay from is not shown to whoever types this e-mail next. (An attempt that is
       // waiting at a payment gateway is left alone: the payment may still arrive, and the housekeeping job closes it after two days.)
       await env.DB.batch([
-        env.DB.prepare("UPDATE students SET name = ?, phone = ?, locale = ?, last_login_at = ?, updated_at = ? WHERE id = ?").bind(d.name, d.phone, d.lang, now, now, row.id),
+        env.DB.prepare("UPDATE students SET name = ?, phone = ?, address = ?, locale = ?, last_login_at = ?, updated_at = ? WHERE id = ?").bind(d.name, d.phone, d.address, d.lang, now, now, row.id),
         env.DB.prepare("UPDATE orders SET status = 'cancelled', note = 'superseded', payer_number = NULL, updated_at = ? WHERE student_id = ? AND status = 'pending' AND gateway = 'manual'").bind(now, row.id),
       ]);
-      return { kind: "again", student: ctx(row.id, d) };
+      return { kind: "again", student: ctx(row.id, key, d) };
+    }
+    // a buyer who gave no e-mail is their number: a number that already belongs to a real student is not a second, empty identity for it
+    if (!d.email) {
+      const onThisNumber = await findByPhone(env, d.phone);
+      if (onThisNumber.some((r) => !nothingInIt(r))) return { kind: "exists", hasPassword: onThisNumber.some((r) => !!r.has_password), by };
     }
     if (!(await underDailyCap(env, ip))) throw new HttpError(429, "rate_limited");
     const now = nowIso();
     try {
       const res = await run(
         env.DB,
-        `INSERT INTO students (email, name, phone, password_hash, locale, source, marketing_opt_in, last_login_at, created_at, updated_at)
-         VALUES (?, ?, ?, NULL, ?, 'checkout', 0, ?, ?, ?)`,
-        d.email,
+        `INSERT INTO students (email, name, phone, address, password_hash, locale, source, marketing_opt_in, last_login_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?, NULL, ?, 'checkout', 0, ?, ?, ?)`,
+        key,
         d.name,
         d.phone,
+        d.address,
         d.lang,
         now,
         now,
         now,
       );
       await countNewAccount(env, ip);
-      return { kind: "new", student: ctx(res.meta.last_row_id as number, d) };
+      return { kind: "new", student: ctx(res.meta.last_row_id as number, key, d) };
     } catch (err) {
       // a double click (or a second tab) made the account a moment earlier: look again
       if (!String(err).includes("UNIQUE")) throw err;
     }
   }
-  throw new HttpError(409, "account_exists", "account_exists", { email: "account_exists" });
+  throw new HttpError(409, "account_exists", "account_exists", { [by]: "account_exists" });
 }
 
 /**

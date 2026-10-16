@@ -1,21 +1,23 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { IMPORT_FIELDS, IMPORT_MAX_ROWS, MAX_PAST_AMOUNT, PAST_METHODS, parseStudentCode, STUDENT_SOURCES, studentCode } from "@mawah/shared";
+import { IMPORT_FIELDS, IMPORT_MAX_ROWS, isNoEmail, MAX_PAST_AMOUNT, noEmailAddress, PAST_METHODS, parseStudentCode, shownEmail, STUDENT_SOURCES, studentCode } from "@mawah/shared";
 import type { AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { csvResponse, toCsv } from "../../../lib/csv";
 import { all, first, likeEscape, nowIso, pageInfo, pageParams, run } from "../../../lib/db";
 import { conflict, HttpError, intParam, notFound, ok, parseBody } from "../../../lib/http";
-import { passwordResetMail, sendMail } from "../../../lib/mailer";
-import { emailSchema, idSchema, langSchema, nameSchema, phoneSchema, textSchema } from "../../../lib/schemas";
+import { passwordResetMail } from "../../../lib/mailer";
+import { resetSms } from "../../../lib/smsText";
+import { emailSchema, idSchema, langSchema, nameSchema, optionalEmailSchema, phoneSchema, textSchema } from "../../../lib/schemas";
 import { requirePerm } from "../../../middleware/auth";
 import { createPasswordResetLink } from "../../../services/auth";
 import { analyzeRows, commitRows, createStudent, grantAccess, inviteStudent, summarize } from "../../../services/students";
 import { REAL_STUDENT } from "../../../services/guests";
+import { tellStudent } from "../../../services/studentMessages";
 
 export const students = new Hono<AppEnv>();
 
-const LIST_COLS = `s.id, s.name, s.email, s.phone, s.locale, s.blocked, s.source, s.notes, s.created_at, s.last_login_at,
+const LIST_COLS = `s.id, s.name, s.email, s.phone, s.address, s.locale, s.blocked, s.source, s.notes, s.created_at, s.last_login_at,
   (SELECT COUNT(*) FROM enrollments e WHERE e.student_id = s.id AND e.status = 'active') AS enrollments,
   (SELECT COUNT(*) FROM orders o WHERE o.student_id = s.id AND o.status = 'paid') AS orders,
   (SELECT COALESCE(SUM(o.total), 0) FROM orders o WHERE o.student_id = s.id AND o.status = 'paid') AS spent`;
@@ -53,13 +55,14 @@ students.get("/students", requirePerm("students:read"), async (c) => {
     all(c.env.DB, `SELECT ${LIST_COLS} FROM students s WHERE ${f.where} ORDER BY ${f.order} LIMIT ? OFFSET ?`, ...f.params, per_page, offset),
     first<{ n: number }>(c.env.DB, `SELECT COUNT(*) AS n FROM students s WHERE ${f.where}`, ...f.params),
   ]);
-  return ok(c, { items: rows, page: pageInfo(page, per_page, total?.n ?? 0) });
+  // a buyer who gave no e-mail is kept under a made-up address: the lists say "no e-mail" (empty), never that address
+  return ok(c, { items: rows.map((r) => ({ ...r, email: shownEmail((r as { email: string }).email) })), page: pageInfo(page, per_page, total?.n ?? 0) });
 });
 
 students.get("/students/export.csv", requirePerm("students:read"), async (c) => {
   const f = filters(c.req.query());
   const found = await all<Record<string, unknown>>(c.env.DB, `SELECT ${LIST_COLS} FROM students s WHERE ${f.where} ORDER BY ${f.order} LIMIT 5000`, ...f.params);
-  const rows = found.map((r) => ({ ...r, code: studentCode(r.id as number) }));
+  const rows = found.map((r) => ({ ...r, email: shownEmail(r.email as string), code: studentCode(r.id as number) }));
   return csvResponse(
     "students",
     toCsv(rows, [
@@ -67,6 +70,7 @@ students.get("/students/export.csv", requirePerm("students:read"), async (c) => 
       { key: "name", label: "Name" },
       { key: "email", label: "Email" },
       { key: "phone", label: "Phone" },
+      { key: "address", label: "Address" },
       { key: "locale", label: "Language" },
       { key: "source", label: "How they joined" },
       { key: "enrollments", label: "Active classes" },
@@ -84,10 +88,11 @@ students.get("/students/:id", requirePerm("students:read"), async (c) => {
   const id = intParam(c, "id");
   const student = await first(
     c.env.DB,
-    "SELECT id, name, email, phone, locale, blocked, blocked_reason, email_verified_at, marketing_opt_in, source, notes, created_at, last_login_at, (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password FROM students WHERE id = ?",
+    "SELECT id, name, email, phone, address, locale, blocked, blocked_reason, email_verified_at, marketing_opt_in, source, notes, created_at, last_login_at, (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password FROM students WHERE id = ?",
     id,
   );
   if (!student) throw notFound();
+  (student as { email: string }).email = shownEmail((student as { email: string }).email);
   const [enrollments, orders, reviews, questions] = await Promise.all([
     all(
       c.env.DB,
@@ -110,7 +115,7 @@ students.get("/students/:id", requirePerm("students:read"), async (c) => {
 });
 
 const editable = z
-  .object({ name: nameSchema, email: emailSchema, phone: phoneSchema, locale: langSchema, notes: textSchema(500), marketing_opt_in: z.boolean() })
+  .object({ name: nameSchema, email: emailSchema, phone: phoneSchema, address: textSchema(300), locale: langSchema, notes: textSchema(500), marketing_opt_in: z.boolean() })
   .partial();
 
 students.patch("/students/:id", requirePerm("students:write"), async (c) => {
@@ -138,7 +143,7 @@ students.patch("/students/:id", requirePerm("students:write"), async (c) => {
     }
   }
   // an address change decides who can sign in to the account, so the trail says from what to what
-  await audit(c, { action: "student.updated", entity: "student", entityId: id, meta: { fields: Object.keys(body), ...(changedEmail ? { email_from: current.email, email_to: body.email } : {}) } });
+  await audit(c, { action: "student.updated", entity: "student", entityId: id, meta: { fields: Object.keys(body), ...(changedEmail ? { email_from: shownEmail(current.email) || "(none)", email_to: body.email } : {}) } });
   return ok(c);
 });
 
@@ -160,16 +165,20 @@ students.post("/students/:id/unblock", requirePerm("students:write"), async (c) 
   return ok(c);
 });
 
-/** Support tool: e-mails the student a fresh 1-hour reset link (the admin never sees or sets their password). */
+/**
+ * Support tool: sends the student a fresh 1-hour reset link (the admin never sees or sets their password) — by e-mail, or by text message to
+ * their mobile number when they gave no e-mail.
+ */
 students.post("/students/:id/send-reset", requirePerm("students:write"), async (c) => {
   const id = intParam(c, "id");
-  const student = await first<{ id: number; email: string; locale: "bn" | "en"; blocked: number }>(c.env.DB, "SELECT id, email, locale, blocked FROM students WHERE id = ?", id);
+  const student = await first<{ id: number; email: string; phone: string | null; locale: "bn" | "en"; blocked: number }>(c.env.DB, "SELECT id, email, phone, locale, blocked FROM students WHERE id = ?", id);
   if (!student) throw notFound();
   if (student.blocked) throw new HttpError(409, "account_blocked");
   const link = await createPasswordResetLink(c.env, id);
-  const sent = await sendMail(c.env, { to: student.email, ...passwordResetMail(student.locale, link) });
-  await audit(c, { action: "student.reset_sent", entity: "student", entityId: id, meta: { ok: sent.ok } });
-  return ok(c, { sent: sent.ok });
+  const told = await tellStudent(c.env, student, { mail: passwordResetMail(student.locale, link), sms: resetSms(student.locale, { link }) }, { smsAlso: isNoEmail(student.email) });
+  const sent = !!(told.mail?.ok || told.sms?.ok);
+  await audit(c, { action: "student.reset_sent", entity: "student", entityId: id, meta: { ok: sent, by: told.mail ? "email" : told.sms ? "sms" : "none" } });
+  return ok(c, { sent });
 });
 
 const courseRef = z.object({ course_id: z.number().int().positive() });
@@ -196,8 +205,10 @@ const accessInput = (b: AccessBody, extra: number[] = []) => ({
 
 const createSchema = z.object({
   name: nameSchema,
-  email: emailSchema,
+  /** may be left out when there is a mobile number: the student is then known — and signs in — by that number */
+  email: optionalEmailSchema,
   phone: phoneSchema,
+  address: textSchema(300).default(""),
   locale: langSchema.default("bn"),
   notes: textSchema(500).default(""),
   marketing_opt_in: z.boolean().default(false),
@@ -207,7 +218,9 @@ const createSchema = z.object({
 /** A student the owner adds by hand (someone who studied before the website, or paid in cash), optionally with classes and the payment already made. */
 students.post("/students", requirePerm("students:write"), async (c) => {
   const b = await parseBody(c, createSchema);
-  const made = await createStudent(c.env, { name: b.name, email: b.email, phone: b.phone ?? null, locale: b.locale, notes: b.notes, marketing: b.marketing_opt_in }, accessInput(b));
+  if (!b.email && !b.phone) throw new HttpError(422, "validation", "validation", { email: "needs_contact" });
+  const key = b.email ?? noEmailAddress(b.phone!);
+  const made = await createStudent(c.env, { name: b.name, email: key, phone: b.phone ?? null, address: b.address, locale: b.locale, notes: b.notes, marketing: b.marketing_opt_in }, accessInput(b));
   await audit(c, { action: "student.created", entity: "student", entityId: made.id, meta: { classes: made.granted, paid: !!b.payment?.amount } });
   return ok(c, { id: made.id, granted: made.granted }, 201);
 });
@@ -233,9 +246,9 @@ students.post("/students/:id/enroll", requirePerm("students:write"), async (c) =
 /** Gives the student a way in: an e-mail with a link to choose a password, or the link itself for staff to pass on (valid for three days). */
 students.post("/students/:id/invite", requirePerm("students:write"), async (c) => {
   const id = intParam(c, "id");
-  const b = await parseBody(c, z.object({ mode: z.enum(["email", "link"]) }));
+  const b = await parseBody(c, z.object({ mode: z.enum(["email", "sms", "link"]) }));
   const r = await inviteStudent(c.env, id, b.mode);
-  await audit(c, { action: b.mode === "link" ? "student.invite_link" : "student.invite_mail", entity: "student", entityId: id, meta: { sent: r.sent ?? null } });
+  await audit(c, { action: b.mode === "link" ? "student.invite_link" : b.mode === "sms" ? "student.invite_sms" : "student.invite_mail", entity: "student", entityId: id, meta: { sent: r.sent ?? null } });
   c.header("Cache-Control", "no-store");
   return ok(c, r);
 });

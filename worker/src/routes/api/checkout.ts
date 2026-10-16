@@ -1,14 +1,15 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
-import { formatMoney, MAX_PROOF_IMAGE_BYTES, type Channel, type QuoteDTO } from "@mawah/shared";
+import { formatMoney, isNoEmail, MAX_PROOF_IMAGE_BYTES, type Channel, type QuoteDTO } from "@mawah/shared";
 import type { AppEnv, Ctx, StudentCtx } from "../../env";
 import { audit } from "../../lib/audit";
-import { first, run } from "../../lib/db";
+import { first, nowIso, run } from "../../lib/db";
 import { HttpError, ok, parseBody } from "../../lib/http";
-import { manualPaymentReceivedMail, sendMail } from "../../lib/mailer";
+import { manualPaymentReceivedMail } from "../../lib/mailer";
 import { toMe } from "../../lib/me";
-import { emailSchema, langSchema, nameSchema, requiredPhoneSchema, turnstileField } from "../../lib/schemas";
+import { addressSchema, langSchema, nameSchema, optionalEmailSchema, requiredPhoneSchema, turnstileField } from "../../lib/schemas";
+import { proofReceivedSms } from "../../lib/smsText";
 import { createSession } from "../../lib/session";
 import { getSettings } from "../../lib/settings";
 import { verifyTurnstile } from "../../lib/turnstile";
@@ -16,6 +17,7 @@ import { loadStudent, requireStudent } from "../../middleware/auth";
 import { rateLimit } from "../../middleware/ratelimit";
 import { buildQuote, cancelReplacedManualOrders, closeOrder, createOrder, markOrderPaid, notifyProof, saveProofImage, submitManualProof, type ManualProof, type Quote } from "../../services/orders";
 import { resolveGuestAccount } from "../../services/guests";
+import { tellStudent } from "../../services/studentMessages";
 import { availableChannels, manualPayInfo } from "../../services/payments";
 import { bkashCreate } from "../../services/payments/bkash";
 import { sslInit } from "../../services/payments/sslcommerz";
@@ -42,6 +44,8 @@ const checkoutSchema = z.object({
   bundle_id: z.coerce.number().int().positive().optional(),
   coupon: z.string().trim().max(40).optional(),
   channel: z.enum(["sslcommerz", "bkash", "manual", "mock"]).optional(),
+  // a signed-in student whose profile has no mobile number or address yet gives them here; they are kept on the profile
+  details: z.object({ phone: requiredPhoneSchema.optional(), address: addressSchema.optional() }).optional(),
   manual: z
     .object({
       method: z.enum(["bkash", "nagad", "rocket"], { error: "required" }),
@@ -52,11 +56,12 @@ const checkoutSchema = z.object({
     .optional(),
 });
 
-/** The same, from someone who is not signed in: who they are comes with it. */
+/** The same, from someone who is not signed in: who they are comes with it. Name, mobile number and address are needed; the e-mail is up to them. */
 const guestSchema = checkoutSchema.extend({
   name: nameSchema,
-  email: emailSchema,
+  email: optionalEmailSchema,
   phone: requiredPhoneSchema,
+  address: addressSchema,
   lang: langSchema.optional().default("bn"),
   turnstile: turnstileField,
 });
@@ -131,7 +136,7 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
     await audit(c, { action: withProof ? "checkout.manual_submitted" : "checkout.manual_started", entity: "order", entityId: order.id, meta: { method: proof.method } });
     if (withProof) {
       const mail = manualPaymentReceivedMail(student.locale, { name: student.name, total: formatMoney(quote.total, student.locale) });
-      c.executionCtx.waitUntil(sendMail(c.env, { to: student.email, ...mail }));
+      c.executionCtx.waitUntil(tellStudent(c.env, student, { mail, sms: proofReceivedSms(student.locale, { total: quote.total }) }, { capped: true }).then(() => undefined));
       c.executionCtx.waitUntil(notifyProof(c.env, order.id));
     }
     const created = await first<{ pay_by: string }>(c.env.DB, "SELECT pay_by FROM orders WHERE id = ?", order.id);
@@ -143,11 +148,13 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
   try {
     let redirectUrl: string;
     if (channel === "sslcommerz") {
-      const r = await sslInit(c.env, { public_id: order.public_id, total: quote.total }, { name: student.name, email: student.email, phone: student.phone ?? "" }, summary);
+      // the gateway wants an e-mail address: a buyer who gave none is sent through with the shop's own
+      const gatewayEmail = isNoEmail(student.email) ? c.env.NOTIFY_EMAIL?.trim() || "customer@mawahacademy.com" : student.email;
+      const r = await sslInit(c.env, { public_id: order.public_id, total: quote.total }, { name: student.name, email: gatewayEmail, phone: student.phone ?? "", address: student.address ?? "" }, summary);
       redirectUrl = r.redirectUrl;
       await run(c.env.DB, "UPDATE orders SET gateway_ref = ? WHERE id = ?", r.sessionKey, order.id);
     } else if (channel === "bkash") {
-      const r = await bkashCreate(c.env, { public_id: order.public_id, total: quote.total }, student.email);
+      const r = await bkashCreate(c.env, { public_id: order.public_id, total: quote.total }, isNoEmail(student.email) ? (student.phone ?? "student") : student.email);
       redirectUrl = r.redirectUrl;
       await run(c.env.DB, "UPDATE orders SET gateway_ref = ? WHERE id = ?", r.paymentId, order.id);
     } else {
@@ -161,11 +168,29 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
   }
 }
 
+/**
+ * A signed-in student's mobile number and address must be on file before they buy (the shop writes them on the order). Someone who has
+ * them is not asked; someone who has not gives them here, and they are kept on the profile.
+ */
+async function withDetails(c: Ctx, student: StudentCtx, details: Cart["details"]): Promise<StudentCtx> {
+  const phone = details?.phone ?? student.phone ?? null;
+  const address = details?.address ?? student.address ?? "";
+  const missing: Record<string, string> = {};
+  if (!phone) missing.phone = "required";
+  if (!address) missing.address = "required";
+  if (Object.keys(missing).length) throw new HttpError(422, "validation", "validation", missing);
+  if (phone !== student.phone || address !== (student.address ?? "")) {
+    await run(c.env.DB, "UPDATE students SET phone = ?, address = ?, updated_at = ? WHERE id = ?", phone, address, nowIso(), student.id);
+  }
+  return { ...student, phone, address };
+}
+
 /** A signed-in student buys. */
 checkoutRoutes.post("/", requireStudent, async (c) => {
   const body = await parseBody(c, checkoutSchema);
   const student = c.get("student")!;
-  return place(c, student, body, await prepare(c, body, student.id), {});
+  const prepared = await prepare(c, body, student.id);
+  return place(c, await withDetails(c, student, body.details), body, prepared, {});
 });
 
 /**
@@ -177,16 +202,20 @@ checkoutRoutes.post("/", requireStudent, async (c) => {
 checkoutRoutes.post("/guest", loadStudent, async (c) => {
   const body = await parseBody(c, guestSchema);
   const signedIn = c.get("student");
-  // already a student (say, signed in from another tab): the details typed here are not needed
-  if (signedIn) return place(c, signedIn, body, await prepare(c, body, signedIn.id), {});
+  // already a student (say, signed in from another tab): the details typed here fill in what their profile lacks
+  if (signedIn) {
+    const prepared = await prepare(c, body, signedIn.id);
+    return place(c, await withDetails(c, signedIn, { phone: signedIn.phone ? undefined : body.phone, address: signedIn.address ? undefined : body.address }), body, prepared, {});
+  }
 
   if (!(await verifyTurnstile(c.env, body.turnstile, c.get("ip")))) throw new HttpError(400, "captcha");
   // the basket and the way of paying must be good before an account is made for them
   await prepare(c, body, null);
 
-  const found = await resolveGuestAccount(c.env, { name: body.name, email: body.email, phone: body.phone, lang: body.lang }, c.get("ip"));
+  const found = await resolveGuestAccount(c.env, { name: body.name, email: body.email, phone: body.phone, address: body.address, lang: body.lang }, c.get("ip"));
   if (found.kind === "exists") {
-    throw new HttpError(409, "account_exists", "account_exists", { email: found.hasPassword ? "account_exists" : "account_exists_link" });
+    // which of the two said who they are (the e-mail, or — with no e-mail — the number) is the field the buyer is told about
+    throw new HttpError(409, "account_exists", "account_exists", { [found.by]: found.hasPassword ? "account_exists" : "account_exists_link" });
   }
   const student = found.student;
   await createSession(c, "student", student.id);
@@ -205,7 +234,8 @@ checkoutRoutes.post("/:publicId/proof", requireStudent, async (c) => {
   const order = await first<{ total: number; method: string | null; status: string }>(c.env.DB, "SELECT total, method, status FROM orders WHERE id = ?", id);
   if (firstProof && order) {
     const mail = manualPaymentReceivedMail(student.locale, { name: student.name, total: formatMoney(order.total, student.locale) });
-    c.executionCtx.waitUntil(sendMail(c.env, { to: student.email, ...mail }));
+    // the text goes to whatever number was typed at checkout, before any money is proven: it is capped like the other texts a visitor can set off
+    c.executionCtx.waitUntil(tellStudent(c.env, student, { mail, sms: proofReceivedSms(student.locale, { total: order.total }) }, { capped: true }).then(() => undefined));
     c.executionCtx.waitUntil(notifyProof(c.env, id));
   }
   return ok(c, { order: { public_id: publicId, status: order?.status ?? "awaiting_verification" } });

@@ -92,8 +92,8 @@ export function Login() {
             {error}
           </div>
         )}
-        <Field id="email" label={t("label.email")} error={fields.email}>
-          <TextInput id="email" type="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} error={fields.email} />
+        <Field id="email" label={t("app.login.identifier")} hint={t("app.login.identifierHint")} error={fields.identifier ?? fields.email}>
+          <TextInput id="email" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} error={fields.identifier ?? fields.email} />
         </Field>
         <Field id="password" label={t("label.password")} error={fields.password}>
           <TextInput id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} error={fields.password} />
@@ -207,7 +207,7 @@ export function Forgot() {
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     void run(async () => {
-      await api("/auth/forgot", { json: { email: email.trim(), lang, turnstile: token || undefined } });
+      await api("/auth/forgot", { json: { identifier: email.trim(), lang, turnstile: token || undefined } });
       setSent(true);
     });
   };
@@ -229,8 +229,8 @@ export function Forgot() {
               {error}
             </div>
           )}
-          <Field id="email" label={t("label.email")} error={fields.email}>
-            <TextInput id="email" type="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} error={fields.email} />
+          <Field id="email" label={t("app.login.identifier")} error={fields.identifier ?? fields.email}>
+            <TextInput id="email" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} error={fields.identifier ?? fields.email} />
           </Field>
           {site.data?.turnstile_site_key && <Turnstile siteKey={site.data.turnstile_site_key} onToken={setToken} />}
           <Button className="btn-primary btn-block btn-lg" type="submit" busy={busy}>
