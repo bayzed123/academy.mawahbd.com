@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { deflateSync } from "node:zlib";
 import { expect, type BrowserContext, type Page } from "@playwright/test";
 
 /** Throwaway owner account for the local test database. The password is generated per run (playwright.config.ts) — nothing is stored. */
@@ -25,6 +26,54 @@ export const uniqueEmail = (prefix: string) => `${prefix}${Date.now().toString(3
 
 /** A real, valid 2x2 PNG (magic bytes the server checks). */
 export const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEklEQVR4nGP4z8Dwn+E/w38AEAAB/wGJp5ySAAAAAElFTkSuQmCC", "base64");
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+const crc32 = (buf: Buffer) => {
+  let c = 0xffffffff;
+  for (const b of buf) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+};
+const pngChunk = (type: string, data: Buffer) => {
+  const body = Buffer.concat([Buffer.from(type, "latin1"), data]);
+  const len = Buffer.alloc(4);
+  len.writeUInt32BE(data.length);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(body));
+  return Buffer.concat([len, body, crc]);
+};
+
+/**
+ * A real photo-sized PNG: a colour gradient with a little noise, so the browser's WebP copy is clearly smaller than the file and the
+ * picture is cut down to the sizes the site stores. A different `seed` is a different picture (so a different stored name).
+ */
+export function photoPng(width: number, height: number, seed: number) {
+  const stride = width * 3 + 1;
+  const raw = Buffer.alloc(stride * height);
+  let rnd = Math.imul(seed + 1, 2654435761) >>> 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      rnd = (Math.imul(rnd, 1664525) + 1013904223) >>> 0;
+      const noise = (rnd >>> 24) % 24;
+      const at = y * stride + 1 + x * 3;
+      raw[at] = (((x * 255) / width) + seed * 60 + noise) & 255;
+      raw[at + 1] = (((y * 255) / height) + noise) & 255;
+      raw[at + 2] = ((((x + y) * 255) / (width + height)) + seed * 90 + noise) & 255;
+    }
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; // bits per channel
+  ihdr[9] = 2; // colour type: RGB
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), pngChunk("IHDR", ihdr), pngChunk("IDAT", deflateSync(raw)), pngChunk("IEND", Buffer.alloc(0))]);
+}
 export const PDF = Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
 
 export async function registerStudent(page: Page, opts: { name?: string; email?: string; password?: string } = {}) {

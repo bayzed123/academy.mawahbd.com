@@ -6,6 +6,8 @@ import { all } from "../lib/db";
 export interface GalleryImageDTO {
   id: number;
   image_key: string;
+  /** a small copy for the grid (NULL: the large one is used there too) */
+  thumb_key: string | null;
   caption_bn: string;
   caption_en: string;
 }
@@ -14,7 +16,7 @@ export interface GalleryImageDTO {
 export async function galleryFor(env: Env, courseId: number): Promise<GalleryImageDTO[]> {
   return all<GalleryImageDTO>(
     env.DB,
-    "SELECT id, image_key, caption_bn, caption_en FROM course_images WHERE course_id = ? ORDER BY sort, id LIMIT ?",
+    "SELECT id, image_key, thumb_key, caption_bn, caption_en FROM course_images WHERE course_id = ? ORDER BY sort, id LIMIT ?",
     courseId,
     MAX_CLASS_PICTURES,
   );

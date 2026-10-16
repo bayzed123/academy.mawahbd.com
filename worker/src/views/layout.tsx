@@ -1,7 +1,7 @@
 import { raw } from "hono/html";
 import { loc } from "@mawah/shared";
 import { turnstileEnabled } from "../lib/turnstile";
-import { BANNERS_JS, CSS, HAS_OG_IMAGE, SITE_JS } from "../generated/assets";
+import { BANNERS_JS, CSS, GALLERY_JS, HAS_OG_IMAGE, SITE_JS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
@@ -21,6 +21,8 @@ export interface LayoutProps {
   hasBuybar?: boolean;
   /** the page has a banner slider: load the script that moves it */
   slider?: boolean;
+  /** the page has pictures to look at large (a class with more than its main picture): load the viewer's script */
+  gallery?: boolean;
   /** shows/hides the site chrome (certificate & invoice documents print without it) */
   chrome?: boolean;
   children?: unknown;
@@ -324,6 +326,7 @@ export function Layout(props: LayoutProps) {
         {chrome && ctx.popup && <OfferPopup ctx={ctx} banner={ctx.popup} />}
         <script src={SITE_JS} defer />
         {((chrome && ctx.popup) || props.slider) && <script src={BANNERS_JS} defer />}
+        {props.gallery && <script src={GALLERY_JS} defer />}
       </body>
     </html>
   );

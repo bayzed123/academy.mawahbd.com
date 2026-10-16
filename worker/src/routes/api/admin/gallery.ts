@@ -21,7 +21,8 @@ const imageKey = z
   .max(200)
   .regex(/^(gallery|photos|banners)\/[a-f0-9]{16,64}\.(png|jpe?g|webp|avif)$/, "invalid_image");
 
-const addSchema = z.object({ image_key: imageKey, caption_bn: textSchema(160), caption_en: textSchema(160) });
+// `thumb_key`: the small copy the browser made for the grid (the large one is used there when it is missing)
+const addSchema = z.object({ image_key: imageKey, thumb_key: imageKey.optional(), caption_bn: textSchema(160), caption_en: textSchema(160) });
 const captionSchema = z.object({ caption_bn: textSchema(160), caption_en: textSchema(160) });
 const orderSchema = z.object({ ids: z.array(z.number().int().positive()).min(1).max(MAX_CLASS_PICTURES) });
 
@@ -29,6 +30,7 @@ interface ImageRow {
   id: number;
   course_id: number;
   image_key: string;
+  thumb_key: string | null;
   caption_bn: string;
   caption_en: string;
   sort: number;
@@ -42,7 +44,7 @@ async function requireCourse(c: Ctx, id: number): Promise<{ id: number; title_en
 }
 
 const list = (c: Ctx, courseId: number) =>
-  all<ImageRow>(c.env.DB, "SELECT id, course_id, image_key, caption_bn, caption_en, sort, created_at FROM course_images WHERE course_id = ? ORDER BY sort, id", courseId);
+  all<ImageRow>(c.env.DB, "SELECT id, course_id, image_key, thumb_key, caption_bn, caption_en, sort, created_at FROM course_images WHERE course_id = ? ORDER BY sort, id", courseId);
 
 gallery.get("/courses/:id/images", requirePerm("courses:read"), async (c) => {
   const course = await requireCourse(c, intParam(c, "id"));
@@ -54,20 +56,22 @@ gallery.post("/courses/:id/images", requirePerm("courses:write"), async (c) => {
   const body = await parseBody(c, addSchema);
   // only a picture the upload endpoint really stored (a made-up key would show a broken picture to every visitor)
   if (!(await c.env.R2.head(body.image_key))) throw new HttpError(422, "validation", "validation", { image_key: "invalid_image" });
+  if (body.thumb_key && !(await c.env.R2.head(body.thumb_key))) throw new HttpError(422, "validation", "validation", { thumb_key: "invalid_image" });
   const count = (await first<{ n: number; top: number | null }>(c.env.DB, "SELECT COUNT(*) AS n, MAX(sort) AS top FROM course_images WHERE course_id = ?", course.id)) ?? { n: 0, top: null };
   if (count.n >= MAX_CLASS_PICTURES) throw conflict("gallery_full");
   const res = await run(
     c.env.DB,
-    "INSERT INTO course_images (course_id, image_key, caption_bn, caption_en, sort) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO course_images (course_id, image_key, thumb_key, caption_bn, caption_en, sort) VALUES (?, ?, ?, ?, ?, ?)",
     course.id,
     body.image_key,
+    body.thumb_key ?? null,
     body.caption_bn,
     body.caption_en,
     (count.top ?? 0) + 10,
   );
   await bumpContentVersion(c.env);
   await audit(c, { action: "gallery.added", entity: "course", entityId: course.id, summary: course.title_en });
-  const item = await first<ImageRow>(c.env.DB, "SELECT id, course_id, image_key, caption_bn, caption_en, sort, created_at FROM course_images WHERE id = ?", res.meta.last_row_id as number);
+  const item = await first<ImageRow>(c.env.DB, "SELECT id, course_id, image_key, thumb_key, caption_bn, caption_en, sort, created_at FROM course_images WHERE id = ?", res.meta.last_row_id as number);
   return ok(c, { item }, 201);
 });
 

@@ -77,6 +77,17 @@ export interface OrderRow {
   has_proof_image: number;
 }
 
+/** One extra picture of a class (Admin → a class → Pictures). */
+export interface ClassPicture {
+  id: number;
+  course_id: number;
+  image_key: string;
+  thumb_key: string | null;
+  caption_bn: string;
+  caption_en: string;
+  sort: number;
+}
+
 export interface Option {
   value: string;
   label: string;
