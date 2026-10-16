@@ -35,6 +35,13 @@ const admin = { ...common.en, ...adminDict.en };
 const app = { ...common.en, ...appDict.en };
 const need = (dict, label, keys) => { for (const k of keys) if (!(k in dict)) fail(`${label}: missing dynamic key "${k}"`); };
 
+// the import screen names every column and every kind of problem by a key built at run time (a column added to the import without a name
+// showed "adm.imp.field.address" on the owner's screen): read the lists from the source, so a new one cannot be forgotten
+const imp = readFileSync(resolve(root, "shared/src/import.ts"), "utf8");
+const importFields = [...(/export const IMPORT_FIELDS = \[([^\]]+)\]/.exec(imp)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+const importProblems = [...(/export type ProblemCode =([^;]+);/.exec(imp)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+if (importFields.length < 10 || importProblems.length < 10) fail(`import.ts parse looks wrong (${importFields.length}/${importProblems.length})`);
+
 const dash = readFileSync(resolve(root, "worker/src/routes/api/admin/dashboard.ts"), "utf8");
 const issues = [...dash.matchAll(/\b(?:pay|chat|sec|mail)\.push\("([a-z_]+)"\)/g)].map((m) => m[1]);
 issues.push(...[...dash.matchAll(/issues: [^\n]*?\["([a-z_]+)"\]/g)].map((m) => m[1]));
@@ -43,6 +50,8 @@ const steps = [...dash.matchAll(/\{ key: "([a-z]+)", done:/g)].map((m) => m[1]);
 const checks = ["database", "storage", "payments", "email", "video", "chatbot", "security"];
 if (issues.length < 10 || attention.length < 6 || steps.length < 7) fail(`dashboard.ts parse looks wrong (${issues.length}/${attention.length}/${steps.length})`);
 
+need(admin, "import columns", importFields.map((f) => `adm.imp.field.${f}`));
+need(admin, "import problems", importProblems.map((p) => `adm.imp.p.${p}`));
 need(admin, "nav", constants.ADMIN_NAV.map((n) => `adm.nav.${n.key}`));
 need(admin, "health kinds", checks.map((k) => `adm.health.k.${k}`));
 need(admin, "health issues", issues.map((i) => `adm.health.${i}`));
