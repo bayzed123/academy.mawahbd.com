@@ -48,6 +48,7 @@
    * পরে দ্রুত চালু/বন্ধ করতে ক্লাস তালিকার **“ওয়েবসাইটে চালু”** সুইচ ব্যবহার করুন — ১৮ নম্বর অংশ দেখুন।
 6. ক্যাটাগরি, প্রশিক্ষক, লেভেল (বিগিনার/মাঝারি/অ্যাডভান্সড), ফেসবুক পোস্টের লিংক (ঐচ্ছিক) দিন। “হোম পেজে বিশেষভাবে দেখান” অন করলে ক্লাসটি প্রথম পাতায় আসবে।
 7. **সংরক্ষণ করুন।** এরপর “কারিকুলাম” ট্যাবে লেসন যোগ করুন।
+8. **আরও ছবি (ঐচ্ছিক):** ক্লাস সংরক্ষণের পর **ছবি** ট্যাব খুলুন। একসঙ্গে কয়েকটি ছবি বেছে নিন (সর্বোচ্চ ১২টি) — প্রতিটি ছবি আপনার ব্রাউজারেই ছোট করে নেওয়া হয়, তাই পেজ দ্রুত থাকে। চাইলে প্রতিটির নিচে বাংলা ও ইংরেজিতে ছোট ক্যাপশন লিখুন (ওই ছবির **সংরক্ষণ** বোতাম চাপুন), তীর বোতামে ক্রম বদলান, আর ডাস্টবিন বোতামে সরিয়ে দিন। ক্লাসের পেজে মূল ব্যানারের নিচে ছবিগুলো সারি করে দেখাবে; যেকোনো ছবিতে চাপলে বড় পর্দায় খুলবে — কিবোর্ডের তীর, বোতাম বা ফোনে সোয়াইপ দিয়ে পরের/আগের ছবিতে যাওয়া যায়, Esc বা ✕ দিয়ে বন্ধ হয়। কোনো ছবি না দিলে পেজ আগের মতোই থাকে।
 
 > **সতর্কতা:** লেসন ছাড়া ক্লাস “প্রকাশিত” করতে গেলে সিস্টেম জিজ্ঞেস করবে — কারণ টাকা দিয়ে ঢুকে শিক্ষার্থী ফাঁকা ক্লাস দেখলে খারাপ লাগে। আমাদের ২৬টি ক্লাস চালু অবস্থায় আছে, কিন্তু লেসন যোগ হয়নি — ড্যাশবোর্ড “যা ঠিক করতে হবে”-তে সেগুলো দেখায়।
 
@@ -349,6 +350,7 @@ Below the health strip the dashboard shows **First steps**; it ticks itself off 
    * To switch a class on or off later, use the **Active on the website** switch in the class list — see section 18.
 6. Pick the category, instructor, level, the Facebook post link (optional). *Feature on the home page* puts the class on the front page.
 7. **Save**, then open the **Curriculum** tab to add lessons.
+8. **More pictures (optional):** after saving the class, open the **Pictures** tab. Choose several pictures at once (up to 12) — each is shrunk in your browser first, so the page stays fast. Optionally write a short caption under each in Bangla and English (press **Save** on that picture), change the order with the arrow buttons, or remove one with the bin. On the class page the pictures appear in a row under the main banner; tapping any of them opens it large — the keyboard arrows, the buttons or a swipe on a phone move to the next or previous one, and Esc or ✕ closes it. If you add none, the page stays exactly as it was.
 
 > **Heads-up:** if you publish a class with no lessons the system asks you to confirm — a student who pays and finds nothing inside is a bad experience. Our 26 launch classes are live but have no lessons yet; the dashboard lists them under *Things to fix* until you add some.
 

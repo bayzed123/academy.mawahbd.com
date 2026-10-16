@@ -23,6 +23,7 @@ import {
 } from "../services/catalog";
 import { liveBanners } from "../services/banners";
 import { faqsForClass, siteFaqs } from "../services/faqs";
+import { galleryFor } from "../services/gallery";
 import { includedIn } from "../services/materials";
 import { certificateByCode } from "../services/learning";
 import { CoursesPage } from "../views/pages/courses";
@@ -123,14 +124,15 @@ export function pageRoutes(lang: Lang) {
       const ctx = await pageCtxFor(c, lang, `/courses/${slug}`);
       const course = await getCourseBySlug(c.env, slug);
       if (!course) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
-      const [curriculum, reviews, summary, faqs, included] = await Promise.all([
+      const [curriculum, reviews, summary, faqs, included, pictures] = await Promise.all([
         getCurriculum(c.env, course.id),
         approvedReviews(c.env, course.id),
         reviewSummary(c.env, course.id),
         faqsForClass(c.env, course.id),
         includedIn(c.env, course.id),
+        galleryFor(c.env, course.id),
       ]);
-      return renderHtml(c, ctx, <CoursePage ctx={ctx} data={{ course, curriculum, reviews, summary, faqs, included, flash }} />);
+      return renderHtml(c, ctx, <CoursePage ctx={ctx} data={{ course, curriculum, reviews, summary, faqs, included, pictures, flash }} />);
     });
   });
 
