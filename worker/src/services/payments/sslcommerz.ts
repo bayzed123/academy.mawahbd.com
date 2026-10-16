@@ -1,17 +1,94 @@
 import type { PaymentMethod } from "@mawah/shared";
 import type { Env } from "../../env";
-import { HttpError } from "../../lib/http";
 
 /**
  * SSLCommerz — the Bangladeshi aggregator behind one hosted page for bKash, Nagad, Rocket and cards.
  * Flow: init session -> customer pays on the gateway page -> gateway calls our IPN (server to server)
  * -> we re-validate with SSLCommerz's validator API (never trusting the posted fields) -> enroll.
  * Credentials: SSLCOMMERZ_STORE_ID / SSLCOMMERZ_STORE_PASSWORD are Wrangler secrets.
+ *
+ * When SSLCommerz says no to a new session it says why (`failedreason`). That sentence is the only way anyone can tell "wrong keys" from
+ * "this website is not the one the store was registered for" from "the gateway turned the server away", so it is kept — shortened, with the
+ * keys cut out — and shown to the owner (Admin → Settings → Payments → Check the connection), never to the student.
  */
 const BASE = { live: "https://securepay.sslcommerz.com", sandbox: "https://sandbox.sslcommerz.com" };
 
+/** SSLCommerz answers in a second or two; a call that has not come back in 15 seconds is given up, so the checkout can say so instead of hanging. */
+const TIMEOUT_MS = 15_000;
+
 export const sslConfigured = (env: Env) => !!(env.SSLCOMMERZ_STORE_ID && env.SSLCOMMERZ_STORE_PASSWORD);
-const base = (env: Env) => (env.PAYMENT_MODE === "live" ? BASE.live : BASE.sandbox);
+export const sslMode = (env: Env): "live" | "sandbox" => (env.PAYMENT_MODE === "live" ? "live" : "sandbox");
+const base = (env: Env) => BASE[sslMode(env)];
+export const sslHost = (env: Env) => new URL(base(env)).host;
+
+/** The addresses the gateway sends the buyer and its own messages back to — the owner may have to tell SSLCommerz about them. */
+export const sslReturnUrls = (env: Env) => ({
+  success: `${env.SITE_URL}/api/payments/sslcommerz/success`,
+  fail: `${env.SITE_URL}/api/payments/sslcommerz/fail`,
+  cancel: `${env.SITE_URL}/api/payments/sslcommerz/cancel`,
+  ipn: `${env.SITE_URL}/api/payments/sslcommerz/ipn`,
+});
+
+/** What went wrong with a new session, in the groups the admin screen explains in plain words (see adm.pay.p.* in the admin texts). */
+export type SslProblem =
+  | "not_configured" // the store ID / password are not on the Worker
+  | "credentials" // SSLCommerz does not accept them: wrong, test keys on the live gateway (or the other way round), or the store is not active yet
+  | "domain" // the store is registered for another website, or this address is not allowed
+  | "blocked" // the gateway's firewall turned the request away (an address list, or a plain 403)
+  | "bad_details" // it refused the order's details (an amount, a name, a number …)
+  | "network" // it could not be reached
+  | "gateway_down" // it had an error of its own (5xx)
+  | "other";
+
+export type SslSession = { ok: true; redirectUrl: string; sessionKey: string } | { ok: false; problem: SslProblem; detail: string; status?: number };
+
+/** Where the outcome of the last attempt is kept (KV): Settings → Payments and the dashboard's health strip read it. */
+export const SSL_LAST_KEY = "ssl:last";
+export interface SslLast {
+  at: string;
+  ok: boolean;
+  problem: SslProblem | null;
+  detail: string | null;
+  mode: "live" | "sandbox";
+  /** a student's checkout, or the owner's "Check the connection" */
+  by: "checkout" | "check";
+}
+
+export async function rememberSsl(env: Env, r: SslSession, by: SslLast["by"]): Promise<void> {
+  const last: SslLast = { at: new Date().toISOString(), ok: r.ok, problem: r.ok ? null : r.problem, detail: r.ok ? null : r.detail, mode: sslMode(env), by };
+  await env.KV.put(SSL_LAST_KEY, JSON.stringify(last)).catch(() => undefined);
+}
+
+/** What SSLCommerz (or the network) said, shortened: no markup, the store's keys cut out, and anything shaped like a token or a key too. */
+export function scrubSsl(env: Env, s: string): string {
+  let out = s.replace(/<[^>]*>/g, " ");
+  for (const secret of [env.SSLCOMMERZ_STORE_ID, env.SSLCOMMERZ_STORE_PASSWORD]) {
+    const v = secret?.trim();
+    if (v) for (const form of new Set([v, encodeURIComponent(v)])) out = out.split(form).join("…");
+  }
+  return out
+    .replace(/[A-Za-z0-9_-]{40,}/g, "…")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 300);
+}
+
+/**
+ * What a refusal means, from its status and its own words. The words are SSLCommerz's, not ours, so this reads them loosely; anything it does not
+ * recognise is "other" and the screen shows the words as they are.
+ */
+export function sslProblem(status: number | undefined, said: string): SslProblem {
+  if (status === undefined) return "network";
+  const s = said.toLowerCase();
+  if (/\bip\b.{0,40}(not|block|whitelist|allow|restrict|denied)|(not|block|whitelist|restrict|denied).{0,40}\bip\b|firewall/.test(s)) return "blocked";
+  if (/domain|web ?site|host ?name|referr?er|origin|(url|link).{0,30}(not|mismatch|differ|register|allow)|not (registered|whitelisted|allowed) for/.test(s)) return "domain";
+  if (/credential|de-?activ|in-?activ|not active|suspend|store.{0,15}(id|passw)|invalid store|authenticat|unauthori[sz]ed/.test(s)) return "credentials";
+  if (status >= 500) return "gateway_down";
+  if (/amount|currency|tran_?id|transaction id|duplicate|customer|phone|e-?mail|cus_|product|param|mandatory|required|invalid (info|input|request|value|data)/.test(s)) return "bad_details";
+  if (status === 401) return "credentials";
+  if (status === 403 || status === 406 || status === 429) return "blocked";
+  return "other";
+}
 
 export interface SslValidation {
   status: string; // VALID | VALIDATED | INVALID_TRANSACTION
@@ -25,22 +102,27 @@ export interface SslValidation {
   risk_title?: string;
 }
 
-export async function sslInit(
-  env: Env,
-  order: { public_id: string; total: number },
-  customer: { name: string; email: string; phone: string; address?: string },
-  productName: string,
-): Promise<{ redirectUrl: string; sessionKey: string }> {
-  const form = new URLSearchParams({
+interface Buyer {
+  name: string;
+  email: string;
+  phone: string;
+  address?: string;
+}
+
+function sessionForm(env: Env, order: { public_id: string; total: number }, customer: Buyer, productName: string): URLSearchParams {
+  const back = sslReturnUrls(env);
+  return new URLSearchParams({
     store_id: env.SSLCOMMERZ_STORE_ID as string,
     store_passwd: env.SSLCOMMERZ_STORE_PASSWORD as string,
     total_amount: order.total.toFixed(2),
     currency: "BDT",
     tran_id: order.public_id,
-    success_url: `${env.SITE_URL}/api/payments/sslcommerz/success`,
-    fail_url: `${env.SITE_URL}/api/payments/sslcommerz/fail`,
-    cancel_url: `${env.SITE_URL}/api/payments/sslcommerz/cancel`,
-    ipn_url: `${env.SITE_URL}/api/payments/sslcommerz/ipn`,
+    success_url: back.success,
+    fail_url: back.fail,
+    cancel_url: back.cancel,
+    ipn_url: back.ipn,
+    // one payment, never in instalments (the gateway lists this field as required)
+    emi_option: "0",
     cus_name: customer.name.slice(0, 50),
     cus_email: customer.email,
     cus_add1: (customer.address || "Dhaka").replace(/\s+/g, " ").slice(0, 50),
@@ -54,10 +136,54 @@ export async function sslInit(
     product_category: "Online Course",
     product_profile: "non-physical-goods",
   });
-  const res = await fetch(`${base(env)}/gwprocess/v4/api.php`, { method: "POST", body: form });
-  const json = (await res.json().catch(() => ({}))) as { status?: string; GatewayPageURL?: string; sessionkey?: string };
-  if (!res.ok || json.status !== "SUCCESS" || !json.GatewayPageURL) throw new HttpError(502, "gateway_error");
-  return { redirectUrl: json.GatewayPageURL, sessionKey: json.sessionkey ?? "" };
+}
+
+/** Ask SSLCommerz for a new payment session. Never throws: what went wrong comes back as words (see SslProblem). */
+async function openSession(env: Env, form: URLSearchParams): Promise<SslSession> {
+  let res: Response;
+  try {
+    res = await fetch(`${base(env)}/gwprocess/v4/api.php`, {
+      method: "POST",
+      headers: { Accept: "application/json", "User-Agent": "MAWAH-Academy/1.0 (+https://mawahacademy.com)" },
+      body: form,
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch (e) {
+    return { ok: false, problem: "network", detail: scrubSsl(env, e instanceof Error ? e.message : "no answer") };
+  }
+  const text = await res.text().catch(() => "");
+  let json: { status?: unknown; GatewayPageURL?: unknown; sessionkey?: unknown; failedreason?: unknown } = {};
+  try {
+    json = JSON.parse(text) as typeof json;
+  } catch {
+    json = {};
+  }
+  if (res.ok && json.status === "SUCCESS" && typeof json.GatewayPageURL === "string" && json.GatewayPageURL) {
+    return { ok: true, redirectUrl: json.GatewayPageURL, sessionKey: typeof json.sessionkey === "string" ? json.sessionkey : "" };
+  }
+  const said = scrubSsl(env, typeof json.failedreason === "string" && json.failedreason ? json.failedreason : text) || `HTTP ${res.status}`;
+  return { ok: false, problem: sslProblem(res.status, said), detail: said, status: res.status };
+}
+
+export function sslInit(env: Env, order: { public_id: string; total: number }, customer: Buyer, productName: string): Promise<SslSession> {
+  return openSession(env, sessionForm(env, order, customer, productName));
+}
+
+export type SslCheck = { connected: true; mode: "live" | "sandbox"; host: string } | { connected: false; mode: "live" | "sandbox"; host: string; problem: SslProblem; detail?: string; status?: number };
+
+/**
+ * "Check the connection": open a session for a made-up 10-taka order, exactly as a purchase would, and read what SSLCommerz says. Nothing is
+ * charged and nobody is sent to the gateway page (its address is thrown away); SSLCommerz only lists one unpaid test entry.
+ */
+export async function sslCheck(env: Env): Promise<SslCheck> {
+  const mode = sslMode(env);
+  const host = sslHost(env);
+  if (!sslConfigured(env)) return { connected: false, mode, host, problem: "not_configured" };
+  const tran = `CHECK${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.toUpperCase().slice(0, 30);
+  const mail = (env.NOTIFY_EMAIL ?? "").trim() || "customer@mawahacademy.com";
+  const r = await openSession(env, sessionForm(env, { public_id: tran, total: 10 }, { name: "Connection check", email: mail, phone: "01700000000", address: "Dhaka" }, "Connection check"));
+  await rememberSsl(env, r, "check");
+  return r.ok ? { connected: true, mode, host } : { connected: false, mode, host, problem: r.problem, detail: r.detail, ...(r.status ? { status: r.status } : {}) };
 }
 
 /** Ask SSLCommerz whether `valId` is a genuine, completed payment. Returns null on any transport problem. */

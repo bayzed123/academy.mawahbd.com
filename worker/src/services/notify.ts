@@ -22,6 +22,7 @@ export interface Notice {
 const TITLE: Record<NotifyKind, { en: string; bn: string }> = {
   order_paid: { en: "New payment received", bn: "নতুন পেমেন্ট এসেছে" },
   payment_waiting: { en: "A payment is waiting for you to verify", bn: "একটি পেমেন্ট আপনার যাচাইয়ের অপেক্ষায়" },
+  payment_failed: { en: "A student could not start the online payment", bn: "একজন শিক্ষার্থী অনলাইন পেমেন্ট শুরু করতে পারেননি" },
   contact_message: { en: "New message from the website", bn: "ওয়েবসাইট থেকে নতুন বার্তা" },
   new_student: { en: "A new student signed up", bn: "নতুন শিক্ষার্থী সাইন-আপ করেছেন" },
   course_question: { en: "A student asked a question", bn: "একজন শিক্ষার্থী প্রশ্ন করেছেন" },
@@ -36,6 +37,7 @@ const TITLE: Record<NotifyKind, { en: string; bn: string }> = {
 const OPEN: Record<NotifyKind, { path: string; en: string; bn: string }> = {
   order_paid: { path: "/admin/orders", en: "Open Orders", bn: "অর্ডার খুলুন" },
   payment_waiting: { path: "/admin/orders?status=awaiting_verification", en: "Open the order", bn: "অর্ডার খুলুন" },
+  payment_failed: { path: "/admin/settings?tab=payments", en: "Open Settings → Payments", bn: "সেটিংস → পেমেন্ট খুলুন" },
   contact_message: { path: "/admin/messages", en: "Open Messages", bn: "বার্তা খুলুন" },
   new_student: { path: "/admin/students", en: "Open Students", bn: "শিক্ষার্থী খুলুন" },
   course_question: { path: "/admin/questions", en: "Open Questions", bn: "প্রশ্ন খুলুন" },
@@ -50,6 +52,8 @@ const OPEN: Record<NotifyKind, { path: string; en: string; bn: string }> = {
 const HOURLY_CAP: Record<NotifyKind, number> = {
   order_paid: 200,
   payment_waiting: 200,
+  // the same fault repeats for every student who tries: a few notes tell the owner, a hundred would only hide the other mail
+  payment_failed: 6,
   contact_message: 40,
   new_student: 40,
   course_question: 40,
@@ -58,6 +62,18 @@ const HOURLY_CAP: Record<NotifyKind, number> = {
   group_request: 40,
   notify_me: 30,
   newsletter: 30,
+};
+
+/** The short, plain version of each way the online gateway can say no (the long one, with the steps, is in Settings → Payments). */
+const PAYMENT_FAILED_WORDS: Record<string, string> = {
+  not_configured: "The store keys are not on the website · স্টোরের কী ওয়েবসাইটে দেওয়া নেই",
+  credentials: "SSLCommerz does not accept the store keys · SSLCommerz স্টোরের কী মানছে না",
+  domain: "SSLCommerz does not allow this website address · SSLCommerz এই ওয়েবসাইটের ঠিকানা অনুমোদন করছে না",
+  blocked: "SSLCommerz turned the website’s server away · SSLCommerz ওয়েবসাইটের সার্ভারকে ফিরিয়ে দিয়েছে",
+  bad_details: "SSLCommerz refused the order’s details · SSLCommerz অর্ডারের তথ্য মানেনি",
+  network: "SSLCommerz could not be reached · SSLCommerz-এর সাথে যোগাযোগ করা যায়নি",
+  gateway_down: "SSLCommerz had an error of its own · SSLCommerz-এর নিজেরই সমস্যা হয়েছে",
+  other: "SSLCommerz said no · SSLCommerz রাজি হয়নি",
 };
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
@@ -104,6 +120,23 @@ export const notices = {
         fact("Order", "অর্ডার", orderCode(d.publicId)),
       ],
       note: `Open the order, compare the TrxID with your ${method} messages, then press “Approve payment”.\nঅর্ডারটি খুলে ট্রানজ্যাকশন আইডি আপনার ${method} মেসেজের সাথে মিলিয়ে “পেমেন্ট অনুমোদন” চাপুন।`,
+    };
+  },
+  /** The online gateway turned a student away before they could pay. `said` is the gateway's own sentence (already shortened, keys cut out). */
+  paymentFailed(d: { student: string; phone: string | null; items: string[]; total: number; problem: string; said: string }): Notice {
+    return {
+      kind: "payment_failed",
+      headline: `${formatMoney(d.total, "en")} · ${d.student}`,
+      facts: [
+        fact("Student", "শিক্ষার্থী", d.student),
+        fact("Phone", "ফোন", d.phone),
+        fact("Class", "ক্লাস", d.items.join("; ")),
+        fact("Amount", "টাকা", formatMoney(d.total, "en")),
+        fact("Paid by", "যেভাবে দিতে চেয়েছিলেন", "SSLCommerz — bKash, Nagad, Rocket, card"),
+        fact("What went wrong", "কী সমস্যা", PAYMENT_FAILED_WORDS[d.problem] ?? PAYMENT_FAILED_WORDS.other),
+        fact("What SSLCommerz said", "SSLCommerz যা বলেছে", d.said),
+      ],
+      note: "Nothing was charged. Open Settings → Payments → “Check the connection” to read the full reason and what to do. Until it is fixed, students can still pay with “Send money manually”.\nকোনো টাকা কাটা হয়নি। পুরো কারণ ও করণীয় দেখতে সেটিংস → পেমেন্ট → “সংযোগ পরীক্ষা করুন” খুলুন। ঠিক না হওয়া পর্যন্ত শিক্ষার্থীরা “ম্যানুয়ালি সেন্ড মানি” দিয়ে পেমেন্ট করতে পারবেন।",
     };
   },
   contactMessage(d: { name: string; email: string; phone: string | null; message: string }): Notice {

@@ -9,6 +9,7 @@ import { getSettings } from "../../../lib/settings";
 import { SMS_LAST_KEY, smsConfigured, type SmsLast } from "../../../lib/sms";
 import { requirePerm } from "../../../middleware/auth";
 import { REAL_STUDENT } from "../../../services/guests";
+import { SSL_LAST_KEY, type SslLast } from "../../../services/payments/sslcommerz";
 import { can } from "@mawah/shared";
 
 export const dashboard = new Hono<AppEnv>();
@@ -73,6 +74,10 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
   }
   if (settings.payments.sslcommerz && !(env.SSLCOMMERZ_STORE_ID && env.SSLCOMMERZ_STORE_PASSWORD)) {
     pay.push("sslcommerz_keys_missing");
+    flag("warn");
+  } else if (settings.payments.sslcommerz && (await env.KV.get<SslLast>(SSL_LAST_KEY, "json"))?.ok === false) {
+    // keys are set, but the last time the gateway was asked for a payment page (a student's, or the owner's check) it said no
+    pay.push("sslcommerz_failing");
     flag("warn");
   }
   if (settings.payments.bkash_direct && !(env.BKASH_APP_KEY && env.BKASH_APP_SECRET && env.BKASH_USERNAME && env.BKASH_PASSWORD)) {

@@ -18,9 +18,10 @@ import { rateLimit } from "../../middleware/ratelimit";
 import { buildQuote, cancelReplacedManualOrders, closeOrder, createOrder, markOrderPaid, notifyProof, saveProofImage, submitManualProof, type ManualProof, type Quote } from "../../services/orders";
 import { resolveGuestAccount } from "../../services/guests";
 import { tellStudent } from "../../services/studentMessages";
+import { notices, notifyOwner } from "../../services/notify";
 import { availableChannels, manualPayInfo } from "../../services/payments";
 import { bkashCreate } from "../../services/payments/bkash";
-import { sslInit } from "../../services/payments/sslcommerz";
+import { rememberSsl, sslInit } from "../../services/payments/sslcommerz";
 
 /**
  * Checkout. Seeing the price (/quote) and buying as a visitor (/guest) need no account — that is the point: a buyer who is sent to a log-in
@@ -151,6 +152,14 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
       // the gateway wants an e-mail address: a buyer who gave none is sent through with the shop's own
       const gatewayEmail = isNoEmail(student.email) ? c.env.NOTIFY_EMAIL?.trim() || "customer@mawahacademy.com" : student.email;
       const r = await sslInit(c.env, { public_id: order.public_id, total: quote.total }, { name: student.name, email: gatewayEmail, phone: student.phone ?? "", address: student.address ?? "" }, summary);
+      await rememberSsl(c.env, r, "checkout");
+      if (!r.ok) {
+        // SSLCommerz said no. The student is told plainly (and offered the other way of paying); the owner gets the gateway's own words — in the
+        // activity log, by e-mail and in Settings → Payments — because that sentence is what tells "wrong keys" from "wrong website address"
+        await audit(c, { action: "checkout.gateway_failed", entity: "order", entityId: order.id, summary: `sslcommerz: ${r.problem}`, meta: { problem: r.problem, status: r.status ?? null, said: r.detail } });
+        c.executionCtx.waitUntil(notifyOwner(c.env, notices.paymentFailed({ student: student.name, phone: student.phone ?? null, items: quote.items.map((i) => i.title_en), total: quote.total, problem: r.problem, said: r.detail })));
+        throw new HttpError(502, "gateway_error");
+      }
       redirectUrl = r.redirectUrl;
       await run(c.env.DB, "UPDATE orders SET gateway_ref = ? WHERE id = ?", r.sessionKey, order.id);
     } else if (channel === "bkash") {
@@ -164,6 +173,7 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
     return ok(c, { order: { public_id: order.public_id, status: "pending", total: quote.total }, redirect_url: redirectUrl, ...extra }, 201);
   } catch (err) {
     await closeOrder(c.env, order.public_id, "failed", "gateway_init_failed");
+    if (channel === "bkash" && err instanceof HttpError && err.code === "gateway_error") await audit(c, { action: "checkout.gateway_failed", entity: "order", entityId: order.id, summary: "bkash" });
     throw err;
   }
 }
