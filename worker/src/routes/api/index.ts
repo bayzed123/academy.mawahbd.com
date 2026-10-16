@@ -31,9 +31,11 @@ const isUpload = (method: string, path: string) =>
   method === "POST" &&
   (path === "/api/admin/media/image" || /^\/api\/admin\/lessons\/\d+\/resources$/.test(path) || /^\/api\/checkout\/[a-z0-9]+\/proof-image$/.test(path));
 api.use("*", (c, next) => (isUpload(c.req.method, new URL(c.req.url).pathname) ? next() : jsonLimit(c, next)));
-// payment gateway callbacks come from the gateway's servers, not a browser: exempt from the per-IP limiter
+// payment gateway callbacks come from the gateway's servers, not a browser: exempt from the per-IP limiter. So are the two video routes: one playing
+// video asks many times (to start, to skip around) and a phone network shows many students as one address — they have limits of their own
+const DOES_ITS_OWN_LIMIT = /^\/api\/(?:payments\/|(?:student|preview)\/lessons\/\d+\/media$)/;
 api.use("*", async (c, next) => {
-  if (new URL(c.req.url).pathname.startsWith("/api/payments/")) return next();
+  if (DOES_ITS_OWN_LIMIT.test(new URL(c.req.url).pathname)) return next();
   return rateLimit("RL_API")(c, next);
 });
 

@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS } from "@mawah/shared";
-import { isDev, type AppEnv, type Ctx } from "../../../env";
+import { isDev, type AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
+import { underHourlyCap } from "../../../lib/cap";
 import { all } from "../../../lib/db";
 import { HttpError, ok, parseBody } from "../../../lib/http";
 import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_TEST_KEY, mailProblem, sendMail, testMail, type MailLastTest } from "../../../lib/mailer";
@@ -166,13 +167,7 @@ settings.get("/settings/sms", requirePerm("settings:read"), async (c) => {
   });
 });
 
-/** Both checks cost the shop a request (and a test message costs credit): a few per hour per person. */
-async function underHourlyCap(c: Ctx, name: string, max: number): Promise<void> {
-  const used = `${name}:${c.get("staff")!.id}:${Math.floor(Date.now() / 3_600_000)}`;
-  const count = Number((await c.env.KV.get(used)) ?? 0);
-  if (count >= max) throw new HttpError(429, "rate_limited");
-  await c.env.KV.put(used, String(count + 1), { expirationTtl: 3700 });
-}
+// Both checks cost the shop a request (and a test message costs credit): a few per hour per person (lib/cap.ts)
 
 /* ------------------------------------------------------------------------------------------------
  * Online payment (SSLCommerz). When the gateway turns a student away, all the student can see is "could not start"; the reason — wrong keys,

@@ -4,6 +4,7 @@ import { shownEmail } from "@mawah/shared";
 import type { AppEnv } from "../../env";
 import { audit } from "../../lib/audit";
 import { all, first, nowIso, run } from "../../lib/db";
+import { driveMedia } from "../../lib/drive";
 import { forbidden, HttpError, intParam, notFound, ok, parseBody } from "../../lib/http";
 import { textSchema } from "../../lib/schemas";
 import { getSettings } from "../../lib/settings";
@@ -18,6 +19,7 @@ import {
   certificatesFor,
   courseForStudent,
   lessonContent,
+  lessonDriveFile,
   myCourses,
   resourceForDownload,
   setLessonComplete,
@@ -36,6 +38,15 @@ studentRoutes.get("/courses", async (c) => ok(c, { courses: await myCourses(c.en
 studentRoutes.get("/courses/:slug", async (c) => ok(c, { ...(await courseForStudent(c.env, c.get("student")!.id, c.req.param("slug"))) }));
 
 studentRoutes.get("/lessons/:id", async (c) => ok(c, { lesson: await lessonContent(c.env, intParam(c, "id"), c.get("student")!.id) }));
+
+/**
+ * A Drive video for the player: the file as it was uploaded, or the part of it the browser asks for (playing at once, skipping around), handed on
+ * from Google by the Worker (lib/drive.ts). Only for a student who may watch this lesson. Its own limit: one playing video asks many times, and a
+ * phone network shows many students as one address, so it does not share the 120-a-minute of the rest of the API.
+ */
+studentRoutes.get("/lessons/:id/media", rateLimit("RL_API", (c) => `media:${c.get("student")?.id}`), async (c) =>
+  driveMedia(c.env, await lessonDriveFile(c.env, intParam(c, "id"), c.get("student")!.id), c.req.header("range") ?? null),
+);
 
 studentRoutes.post("/lessons/:id/complete", async (c) => {
   const result = await setLessonComplete(c.env, c.get("student")!.id, intParam(c, "id"), true);

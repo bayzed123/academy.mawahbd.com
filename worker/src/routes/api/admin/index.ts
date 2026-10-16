@@ -9,6 +9,7 @@ import { courseOverview } from "./course-overview";
 import { blog, bundles, categories, coupons, courses, instructors } from "./content";
 import { curriculum } from "./curriculum";
 import { dashboard } from "./dashboard";
+import { drive } from "./drive";
 import { engagement } from "./engagement";
 import { faqs } from "./faqs";
 import { gallery } from "./gallery";
@@ -37,6 +38,6 @@ adminApi.route("/faqs", faqs);
 adminApi.route("/coupons", coupons);
 adminApi.route("/courses", courses);
 
-for (const router of [courseOverview, curriculum, gallery, materials, media, orders, students, engagement, audience, analytics, chatbot, settings, reports, dashboard, staff]) {
+for (const router of [courseOverview, curriculum, drive, gallery, materials, media, orders, students, engagement, audience, analytics, chatbot, settings, reports, dashboard, staff]) {
   adminApi.route("/", router);
 }
