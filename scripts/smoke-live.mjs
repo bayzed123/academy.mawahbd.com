@@ -11,7 +11,9 @@
  *                      minutes for its DNS record and certificate (default interval --every 10 seconds)
  *
  * It first waits for GET /api/health to answer {"ok":true}, then checks one thing after the other and says in plain words
- * what it saw. Exit code 1 means at least one ✗. Everything it does is a plain GET: nothing on the site is changed.
+ * what it saw. The www and plain-http names are separate names attached to the Worker: after a release they can come up a little
+ * later than the main address, so an answer that is "not the site's" (Cloudflare's 403 or 429, a 5xx, no connection) is looked at again
+ * for up to two minutes before it is called wrong; an answer that is plainly wrong (a page instead of a redirect) is not waited for. Exit code 1 means at least one ✗. Everything it does is a plain GET: nothing on the site is changed.
  * The result is also written to the run's summary page (GITHUB_STEP_SUMMARY).
  */
 import { appendFileSync } from "node:fs";
@@ -60,12 +62,35 @@ const sameLocation = (res, expected, from) => {
   }
 };
 
+/** Cloudflare's own answer (a security rule, a name that is not attached yet) is told apart from the site's: say so, and where to look. */
+const fromCloudflare = (r) => {
+  if (!r.ok || ![403, 429].includes(r.status)) return "";
+  if (!/cloudflare/i.test(r.headers.get("server") ?? "") && !r.headers.get("cf-ray")) return "";
+  const mitigated = r.headers.get("cf-mitigated");
+  return ` — it is Cloudflare itself that answered${mitigated ? ` (cf-mitigated: ${mitigated})` : ""}, not the site: look in Cloudflare → Security → Events for the stopped request (this check calls itself “mawah-deploy-check/1”) and in the Worker's Settings → Domains & Routes for the attached names`;
+};
+
+/** An answer that says "not ready" rather than "wrong": Cloudflare's 403 or 429, a server error, no connection. */
+const notReady = (r) => !r.ok || r.status === 403 || r.status === 429 || r.status >= 500;
+
+/** One of the other names (www, plain http): looked at again, as the main address is, while it only says "not ready"; a plainly wrong answer is returned at once. */
+async function other(url, good) {
+  const until = Date.now() + Math.min(WAIT_MS, 120_000);
+  let r = await get(url, { redirect: "manual" });
+  while (!good(r) && notReady(r) && Date.now() + EVERY_MS <= until) {
+    await new Promise((resolve) => setTimeout(resolve, EVERY_MS));
+    r = await get(url, { redirect: "manual" });
+  }
+  return r;
+}
+
 /* ------------------------------------------------------------------------------------------------ 1. wait for the address */
 console.log(`Checking the live site: ${SITE}`);
 console.log(`  waiting for ${SITE}/api/health (a new domain needs a few minutes for its DNS record and certificate; up to ${WAIT_MS >= 60_000 ? `${Math.round(WAIT_MS / 60_000)} min` : `${Math.round(WAIT_MS / 1000)} s`})`);
 const started = Date.now();
 let attempt = 0;
 let last = "";
+let lastHint = "";
 let healthy = null;
 for (;;) {
   attempt++;
@@ -81,13 +106,14 @@ for (;;) {
     break;
   }
   last = r.ok ? `HTTP ${r.status}${json ? "" : " (not the site's answer)"}` : `no connection (${r.error})`;
+  lastHint = fromCloudflare(r);
   if (Date.now() - started + EVERY_MS > WAIT_MS) break;
   console.log(`  not ready yet (attempt ${attempt}): ${last}`);
   await new Promise((resolve) => setTimeout(resolve, EVERY_MS));
 }
 
 if (!healthy) {
-  row(false, `${SITE} did not answer after ${Math.round((Date.now() - started) / 1000)} s (last: ${last}). The code is deployed and the free address keeps working; this usually means the domain's DNS record or certificate is not ready, or something else is using the name. In Cloudflare: Workers & Pages → the Worker → Settings → Domains & Routes should list the name as active. If the name was looked up before it existed, some networks remember “no such name” for up to 30 minutes: run Deploy again then.`);
+  row(false, `${SITE} did not answer after ${Math.round((Date.now() - started) / 1000)} s (last: ${last}${lastHint}). The code is deployed and the free address keeps working; this usually means the domain's DNS record or certificate is not ready, or something else is using the name. In Cloudflare: Workers & Pages → the Worker → Settings → Domains & Routes should list the name as active. If the name was looked up before it existed, some networks remember “no such name” for up to 30 minutes: run Deploy again then.`);
 } else {
   row(true, `${SITE} answers (after ${Math.max(1, Math.round((Date.now() - started) / 1000))} s, ${attempt} ${attempt === 1 ? "try" : "tries"}); environment: ${healthy.json.env ?? "?"}`);
 
@@ -140,12 +166,14 @@ if (!healthy) {
 
   /* ------------------------------------------------------------------------------------------------ 4. the other names */
   if (HTTP) {
-    const r = await get(`${HTTP}/`, { redirect: "manual" });
-    row([301, 308].includes(r.status) && sameLocation(r, `${SITE}/`, `${HTTP}/`), `Plain http: ${[301, 308].includes(r.status) ? `sent on to ${r.headers.get("location")}` : `HTTP ${r.status || r.error} — it should be a redirect to ${SITE}/`}`);
+    const good = (r) => [301, 308].includes(r.status) && sameLocation(r, `${SITE}/`, `${HTTP}/`);
+    const r = await other(`${HTTP}/`, good);
+    row(good(r), `Plain http: ${[301, 308].includes(r.status) ? `sent on to ${r.headers.get("location")}` : `HTTP ${r.status || r.error}${fromCloudflare(r)} — it should be a redirect to ${SITE}/`}`);
   }
   if (WWW) {
-    const r = await get(`${WWW}/en/courses?x=1`, { redirect: "manual" });
-    row(r.status === 301 && sameLocation(r, `${SITE}/en/courses?x=1`, `${WWW}/en/courses?x=1`), `www name (${WWW}): ${r.status === 301 ? `sent on to ${r.headers.get("location")}` : `HTTP ${r.status || r.error} — it should be a permanent redirect to ${SITE}/en/courses?x=1`}`);
+    const good = (r) => r.status === 301 && sameLocation(r, `${SITE}/en/courses?x=1`, `${WWW}/en/courses?x=1`);
+    const r = await other(`${WWW}/en/courses?x=1`, good);
+    row(good(r), `www name (${WWW}): ${r.status === 301 ? `sent on to ${r.headers.get("location")}` : `HTTP ${r.status || r.error}${fromCloudflare(r)} — it should be a permanent redirect to ${SITE}/en/courses?x=1`}`);
   }
   if (FREE && FREE !== SITE) {
     const h = await get(`${FREE}/api/health`);

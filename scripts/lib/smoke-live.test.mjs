@@ -34,6 +34,7 @@ async function standIn(fault = {}) {
     };
     if (url.pathname === "/api/health") {
       hits++;
+      if (fault.blocked) return send(403, "<title>Attention Required! | Cloudflare</title>", "text/html", { server: "cloudflare", "cf-mitigated": "challenge" });
       if (fault.downFor && hits <= fault.downFor) return send(525, "SSL handshake failed", "text/plain");
       if (fault.neverUp) return send(502, "Bad gateway", "text/plain");
       return send(200, JSON.stringify({ ok: true, status: "up", env: "production" }), "application/json");
@@ -64,6 +65,22 @@ async function redirector(to, { status = 301, wrong = false } = {}) {
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   return { origin: `http://127.0.0.1:${server.address().port}`, close: () => server.close() };
+}
+
+/** like a redirector, but it first says "not ready" the way Cloudflare did after the deploys of 16 October (a 403 of its own) — `always`: it never gets ready */
+async function lateRedirector(to, { lateFor = 2, always = false } = {}) {
+  let hits = 0;
+  const server = createServer((req, res) => {
+    hits++;
+    if (always || hits <= lateFor) {
+      res.writeHead(403, { "content-type": "text/html", server: "cloudflare", "cf-ray": "8a1b2c3d4e5f-FRA", "cf-mitigated": "challenge" });
+      return res.end("<title>Attention Required! | Cloudflare</title>");
+    }
+    res.writeHead(301, { location: `${to}${req.url}` });
+    res.end();
+  });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  return { origin: `http://127.0.0.1:${server.address().port}`, hits: () => hits, close: () => server.close() };
 }
 
 async function free({ noindex = true, closedRobots = true } = {}) {
@@ -184,6 +201,65 @@ test("a redirect to the wrong place is not good enough", async () => {
     const r = await run([site.origin, "--www", www.origin, ...quick]);
     assert.equal(r.code, 1, r.stdout);
     assert.match(r.stdout, /www name/);
+  } finally {
+    site.close();
+    www.close();
+  }
+});
+
+test("www and plain http that come up a little after the main address are waited for, then pass", async () => {
+  const site = await standIn();
+  const www = await lateRedirector(site.origin, { lateFor: 3 });
+  const http = await lateRedirector(site.origin, { lateFor: 2 });
+  try {
+    const r = await run([site.origin, "--www", www.origin, "--http", http.origin, "--wait", "20", "--every", "0.1"]);
+    assert.equal(r.code, 0, r.stdout);
+    assert.match(r.stdout, /All checks passed/);
+    assert.match(r.stdout, /www name .*sent on to /);
+    assert.match(r.stdout, /Plain http: sent on to /);
+    assert.equal(www.hits(), 4); // asked again until it answered as it should, and then not any more
+    assert.equal(http.hits(), 3);
+  } finally {
+    for (const x of [site, www, http]) x.close();
+  }
+});
+
+test("a www that Cloudflare keeps answering with its own 403 is reported as Cloudflare's, with where to look", async () => {
+  const site = await standIn();
+  const www = await lateRedirector(site.origin, { always: true });
+  try {
+    const r = await run([site.origin, "--www", www.origin, ...quick]);
+    assert.equal(r.code, 1, r.stdout);
+    assert.match(r.stdout, /www name .*HTTP 403 — it is Cloudflare itself that answered \(cf-mitigated: challenge\), not the site/);
+    assert.match(r.stdout, /Security → Events/);
+    assert.match(r.stdout, /mawah-deploy-check\/1/);
+    assert.ok(www.hits() >= 2, "it should have looked again before calling it wrong");
+  } finally {
+    site.close();
+    www.close();
+  }
+});
+
+test("a main address that Cloudflare itself keeps refusing says so in the last sentence", async () => {
+  const site = await standIn({ blocked: true });
+  try {
+    const r = await run([site.origin, ...quick]);
+    assert.equal(r.code, 1, r.stdout);
+    assert.match(r.stdout, /did not answer after .*last: HTTP 403 \(not the site's answer\) — it is Cloudflare itself that answered \(cf-mitigated: challenge\)/);
+  } finally {
+    site.close();
+  }
+});
+
+test("a page where a redirect should be is reported at once — only \"not ready\" answers are waited for", async () => {
+  const site = await standIn();
+  const www = await redirector(site.origin, { wrong: true });
+  try {
+    const started = Date.now();
+    const r = await run([site.origin, "--www", www.origin, "--wait", "60", "--every", "5"]);
+    assert.equal(r.code, 1, r.stdout);
+    assert.match(r.stdout, /www name .*HTTP 200 — it should be a permanent redirect/);
+    assert.ok(Date.now() - started < 4000, "it waited for an answer that was plainly wrong");
   } finally {
     site.close();
     www.close();
