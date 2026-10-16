@@ -12,6 +12,7 @@ regexes = [
   '''test-app-secret-[0-9a-f]{16,}''',              # worker/vitest.config.ts
   '''fake-[a-z0-9-]*-not-a-secret[a-z0-9-]*''',     # fixtures that prove a saved key is masked and never echoed
   '''dev-setup-token''',                            # local first-admin setup token
+  '''"QUJD"\.repeat\(16\)''',                      # scripts/lib/setup-cloudflare.test.mjs: the made-up Google key file the deploy secret check is tried on
 ]
 paths = [
   '''worker/\.dev\.vars\.example$''',
