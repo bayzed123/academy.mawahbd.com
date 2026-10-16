@@ -25,7 +25,7 @@ const DATA_URL = "https://analyticsdata.googleapis.com/v1beta";
 const e = env as unknown as Record<string, string | undefined | object>;
 
 /** Set some bindings for the length of `fn`, then put them back exactly as they were. */
-async function withEnv<T>(over: Record<string, string | undefined>, fn: () => Promise<T>): Promise<T> {
+async function withEnv<T>(over: Record<string, string | object | undefined>, fn: () => Promise<T>): Promise<T> {
   const before = Object.fromEntries(Object.keys(over).map((k) => [k, e[k]]));
   for (const [k, v] of Object.entries(over)) {
     if (v === undefined) delete e[k];
@@ -523,6 +523,11 @@ describe("the key file", () => {
     const flattened = JSON.stringify({ type: "service_account", client_email: KEY.email, private_key: KEY.pem.replace(/\n/g, "\\n") });
     const fixed = parseServiceAccount(flattened);
     expect(fixed.ok && fixed.account.private_key).toContain("\n");
+    // added in the Cloudflare dashboard as a "JSON" variable, the Worker receives the file already parsed
+    const asObject = parseServiceAccount(JSON.parse(KEY.file));
+    expect(asObject.ok && asObject.account.client_email).toBe(KEY.email);
+    expect(parseServiceAccount({})).toEqual({ ok: false, problem: "key_invalid" });
+    expect(parseServiceAccount(42)).toEqual({ ok: false, problem: "not_configured" });
     for (const bad of ["not json at all", "{", "[]", "null", "{}", JSON.stringify({ client_email: "a@b.c" }), JSON.stringify({ client_email: "nope", private_key: KEY.pem }), JSON.stringify({ type: "authorized_user", client_email: "a@b.c", private_key: KEY.pem }), JSON.stringify({ client_email: "a@b.c", private_key: "-----BEGIN PUBLIC KEY-----\nabc\n-----END PUBLIC KEY-----" }), "%%%not-base64%%%"]) {
       expect(parseServiceAccount(bad), bad.slice(0, 30)).toEqual({ ok: false, problem: "key_invalid" });
     }
@@ -584,6 +589,17 @@ describe("signing in to Google and asking", () => {
     }
     // the smallest question there is
     expect(stand.data[0]!.body).toEqual({ dateRanges: [{ startDate: "7daysAgo", endDate: "today" }], metrics: [{ name: "activeUsers" }] });
+  });
+
+  it("works when the key file arrives as an object (a \"JSON\" variable added in the Cloudflare dashboard instead of a secret)", async () => {
+    const stand = google();
+    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: JSON.parse(KEY.file), GA_PROPERTY_ID: PROPERTY }, async () => {
+      expect((await checkConnection(env)).ok).toBe(true);
+      expect(serviceAccountEmail(env)).toBe(KEY.email);
+      const { client } = await loginStaff();
+      expect(await json(await client.get("/api/admin/analytics/status"))).toMatchObject({ key_set: true, key_problem: null, service_email: KEY.email });
+    });
+    expect(stand.tokens).toHaveLength(1);
   });
 
   it("signs in again when Google no longer accepts the pass — once, not in a loop", async () => {

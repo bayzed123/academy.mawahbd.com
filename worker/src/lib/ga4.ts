@@ -59,15 +59,21 @@ const decodeUtf8Base64 = (b64: string): string => {
   return new TextDecoder().decode(Uint8Array.from(bin, (ch) => ch.charCodeAt(0)));
 };
 
-/** Reads the secret: the key file as Google gives it, or that file's text in base64 (some places cannot hold a multi-line value). Never throws. */
-export function parseServiceAccount(raw: string | undefined): { ok: true; account: ServiceAccount } | { ok: false; problem: "not_configured" | "key_invalid" } {
-  const text = (raw ?? "").trim();
-  if (!text) return { ok: false, problem: "not_configured" };
+/**
+ * Reads the secret: the key file as Google gives it, or that file's text in base64 (some places cannot hold a multi-line value), or the file as an
+ * object (what the Worker receives when the owner adds it in the Cloudflare dashboard as a "JSON" variable instead of a secret). Never throws.
+ */
+export function parseServiceAccount(raw: unknown): { ok: true; account: ServiceAccount } | { ok: false; problem: "not_configured" | "key_invalid" } {
   let json: unknown;
-  try {
-    json = JSON.parse(text.startsWith("{") ? text : decodeUtf8Base64(text));
-  } catch {
-    return { ok: false, problem: "key_invalid" };
+  if (raw && typeof raw === "object") json = raw;
+  else {
+    const text = typeof raw === "string" ? raw.trim() : "";
+    if (!text) return { ok: false, problem: "not_configured" };
+    try {
+      json = JSON.parse(text.startsWith("{") ? text : decodeUtf8Base64(text));
+    } catch {
+      return { ok: false, problem: "key_invalid" };
+    }
   }
   const j = json as Record<string, unknown> | null;
   const email = typeof j?.client_email === "string" ? j.client_email.trim() : "";
