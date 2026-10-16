@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Builds the public-site assets:
- *   shared/styles/base.css + marketing/site.css -> minified string inlined into every page (worker/src/generated/assets.ts)
+ *   shared/styles/base.css + shared/styles/banners.css + marketing/site.css -> minified string inlined into every page (worker/src/generated/assets.ts)
  *   marketing/site.js       -> dist/static/assets/site.<hash>.js          (immutable, 1 year cache)
  *   marketing/banners.js    -> dist/static/assets/banners.<hash>.js       (only on pages with a slider or an offer pop-up)
  *   marketing/gallery.js    -> dist/static/assets/gallery.<hash>.js       (only on class pages with more than one picture)
@@ -28,7 +28,7 @@ mkdirSync(gen, { recursive: true });
 // static public files (fonts, sprite, logo + icons, pattern, manifest, og image …)
 cpSync(resolve(root, "marketing/public"), out, { recursive: true });
 
-const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("marketing/site.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/banners.css")}\n${read("marketing/site.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 // the decorative background pattern is tiny: inline it once (CSS variable) instead of a cached-for-a-day extra request
 const patternSvg = read("marketing/public/pattern.svg").replace(/\s+/g, " ").replace(/> </g, "><").replace(/"/g, "'").trim();
 const patternUri = `url("data:image/svg+xml,${patternSvg.replace(/</g, "%3C").replace(/>/g, "%3E").replace(/#/g, "%23")}")`;

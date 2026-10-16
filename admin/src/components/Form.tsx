@@ -12,7 +12,7 @@ export type FieldDef =
   | (Common & { type: "text" | "url" | "date" | "password"; maxLength?: number; placeholder?: string; nullable?: boolean })
   | (Common & { type: "textarea" | "markdown"; rows?: number; maxLength?: number })
   | (Common & { type: "number"; min?: number; max?: number; nullable?: boolean; suffix?: string })
-  | (Common & { type: "select"; options: { value: string; label: string }[]; nullable?: boolean; numeric?: boolean })
+  | (Common & { type: "select"; options: { value: string; label: string }[]; nullable?: boolean; numeric?: boolean; /** what the empty choice of a nullable menu says (default "—") */ emptyLabel?: string })
   | (Common & { type: "switch" })
   | (Common & { type: "image"; folder: "banners" | "photos" | "blog"; maxWidth: number; /** a wide preview, for banner pictures */ wide?: boolean })
   | (Common & { type: "courses" })
@@ -176,7 +176,7 @@ export function FormFields({ fields, values, onChange, errors = {}, idPrefix = "
                 error={err}
                 onChange={(e) => onChange(f.key, e.target.value === "" ? null : f.numeric ? Number(e.target.value) : e.target.value)}
               >
-                {f.nullable && <option value="">—</option>}
+                {f.nullable && <option value="">{f.emptyLabel ?? "—"}</option>}
                 {f.options.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}

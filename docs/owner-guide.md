@@ -191,6 +191,9 @@
 
 বাঁ মেনুর **ব্যানার** খুলে **+ যোগ করুন** চাপুন। যা বদলাবেন সাথে সাথে ওয়েবসাইটে লাইভ হয়।
 
+* **এক ক্লিকে শুরুর ব্যানার:** ব্যানার পাতার **শুরুর ব্যানার বানান** বোতাম চাপলে আপনার প্রকাশিত ক্লাস থেকে সর্বোচ্চ ৫টি স্লাইডার-ব্যানার তৈরি হয় — প্রতিটিতে ক্লাসের নিজের নাম, ছোট বিবরণ ও ক্যাটাগরি, আলাদা রং ও একটি আঁকা ছবি এবং সেই ক্লাসের “এখনই ভর্তি হন” বোতাম থাকে। কোনো দাম বা ছাড় লেখা হয় না। দ্বিতীয়বার চাপলে কিছু বাড়ে না। প্রতিটি আপনি বদলাতে, নিজের ছবি দিতে, বন্ধ করতে বা মুছতে পারবেন।
+* **চেহারা:** *রং* (গাঢ়, লাল, সোনালি, আইভরি), *লেখা কোথায় থাকবে* (বাঁ দিকে / মাঝখানে / ছবির পাশে আলাদা প্যানেলে), *বড় আঁকা ছবি* (ছবি না থাকলে), *ছবির কোন অংশ থাকবে* (উপরের বা নিচের অংশ — লম্বা ছবি কেটে গেলে কাজে লাগে) এবং শিরোনামের উপরের **ছোট লাইন**। ফর্মের উপরের **“দেখতে যেমন হবে”** অংশে কম্পিউটার ও ফোনের প্রিভিউ (বাংলা বা English) লেখার সাথে সাথে বদলায় — সংরক্ষণের আগেই দেখে নিন। কিছু না বাছলে ব্যানার আগের মতোই থাকে।
+
 * **কোথায় দেখাবে:** *হোম পেজ স্লাইডার* — হোম পেজের উপরে বড় ছবি (দুই বা তার বেশি হলে নিজে নিজে সরে; সর্বোচ্চ ৮টি)। অথবা *অফার পপ-আপ* — কেউ ঢোকার কয়েক সেকেন্ড পরে ভেসে ওঠা একটি কার্ড।
 * **ছবি:** চওড়া ছবি **১৬০০ × ৬০০ পিক্সেল**। চাইলে ফোনের জন্য আলাদা প্রায় চৌকো ছবি (**১০০০ × ৮০০**) দিন — না দিলে চওড়া ছবিটিই দেখাবে। জরুরি অংশ ছবির মাঝখানের বাঁ দিকে রাখুন। শুধু লেখার ব্যানারও হয় (ছবি ছাড়া শিরোনাম দিলেই)।
 * **লেখা:** শিরোনাম ও ছোট লাইন (বাংলা ও English)। লেখা ছবির ভেতরে আগে থেকেই থাকলে এগুলো ফাঁকা রাখতে পারেন — তবে **“ছবিতে কী আছে”** লিখে দিন, এটি দৃষ্টিহীন দর্শকদের জন্য ও গুগলের জন্য দরকারি।
@@ -489,6 +492,9 @@ When someone leaves, **deactivate** their account — their access ends at once.
 ## 17. Banners — the home-page slider and the offer pop-up
 
 Open **Banners** in the left menu and press **+ Add**. Whatever you change is live on the website at once.
+
+* **Starter banners in one click:** the **Create starter banners** button on the Banners page makes up to 5 slider banners from your published classes — each with the class's own title, short description and category, a colour and a large drawing, and an “Enroll Now” button to that class. No prices or discounts are written. Pressing it again adds nothing. You can edit each one, give it your own picture, switch it off or delete it.
+* **Look:** *Colour* (dark, red, gold, ivory), *Where the words go* (on the left / in the middle / in a panel beside the picture), *Large drawing* (for a banner with no picture), *Keep this part of the picture* (top or bottom — for when a tall photo gets cut) and a **small line** above the title. At the top of the form, **How it looks** shows a computer and a phone preview (Bangla or English) that changes as you type — check it before you save. If you choose nothing, the banner looks as it always did.
 
 * **Where it shows:** *Home page slider* — big pictures at the top of the home page (with two or more they slide by themselves; up to 8). Or *Offer pop-up* — a card that appears a few seconds after someone arrives.
 * **Picture:** a wide picture, **1600 × 600 px**. Optionally add a separate, nearly square picture for phones (**1000 × 800**) — without it the wide one is used. Keep the important part in the middle-left. A words-only banner works too (give it a headline and no picture).

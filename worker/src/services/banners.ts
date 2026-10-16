@@ -1,4 +1,4 @@
-import { toDhaka, type BannerPlacement } from "@mawah/shared";
+import { toDhaka, type BannerFocus, type BannerLayout, type BannerPlacement, type BannerTheme } from "@mawah/shared";
 import type { Env } from "../env";
 import { all } from "../lib/db";
 import { contentVersion } from "../lib/settings";
@@ -22,12 +22,19 @@ export interface BannerDTO {
   popup_delay_sec: number;
   popup_repeat_days: number;
   popup_pages: "home" | "all";
+  /** the design (Admin → Banners): empty means "as before" — the dark look, the words on the left, the middle of the picture */
+  layout: BannerLayout | null;
+  theme: BannerTheme | null;
+  icon: string | null;
+  focus: BannerFocus | null;
+  kicker_bn: string;
+  kicker_en: string;
   /** changes whenever the owner edits the banner: an edited pop-up is shown again to people who closed the old one */
   updated_at: string;
 }
 
 const COLS =
-  "id, placement, title_bn, title_en, text_bn, text_en, image_key, mobile_image_key, alt_bn, alt_en, button_bn, button_en, link_url, new_tab, popup_delay_sec, popup_repeat_days, popup_pages, updated_at";
+  "id, placement, title_bn, title_en, text_bn, text_en, image_key, mobile_image_key, alt_bn, alt_en, button_bn, button_en, link_url, new_tab, popup_delay_sec, popup_repeat_days, popup_pages, layout, theme, icon, focus, kicker_bn, kicker_en, updated_at";
 
 /** Today in Bangladesh as "YYYY-MM-DD": the day banners start and end on. */
 export const dhakaToday = (now: Date = new Date()) => toDhaka(now).toISOString().slice(0, 10);
