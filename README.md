@@ -37,8 +37,8 @@ Requires **Node.js ≥ 20.19** (22 recommended). Local D1/KV/R2 run on your mach
 |---|---|
 | `npm run dev` | Everything for local work: builds, migrates a local database, runs the Worker (8787) and hot-reload servers for the student app (5173) and admin (5174) |
 | `npm run typecheck` | `tsc` in all four workspaces (required before any deploy) |
-| `npm test` | i18n completeness, script tests, and **498 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
-| `npm run build && npm run test:e2e` | **121 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows (typed key by key, like a person), accessibility (axe), 360 px phones |
+| `npm test` | i18n completeness, script tests, and **500 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
+| `npm run build && npm run test:e2e` | **122 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows (typed key by key, like a person), accessibility (axe), 360 px phones |
 | `npm run lighthouse:local` | Core Web Vitals gate on the public pages (mobile profile) |
 | `npm run setup:cloudflare -- --secrets` | Only for deploying from your own computer: creates D1/KV/R2, fills `wrangler.toml`, sets the secrets (`--dry-run` first). **GitHub’s Deploy workflow does all of this by itself** — see [deployment.md](docs/deployment.md) |
 | `npm run db:migrate:remote` · `npm run deploy` | Apply migrations / build and deploy (normally done by GitHub Actions on every push to `main`) |
@@ -49,7 +49,7 @@ Requires **Node.js ≥ 20.19** (22 recommended). Local D1/KV/R2 run on your mach
 ```
 worker/      Cloudflare Worker: public pages (Hono + JSX), JSON API, payments, chatbot, cron, D1 migrations, tests
 brand/       the owner’s original logo (source of the generated logo/icon files)
-marketing/   public-site CSS/JS, chat widget, fonts, sprite, logo, icons, social image
+marketing/   public-site CSS/JS, chat widget, fonts, sprite, logo, icons, social image; verification/ = proof-of-ownership files for Meta / Google / Bing, served at the root
 app/         React student app          admin/   React admin CMS          shared/  types, RBAC table, i18n, design tokens
 e2e/         Playwright specs           tests/   API fixtures + test guide  scripts/ dev runner, setup, builds, Lighthouse gate
 docs/        specification and guides   .github/ CI, deploy and Lighthouse workflows

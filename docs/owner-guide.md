@@ -163,6 +163,7 @@
 | সমস্যা | কী করবেন |
 |---|---|
 | শিক্ষার্থী বলছেন টাকা দিয়েছেন কিন্তু ক্লাস খোলেনি | *অর্ডার*-এ ইমেইল/অর্ডার নম্বর খুঁজুন। “অপেক্ষমাণ” হলে গেটওয়ের পেমেন্ট প্যানেলে লেনদেনটি দেখুন; ম্যানুয়াল হলে TrxID বা স্ক্রিনশট দেখে স্টেটমেন্টের সাথে মিলিয়ে অনুমোদন দিন (“অপেক্ষমাণ” অবস্থাতেও দেওয়া যায়)। না পেলে ডেভেলপারকে অর্ডার নম্বর জানান |
+| Meta (Facebook), Google বা Bing ওয়েবসাইটে একটি যাচাই-ফাইল রাখতে বলছে | ফাইলটি যেমন পেয়েছেন ঠিক তেমন (নাম ও ভেতরের লেখা না বদলে) GitHub-এ প্রজেক্টের **`marketing/verification/`** ফোল্ডারে আপলোড করুন (*Add file → Upload files*), তারপর Deploy শেষ হলে ব্রাউজারে `https://mawahacademy.com/<ফাইলের নাম>` খুলে দেখুন লেখাটি আসছে কি না, তারপর ওদের পাতায় *Verify* চাপুন। প্রজেক্টের মূল ফোল্ডারে (root) রাখা ফাইল ওয়েবসাইটে যায় না |
 | ইমেইল যাচ্ছে না | ড্যাশবোর্ডে “ইমেইল সংযুক্ত নয়” দেখাচ্ছে কি না দেখুন → ডেভেলপারকে বলুন |
 | ভিডিও চলছে না | কারিকুলামে ভিডিওর অবস্থা “প্রস্তুত” কি না দেখুন; Stream চালু আছে কি না দেখুন |
 | কেউ অন্যের অ্যাকাউন্ট ব্যবহার করছেন মনে হচ্ছে | *শিক্ষার্থী*-তে খুঁজে **ব্লক** করুন (সব ডিভাইস থেকে লগআউট হবে) |
@@ -481,6 +482,7 @@ When someone leaves, **deactivate** their account — their access ends at once.
 | Problem | What to do |
 |---|---|
 | A student says they paid but the class did not open | Search *Orders* by e-mail/order number. If *Pending*, look at the gateway’s own panel for that transaction; if manual, match the TrxID or the screenshot against your statement and approve (you can approve while it is still *Pending* or *Awaiting verification*). If it is still unclear, give your developer the order number |
+| Meta (Facebook), Google or Bing asks for a verification file on the website | Upload the file exactly as you received it (same name, same content) to the project’s **`marketing/verification/`** folder on GitHub (*Add file → Upload files*); when the Deploy has finished open `https://mawahacademy.com/<file name>` in a browser and check the text shows, then press *Verify* on their page. A file in the project’s main folder is not on the website |
 | E-mails are not arriving | Check whether the dashboard says “E-mail is not connected” → ask your developer |
 | A video will not play | In the curriculum check the video says *ready*; check Stream is enabled |
 | Someone seems to be sharing an account | *Students* → search → **Block** (signs out every device) |

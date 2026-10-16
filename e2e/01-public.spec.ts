@@ -1,5 +1,7 @@
+import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { readVerificationFiles } from "../scripts/lib/verification-files.mjs";
 import { useLang } from "./helpers";
 
 /* The public, cacheable, server-rendered marketing site. */
@@ -94,6 +96,18 @@ test.describe("public site", () => {
     expect(Buffer.byteLength(html)).toBeLessThan(110_000);
     const scripts = requests.filter((r) => r.type === "script");
     expect(scripts.length).toBeLessThanOrEqual(2); // site.js (+ chat.js only on demand)
+  });
+
+  test("the files other services ask for to prove the site is the owner's (marketing/verification) open at the root with a plain 200 — not the redirect Cloudflare's asset layer gives a .html address", async ({ request }) => {
+    const { files } = readVerificationFiles(fileURLToPath(new URL("../marketing/verification/", import.meta.url))); // the files the build takes
+    for (const [name, body] of Object.entries(files)) {
+      const res = await request.get(`/${name}`, { maxRedirects: 0 });
+      expect(res.status(), name).toBe(200);
+      expect(await res.text(), name).toBe(body);
+      expect(res.headers()["x-robots-tag"], name).toBe("noindex");
+    }
+    // a name that is not one of them is not found (and is not a way to read other files of the project)
+    expect((await request.get("/not-a-verification-file.html", { maxRedirects: 0 })).status()).toBe(404);
   });
 
   test("accessibility: no serious or critical axe violations (home, class, search)", async ({ page }) => {
