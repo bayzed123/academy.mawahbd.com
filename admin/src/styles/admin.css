@@ -1,4 +1,5 @@
 @import "../../../shared/styles/base.css";
+@import "../../../shared/styles/banners.css";
 
 /* ==========================================================================================
    MAWAH Academy — admin dashboard. Shared base (tokens, buttons, forms) + a calm, spacious three-pane layout:
@@ -501,3 +502,16 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
 .an-conn{margin-bottom:18px}
 .an-conn>summary{cursor:pointer;padding:2px 0}
 .an-conn[open]>summary{margin-bottom:12px}
+
+/* ---------- banners: the preview in the edit drawer, and the little colour swatch in the list ---------- */
+.pv-sticky{position:sticky;top:-1px;z-index:4;margin:0 0 16px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--ivory)}
+.bn-preview h3{margin:0;font-size:1rem}
+.bn-preview .segmented button{min-height:36px;padding:.25rem .8rem;font-size:.9rem}
+.bn-frame-box{display:flex;justify-content:center;margin-top:10px;border-radius:12px;overflow:hidden;background:#070304}
+@media (max-width:720px){.pv-sticky{position:static}}
+.bn-frame-fit{position:relative;overflow:hidden}
+.bn-frame{position:absolute;top:0;left:0;display:block;border:0;background:#070304;transform-origin:0 0}
+.pv-body{margin:0;padding:12px;background:#070304}
+.pv-offer{display:grid;place-items:center;padding:6px 0}
+.pv-offer .offer-card{position:relative;display:grid;width:min(100%,420px);overflow:hidden;border-radius:20px;background:var(--paper);border:1.5px solid var(--g-500)}
+.bn-swatch{background:var(--bn-bg);color:var(--bn-a)}

@@ -1,8 +1,12 @@
 import { z } from "zod";
-import { BANNER_PLACEMENTS } from "@mawah/shared";
+import { BANNER_FOCUS, BANNER_LAYOUTS, BANNER_PLACEMENTS, BANNER_THEMES, CLASS_ICONS } from "@mawah/shared";
+import { audit } from "../../../lib/audit";
 import { crudRoutes, type ResourceDef } from "../../../lib/crud";
-import { HttpError } from "../../../lib/http";
+import { HttpError, ok } from "../../../lib/http";
 import { textSchema } from "../../../lib/schemas";
+import { bumpContentVersion } from "../../../lib/settings";
+import { requirePerm } from "../../../middleware/auth";
+import { createStarterBanners } from "../../../services/bannerStarter";
 
 /**
  * Admin → Banners: the home-page slider and the offer pop-up. Everything here is shown to every visitor, so the owner's words
@@ -46,6 +50,13 @@ const bannerSchema = z.object({
   popup_delay_sec: z.number().int().min(0).max(120),
   popup_repeat_days: z.number().int().min(0).max(365),
   popup_pages: z.enum(["home", "all"]),
+  // the design — all optional, and empty (null) means "as before": an older screen that does not send them changes nothing
+  layout: z.enum(BANNER_LAYOUTS).nullable().optional(),
+  theme: z.enum(BANNER_THEMES).nullable().optional(),
+  icon: z.enum(CLASS_ICONS).nullable().optional(),
+  focus: z.enum(BANNER_FOCUS).nullable().optional(),
+  kicker_bn: textSchema(40).optional(),
+  kicker_en: textSchema(40).optional(),
 });
 
 export const banners = crudRoutes({
@@ -75,3 +86,16 @@ export const banners = crudRoutes({
     return data;
   },
 } satisfies ResourceDef<typeof bannerSchema>);
+
+/**
+ * "Create starter banners": up to five hero banners made from published classes that have none yet — words from the class itself,
+ * no prices or discounts. Safe to press again (it never goes past five class banners in all).
+ */
+banners.post("/starter", requirePerm("banners:write"), async (c) => {
+  const res = await createStarterBanners(c.env);
+  if (res.created > 0) {
+    await bumpContentVersion(c.env);
+    await audit(c, { action: "banners.starter", entity: "banners", summary: `${res.created} starter banners`, meta: { created: res.created, existing: res.existing } });
+  }
+  return ok(c, res, res.created > 0 ? 201 : 200);
+});
