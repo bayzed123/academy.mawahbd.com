@@ -263,7 +263,7 @@
 
 **আপনার জিমেইলে সব খবর — `mawahacademy@gmail.com`**
 
-* ওয়েবসাইটে যা-ই ঘটে, আপনার জিমেইলে একটি ইমেইল আসে: নতুন পেমেন্ট (পেইড অর্ডার), যাচাইয়ের অপেক্ষায় থাকা পেমেন্ট, যোগাযোগ ফর্মের বার্তা, নতুন শিক্ষার্থী, ক্লাসে প্রশ্ন, রিভিউ অনুমোদনের অপেক্ষায়, চ্যাটবট থেকে আপনার কাছে হস্তান্তর, প্রাইভেট গ্রুপে যোগ দেওয়ার অনুরোধ, “জানাও” সাইন-আপ এবং নিউজলেটার সাইন-আপ। প্রতিটি ইমেইলে সংক্ষেপে কী ঘটেছে আর কোথায় ক্লিক করে দেখবেন তা থাকে।
+* ওয়েবসাইটে যা-ই ঘটে, আপনার জিমেইলে একটি ইমেইল আসে: নতুন পেমেন্ট (পেইড অর্ডার), যাচাইয়ের অপেক্ষায় থাকা পেমেন্ট, শিক্ষার্থী শুরু করতে পারেননি এমন অনলাইন পেমেন্ট (গেটওয়ের নিজের কথাসহ), যোগাযোগ ফর্মের বার্তা, নতুন শিক্ষার্থী, ক্লাসে প্রশ্ন, রিভিউ অনুমোদনের অপেক্ষায়, চ্যাটবট থেকে আপনার কাছে হস্তান্তর, প্রাইভেট গ্রুপে যোগ দেওয়ার অনুরোধ, “জানাও” সাইন-আপ এবং নিউজলেটার সাইন-আপ। প্রতিটি ইমেইলে সংক্ষেপে কী ঘটেছে আর কোথায় ক্লিক করে দেখবেন তা থাকে।
 * **সেটিংস → ইমেইল → আপনার কাছে নোটিফিকেশন** থেকে আরও ঠিকানা যোগ করা যায়, প্রতিটি ধরন আলাদাভাবে বন্ধ/চালু করা যায়, আর **একটি পরীক্ষামূলক নোটিফিকেশন পাঠান** বোতামে এখনই একটা নমুনা পাঠিয়ে দেখা যায়।
 * ইমেইলগুলো আসে `no-reply@mawahacademy.com` ঠিকানা থেকে (জিমেইল ঠিকানা থেকে সরাসরি পাঠানো Resend-এ সম্ভব নয়)। **রিপ্লাই** চাপলে উত্তর আপনার জিমেইলেই যায়।
 * ডোমেইন যাচাই না হওয়া পর্যন্ত আপনার নিজের নোটিফিকেশনগুলো Resend-এর পরীক্ষামূলক প্রেরক (`onboarding@resend.dev`) দিয়ে আসে — তাই আপনি খবর পেতে থাকেন — কিন্তু **শিক্ষার্থীদের** রসিদ ও পাসওয়ার্ড-সেট লিংক যায় না। ডোমেইন যাচাই করতে `docs/email-dns-records.txt` ফাইলটি Cloudflare → DNS → Import and export থেকে ইমপোর্ট করুন (চারটি রেকর্ডই **DNS only**), তারপর Resend → Domains-এ **Verify DNS Records** চাপুন।
@@ -596,7 +596,7 @@ Receipts, password resets and “the class is open” announcements go out by e-
 
 **Everything that happens, in your Gmail — `mawahacademy@gmail.com`**
 
-* Whatever happens on the website, an e-mail lands in your Gmail: a paid order, a payment waiting to be checked, a contact-form message, a new student, a question on a class, a review waiting for approval, a chatbot hand-over, a private-group request, a “notify me” sign-up and a newsletter sign-up. Each e-mail says in a few lines what happened and where to click.
+* Whatever happens on the website, an e-mail lands in your Gmail: a paid order, a payment waiting to be checked, an online payment a student could not start (with the gateway’s own words), a contact-form message, a new student, a question on a class, a review waiting for approval, a chatbot hand-over, a private-group request, a “notify me” sign-up and a newsletter sign-up. Each e-mail says in a few lines what happened and where to click.
 * **Settings → E-mail → Notifications to you** adds more addresses, switches single kinds on or off, and has a **Send a test notification** button that sends a sample right now.
 * The e-mails come *from* `no-reply@mawahacademy.com` (Resend cannot send directly from a Gmail address). Pressing **Reply** answers to your Gmail inbox.
 * Until the domain is verified, your own notifications arrive through Resend’s test sender (`onboarding@resend.dev`) — so you keep getting the news — but **students’** receipts and set-your-password links are not sent. To verify the domain, import `docs/email-dns-records.txt` in Cloudflare → DNS → Import and export (all four rows **DNS only**), then press **Verify DNS Records** at Resend → Domains.
