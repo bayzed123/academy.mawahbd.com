@@ -180,12 +180,19 @@ jobs:
 
       - name: What to check if this failed
         if: failure()
+        env:
+          PUBLISHED: ${{ steps.deploy.outcome }}
         run: |
+          # when the Worker was already published, say so: visitors have the new version and only a later check failed
+          if [ "$PUBLISHED" = "success" ]; then
+            headline="### ⚠️ The new version is live — a check after publishing failed"
+            lead="The Worker was published and the free address works, so visitors already get the new version. Read the ❌ lines in this summary and the red step above, then check:"
+          else
+            headline="### ❌ The deploy did not finish"
+            lead="The site keeps serving the version it had before. Open the red step above to read Cloudflare's own message, then check:"
+          fi
+          printf '%s\n\n%s\n\n' "$headline" "$lead" >> "$GITHUB_STEP_SUMMARY"
           cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
-          ### ❌ The deploy did not finish
-
-          The site keeps serving the version it had before. Open the red step above to read Cloudflare's own message, then check:
-
           1. **"Check the Cloudflare access"** failed: follow the ✗ lines (a missing token permission, R2 not switched on, or an account ID that belongs to another Cloudflare account).
           2. **"Find or create the database, KV storage and file storage"** failed: R2 must be switched on once (Cloudflare dashboard → R2 → Overview), and the API token needs *D1 · Edit*, *Workers KV Storage · Edit* and *Workers R2 Storage · Edit* as well as *Workers Scripts · Edit*.
           3. **Migrations or "Deploy the Worker"** failed: read the message. If it mentions Stream, switch Stream on in the Cloudflare dashboard.
