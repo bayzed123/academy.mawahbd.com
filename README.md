@@ -48,7 +48,7 @@ Requires **Node.js ≥ 20.19** (22 recommended). Local D1/KV/R2 run on your mach
 ```
 worker/      Cloudflare Worker: public pages (Hono + JSX), JSON API, payments, chatbot, cron, D1 migrations, tests
 brand/       the owner’s original logo (source of the generated logo/icon files)
-marketing/   public-site CSS/JS, chat widget, fonts, sprite, logo, icons, social image
+marketing/   public-site CSS/JS, chat widget, fonts, sprite, logo, icons, social image; verification/ = proof-of-ownership files for Meta / Google / Bing, served at the root
 app/         React student app          admin/   React admin CMS          shared/  types, RBAC table, i18n, design tokens
 e2e/         Playwright specs           tests/   API fixtures + test guide  scripts/ dev runner, setup, builds, Lighthouse gate
 docs/        specification and guides   .github/ CI, deploy and Lighthouse workflows

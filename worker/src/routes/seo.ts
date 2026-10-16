@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../env";
+import { VERIFICATION_FILES } from "../generated/verification";
 import { all } from "../lib/db";
 import { cachedPage } from "../lib/render";
 import { isOtherAddress } from "../middleware/host";
@@ -73,3 +74,20 @@ seoRoutes.get("/sitemap.xml", (c) =>
     );
   }),
 );
+
+const VERIFICATION_TYPES: Record<string, string> = { html: "text/html; charset=utf-8", txt: "text/plain; charset=utf-8", xml: "application/xml; charset=utf-8" };
+
+/**
+ * The files other services ask to be placed at the root of the site to prove it is the owner's (Meta's domain verification, Google Search Console,
+ * Bing …), each exactly as the service gave it, with a plain 200 — not the redirect that Cloudflare's asset layer would give a "/name.html" request.
+ * They are kept in marketing/verification/ (see scripts/lib/verification-files.mjs for which files are taken).
+ */
+export function verificationRoutes(files: Record<string, string>): Hono<AppEnv> {
+  const r = new Hono<AppEnv>();
+  for (const [name, body] of Object.entries(files)) {
+    const type = VERIFICATION_TYPES[name.slice(name.lastIndexOf(".") + 1)] ?? "text/plain; charset=utf-8";
+    r.get(`/${name}`, () => new Response(body, { headers: { "Content-Type": type, "Cache-Control": "public, max-age=3600", "X-Robots-Tag": "noindex" } }));
+  }
+  return r;
+}
+seoRoutes.route("/", verificationRoutes(VERIFICATION_FILES));

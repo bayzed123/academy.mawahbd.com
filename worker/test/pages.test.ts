@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { VERIFICATION_FILES } from "../src/generated/verification";
+import { verificationRoutes } from "../src/routes/seo";
 import { mockSignature } from "../src/services/payments";
 import { Client, env, json, registerStudent } from "./helpers";
 
@@ -202,6 +204,38 @@ describe("SEO files", () => {
     expect(robots).toContain("Disallow: /admin/");
     expect(robots).toContain("Disallow: /app/");
     expect(robots).toContain("Sitemap: http://localhost:8787/sitemap.xml");
+  });
+
+  it("serves the proof-of-ownership files other services ask for (Meta, Google Search Console, Bing …) at the root, exactly as given, with a plain 200", async () => {
+    const files = { "tgvr8dgfrjxjhoqzqto2mplocbx41n.html": "tgvr8dgfrjxjhoqzqto2mplocbx41n", "BingSiteAuth.xml": '<?xml version="1.0"?>\n<users><user>ABC123</user></users>\n', "verify-me.txt": "google-site-verification: abc" };
+    const routes = verificationRoutes(files);
+    for (const [name, body] of Object.entries(files)) {
+      const res = await routes.request(`/${name}`);
+      expect(res.status, name).toBe(200); // not the redirect Cloudflare's asset layer gives "/name.html"
+      expect(await res.text(), name).toBe(body);
+      expect(res.headers.get("x-robots-tag")).toBe("noindex");
+      expect(res.headers.get("cache-control")).toBe("public, max-age=3600");
+    }
+    expect((await routes.request("/tgvr8dgfrjxjhoqzqto2mplocbx41n.html")).headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect((await routes.request("/BingSiteAuth.xml")).headers.get("content-type")).toBe("application/xml; charset=utf-8");
+    expect((await routes.request("/verify-me.txt")).headers.get("content-type")).toBe("text/plain; charset=utf-8");
+    expect((await routes.request("/tgvr8dgfrjxjhoqzqto2mplocbx41n.html", { method: "HEAD" })).status).toBe(200);
+    // only those names, only to read
+    expect((await routes.request("/other-file.html")).status).toBe(404);
+    expect((await routes.request("/tgvr8dgfrjxjhoqzqto2mplocbx41n.html", { method: "POST" })).status).toBe(404);
+    expect((await verificationRoutes({}).request("/tgvr8dgfrjxjhoqzqto2mplocbx41n.html")).status).toBe(404);
+  });
+
+  it("serves the files kept in the project's marketing/verification folder, through the whole site (the headers of every page apply), and never lets one take the place of robots.txt or the sitemap", async () => {
+    for (const [name, body] of Object.entries(VERIFICATION_FILES)) {
+      const res = await new Client().get(`/${name}`);
+      expect(res.status, name).toBe(200);
+      expect(await res.text(), name).toBe(body);
+      expect(res.headers.get("x-content-type-options"), name).toBe("nosniff");
+    }
+    expect(Object.keys(VERIFICATION_FILES)).not.toContain("robots.txt");
+    expect(Object.keys(VERIFICATION_FILES)).not.toContain("sitemap.xml");
+    expect(await text(await new Client().get("/robots.txt"))).toContain("User-agent: *");
   });
 });
 
