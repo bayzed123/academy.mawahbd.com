@@ -16,6 +16,18 @@ const SLUG = "beginners-baking-class";
 const TITLE = "Beginners Baking Class";
 const publicStatus = async () => (await admin.request.get(`/en/courses/${SLUG}`)).status();
 
+/**
+ * Type in the class search and wait until the table shows the answer. The old rows stay on screen while the new list loads,
+ * and a click on one of them can be lost when the rows are swapped a moment later — so the test waits for the server's answer
+ * (and for exactly that many rows) before it touches a row.
+ */
+async function searchClasses(text: string) {
+  const answered = admin.waitForResponse((r) => r.url().includes("/api/admin/courses?") && new URL(r.url()).searchParams.get("q") === text && r.ok());
+  await admin.getByPlaceholder("Search by class name").fill(text);
+  const { items } = (await (await answered).json()) as { items: unknown[] };
+  await expect(admin.locator("tbody tr")).toHaveCount(items.length);
+}
+
 test.beforeAll(async ({ browser }) => {
   const ctx = await browser.newContext({ locale: "en-US" });
   await useLang(ctx, "en");
@@ -27,7 +39,7 @@ test.afterAll(async () => admin.context().close());
 
 test("the class list has one Active switch: it asks before hiding a class, says what happens to students, and switching on brings it back", async () => {
   await admin.goto("/admin/courses");
-  await admin.getByPlaceholder("Search by class name").fill("Beginners Baking");
+  await searchClasses("Beginners Baking");
   const row = admin.getByRole("row").filter({ hasText: TITLE });
   await expect(row).toHaveCount(1);
   await expect(row).toContainText("Active");
@@ -64,7 +76,7 @@ test("turning on a class with no lessons asks first, because students who pay wo
   const made = await apiPost(admin, "/admin/courses", { title_bn: "ফাঁকা ক্লাস", title_en: "Empty Class E2E", slug, price: 300, status: "draft", short_bn: "", short_en: "", long_bn: "", long_en: "", banner_key: null, icon: "cake", category_id: null, instructor_id: null, level: null, details_url: null, featured: false, cert_enabled: true, seo_title_bn: "", seo_title_en: "", seo_desc_bn: "", seo_desc_en: "", sort: 100, launch_at: null });
   expect(made.status).toBe(201);
   await admin.goto("/admin/courses");
-  await admin.getByPlaceholder("Search by class name").fill("Empty Class E2E");
+  await searchClasses("Empty Class E2E");
   const row = admin.getByRole("row").filter({ hasText: "Empty Class E2E" });
   await expect(row).toContainText("Inactive");
   await row.locator("label.switch").click();
@@ -81,7 +93,7 @@ test("turning on a class with no lessons asks first, because students who pay wo
 
 test("view mode: a click on a class opens a read-only overview with real numbers; Edit mode is one button away, and back", async () => {
   await admin.goto("/admin/courses");
-  await admin.getByPlaceholder("Search by class name").fill("Beginners Baking");
+  await searchClasses("Beginners Baking");
   await admin.getByRole("row").filter({ hasText: TITLE }).getByRole("cell").first().click(); // anywhere on the row
   await expect(admin).toHaveURL(/\/admin\/courses\/\d+$/);
   const id = Number(admin.url().match(/courses\/(\d+)/)![1]);
@@ -124,8 +136,9 @@ test("view mode: a click on a class opens a read-only overview with real numbers
 
 test("the same switch on the overview page, and the editor's visibility menu explains each choice in plain words", async () => {
   await admin.goto("/admin/courses");
-  await admin.getByPlaceholder("Search by class name").fill("Beginners Baking");
+  await searchClasses("Beginners Baking");
   await admin.getByRole("row").filter({ hasText: TITLE }).getByRole("button", { name: "View" }).click();
+  await expect(admin).toHaveURL(/\/admin\/courses\/\d+$/);
   await admin.getByRole("switch", { name: "Active on the website" }).locator("xpath=ancestor::label").click();
   await admin.getByRole("alertdialog").getByRole("button", { name: "Make inactive" }).click();
   await expect(admin.getByLabel("Visibility on the website")).toContainText("Inactive");
