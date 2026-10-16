@@ -50,7 +50,8 @@ export function buildCsp(opts: CspOptions = {}): string {
   }
   if (opts.analytics?.ga4) {
     script.push("https://www.googletagmanager.com");
-    connect.push("https://*.google-analytics.com", "https://*.analytics.google.com", "https://*.googletagmanager.com");
+    // the hosts Google lists for GA4 (developers.google.com/tag-platform/security/guides/csp); a wildcard does not cover the bare analytics.google.com
+    connect.push("https://*.google-analytics.com", "https://analytics.google.com", "https://*.analytics.google.com", "https://*.googletagmanager.com");
     img.push("https://*.google-analytics.com", "https://*.googletagmanager.com");
   }
   if (opts.analytics?.clarity) {
