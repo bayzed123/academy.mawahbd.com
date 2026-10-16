@@ -130,16 +130,6 @@ export const ADMIN_NAV = [
 export const BANNER_PLACEMENTS = ["hero", "popup"] as const;
 export type BannerPlacement = (typeof BANNER_PLACEMENTS)[number];
 
-/** How a banner is laid out: the words on the left over the picture, in the middle, or in their own panel beside the picture. */
-export const BANNER_LAYOUTS = ["left", "center", "split"] as const;
-export type BannerLayout = (typeof BANNER_LAYOUTS)[number];
-/** The colour of the banner's words side: the brand's dark, its red, its gold, or ivory paper. */
-export const BANNER_THEMES = ["dark", "ruby", "gold", "ivory"] as const;
-export type BannerTheme = (typeof BANNER_THEMES)[number];
-/** Which part of a tall or wide photo stays in view when the banner crops it. */
-export const BANNER_FOCUS = ["top", "center", "bottom"] as const;
-export type BannerFocus = (typeof BANNER_FOCUS)[number];
-
 /** Pictures a class can show besides its main one (Admin → a class → Pictures). */
 export const MAX_CLASS_PICTURES = 12;
 
