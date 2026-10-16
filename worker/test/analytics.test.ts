@@ -192,7 +192,7 @@ afterEach(() => {
 });
 
 /** The shop's Worker with a key and a property, as a deployed shop with everything set up would have. */
-const connected = <T>(fn: () => Promise<T>) => withEnv({ GA4_SERVICE_ACCOUNT_JSON: KEY.file, GA_PROPERTY_ID: PROPERTY }, fn);
+const connected = <T>(fn: () => Promise<T>) => withEnv({ GOOGLE_SERVICE_ACCOUNT: KEY.file, GA_PROPERTY_ID: PROPERTY }, fn);
 
 /* ============================================================================================= who is counted, and where */
 
@@ -534,9 +534,9 @@ describe("the key file", () => {
   });
 
   it("gives the account's address (which is not a secret) and nothing else", () => {
-    expect(serviceAccountEmail({ GA4_SERVICE_ACCOUNT_JSON: KEY.file } as never)).toBe(KEY.email);
+    expect(serviceAccountEmail({ GOOGLE_SERVICE_ACCOUNT: KEY.file } as never)).toBe(KEY.email);
     expect(serviceAccountEmail({} as never)).toBeNull();
-    expect(serviceAccountEmail({ GA4_SERVICE_ACCOUNT_JSON: "junk" } as never)).toBeNull();
+    expect(serviceAccountEmail({ GOOGLE_SERVICE_ACCOUNT: "junk" } as never)).toBeNull();
   });
 
   it("signs the note Google asks for: RS256, the account, read-only scope, the sign-in address, an hour — and the signature is real", async () => {
@@ -593,7 +593,7 @@ describe("signing in to Google and asking", () => {
 
   it("works when the key file arrives as an object (a \"JSON\" variable added in the Cloudflare dashboard instead of a secret)", async () => {
     const stand = google();
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: JSON.parse(KEY.file), GA_PROPERTY_ID: PROPERTY }, async () => {
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: JSON.parse(KEY.file), GA_PROPERTY_ID: PROPERTY }, async () => {
       expect((await checkConnection(env)).ok).toBe(true);
       expect(serviceAccountEmail(env)).toBe(KEY.email);
       const { client } = await loginStaff();
@@ -664,12 +664,12 @@ describe("signing in to Google and asking", () => {
 
   it("does not even try when there is no key, a damaged key or no property — and there is no network call", async () => {
     const stand = google();
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: undefined, GA_PROPERTY_ID: PROPERTY }, async () => expect(await checkConnection(env)).toMatchObject({ ok: false, problem: "not_configured" }));
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: "this is not a key file", GA_PROPERTY_ID: PROPERTY }, async () => expect(await checkConnection(env)).toMatchObject({ ok: false, problem: "key_invalid" }));
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: undefined, GA_PROPERTY_ID: PROPERTY }, async () => expect(await checkConnection(env)).toMatchObject({ ok: false, problem: "not_configured" }));
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: "this is not a key file", GA_PROPERTY_ID: PROPERTY }, async () => expect(await checkConnection(env)).toMatchObject({ ok: false, problem: "key_invalid" }));
     // looks like a key file, but the private key was cut off on the way: the browser's crypto cannot read it
     const cut = JSON.stringify({ type: "service_account", client_email: KEY.email, private_key: "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----\n" });
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: cut, GA_PROPERTY_ID: PROPERTY }, async () => expect(await checkConnection(env)).toMatchObject({ ok: false, problem: "key_invalid", detail: expect.stringContaining("private key") }));
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: KEY.file, GA_PROPERTY_ID: "" }, async () => expect(await checkConnection(env)).toMatchObject({ ok: false, problem: "property_missing" }));
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: cut, GA_PROPERTY_ID: PROPERTY }, async () => expect(await checkConnection(env)).toMatchObject({ ok: false, problem: "key_invalid", detail: expect.stringContaining("private key") }));
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: KEY.file, GA_PROPERTY_ID: "" }, async () => expect(await checkConnection(env)).toMatchObject({ ok: false, problem: "property_missing" }));
     expect(stand.tokens).toHaveLength(0);
     expect(stand.data).toHaveLength(0);
   });
@@ -701,7 +701,7 @@ describe("signing in to Google and asking", () => {
 
   it("honours a stand-in address for Google outside production, and never in production", async () => {
     const stand = google();
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: KEY.file, GA_PROPERTY_ID: PROPERTY, GOOGLE_API_BASE: "https://stand-in.test/api/dev/google/" }, async () => {
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: KEY.file, GA_PROPERTY_ID: PROPERTY, GOOGLE_API_BASE: "https://stand-in.test/api/dev/google/" }, async () => {
       expect((await checkConnection(env)).ok).toBe(true);
     });
     expect(stand.tokens[0]!.url).toBe("https://stand-in.test/api/dev/google/token");
@@ -710,7 +710,7 @@ describe("signing in to Google and asking", () => {
 
     forgetPass();
     const live = google();
-    await withEnv({ ENVIRONMENT: "production", GA4_SERVICE_ACCOUNT_JSON: KEY.file, GA_PROPERTY_ID: PROPERTY, GOOGLE_API_BASE: "https://evil.example" }, async () => {
+    await withEnv({ ENVIRONMENT: "production", GOOGLE_SERVICE_ACCOUNT: KEY.file, GA_PROPERTY_ID: PROPERTY, GOOGLE_API_BASE: "https://evil.example" }, async () => {
       expect((await checkConnection(env)).ok).toBe(true);
     });
     expect(live.tokens[0]!.url).toBe(TOKEN_URL);
@@ -766,14 +766,14 @@ describe("Admin → Analytics: the connection", () => {
 
   it("says plainly when there is no key yet, or the key is not a key file", async () => {
     const { client } = await loginStaff();
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: undefined }, async () => {
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: undefined }, async () => {
       expect(await json(await client.get("/api/admin/analytics/status"))).toMatchObject({ key_set: false, key_problem: null, service_email: null });
       // an answer, not an error: the screen explains it
       const report = await client.get("/api/admin/analytics/report");
       expect(report.status).toBe(200);
       expect(await json(report)).toMatchObject({ ok: true, report: { connected: false, problem: "not_configured" } });
     });
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: "garbage" }, async () => {
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: "garbage" }, async () => {
       expect(await json(await client.get("/api/admin/analytics/status"))).toMatchObject({ key_set: true, key_problem: "key_invalid", service_email: null });
     });
   });
@@ -989,7 +989,7 @@ describe("Admin → Analytics: the report", () => {
     expect(lines.length).toBeGreaterThan(5);
     expect(lines.some((l) => l.includes(`,${SLUGS.a},150,75,56,20,10,4,2,1200`))).toBe(true);
 
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: undefined }, async () => {
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: undefined }, async () => {
       await clearKept();
       expect((await client.get("/api/admin/analytics/classes.csv")).status).toBe(409);
     });
@@ -1010,7 +1010,7 @@ describe("Admin → Analytics: the report", () => {
       await client.get("/api/admin/analytics/realtime");
       expect(stand.data).toHaveLength(2);
     });
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: undefined }, async () => {
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: undefined }, async () => {
       await clearKept();
       expect((await json(await client.get("/api/admin/analytics/realtime"))).live).toMatchObject({ connected: false, problem: "not_configured" });
     });
@@ -1027,7 +1027,7 @@ describe("the dashboard's health strip", () => {
     await setOwnId("");
     expect(await card()).toMatchObject({ status: "warn", issues: ["analytics_no_id"] });
     await setOwnId(OWN_ID);
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: undefined }, async () => expect(await card()).toMatchObject({ status: "info", issues: ["analytics_key_missing"] }));
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: undefined }, async () => expect(await card()).toMatchObject({ status: "info", issues: ["analytics_key_missing"] }));
     await connected(async () => {
       expect(await card()).toMatchObject({ status: "ok", issues: [] });
       // the owner pressed "Check the connection" and Google said no
@@ -1054,7 +1054,7 @@ describe("the stand-in for Google (development and tests only)", () => {
 
   it("walks the same road: a signed note gets a pass, the pass gets tables, and each way of saying no can be asked for", async () => {
     const client = new Client();
-    await withEnv({ GA4_SERVICE_ACCOUNT_JSON: KEY.file, GA_PROPERTY_ID: PROPERTY, GOOGLE_API_BASE: "https://academy.test/api/dev/google" }, async () => {
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: KEY.file, GA_PROPERTY_ID: PROPERTY, GOOGLE_API_BASE: "https://academy.test/api/dev/google" }, async () => {
       const real = globalThis.fetch;
       // send the Worker's calls for "Google" to the Worker itself (that is what the dev server does)
       vi.spyOn(globalThis, "fetch").mockImplementation((async (input: RequestInfo | URL, init?: RequestInit) => {

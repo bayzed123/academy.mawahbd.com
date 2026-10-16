@@ -2,7 +2,7 @@ import { isProd, type Env } from "../env";
 
 /*
  * Reading the shop's Google Analytics 4 numbers (Admin → Analytics). The owner makes a "service account" in Google Cloud, adds its e-mail
- * address as a Viewer of the Analytics property, and puts the account's key file in the secret GA4_SERVICE_ACCOUNT_JSON (or as the GitHub secret
+ * address as a Viewer of the Analytics property, and puts the account's key file in the secret GOOGLE_SERVICE_ACCOUNT (or as the GitHub secret
  * of that name, which the deploy copies there). Nothing here ever puts the key — or any part of it — in an answer, a log line or an error:
  * what Google said is shown, with anything shaped like a key cut out.
  *
@@ -89,7 +89,7 @@ export function parseServiceAccount(raw: unknown): { ok: true; account: ServiceA
 
 /** The address the owner must add to Google Analytics → Admin → Property access management. It is not a secret. */
 export function serviceAccountEmail(env: Env): string | null {
-  const parsed = parseServiceAccount(env.GA4_SERVICE_ACCOUNT_JSON);
+  const parsed = parseServiceAccount(env.GOOGLE_SERVICE_ACCOUNT);
   return parsed.ok ? parsed.account.client_email : null;
 }
 
@@ -137,7 +137,7 @@ export function forgetPass(): void {
 }
 
 async function signIn(env: Env): Promise<Answer<string>> {
-  const parsed = parseServiceAccount(env.GA4_SERVICE_ACCOUNT_JSON);
+  const parsed = parseServiceAccount(env.GOOGLE_SERVICE_ACCOUNT);
   if (!parsed.ok) return { ok: false, problem: parsed.problem };
   const { account } = parsed;
   if (pass && pass.who === account.client_email && pass.until - Date.now() > 5 * 60_000) return { ok: true, data: pass.token };

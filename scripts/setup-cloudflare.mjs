@@ -90,7 +90,7 @@ const OPTIONAL_SECRETS = [
   { name: "SSLCOMMERZ_STORE_ID", valid: (v) => /^[\x21-\x7e]{3,80}$/.test(v), hint: "the Store ID from the SSLCommerz panel, with no spaces" },
   { name: "SSLCOMMERZ_STORE_PASSWORD", valid: (v) => /^[\x21-\x7e]{3,120}$/.test(v), hint: "the Store Password from the SSLCommerz panel (not your login password), with no spaces" },
   {
-    name: "GA4_SERVICE_ACCOUNT_JSON",
+    name: "GOOGLE_SERVICE_ACCOUNT",
     valid: (v) => serviceAccountFile(v) !== null,
     normalize: serviceAccountFile,
     hint: "the whole key file (.json) of the Google service account, as it was downloaded — not a part of it, and not the account's e-mail address alone",

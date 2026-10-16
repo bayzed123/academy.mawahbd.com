@@ -56,7 +56,7 @@ export interface Env {
    * Google Analytics property: it lets Admin → Analytics read the numbers. A secret — never committed, never shown, never logged.
    */
   /** the Google service-account key file: text (a secret), or the object itself when it was added in the dashboard as a "JSON" variable */
-  GA4_SERVICE_ACCOUNT_JSON?: string | Record<string, unknown>;
+  GOOGLE_SERVICE_ACCOUNT?: string | Record<string, unknown>;
   /** Local development / tests only: enables the simulated payment gateway. */
   ALLOW_MOCK_PAYMENTS?: string;
   /** Local development / tests only: lets pages carry the analytics tag (it never does outside the real site otherwise). Ignored in production. */

@@ -108,7 +108,7 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
   if (!settings.analytics.ga4) {
     ga.push("analytics_no_id");
     gaStatus = "warn";
-  } else if (!env.GA4_SERVICE_ACCOUNT_JSON) {
+  } else if (!env.GOOGLE_SERVICE_ACCOUNT) {
     ga.push("analytics_key_missing");
     gaStatus = "info";
   } else if ((await env.KV.get<{ ok: boolean }>(GA4_LAST_KEY, "json"))?.ok === false) {

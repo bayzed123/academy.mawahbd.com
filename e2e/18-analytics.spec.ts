@@ -440,7 +440,7 @@ test.describe("Admin → Analytics", () => {
   });
 
   test("before the key exists the screen says what to do, step by step, and nothing breaks", async () => {
-    // what the Worker answers while the secret GA4_SERVICE_ACCOUNT_JSON is not set (its own logic is tested in worker/test/analytics.test.ts);
+    // what the Worker answers while the secret GOOGLE_SERVICE_ACCOUNT is not set (its own logic is tested in worker/test/analytics.test.ts);
     // this test is about how the screen shows it
     await admin.route("**/api/admin/analytics/status", (route) =>
       route.fulfill({ json: { ok: true, measurement_id: GA_ID, tag_live: true, property_id: "559265538", stream_id: "16139065386", key_set: false, key_problem: null, service_email: null, last: null } }),
@@ -452,7 +452,7 @@ test.describe("Admin → Analytics", () => {
     await expect(admin.getByText("Not asked yet")).toBeVisible();
     const steps = admin.locator(".an-steps li");
     await expect(steps).toHaveCount(5);
-    await expect(steps.nth(3)).toContainText("GA4_SERVICE_ACCOUNT_JSON");
+    await expect(steps.nth(3)).toContainText("GOOGLE_SERVICE_ACCOUNT");
     await expect(admin.getByText("Account e-mail to add in Google Analytics")).toHaveCount(0); // there is no account yet
     const scan = await new AxeBuilder({ page: admin }).withTags(WCAG).analyze();
     expect(scan.violations.map((v) => `${v.id}: ${v.nodes[0]?.target}`)).toEqual([]);

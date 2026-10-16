@@ -10,7 +10,7 @@ The website counts what visitors look at and choose, and the **Admin → Analyti
 | Report | `worker/src/services/analytics.ts` → *Admin → Analytics* (reads Google with a service account) |
 | Events | 43, listed [below](#every-event) and in `shared/src/analytics.ts` |
 
-> **বাংলায় সংক্ষেপে —** ওয়েবসাইট ও স্টুডেন্ট অ্যাপ এখন Google Analytics 4-এ ভিজিট ও কাজ (ক্লাস দেখা, “এনরোল” চাপা, চেকআউট, পেমেন্ট, লেসন শেখা…) গোনে; কারও নাম, ইমেইল, ফোন বা ঠিকানা কখনো পাঠানো হয় না। **অ্যাডমিন → অ্যানালিটিক্স** পাতায় প্রতিটি ক্লাস মানুষ কীভাবে দেখছে তা দেখা যায় — তার জন্য একবার Google-এর একটি সার্ভিস অ্যাকাউন্ট বানিয়ে তার JSON ফাইলটি GitHub-এ সিক্রেট `GA4_SERVICE_ACCOUNT_JSON` নামে রাখতে হয় (ধাপগুলো [নিচে](#connecting-the-admin-screen-once-about-ten-minutes) এবং [মালিকের গাইডের ২৫ নম্বরে](owner-guide.md)). **JSON ফাইলটি কখনো চ্যাটে বা স্ক্রিনশটে দেবেন না।**
+> **বাংলায় সংক্ষেপে —** ওয়েবসাইট ও স্টুডেন্ট অ্যাপ এখন Google Analytics 4-এ ভিজিট ও কাজ (ক্লাস দেখা, “এনরোল” চাপা, চেকআউট, পেমেন্ট, লেসন শেখা…) গোনে; কারও নাম, ইমেইল, ফোন বা ঠিকানা কখনো পাঠানো হয় না। **অ্যাডমিন → অ্যানালিটিক্স** পাতায় প্রতিটি ক্লাস মানুষ কীভাবে দেখছে তা দেখা যায় — তার জন্য একবার Google-এর একটি সার্ভিস অ্যাকাউন্ট বানিয়ে তার JSON ফাইলটি GitHub-এ সিক্রেট `GOOGLE_SERVICE_ACCOUNT` নামে রাখতে হয় (ধাপগুলো [নিচে](#connecting-the-admin-screen-once-about-ten-minutes) এবং [মালিকের গাইডের ২৫ নম্বরে](owner-guide.md)). **JSON ফাইলটি কখনো চ্যাটে বা স্ক্রিনশটে দেবেন না।**
 
 ## 1. How it works
 
@@ -72,7 +72,7 @@ Needed only for **Admin → Analytics**. Counting visits works without it.
 1. **Google Cloud** (<https://console.cloud.google.com>) — choose or create a project (no billing needed) → *APIs & Services → Library* → “**Google Analytics Data API**” → **Enable**.
 2. Same project → *IAM & Admin → Service accounts → Create service account* (any name; no roles needed) → open it → *Keys → Add key → Create new key → JSON*. A file downloads. **That file is like a password.** Never paste it in a chat, a screenshot or an e-mail.
 3. **Google Analytics** → *Admin → Property access management → + → Add users*: type the service account’s e-mail address (it ends with `.iam.gserviceaccount.com`; *Admin → Analytics* shows it once the key is in), role **Viewer**, untick “Notify new users by e-mail”, save. Do it on property `559265538`, not another one.
-4. **GitHub** → the repository → *Settings → Secrets and variables → Actions → New repository secret*: name **`GA4_SERVICE_ACCOUNT_JSON`**, value = the **whole content of the file** (from the first `{` to the last `}`; the file itself or its base64 text both work). Then *Actions → Deploy → Run workflow*. The deploy checks the shape (a part of the file, an e-mail address alone, a user’s own login file or a public key is refused and said so, never echoed), stores it on the Worker as a secret on **one line**, and never prints it. A key set directly in Cloudflare (*Worker → Settings → Variables and Secrets*, as a Secret or as a JSON variable) also works and is left alone when there is no GitHub secret.
+4. **GitHub** → the repository → *Settings → Secrets and variables → Actions → New repository secret*: name **`GOOGLE_SERVICE_ACCOUNT`**, value = the **whole content of the file** (from the first `{` to the last `}`; the file itself or its base64 text both work). Then *Actions → Deploy → Run workflow*. The deploy checks the shape (a part of the file, an e-mail address alone, a user’s own login file or a public key is refused and said so, never echoed), stores it on the Worker as a secret on **one line**, and never prints it. A key set directly in Cloudflare (*Worker → Settings → Variables and Secrets*, as a Secret or as a JSON variable) also works and is left alone when there is no GitHub secret.
 5. *Admin → Analytics → Check the connection*. The first numbers appear within a minute; a new tag may need an hour or two before Google shows its first visitors.
 
 **Changing the key:** make a new key in Google Cloud, replace the GitHub secret, run Deploy, press *Check the connection*; then delete the old key in Google Cloud.
@@ -85,7 +85,7 @@ Each message names one step and what to do next; Google’s own words are shown 
 
 | The screen says | What it means | What to do |
 |---|---|---|
-| Google is not connected yet | no `GA4_SERVICE_ACCOUNT_JSON` on the Worker | steps 3.2.1–4 |
+| Google is not connected yet | no `GOOGLE_SERVICE_ACCOUNT` on the Worker | steps 3.2.1–4 |
 | The key file cannot be read | the secret is not a service-account key file, or was cut off when pasted | copy everything from `{` to `}` again; run Deploy |
 | Google did not accept the key | the key was deleted or switched off, or is another account’s | make a new key (3.2.2), replace the secret, Deploy |
 | The Analytics Data API is switched off | step 1 is missing in this project | enable it (the message from Google includes the link); wait a minute |
@@ -104,6 +104,24 @@ Google Cloud sometimes refuses to *create* a key (“Service account key creatio
 * **Video playback is not measured** — only that a lesson was opened (`lesson_start`) and marked done (`lesson_complete`). “Watched 25 / 50 / 75 %” would need Cloudflare Stream’s player SDK, another third-party script on the lesson page.
 * **Server-side purchase tracking (Measurement Protocol) is not built.** It would need an `api_secret` and would make “Bought (Google saw)” match the shop’s records exactly; the on-screen note says why the two can differ.
 * Everything on the screen is a number Google (or the shop’s database) returned. A panel Google could not answer says so; nothing is estimated or filled in.
+
+### 3.5 The same key, other Google services
+
+`GOOGLE_SERVICE_ACCOUNT` is a general Google service-account key; the website uses it today **only** for the Analytics Data API (read-only, scope `analytics.readonly`). Two different things must both be true before any Google service can be read:
+
+1. the **API is switched on** in the Google Cloud project (*APIs & Services → Library*), and
+2. the **service account has been given access inside that product**: its e-mail added as a user of the Analytics property, of the Search Console site, or the Sheet / Calendar / Drive folder shared with it. Switching an API on gives no access to anybody’s data by itself.
+
+What each service could do for the site, if wanted (none of these is built yet):
+
+| API | What it would give | What must be done in Google first |
+|---|---|---|
+| Google Analytics **Data** API | *built* — Admin → Analytics | Viewer on property `559265538` |
+| Google Analytics **Admin** API | a one-line check that the data stream really has the measurement ID typed in *Settings → Analytics* | the same Viewer access |
+| Google **Search Console** API | “how people find you on Google”: searches, impressions and clicks per class page | add the account’s e-mail in Search Console → Settings → Users and permissions of the `mawahacademy.com` property |
+| Google **Sheets** API | read an old student list straight from a Google Sheet into the import screen; or write a daily orders sheet | share the Sheet with the account’s e-mail |
+| Google **Calendar** API / **Meet** REST API | put a live class on a calendar with a meeting link | share the calendar with the account (Make changes to events); Meet links created by a service account may need a Google Workspace domain |
+| **Drive**, **Tag Manager**, **Marketing Platform Admin**, **Analytics (legacy)**, **PageSpeed Insights**, **Gemini**, **Dialogflow**, Agent Platform | not needed by the shop today (PageSpeed is already measured by the Lighthouse workflow; the chat assistant uses Workers AI or a Gemini key) | — |
 
 ## Every event
 

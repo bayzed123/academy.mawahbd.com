@@ -46,7 +46,7 @@ const googleKey = JSON.stringify({
 
 const server = spawn(
   "npx",
-  ["wrangler", "dev", "-c", config, "--persist-to", state, "--port", PORT, "--ip", "127.0.0.1", "--inspector-port", "9331", "--var", `GA4_SERVICE_ACCOUNT_JSON:${googleKey}`, "--var", `GOOGLE_API_BASE:http://127.0.0.1:${PORT}/api/dev/google`, "--var", "ANALYTICS_DEV:true"],
+  ["wrangler", "dev", "-c", config, "--persist-to", state, "--port", PORT, "--ip", "127.0.0.1", "--inspector-port", "9331", "--var", `GOOGLE_SERVICE_ACCOUNT:${googleKey}`, "--var", `GOOGLE_API_BASE:http://127.0.0.1:${PORT}/api/dev/google`, "--var", "ANALYTICS_DEV:true"],
   {
     cwd: worker,
     stdio: ["ignore", "ignore", "inherit"],

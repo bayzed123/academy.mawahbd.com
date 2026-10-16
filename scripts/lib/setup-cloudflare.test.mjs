@@ -280,35 +280,35 @@ const fakeGoogleKeyFile = (over = {}) =>
     2,
   );
 
-test("the Google Analytics key file comes from the GitHub secret GA4_SERVICE_ACCOUNT_JSON — the file itself or that file in base64 — and reaches the Worker as one line, never printed", () => {
+test("the Google Analytics key file comes from the GitHub secret GOOGLE_SERVICE_ACCOUNT — the file itself or that file in base64 — and reaches the Worker as one line, never printed", () => {
   const file = fakeGoogleKeyFile();
   for (const [how, value] of [["the file", file], ["the file in base64", Buffer.from(file).toString("base64")], ["the file with a newline after it", `${file}\n`]]) {
     const sb = sandbox();
-    const r = sb.run(["--ci", "--no-resources", "--secrets"], { GA4_SERVICE_ACCOUNT_JSON: value });
+    const r = sb.run(["--ci", "--no-resources", "--secrets"], { GOOGLE_SERVICE_ACCOUNT: value });
     assert.equal(r.code, 0, `${how}: ${r.out}`);
-    const put = sb.state().secretValues.GA4_SERVICE_ACCOUNT_JSON;
+    const put = sb.state().secretValues.GOOGLE_SERVICE_ACCOUNT;
     assert.ok(put && !put.includes("\n"), `${how}: one line`);
     assert.deepEqual(JSON.parse(put), JSON.parse(file), `${how}: the same file`);
-    assert.match(r.out, /GA4_SERVICE_ACCOUNT_JSON created/);
+    assert.match(r.out, /GOOGLE_SERVICE_ACCOUNT created/);
     assert.ok(!r.out.includes("QUJD") && !r.out.includes("PRIVATE KEY"), `${how}: no key material in the output`);
-    assert.deepEqual(creates(sb.state().calls).filter((c) => c.includes("GA4")), ["secret put GA4_SERVICE_ACCOUNT_JSON"]);
+    assert.deepEqual(creates(sb.state().calls).filter((c) => c.includes("GOOGLE")), ["secret put GOOGLE_SERVICE_ACCOUNT"]);
   }
 });
 
 test("a new Google key in the GitHub secret replaces the one on the Worker at the next deploy; nothing is touched without one", () => {
   const before = fakeGoogleKeyFile({ client_email: "old@mawah-test.iam.gserviceaccount.com" });
-  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "GA4_SERVICE_ACCOUNT_JSON"], secretValues: { GA4_SERVICE_ACCOUNT_JSON: before } });
+  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "GOOGLE_SERVICE_ACCOUNT"], secretValues: { GOOGLE_SERVICE_ACCOUNT: before } });
   const none = sb.run(["--ci", "--no-resources", "--secrets"]);
   assert.equal(none.code, 0, none.out);
   assert.deepEqual(creates(sb.state().calls), [], "nothing is touched");
-  assert.match(none.out, /GA4_SERVICE_ACCOUNT_JSON is set on the Worker — left untouched/);
-  assert.equal(sb.state().secretValues.GA4_SERVICE_ACCOUNT_JSON, before);
+  assert.match(none.out, /GOOGLE_SERVICE_ACCOUNT is set on the Worker — left untouched/);
+  assert.equal(sb.state().secretValues.GOOGLE_SERVICE_ACCOUNT, before);
 
   const next = fakeGoogleKeyFile({ client_email: "new@mawah-test.iam.gserviceaccount.com" });
-  const r = sb.run(["--ci", "--no-resources", "--secrets"], { GA4_SERVICE_ACCOUNT_JSON: next });
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { GOOGLE_SERVICE_ACCOUNT: next });
   assert.equal(r.code, 0, r.out);
-  assert.equal(JSON.parse(sb.state().secretValues.GA4_SERVICE_ACCOUNT_JSON).client_email, "new@mawah-test.iam.gserviceaccount.com");
-  assert.match(r.out, /GA4_SERVICE_ACCOUNT_JSON updated/);
+  assert.equal(JSON.parse(sb.state().secretValues.GOOGLE_SERVICE_ACCOUNT).client_email, "new@mawah-test.iam.gserviceaccount.com");
+  assert.match(r.out, /GOOGLE_SERVICE_ACCOUNT updated/);
 });
 
 test("something that is not a service-account key file (a part of it, the e-mail alone, a login file, a public key, rubbish) never replaces a working key and is never echoed", () => {
@@ -323,22 +323,22 @@ test("something that is not a service-account key file (a part of it, the e-mail
     good.slice(0, good.length - 40), // cut off on the way
     "e30=", // base64 of {}
   ];
-  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "GA4_SERVICE_ACCOUNT_JSON"], secretValues: { GA4_SERVICE_ACCOUNT_JSON: good } });
+  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "GOOGLE_SERVICE_ACCOUNT"], secretValues: { GOOGLE_SERVICE_ACCOUNT: good } });
   for (const wrong of wrongs) {
-    const r = sb.run(["--ci", "--no-resources", "--secrets"], { GA4_SERVICE_ACCOUNT_JSON: wrong });
+    const r = sb.run(["--ci", "--no-resources", "--secrets"], { GOOGLE_SERVICE_ACCOUNT: wrong });
     assert.equal(r.code, 0, r.out);
-    assert.match(r.out, /GA4_SERVICE_ACCOUNT_JSON does not look right.*already on the Worker stays/s, wrong.slice(0, 30));
+    assert.match(r.out, /GOOGLE_SERVICE_ACCOUNT does not look right.*already on the Worker stays/s, wrong.slice(0, 30));
     assert.ok(!r.out.includes("QUJD") && !r.out.includes("not json at all"), "not echoed");
   }
   assert.deepEqual(creates(sb.state().calls), []);
-  assert.equal(sb.state().secretValues.GA4_SERVICE_ACCOUNT_JSON, good);
+  assert.equal(sb.state().secretValues.GOOGLE_SERVICE_ACCOUNT, good);
 });
 
-test("with no GA4_SERVICE_ACCOUNT_JSON anywhere the script invents nothing", () => {
+test("with no GOOGLE_SERVICE_ACCOUNT anywhere the script invents nothing", () => {
   const sb = sandbox();
   const r = sb.run(["--ci", "--no-resources", "--secrets"]);
   assert.equal(r.code, 0, r.out);
-  assert.ok(!("GA4_SERVICE_ACCOUNT_JSON" in sb.state().secretValues));
+  assert.ok(!("GOOGLE_SERVICE_ACCOUNT" in sb.state().secretValues));
 });
 
 test("R2 not switched on: stops with the plain instruction", () => {

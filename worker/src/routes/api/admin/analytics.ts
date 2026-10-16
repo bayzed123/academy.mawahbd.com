@@ -47,7 +47,7 @@ async function underHourlyCap(c: Ctx, name: string, max: number): Promise<void> 
 
 analytics.get("/analytics/status", requirePerm("analytics:read"), async (c) => {
   const settings = await getSettings(c.env, { fresh: true });
-  const key = parseServiceAccount(c.env.GA4_SERVICE_ACCOUNT_JSON);
+  const key = parseServiceAccount(c.env.GOOGLE_SERVICE_ACCOUNT);
   return ok(c, {
     measurement_id: settings.analytics.ga4 || null,
     // do the pages of the real site carry the tag? (they never do on a developer's machine or on the free fallback address)
