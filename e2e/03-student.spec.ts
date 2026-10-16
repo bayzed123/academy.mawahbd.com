@@ -135,7 +135,7 @@ test("manual send-money: own number first, a countdown with our details, proof b
   await expect(page.locator(".copy-row")).toHaveCount(0);
   await page.getByLabel("Your number — the one you will send money from").fill("123");
   await page.getByRole("button", { name: "Continue — show payment details" }).click();
-  await expect(page.getByText("Please enter a valid Bangladeshi mobile number.")).toBeVisible();
+  await expect(page.getByText("Please enter a valid mobile number, for example 01712345678.")).toBeVisible();
   await page.getByLabel("Your number — the one you will send money from").fill("01712345678");
   await page.getByRole("button", { name: "Continue — show payment details" }).click();
 

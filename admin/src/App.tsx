@@ -23,7 +23,8 @@ const Materials = lazyPage(() => import("./pages/Materials"), "Materials");
 const GroupRequests = lazyPage(() => import("./pages/Materials"), "GroupRequests");
 const MaterialDownloads = lazyPage(() => import("./pages/Materials"), "MaterialDownloads");
 const Orders = lazyPage(() => import("./pages/Sales"), "Orders");
-const Students = lazyPage(() => import("./pages/Sales"), "Students");
+const Students = lazyPage(() => import("./pages/Students"), "Students");
+const StudentImport = lazyPage(() => import("./pages/StudentImport"), "StudentImport");
 const Reviews = lazyPage(() => import("./pages/Engagement"), "Reviews");
 const Questions = lazyPage(() => import("./pages/Engagement"), "Questions");
 const Certificates = lazyPage(() => import("./pages/Engagement"), "Certificates");
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="categories" element={guard("categories:read", <Categories />)} />
           <Route path="orders" element={guard("orders:read", <Orders />)} />
           <Route path="students" element={guard("students:read", <Students />)} />
+          <Route path="students/import" element={guard("students:write", <StudentImport />)} />
           <Route path="reviews" element={guard("reviews:read", <Reviews />)} />
           <Route path="questions" element={guard("questions:read", <Questions />)} />
           <Route path="blog" element={guard("blog:read", <Blog />)} />
