@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -251,6 +251,13 @@ export function Settings() {
                   </Field>
                 </div>
                 <p className="hint">{t("adm.analytics.privacy")}</p>
+                {can("analytics:read") && (
+                  <p>
+                    <Link className="btn btn-outline btn-sm" to="/analytics">
+                      <Icon name="activity" /> {t("adm.analytics.open")}
+                    </Link>
+                  </p>
+                )}
               </>
             )}
           </Group>

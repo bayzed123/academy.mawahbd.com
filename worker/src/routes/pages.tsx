@@ -5,6 +5,7 @@ import { all, first } from "../lib/db";
 import { HttpError } from "../lib/http";
 import { pageCtxFor } from "../lib/pagectx";
 import { cachedPage, renderHtml } from "../lib/render";
+import { NO_TRACKING } from "../lib/tracking";
 import { checkRateLimit } from "../middleware/ratelimit";
 import {
   approvedReviews,
@@ -202,7 +203,8 @@ export function pageRoutes(lang: Lang) {
       throw new HttpError(429, "rate_limited");
     }
     const cert = code ? await certificateByCode(c.env, code) : undefined;
-    return renderHtml(c, ctx, <VerifyPage ctx={ctx} code={code} cert={cert} />);
+    // the code in the address is the credential for the certificate: the page is counted (the script cuts the code out of the address it reports) but passes no referrer on
+    return renderHtml(c, ctx, <VerifyPage ctx={ctx} code={code} cert={cert} />, { noReferrer: !!code });
   };
   r.get("/verify", (c) => verify(c, c.req.query("code")));
   r.get("/verify/:code", (c) => verify(c, c.req.param("code")));
@@ -211,9 +213,10 @@ export function pageRoutes(lang: Lang) {
     const code = c.req.param("code");
     if (!(await checkRateLimit(c.env, "RL_FORM", `RL_FORM:cert:${c.get("ip")}`))) throw new HttpError(429, "rate_limited");
     const ctx = await pageCtxFor(c, lang, `/certificate/${code}`);
+    ctx.track = NO_TRACKING; // the page carries the student's name and its address is the credential: never measured, no referrer passed on
     const cert = await certificateByCode(c.env, code);
-    if (!cert || cert.revoked_at) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
-    return renderHtml(c, ctx, <CertificatePage ctx={ctx} cert={cert} />);
+    if (!cert || cert.revoked_at) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404, noReferrer: true });
+    return renderHtml(c, ctx, <CertificatePage ctx={ctx} cert={cert} />, { noReferrer: true });
   });
 
   return r;

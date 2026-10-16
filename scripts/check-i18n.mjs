@@ -43,11 +43,11 @@ const importProblems = [...(/export type ProblemCode =([^;]+);/.exec(imp)?.[1] ?
 if (importFields.length < 10 || importProblems.length < 10) fail(`import.ts parse looks wrong (${importFields.length}/${importProblems.length})`);
 
 const dash = readFileSync(resolve(root, "worker/src/routes/api/admin/dashboard.ts"), "utf8");
-const issues = [...dash.matchAll(/\b(?:pay|chat|sec|mail)\.push\("([a-z_]+)"\)/g)].map((m) => m[1]);
+const issues = [...dash.matchAll(/\b(?:pay|chat|sec|mail|sms|ga)\.push\("([a-z_]+)"\)/g)].map((m) => m[1]);
 issues.push(...[...dash.matchAll(/issues: [^\n]*?\["([a-z_]+)"\]/g)].map((m) => m[1]));
 const attention = [...dash.matchAll(/\{ key: "([a-z_]+)", severity:/g)].map((m) => m[1]);
 const steps = [...dash.matchAll(/\{ key: "([a-z]+)", done:/g)].map((m) => m[1]);
-const checks = ["database", "storage", "payments", "email", "video", "chatbot", "security"];
+const checks = ["database", "storage", "payments", "email", "sms", "analytics", "video", "chatbot", "security"];
 if (issues.length < 10 || attention.length < 6 || steps.length < 7) fail(`dashboard.ts parse looks wrong (${issues.length}/${attention.length}/${steps.length})`);
 
 need(admin, "import columns", importFields.map((f) => `adm.imp.field.${f}`));
@@ -73,6 +73,19 @@ need(app, "status words (app)", constants.ORDER_STATUSES.map((s) => `status.${s}
 need(app, "app order statuses", constants.ORDER_STATUSES.flatMap((s) => [`app.orders.status.${s}.title`, `app.orders.status.${s}.body`]));
 need(app, "app review statuses", ["pending", "approved", "rejected"].map((s) => `app.course.review.status.${s}`));
 need(app, "app channels", ["sslcommerz", "bkash", "manual", "mock"].flatMap((c) => [`app.checkout.channel.${c}`, `app.checkout.channel.${c}.sub`]));
+
+// Admin → Analytics: every event the shop sends has a plain-words name, every setup problem is explained, every report section has a name
+const analytics = await load("shared/src/analytics.ts");
+need(admin, "analytics events", analytics.GA_EVENTS.map((e) => `adm.an.ev.${e.name}`));
+need(admin, "analytics event groups", analytics.GA_EVENT_GROUPS.map((g) => `adm.an.g.${g}`));
+const ga4 = readFileSync(resolve(root, "worker/src/lib/ga4.ts"), "utf8");
+const ga4Problems = [...(/export type Ga4Problem =([\s\S]*?);/.exec(ga4)?.[1] ?? "").matchAll(/\| "([a-z_]+)"/g)].map((m) => m[1]);
+if (ga4Problems.length < 8) fail(`ga4.ts: the problem list parse looks wrong (${ga4Problems.length})`);
+need(admin, "analytics problems", ga4Problems.flatMap((p) => [`adm.an.p.${p}.title`, `adm.an.p.${p}.body`]));
+const report = readFileSync(resolve(root, "worker/src/services/analytics.ts"), "utf8");
+const sections = [...report.slice(report.indexOf("function questions("), report.indexOf("const row = ")).matchAll(/\n    ([a-z]+): [{[]/g)].map((m) => m[1]);
+if (sections.length < 10) fail(`services/analytics.ts: the report sections parse looks wrong (${sections.length})`);
+need(admin, "analytics report sections", sections.map((x) => `adm.an.sec.${x}`));
 
 // every error code the Worker can throw should have a translation in both UIs (generic is the safety net, but specific is kinder)
 const codes = new Set();

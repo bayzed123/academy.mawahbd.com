@@ -261,6 +261,10 @@ const en = {
   "footer.rights": "© {year} MAWAH Academy. All rights reserved.",
   "footer.payments": "We accept",
   "footer.developed": "Developed by",
+  "ga.choice.off": "Stop counting my visits",
+  "ga.choice.on": "Count my visits again",
+  "ga.choice.is_off": "Your visits are no longer counted on this device.",
+  "ga.choice.is_on": "Thank you — your visits are counted again.",
 
   "wa.label": "Chat on WhatsApp",
   "wa.prefill": "Hello MAWAH Academy, I have a question.",
@@ -542,6 +546,10 @@ const bn: Record<keyof typeof en, string> = {
   "footer.rights": "© {year} মাওয়াহ একাডেমি। সর্বস্বত্ব সংরক্ষিত।",
   "footer.payments": "আমরা গ্রহণ করি",
   "footer.developed": "ডেভেলপ করেছেন",
+  "ga.choice.off": "আমার ভিজিট গোনা বন্ধ করুন",
+  "ga.choice.on": "আমার ভিজিট আবার গুনুন",
+  "ga.choice.is_off": "এই ডিভাইসে আপনার ভিজিট আর গোনা হবে না।",
+  "ga.choice.is_on": "ধন্যবাদ — আপনার ভিজিট আবার গোনা হবে।",
 
   "wa.label": "হোয়াটসঅ্যাপে কথা বলুন",
   "wa.prefill": "আসসালামু আলাইকুম, মাওয়াহ একাডেমি। আমার একটি প্রশ্ন আছে।",

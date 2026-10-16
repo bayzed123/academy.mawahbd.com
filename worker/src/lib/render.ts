@@ -1,7 +1,6 @@
 import type { Context } from "hono";
 import { CSS } from "../generated/assets";
 import { isProd, type AppEnv, type Ctx } from "../env";
-import { analyticsIds } from "../views/layout";
 import type { PageCtx } from "../views/ctx";
 import { buildCsp, styleHash } from "../middleware/security";
 import { contentVersion } from "./settings";
@@ -17,10 +16,10 @@ export async function renderHtml(
   c: Context<AppEnv>,
   ctx: PageCtx,
   node: Node,
-  opts: { status?: number; cache?: string } = {},
+  opts: { status?: number; cache?: string; noReferrer?: boolean } = {},
 ): Promise<Response> {
   const body = `<!doctype html>${await node.toString()}`;
-  const ids = analyticsIds(ctx);
+  const ids = ctx.track;
   const csp = buildCsp({
     styleHashes: [await styleHash(CSS)],
     turnstile: turnstileEnabled(c.env),
@@ -33,6 +32,8 @@ export async function renderHtml(
       "Content-Security-Policy": csp,
       "Cache-Control": opts.cache ?? "no-store",
       "Content-Language": ctx.lang === "bn" ? "bn-BD" : "en",
+      // a page whose address is a secret (a certificate or password link, an order) must not name that address as "where I came from" on the next page
+      ...(opts.noReferrer ? { "Referrer-Policy": "no-referrer" } : {}),
     },
   });
 }

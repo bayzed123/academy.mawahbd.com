@@ -16,6 +16,7 @@ export default defineConfig(async () => {
             APP_SECRET: "test-app-secret-0123456789abcdef0123456789abcdef",
             SETUP_TOKEN: "test-setup-token",
             ALLOW_MOCK_PAYMENTS: "true",
+            ANALYTICS_DEV: "false", // counting visits is switched on by the tests that exercise it, never by a developer's own .dev.vars
             SSLCOMMERZ_STORE_ID: "test-store",
             SSLCOMMERZ_STORE_PASSWORD: "test-store-password",
           },

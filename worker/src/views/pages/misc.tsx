@@ -310,7 +310,7 @@ export function VerifyPage({ ctx, code, cert }: { ctx: PageCtx; code?: string; c
   const { t, lang } = ctx;
   const searched = code !== undefined && code !== "";
   return (
-    <Layout ctx={ctx} title={t("meta.verify.title")} description={t("meta.verify.desc")} noindex>
+    <Layout ctx={ctx} title={t("meta.verify.title")} description={t("meta.verify.desc")} noindex ga={searched ? { events: [["certificate_verify", { result: cert && !cert.revoked_at ? "found" : "not_found" }]] } : undefined}>
       <section class="page-hero">
         <div class="wrap">
           <Crumbs items={[{ label: t("nav.home"), href: ctx.href("/") }, { label: t("nav.verify") }]} />

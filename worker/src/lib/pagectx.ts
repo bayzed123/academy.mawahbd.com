@@ -4,6 +4,7 @@ import { popupFor } from "../services/banners";
 import { listCategories } from "../services/catalog";
 import { makePageCtx, type PageCtx } from "../views/ctx";
 import { getSettings } from "./settings";
+import { trackingFor } from "./tracking";
 
 let memo: { at: number; data: CategoryDTO[] } | null = null;
 
@@ -21,7 +22,7 @@ export function resetCategoryCache(): void {
 
 export async function pageCtxFor(c: Ctx, lang: Lang, path: string): Promise<PageCtx> {
   const [settings, categories, popup] = await Promise.all([getSettings(c.env), categoriesCached(c.env), popupFor(c.env, path)]);
-  const ctx = makePageCtx(c.env, settings, categories, lang, path);
+  const ctx = makePageCtx(c.env, settings, categories, lang, path, trackingFor(c.env, c.req.url, settings));
   ctx.popup = popup;
   return ctx;
 }

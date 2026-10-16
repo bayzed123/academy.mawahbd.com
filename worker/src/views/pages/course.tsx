@@ -7,6 +7,7 @@ import type { GalleryImageDTO } from "../../services/gallery";
 import type { Included } from "../../services/materials";
 import type { PageCtx } from "../ctx";
 import { ClassFaq } from "../faq";
+import { gaItem, gaListAttr } from "../ga";
 import { Layout } from "../layout";
 import { breadcrumbLd, courseLd, faqLd, personLd } from "../seo";
 import { avgLabel, CourseCard, Crumbs, Flash, Icon, InstructorBadges, NotifyForm, numLabel, priceLabel, reviewsLabel, Stars } from "../ui";
@@ -63,6 +64,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
       ogType="website"
       image={course.banner_key ? ctx.abs(`/media/${course.banner_key}`) : undefined}
       hasBuybar
+      ga={{ item: gaItem(course) }}
       gallery={pics.length > 0}
       jsonLd={[
         courseLd(ctx, course, data.reviews, pics),
@@ -449,7 +451,7 @@ export function ReviewList({ ctx, reviews, withClass = false }: { ctx: PageCtx; 
 
 export function RelatedFragment({ ctx, courses }: { ctx: PageCtx; courses: CourseCardDTO[] }) {
   return (
-    <div class="grid">
+    <div class="grid" {...gaListAttr(ctx, "related")}>
       {courses.map((c) => (
         <CourseCard course={c} ctx={ctx} />
       ))}

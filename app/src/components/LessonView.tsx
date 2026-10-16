@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LessonContentDTO } from "@mawah/shared";
+import { track } from "../lib/analytics";
 import { api } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { Button, Icon, useToast } from "./ui";
@@ -65,7 +66,7 @@ export function Downloads({ lesson }: { lesson: LessonContentDTO }) {
       <ul className="downloads">
         {lesson.resources.map((r) => (
           <li key={r.id}>
-            <a href={`/api/student/resources/${r.id}/download`} download>
+            <a href={`/api/student/resources/${r.id}/download`} download onClick={() => track("resource_download", { resource_id: r.id })}>
               <Icon name="download" />
               <span>{pick(r, "title") || r.filename}</span>
               <small>{kb(r.size_bytes)}</small>
@@ -101,6 +102,7 @@ export function Questions({ lessonId }: { lessonId: number }) {
     mutationFn: () => api("/student/questions", { json: { lesson_id: lessonId, body: text.trim() } }),
     onSuccess: () => {
       setText("");
+      track("question_ask", { lesson_id: lessonId }); // that one was asked — never what
       toast(t("app.qa.sent"));
       void qc.invalidateQueries({ queryKey: ["questions", lessonId] });
     },

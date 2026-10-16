@@ -264,6 +264,83 @@ test("with no SMS or SSLCommerz secrets anywhere the script says nothing about t
   for (const name of ["SMS_API_KEY", "SMS_API_URL", "SSLCOMMERZ_STORE_ID", "SSLCOMMERZ_STORE_PASSWORD"]) assert.ok(!(name in sb.state().secretValues), name);
 });
 
+// A made-up key file of the right shape (the "key" inside is filler: it only has to look like one), built here so nothing key-like sits in the source.
+const fakeGoogleKeyFile = (over = {}) =>
+  JSON.stringify(
+    {
+      type: "service_account",
+      project_id: "mawah-test",
+      private_key_id: "0123456789abcdef",
+      private_key: ["-----BEGIN PRIVATE KEY-----", "QUJD".repeat(16), "REVG".repeat(16), "-----END PRIVATE KEY-----", ""].join("\n"),
+      client_email: "reader@mawah-test.iam.gserviceaccount.com",
+      client_id: "1",
+      ...over,
+    },
+    null,
+    2,
+  );
+
+test("the Google Analytics key file comes from the GitHub secret GOOGLE_SERVICE_ACCOUNT — the file itself or that file in base64 — and reaches the Worker as one line, never printed", () => {
+  const file = fakeGoogleKeyFile();
+  for (const [how, value] of [["the file", file], ["the file in base64", Buffer.from(file).toString("base64")], ["the file with a newline after it", `${file}\n`]]) {
+    const sb = sandbox();
+    const r = sb.run(["--ci", "--no-resources", "--secrets"], { GOOGLE_SERVICE_ACCOUNT: value });
+    assert.equal(r.code, 0, `${how}: ${r.out}`);
+    const put = sb.state().secretValues.GOOGLE_SERVICE_ACCOUNT;
+    assert.ok(put && !put.includes("\n"), `${how}: one line`);
+    assert.deepEqual(JSON.parse(put), JSON.parse(file), `${how}: the same file`);
+    assert.match(r.out, /GOOGLE_SERVICE_ACCOUNT created/);
+    assert.ok(!r.out.includes("QUJD") && !r.out.includes("PRIVATE KEY"), `${how}: no key material in the output`);
+    assert.deepEqual(creates(sb.state().calls).filter((c) => c.includes("GOOGLE")), ["secret put GOOGLE_SERVICE_ACCOUNT"]);
+  }
+});
+
+test("a new Google key in the GitHub secret replaces the one on the Worker at the next deploy; nothing is touched without one", () => {
+  const before = fakeGoogleKeyFile({ client_email: "old@mawah-test.iam.gserviceaccount.com" });
+  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "GOOGLE_SERVICE_ACCOUNT"], secretValues: { GOOGLE_SERVICE_ACCOUNT: before } });
+  const none = sb.run(["--ci", "--no-resources", "--secrets"]);
+  assert.equal(none.code, 0, none.out);
+  assert.deepEqual(creates(sb.state().calls), [], "nothing is touched");
+  assert.match(none.out, /GOOGLE_SERVICE_ACCOUNT is set on the Worker — left untouched/);
+  assert.equal(sb.state().secretValues.GOOGLE_SERVICE_ACCOUNT, before);
+
+  const next = fakeGoogleKeyFile({ client_email: "new@mawah-test.iam.gserviceaccount.com" });
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { GOOGLE_SERVICE_ACCOUNT: next });
+  assert.equal(r.code, 0, r.out);
+  assert.equal(JSON.parse(sb.state().secretValues.GOOGLE_SERVICE_ACCOUNT).client_email, "new@mawah-test.iam.gserviceaccount.com");
+  assert.match(r.out, /GOOGLE_SERVICE_ACCOUNT updated/);
+});
+
+test("something that is not a service-account key file (a part of it, the e-mail alone, a login file, a public key, rubbish) never replaces a working key and is never echoed", () => {
+  const good = fakeGoogleKeyFile();
+  const wrongs = [
+    "reader@mawah-test.iam.gserviceaccount.com",
+    "not json at all, only words from a chat",
+    '{"client_email": "reader@mawah-test.iam.gserviceaccount.com"}',
+    fakeGoogleKeyFile({ type: "authorized_user" }),
+    fakeGoogleKeyFile({ private_key: "-----BEGIN PUBLIC KEY-----\nabc\n-----END PUBLIC KEY-----\n" }),
+    fakeGoogleKeyFile({ client_email: "not-an-address" }),
+    good.slice(0, good.length - 40), // cut off on the way
+    "e30=", // base64 of {}
+  ];
+  const sb = sandbox({ secrets: ["APP_SECRET", "SETUP_TOKEN", "GOOGLE_SERVICE_ACCOUNT"], secretValues: { GOOGLE_SERVICE_ACCOUNT: good } });
+  for (const wrong of wrongs) {
+    const r = sb.run(["--ci", "--no-resources", "--secrets"], { GOOGLE_SERVICE_ACCOUNT: wrong });
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /GOOGLE_SERVICE_ACCOUNT does not look right.*already on the Worker stays/s, wrong.slice(0, 30));
+    assert.ok(!r.out.includes("QUJD") && !r.out.includes("not json at all"), "not echoed");
+  }
+  assert.deepEqual(creates(sb.state().calls), []);
+  assert.equal(sb.state().secretValues.GOOGLE_SERVICE_ACCOUNT, good);
+});
+
+test("with no GOOGLE_SERVICE_ACCOUNT anywhere the script invents nothing", () => {
+  const sb = sandbox();
+  const r = sb.run(["--ci", "--no-resources", "--secrets"]);
+  assert.equal(r.code, 0, r.out);
+  assert.ok(!("GOOGLE_SERVICE_ACCOUNT" in sb.state().secretValues));
+});
+
 test("R2 not switched on: stops with the plain instruction", () => {
   const sb = sandbox({ r2Disabled: true });
   const r = sb.run(["--ci"]);

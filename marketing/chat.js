@@ -76,6 +76,7 @@
     input.value = "";
     add("user", text);
     history.push({ role: "user", content: text });
+    if (window.mawahTrack) window.mawahTrack("chatbot_message", { turn: history.filter(function (m) { return m.role === "user"; }).length }); // how many questions — never what was asked
     sendBtn.disabled = true;
     var typing = add("assistant", T.busy);
     typing.classList.add("mc-typing");
@@ -92,6 +93,7 @@
         if (!res.body || !res.body.ok) return add("assistant", T.err);
         history.push({ role: "assistant", content: res.body.reply });
         save();
+        if (res.body.escalate && window.mawahTrack) window.mawahTrack("chatbot_handoff");
         add("assistant", res.body.reply, res.body.escalate);
       })
       .catch(function () { typing.remove(); add("assistant", T.err); })

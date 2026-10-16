@@ -5,6 +5,7 @@ import type { AppEnv, Ctx } from "./env";
 import { HttpError } from "./lib/http";
 import { langFromPath, pageCtxFor } from "./lib/pagectx";
 import { renderHtml } from "./lib/render";
+import { regionHint } from "./middleware/geo";
 import { publicAddress } from "./middleware/host";
 import { baseSecurity } from "./middleware/security";
 import { api } from "./routes/api";
@@ -24,6 +25,7 @@ app.use("*", async (c, next) => {
 });
 app.use("*", baseSecurity);
 app.use("*", publicAddress); // after the security headers, so even a redirect carries them
+app.use("*", regionHint); // pages that carry the analytics tag say whether the visitor must be asked first (see middleware/geo.ts)
 
 app.route("/api", api);
 app.route("/media", mediaRoutes);

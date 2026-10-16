@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { CertificateDTO, StudentMe } from "@mawah/shared";
+import { track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -51,7 +52,7 @@ export function Certificates() {
           </div>
           {!c.revoked_at && (
             <div className="row">
-              <a className="btn btn-primary btn-sm" href={`${home}/certificate/${c.code}`} target="_blank" rel="noopener noreferrer">
+              <a className="btn btn-primary btn-sm" href={`${home}/certificate/${c.code}`} target="_blank" rel="noopener noreferrer" onClick={() => track("certificate_view", { course_id: c.course_id })}>
                 {t("app.certs.view")}
               </a>
               <button className="btn btn-outline btn-sm" type="button" onClick={() => copy(c.code)}>
