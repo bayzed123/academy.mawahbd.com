@@ -138,6 +138,14 @@ test("a video that cannot start says so plainly, offers “Try again”, and pla
     await expect(page.locator(".video-frame video")).toHaveCount(0);
     // the explanation names nothing of Google or the file
     await expect(note).not.toContainText(/google|drive|quota/i);
+    // on a 360 px phone the words wrap onto many lines: the button must still be inside the frame, not cut off by it
+    await page.setViewportSize({ width: 360, height: 800 });
+    const frame = (await page.locator(".video-frame").boundingBox())!;
+    const retry = (await note.getByRole("button").boundingBox())!;
+    expect(retry.y).toBeGreaterThanOrEqual(frame.y);
+    expect(retry.y + retry.height).toBeLessThanOrEqual(frame.y + frame.height + 1);
+    expect(frame.width / frame.height).toBeLessThanOrEqual(16 / 9 + 0.01); // never squashed flatter than 16:9
+    await page.setViewportSize({ width: 1440, height: 900 });
 
     down = false;
     await note.getByRole("button", { name: lang === "en" ? "Try again" : "আবার চেষ্টা করুন" }).click();

@@ -177,6 +177,9 @@ html[lang=bn] .rail-in h3{letter-spacing:0;text-transform:none;font-size:.9rem}
 .notice.bad-note .icon{color:var(--red-600)}
 .notice.ok-note{background:var(--ok-50);border-color:var(--ok-100)}
 .notice.ok-note .icon{color:var(--ok-600)}
+/* an address to copy (the one the owner shares a Drive video with): a box that is easy to select, with the Copy button beside it or under it */
+.copy-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0}
+.copy-row code{flex:1 1 220px;min-width:0;padding:.6rem .85rem;background:#fff;border:1px solid var(--g-300);border-radius:10px;user-select:all}
 .notice .said{font-size:.88rem;color:var(--ink-3);word-break:break-word}
 .notice .said q{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.86em;quotes:none}
 .flash{padding:.75rem 1rem;border-radius:12px;font-weight:600;margin:0 0 1rem}

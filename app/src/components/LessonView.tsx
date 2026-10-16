@@ -22,12 +22,12 @@ function HostedVideo({ src, title }: { src: string; title: string }) {
   }, [src]);
   if (failed) {
     return (
-      <div className="video-frame">
+      <div className="video-frame is-note">
         <div className="video-note" role="alert">
           <Icon name="play" />
           <p>{t("app.lesson.driveFailed")}</p>
           <Button
-            className="btn-outline"
+            className="btn-gold"
             onClick={() => {
               setFailed(false);
               setAttempt((n) => n + 1);

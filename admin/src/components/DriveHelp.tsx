@@ -66,9 +66,8 @@ export function DriveHelp({ url }: { url: string }) {
           <b id="drive-h">{t("adm.drive.title")}</b>
           {s && !s.configured ? (
             <>
-              <p>
-                <b>{title("not_configured")}.</b> {t("adm.drive.noKeyBody")}
-              </p>
+              <b>{title("not_configured")}</b>
+              <p>{t("adm.drive.noKeyBody")}</p>
             </>
           ) : (
             <>
