@@ -126,10 +126,14 @@ test("importing a list: a line with only a mobile number is accepted, a line wit
   await expect(admin.getByText("Only the name and either an e-mail or a mobile number are needed")).toBeVisible();
   await admin.getByLabel("Paste here: copy the cells in your sheet, including the first line").fill(sheet);
   await admin.getByRole("button", { name: "Check my list" }).click();
-  await expect(admin.getByText("1 new")).toBeVisible();
-  await expect(admin.getByText("1 with a problem")).toBeVisible();
+  // (exact: the sidebar's counts sit side by side, and "1" followed by "New messages" is also the text "1 new")
+  await expect(admin.getByText("1 new", { exact: true })).toBeVisible();
+  await expect(admin.getByText("1 with a problem", { exact: true })).toBeVisible();
   await expect(admin.getByText("needs an e-mail or a mobile number")).toBeVisible();
   await expect(admin.locator("body")).not.toContainText("no-email.invalid");
+  // every column is named in words (a name left out of the dictionary shows as a raw key like "adm.imp.field.address")
+  await expect(admin.getByText(/Columns used: Name, E-mail, Phone, Address/)).toBeVisible();
+  await expect(admin.locator("main")).not.toContainText(/\badm\.[a-z]+\./);
 
   await admin.getByRole("button", { name: "Add 1 lines" }).click();
   await expect(admin.getByText("Done", { exact: true })).toBeVisible();

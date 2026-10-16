@@ -11,10 +11,10 @@ import { requirePerm } from "../../../middleware/auth";
 
 export const media = new Hono<AppEnv>();
 
-const FOLDERS = ["banners", "photos", "blog"] as const;
+const FOLDERS = ["banners", "photos", "blog", "gallery"] as const;
 
 /**
- * Image upload (class banners, instructor photos, blog covers).
+ * Image upload (class banners and pictures, instructor photos, blog covers).
  *  - raw body (the admin UI compresses to WebP in the browser first), 5 MB hard cap
  *  - the file type comes from its magic bytes: only JPEG / PNG / WebP / AVIF are accepted, never SVG or anything else
  *  - the R2 key is the content hash, so the same picture is stored once and served with an immutable cache header

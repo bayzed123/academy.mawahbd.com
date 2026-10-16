@@ -5,14 +5,15 @@ import { COURSE_STATUSES } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
-import type { CourseRow } from "../lib/types";
+import type { ClassPicture, CourseRow } from "../lib/types";
+import { ClassPictures } from "../components/ClassPictures";
 import { CurriculumBuilder } from "../components/Curriculum";
 import { FormFields, initialValues, toPayload, type FieldDef, type Values } from "../components/Form";
 import { CourseStateChip } from "../components/CourseState";
 import { Button, Chip, ErrorState, Icon, PageHeader, Panel, Spinner, Tabs, useConfirm, useFieldErrors, useToast } from "../components/ui";
 import { useCategoryOptions, useInstructorOptions } from "./Courses";
 
-type Tab = "details" | "curriculum" | "seo";
+type Tab = "details" | "curriculum" | "pictures" | "seo";
 
 const DEFAULTS: Values = {
   title_bn: "", title_en: "", short_bn: "", short_en: "", long_bn: "", long_en: "", banner_key: null, icon: "cake", category_id: null, instructor_id: null,
@@ -43,12 +44,20 @@ export function CourseEditor() {
     queryFn: async () => (await adm<{ item: CourseRow }>(`/courses/${id}`)).item,
   });
 
+  // how many extra pictures the class has (the tab shows it); the Pictures tab reads the same list
+  const pictureCount = useQuery({
+    queryKey: ["course-images", id],
+    enabled: id !== null,
+    queryFn: () => adm<{ items: ClassPicture[]; max: number }>(`/courses/${id}/images`),
+    select: (r) => r.items.length,
+  });
+
   const detailFields: FieldDef[] = [
     { type: "text", key: "title_bn", label: t("adm.f.titleBn"), half: true, required: true, maxLength: 200 },
     { type: "text", key: "title_en", label: t("adm.f.titleEn"), half: true, required: true, maxLength: 200 },
     { type: "textarea", key: "short_bn", label: t("adm.f.shortBn"), hint: t("adm.f.shortHint"), half: true, maxLength: 400 },
     { type: "textarea", key: "short_en", label: t("adm.f.shortEn"), half: true, maxLength: 400 },
-    { type: "image", key: "banner_key", label: t("adm.f.banner"), folder: "banners", maxWidth: 1280 },
+    { type: "image", key: "banner_key", label: t("adm.f.banner"), hint: t("adm.f.bannerHint"), folder: "banners", maxWidth: 1280 },
     { type: "icon", key: "icon", label: t("adm.f.icon"), hint: t("adm.f.iconHint") },
     { type: "markdown", key: "long_bn", label: t("adm.f.longBn"), rows: 10 },
     { type: "markdown", key: "long_en", label: t("adm.f.longEn"), rows: 10 },
@@ -150,7 +159,7 @@ export function CourseEditor() {
                 <Icon name="external" /> {t("adm.course.viewOnSite")}
               </a>
             )}
-            {canWrite && tab !== "curriculum" && (
+            {canWrite && tab !== "curriculum" && tab !== "pictures" && (
               <Button className="btn-primary" busy={save.isPending} disabled={!dirty && !!id} onClick={onSave}>
                 {t("btn.save")}
               </Button>
@@ -164,6 +173,7 @@ export function CourseEditor() {
         tabs={[
           { value: "details", label: t("adm.course.tab.details") },
           { value: "curriculum", label: t("adm.course.curriculum"), count: c?.lesson_count },
+          { value: "pictures", label: t("adm.course.tab.pictures"), count: pictureCount.data },
           { value: "seo", label: t("adm.course.tab.seo") },
         ]}
       />
@@ -177,6 +187,8 @@ export function CourseEditor() {
             <p className="muted">{t("adm.course.saveFirst")}</p>
           </Panel>
         )
+      ) : tab === "pictures" ? (
+        <Panel>{id ? <ClassPictures courseId={id} canWrite={canWrite} /> : <p className="muted">{t("adm.pics.saveFirst")}</p>}</Panel>
       ) : (
         <Panel>
           {tab === "details" && <p className="hint status-hint">{statusHint}</p>}
