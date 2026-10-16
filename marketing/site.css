@@ -208,6 +208,8 @@ body.has-buybar{padding-bottom:78px}
 /* the developer credit: a plain, visible link (underlined, gold) so it reads as one */
 .foot-credit a{color:var(--g-300);text-decoration:underline;text-underline-offset:3px;font-weight:600}
 .foot-credit a:hover{color:#fff}
+.foot-choice button{background:none;border:0;padding:4px 0;min-height:24px;font:inherit;color:var(--g-300);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.foot-choice button:hover{color:#fff}
 
 /* ---------- floating helpers ---------- */
 .floats{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:45;display:grid;gap:10px;justify-items:end}

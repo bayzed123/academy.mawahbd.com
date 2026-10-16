@@ -2,6 +2,7 @@ import { raw } from "hono/html";
 import type { Accent, CategoryDTO, CourseCardDTO } from "@mawah/shared";
 import { formatMoney, formatNumber, loc } from "@mawah/shared";
 import type { PageCtx } from "./ctx";
+import { gaCardAttr } from "./ga";
 import type { InstructorRating } from "../services/catalog";
 
 /* ------------------------------------------------------------------ icons & brand */
@@ -227,7 +228,7 @@ export const CourseCard = ({ course, ctx, eager = false, headingLevel = 3 }: { c
   const cat = course.category as (CardCat & { accent: Accent }) | null;
   const detail = ctx.href(`/courses/${course.slug}`);
   return (
-    <article class={`card a-${cat?.accent ?? "snack"}`}>
+    <article class={`card a-${cat?.accent ?? "snack"}`} {...gaCardAttr(ctx, course)}>
       <Banner course={course} ctx={ctx} eager={eager} />
       {cat && <span class="chip-cat">{loc(cat, "name", ctx.lang)}</span>}
       {soon && <span class="ribbon">{ctx.t("btn.comingSoon")}</span>}

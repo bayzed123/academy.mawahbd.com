@@ -1,6 +1,7 @@
 import { common, createT, site, type CategoryDTO, type Lang } from "@mawah/shared";
 import type { Env } from "../env";
 import type { Settings } from "../lib/settings";
+import { NO_TRACKING, type TrackIds } from "../lib/tracking";
 import type { BannerDTO } from "../services/banners";
 
 const dict = {
@@ -25,6 +26,8 @@ export interface PageCtx {
   altHref: string;
   /** the offer pop-up to show on this page (Admin → Banners), if any */
   popup: BannerDTO | null;
+  /** the measurement IDs this request may carry (empty on a developer's machine, in tests and on the fallback address) */
+  track: TrackIds;
   abs: (path: string) => string;
 }
 
@@ -36,7 +39,7 @@ export function localizedPath(lang: Lang, path: string): string {
   return p === "/" ? "/en" : `/en${p}`;
 }
 
-export function makePageCtx(env: Env, settings: Settings, categories: CategoryDTO[], lang: Lang, path: string): PageCtx {
+export function makePageCtx(env: Env, settings: Settings, categories: CategoryDTO[], lang: Lang, path: string, track: TrackIds = NO_TRACKING): PageCtx {
   const t = createT(dict as never, lang) as unknown as PageCtx["t"];
   const base = env.SITE_URL.replace(/\/$/, "");
   const other: Lang = lang === "bn" ? "en" : "bn";
@@ -50,6 +53,7 @@ export function makePageCtx(env: Env, settings: Settings, categories: CategoryDT
     href: (p) => localizedPath(lang, p),
     altHref: localizedPath(other, path),
     popup: null,
+    track,
     abs: (p) => `${base}${p}`,
   };
 }

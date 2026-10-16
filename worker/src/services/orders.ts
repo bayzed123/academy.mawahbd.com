@@ -129,6 +129,7 @@ export async function buildQuote(env: Env, input: QuoteInput): Promise<Quote> {
 
   const items: OrderItemDTO[] = courses.map((c, i) => ({
     course_id: c.id,
+    slug: c.slug, // the class's public name: the checkout tells Google Analytics about the same class under the same name as the class page does
     title_bn: c.title_bn,
     title_en: c.title_en,
     list_price: c.price,

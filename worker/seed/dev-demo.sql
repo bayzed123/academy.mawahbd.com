@@ -73,5 +73,7 @@ SELECT 'WELCOME10', 'percent', 10, 0, 1, 'Dev demo coupon' WHERE NOT EXISTS (SEL
 INSERT INTO settings (key, value) VALUES
   ('contact', '{"whatsapp":"01700000000","phone":"01700000000","email":"hello@example.test","facebook":"","youtube":"","instagram":""}'),
   ('payments', '{"sslcommerz":true,"bkash_direct":false,"manual":true,"manual_numbers":{"bkash":"01711111111","nagad":"01822222222","rocket":""},"manual_note_bn":"সেন্ড মানি করার পর ট্রানজ্যাকশন আইডি দিন।","manual_note_en":"Use Send Money, then paste the transaction ID."}'),
-  ('policies', '{"refund_bn":"ক্লাস শুরুর ৭ দিনের মধ্যে অনুরোধ করলে রিফান্ড পাবেন।","refund_en":"Request a refund within 7 days of enrolling if you have completed less than 20% of the class.","privacy_bn":"","privacy_en":"","terms_bn":"","terms_en":""}')
+  ('policies', '{"refund_bn":"ক্লাস শুরুর ৭ দিনের মধ্যে অনুরোধ করলে রিফান্ড পাবেন।","refund_en":"Request a refund within 7 days of enrolling if you have completed less than 20% of the class.","privacy_bn":"","privacy_en":"","terms_bn":"","terms_en":""}'),
+  -- migration 0013 puts the shop's real Google Analytics ID in the database; a local or test database must never carry it
+  ('analytics', '{"ga4":"","clarity":"","meta_pixel":""}')
 ON CONFLICT(key) DO UPDATE SET value = excluded.value;

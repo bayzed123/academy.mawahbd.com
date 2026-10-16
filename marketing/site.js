@@ -23,7 +23,10 @@
   function loadFragment(el) {
     fetch(el.getAttribute("data-fragment"), { credentials: "omit" })
       .then(function (r) { return r.ok ? r.text() : ""; })
-      .then(function (html) { if (html) el.innerHTML = html; el.removeAttribute("aria-busy"); })
+      .then(function (html) {
+        if (html) { el.innerHTML = html; el.dispatchEvent(new CustomEvent("mawah:fragment", { bubbles: true })); } // analytics.js counts the classes in it
+        el.removeAttribute("aria-busy");
+      })
       .catch(function () { el.removeAttribute("aria-busy"); });
   }
   var frags = $$("[data-fragment]");
@@ -55,7 +58,7 @@
             status.className = "status-line " + (res.ok ? "ok" : "err");
             status.textContent = res.ok ? form.getAttribute("data-ok") : form.getAttribute(res.status === 429 ? "data-limit" : "data-err");
           }
-          if (res.ok) form.reset();
+          if (res.ok) { form.reset(); form.dispatchEvent(new CustomEvent("mawah:form", { bubbles: true })); } // analytics.js counts it as a lead
         })
         .catch(function () { if (status) { status.className = "status-line err"; status.textContent = form.getAttribute("data-err"); } })
         .then(function () { if (btn) btn.disabled = false; });
@@ -87,46 +90,5 @@
       $$("[data-turnstile]").forEach(function (el) { window.turnstile.render(el, { sitekey: tsKey }); });
     };
     d.head.appendChild(ts);
-  }
-
-  /* 6. analytics (GA4 / Microsoft Clarity / Meta Pixel) load AFTER the page is interactive, never before */
-  var ga = meta("mawah:ga4"), clarity = meta("mawah:clarity"), pixel = meta("mawah:pixel");
-  if (ga || clarity || pixel) {
-    var started = false;
-    var start = function () {
-      if (started) return;
-      started = true;
-      if (ga) {
-        var g = d.createElement("script");
-        g.async = true;
-        g.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(ga);
-        d.head.appendChild(g);
-        window.dataLayer = window.dataLayer || [];
-        window.gtag = function () { window.dataLayer.push(arguments); };
-        window.gtag("js", new Date());
-        window.gtag("config", ga);
-      }
-      if (clarity) {
-        (function (c, l, a, r, i) {
-          c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments); };
-          var t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i;
-          var y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
-        })(window, d, "clarity", "script", clarity);
-      }
-      if (pixel) {
-        (function (f, b, e, v) {
-          if (f.fbq) return;
-          var n = (f.fbq = function () { n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments); });
-          if (!f._fbq) f._fbq = n;
-          n.push = n; n.loaded = true; n.version = "2.0"; n.queue = [];
-          var t = b.createElement(e); t.async = true; t.src = v;
-          var s = b.getElementsByTagName(e)[0]; s.parentNode.insertBefore(t, s);
-        })(window, d, "script", "https://connect.facebook.net/en_US/fbevents.js");
-        window.fbq("init", pixel);
-        window.fbq("track", "PageView");
-      }
-    };
-    ["pointerdown", "keydown", "scroll", "touchstart"].forEach(function (ev) { addEventListener(ev, start, { once: true, passive: true }); });
-    setTimeout(start, 6000);
   }
 })();

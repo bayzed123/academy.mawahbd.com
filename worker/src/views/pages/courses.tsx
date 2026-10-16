@@ -1,6 +1,7 @@
 import { formatNumber, loc, type CategoryDTO, type CourseCardDTO } from "@mawah/shared";
 import type { CourseSort } from "../../services/catalog";
 import type { PageCtx } from "../ctx";
+import { gaListAttr } from "../ga";
 import { Layout } from "../layout";
 import { breadcrumbLd } from "../seo";
 import { CourseCard, Crumbs, Icon, Pager, shopOf } from "../ui";
@@ -111,7 +112,7 @@ export function CoursesPage({ ctx, data }: { ctx: PageCtx; data: ListData }) {
               )}
             </div>
           ) : (
-            <div class="grid">
+            <div class="grid" {...gaListAttr(ctx, "classes")}>
               {data.courses.map((c, i) => (
                 <CourseCard course={c} ctx={ctx} eager={i < 3} headingLevel={2} />
               ))}

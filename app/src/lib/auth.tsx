@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { StudentMe } from "@mawah/shared";
 import { api } from "./api";
+import { track } from "./analytics";
 
 interface AuthState {
   /** undefined while the first check is running */
@@ -37,12 +38,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const s = await login.mutateAsync({ identifier, password, turnstile });
         qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" && q.queryKey[0] !== "site" });
         qc.setQueryData(["me"], s);
+        track("login", { method: identifier.includes("@") ? "email" : /^STU/i.test(identifier.trim()) ? "student_id" : "phone" }); // how they signed in — never who
         return s;
       },
       async register(input) {
         const s = await register.mutateAsync(input);
         qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" && q.queryKey[0] !== "site" });
         qc.setQueryData(["me"], s);
+        track("sign_up", { method: "email" });
         return s;
       },
       async logout() {

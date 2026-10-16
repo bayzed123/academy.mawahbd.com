@@ -3,6 +3,7 @@
  * Builds the public-site assets:
  *   shared/styles/base.css + shared/styles/banners.css + marketing/site.css -> minified string inlined into every page (worker/src/generated/assets.ts)
  *   marketing/site.js       -> dist/static/assets/site.<hash>.js          (immutable, 1 year cache)
+ *   marketing/analytics.js  -> dist/static/assets/analytics.<hash>.js     (only on pages that carry a measurement ID; also injected into the student app)
  *   marketing/banners.js    -> dist/static/assets/banners.<hash>.js       (only on pages with a slider or an offer pop-up)
  *   marketing/gallery.js    -> dist/static/assets/gallery.<hash>.js       (only on class pages with more than one picture)
  *   marketing/chat.{js,css} -> dist/static/chat.{js,css}                  (small, 1 hour cache)
@@ -37,6 +38,8 @@ const css = minifiedCss.replace("--pattern:url(/pattern.svg)", `--pattern:${patt
 const js = (await transform(read("marketing/site.js"), { loader: "js", minify: true, target: "es2017" })).code;
 // the banner slider and the offer pop-up: loaded only on pages that have one, so every other page stays as light as before
 const bannersJs = (await transform(read("marketing/banners.js"), { loader: "js", minify: true, target: "es2017" })).code;
+// counting visits (Google Analytics …): referenced only by pages that carry a measurement ID
+const analyticsJs = (await transform(read("marketing/analytics.js"), { loader: "js", minify: true, target: "es2017" })).code;
 // the class page's picture viewer: loaded only on a class that has more than its main picture
 const galleryJs = (await transform(read("marketing/gallery.js"), { loader: "js", minify: true, target: "es2017" })).code;
 const chatJs = (await transform(read("marketing/chat.js"), { loader: "js", minify: true, target: "es2017" })).code;
@@ -46,6 +49,8 @@ const siteJsName = `site.${hash(js)}.js`;
 writeFileSync(resolve(out, "assets", siteJsName), js);
 const bannersJsName = `banners.${hash(bannersJs)}.js`;
 writeFileSync(resolve(out, "assets", bannersJsName), bannersJs);
+const analyticsJsName = `analytics.${hash(analyticsJs)}.js`;
+writeFileSync(resolve(out, "assets", analyticsJsName), analyticsJs);
 const galleryJsName = `gallery.${hash(galleryJs)}.js`;
 writeFileSync(resolve(out, "assets", galleryJsName), galleryJs);
 writeFileSync(resolve(out, "chat.js"), chatJs);
@@ -57,6 +62,7 @@ writeFileSync(
     `export const CSS = ${JSON.stringify(css)};\n` +
     `export const SITE_JS = ${JSON.stringify(`/assets/${siteJsName}`)};\n` +
     `export const BANNERS_JS = ${JSON.stringify(`/assets/${bannersJsName}`)};\n` +
+    `export const ANALYTICS_JS = ${JSON.stringify(`/assets/${analyticsJsName}`)};\n` +
     `export const GALLERY_JS = ${JSON.stringify(`/assets/${galleryJsName}`)};\n` +
     `export const HAS_OG_IMAGE = ${existsSync(resolve(root, "marketing/public/og-default.jpg"))};\n`,
 );
@@ -102,4 +108,4 @@ writeFileSync(
 );
 
 const kb = (n) => (n / 1024).toFixed(1);
-console.log(`marketing assets built: css ${kb(css.length)} KB (inline), ${siteJsName} ${kb(js.length)} KB, ${bannersJsName} ${kb(bannersJs.length)} KB, ${galleryJsName} ${kb(galleryJs.length)} KB, chat.js ${kb(chatJs.length)} KB`);
+console.log(`marketing assets built: css ${kb(css.length)} KB (inline), ${siteJsName} ${kb(js.length)} KB, ${bannersJsName} ${kb(bannersJs.length)} KB, ${galleryJsName} ${kb(galleryJs.length)} KB, ${analyticsJsName} ${kb(analyticsJs.length)} KB, chat.js ${kb(chatJs.length)} KB`);

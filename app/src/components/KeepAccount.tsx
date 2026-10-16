@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 import type { StudentMe } from "@mawah/shared";
+import { track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -21,6 +22,7 @@ export function KeepAccount() {
     mutationFn: async () => (await api<{ student: StudentMe }>("/auth/set-password", { json: { password } })).student,
     onSuccess: (s) => {
       setStudent(s);
+      track("account_secured"); // a buyer who was signed in at checkout chose a password
       setPassword("");
       setFields({});
       toast(t("app.account.keep.saved"));

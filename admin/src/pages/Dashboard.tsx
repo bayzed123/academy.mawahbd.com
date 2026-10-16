@@ -38,8 +38,8 @@ interface Health {
   checks: { key: string; status: "ok" | "warn" | "error" | "info"; issues: string[] }[];
 }
 
-const HEALTH_ICON: Record<string, string> = { database: "layers", storage: "download", payments: "wallet", email: "mail", sms: "phone", video: "video", chatbot: "bot", security: "shield" };
-const HEALTH_FIX: Record<string, string> = { payments: "/settings", email: "/settings?tab=email", sms: "/settings?tab=sms", video: "/help", chatbot: "/chatbot", security: "/help", database: "/help", storage: "/help" };
+const HEALTH_ICON: Record<string, string> = { database: "layers", storage: "download", payments: "wallet", email: "mail", sms: "phone", analytics: "activity", video: "video", chatbot: "bot", security: "shield" };
+const HEALTH_FIX: Record<string, string> = { payments: "/settings", email: "/settings?tab=email", sms: "/settings?tab=sms", analytics: "/analytics", video: "/help", chatbot: "/chatbot", security: "/help", database: "/help", storage: "/help" };
 
 function greeting(lang: "bn" | "en"): string {
   const h = new Date(Date.now() + 6 * 3600e3).getUTCHours();

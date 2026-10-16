@@ -3,6 +3,7 @@ import type { InstructorDTO, PublicReview } from "../../services/catalog";
 import { stripMarkdown } from "../../lib/markdown";
 import type { PageCtx } from "../ctx";
 import { HeroArt } from "../hero-art";
+import { gaListAttr } from "../ga";
 import { Layout } from "../layout";
 import { CourseCard, Flash, Icon, InstructorBadges, SectionHead, Stars, shopOf } from "../ui";
 import { organizationLd, websiteLd } from "../seo";
@@ -120,7 +121,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
       <section class="section" id="classes">
         <div class="wrap">
           <SectionHead eyebrow={t("hero.count", { n: num(ctx, data.classCount) })} title={t("sec.classes")} sub={t("sec.classes.sub")} />
-          <div class="grid">
+          <div class="grid" {...gaListAttr(ctx, "home_featured")}>
             {data.featured.map((c, i) => (
               <CourseCard course={c} ctx={ctx} eager={i < 3} />
             ))}
@@ -138,7 +139,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
         <section class="section band" id="beginners">
           <div class="wrap">
             <SectionHead eyebrow={t("label.beginner")} title={t("sec.beginners")} sub={t("sec.beginners.sub")} />
-            <div class="grid">
+            <div class="grid" {...gaListAttr(ctx, "home_beginners")}>
               {data.beginners.map((c) => (
                 <CourseCard course={c} ctx={ctx} />
               ))}

@@ -1,7 +1,8 @@
 import { raw } from "hono/html";
 import { loc } from "@mawah/shared";
 import { turnstileEnabled } from "../lib/turnstile";
-import { BANNERS_JS, CSS, GALLERY_JS, HAS_OG_IMAGE, SITE_JS } from "../generated/assets";
+import { isTracking, NO_TRACKING } from "../lib/tracking";
+import { ANALYTICS_JS, BANNERS_JS, CSS, GALLERY_JS, HAS_OG_IMAGE, SITE_JS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
@@ -25,18 +26,13 @@ export interface LayoutProps {
   gallery?: boolean;
   /** shows/hides the site chrome (certificate & invoice documents print without it) */
   chrome?: boolean;
+  /** what the analytics script needs to know about this page (the class on show …); written into the page only when measuring is on */
+  ga?: unknown;
   children?: unknown;
 }
 
-const safeId = (v: string, re: RegExp) => (re.test(v) ? v : "");
 const digits = (s: string) => s.replace(/\D/g, "");
 const httpUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : "");
-
-export const analyticsIds = (ctx: PageCtx) => ({
-  ga4: safeId(ctx.settings.analytics.ga4.trim(), /^G-[A-Z0-9]{4,20}$/),
-  clarity: safeId(ctx.settings.analytics.clarity.trim(), /^[a-z0-9]{6,20}$/i),
-  pixel: safeId(ctx.settings.analytics.meta_pixel.trim(), /^\d{8,20}$/),
-});
 
 export function Layout(props: LayoutProps) {
   const { ctx } = props;
@@ -44,7 +40,9 @@ export function Layout(props: LayoutProps) {
   const chrome = props.chrome !== false;
   const canonical = ctx.abs(props.canonicalPath ?? ctx.href(ctx.path));
   const image = props.image ?? ctx.abs(HAS_OG_IMAGE ? "/og-default.jpg" : "/icon-512.png");
-  const ids = analyticsIds(ctx);
+  // a certificate or an invoice (chrome off) carries a person's name and a secret address: it is never measured, whatever the request
+  const ids = chrome ? ctx.track : NO_TRACKING;
+  const measuring = isTracking(ids);
   const tsKey = turnstileEnabled(env) ? env.TURNSTILE_SITE_KEY : "";
   const announcement = lang === "bn" ? settings.announcement.bn || settings.announcement.en : settings.announcement.en || settings.announcement.bn;
   const wa = digits(settings.contact.whatsapp);
@@ -97,6 +95,7 @@ export function Layout(props: LayoutProps) {
         {ids.clarity && <meta name="mawah:clarity" content={ids.clarity} />}
         {ids.pixel && <meta name="mawah:pixel" content={ids.pixel} />}
         {tsKey && <meta name="mawah:turnstile" content={tsKey} />}
+        {measuring && props.ga !== undefined && <script type="application/json" id="mawah-ga">{jsonLd(props.ga)}</script>}
         <link rel="icon" href="/favicon.ico" sizes="48x48" />
         <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -305,6 +304,14 @@ export function Layout(props: LayoutProps) {
                     <span class="vh"> ({t("shop.opens")})</span>
                   </a>
                 </span>
+                {measuring && (
+                  <span class="foot-choice">
+                    <button type="button" data-ga-choices hidden data-off={t("ga.choice.off")} data-on={t("ga.choice.on")} data-is-off={t("ga.choice.is_off")} data-is-on={t("ga.choice.is_on")}>
+                      {t("ga.choice.off")}
+                    </button>
+                    <span class="vh" role="status" data-ga-status />
+                  </span>
+                )}
                 <span>{t("brand.tagline")}</span>
               </div>
             </footer>
@@ -326,6 +333,7 @@ export function Layout(props: LayoutProps) {
         {chrome && ctx.popup && <OfferPopup ctx={ctx} banner={ctx.popup} />}
         <script src={SITE_JS} defer />
         {((chrome && ctx.popup) || props.slider) && <script src={BANNERS_JS} defer />}
+        {measuring && <script src={ANALYTICS_JS} defer />}
         {props.gallery && <script src={GALLERY_JS} defer />}
       </body>
     </html>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CertificateDTO, CurriculumModuleDTO, MyCourseDTO, Progress as ProgressDTO } from "@mawah/shared";
+import { track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { Button, ErrorState, Icon, Progress, Spinner, useToast } from "../components/ui";
@@ -89,6 +90,7 @@ export function ReviewBox({ view, slug }: { view: CourseView; slug: string }) {
     mutationFn: () => api("/student/reviews", { json: { course_id: view.course.id, rating, body: body.trim() } }),
     onSuccess: () => {
       toast(t("app.course.review.thanks"));
+      track("review_submit", { course: slug, rating });
       setEditing(false);
       void qc.invalidateQueries({ queryKey: courseKey(slug) });
     },
@@ -207,7 +209,7 @@ export function CourseOverview() {
           <Icon name="award" />
           <div>
             <b>{t("app.lesson.certEarned")}</b>{" "}
-            <a href={`${home}/certificate/${v.certificate.code}`} target="_blank" rel="noopener noreferrer">
+            <a href={`${home}/certificate/${v.certificate.code}`} target="_blank" rel="noopener noreferrer" onClick={() => track("certificate_view", { course: slug })}>
               {t("app.course.certificate.get")}
             </a>
           </div>

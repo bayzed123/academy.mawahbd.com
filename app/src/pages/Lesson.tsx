@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CertificateDTO, LessonContentDTO, Progress } from "@mawah/shared";
+import { track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { Button, ErrorState, Icon, Spinner, useToast } from "../components/ui";
@@ -38,6 +39,11 @@ export function LessonPlayer() {
           : v,
       );
       void qc.invalidateQueries({ queryKey: ["my-courses"] });
+      if (done) {
+        track("lesson_complete", { course: slug, lesson_id: id });
+        if (res.progress.pct >= 100) track("course_complete", { course: slug });
+        if (res.certificate) track("certificate_earned", { course: slug });
+      }
       if (done && res.certificate) toast(t("app.lesson.certEarned"));
       else if (done && res.progress.pct >= 100) toast(t("app.lesson.allDone"));
     },
@@ -47,6 +53,12 @@ export function LessonPlayer() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [id]);
+
+  // a lesson was opened (once per lesson, when its content has arrived)
+  const lessonType = lesson.data?.type;
+  useEffect(() => {
+    if (lessonType) track("lesson_start", { course: slug, lesson_id: id, lesson_type: lessonType });
+  }, [slug, id, lessonType]);
 
   if (!Number.isInteger(id) || id <= 0) return <Navigate to={`/learn/${slug}`} replace />;
   if (view.isPending || lesson.isPending) return <Spinner />;
