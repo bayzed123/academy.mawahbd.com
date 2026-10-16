@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { Button, ErrorState, Field, Icon, PageHeader, Panel, Spinner, Switch, Tabs, TextArea, TextInput, useFieldErrors, useToast } from "../components/ui";
 import { EmailPanel } from "./EmailPanel";
+import { PaymentCheck } from "./PaymentCheck";
 import { SmsPanel } from "./SmsPanel";
 
 interface S {
@@ -162,45 +163,48 @@ export function Settings() {
           </>
         )}
         {tab === "payments" && (
-          <Group name="payments" data={s.payments} canWrite={canWrite}>
-            {(v, set, e) => (
-              <div className="form-grid">
-                <div className="field wide">
-                  <Switch checked={v.sslcommerz} disabled={!canWrite} onChange={(x) => set({ sslcommerz: x })} label={t("adm.pay.ssl")} />
-                  <p className="hint">{t("adm.pay.sslHint")}</p>
-                </div>
-                <div className="field wide">
-                  <Switch checked={v.bkash_direct} disabled={!canWrite} onChange={(x) => set({ bkash_direct: x })} label={t("adm.pay.bkash")} />
-                  <p className="hint">{t("adm.pay.bkashHint")}</p>
-                </div>
-                <div className="field wide">
-                  <Switch checked={v.manual} disabled={!canWrite} onChange={(x) => set({ manual: x })} label={t("adm.pay.manual")} />
-                  <p className="hint">{t("adm.pay.manualHint")}</p>
-                </div>
-                <Field id="pn-window" label={t("adm.pay.window")} error={e.manual_window_min} hint={t("adm.pay.windowHint")}>
-                  <TextInput id="pn-window" type="number" inputMode="numeric" min={5} max={120} value={String(v.manual_window_min)} error={e.manual_window_min} disabled={!canWrite} onChange={(x) => set({ manual_window_min: Number(x.target.value) })} />
-                </Field>
-                {(["bkash", "nagad", "rocket"] as const).map((m) => (
-                  <Field key={m} id={`pn-${m}`} label={t("adm.pay.number", { name: t(`method.${m}` as "method.bkash") })} error={e[`manual_numbers.${m}`]}>
-                    <TextInput id={`pn-${m}`} inputMode="tel" value={v.manual_numbers[m]} error={e[`manual_numbers.${m}`]} disabled={!canWrite} onChange={(x) => set({ manual_numbers: { ...v.manual_numbers, [m]: x.target.value } })} />
+          <>
+            <Group name="payments" data={s.payments} canWrite={canWrite}>
+              {(v, set, e) => (
+                <div className="form-grid">
+                  <div className="field wide">
+                    <Switch checked={v.sslcommerz} disabled={!canWrite} onChange={(x) => set({ sslcommerz: x })} label={t("adm.pay.ssl")} />
+                    <p className="hint">{t("adm.pay.sslHint")}</p>
+                  </div>
+                  <div className="field wide">
+                    <Switch checked={v.bkash_direct} disabled={!canWrite} onChange={(x) => set({ bkash_direct: x })} label={t("adm.pay.bkash")} />
+                    <p className="hint">{t("adm.pay.bkashHint")}</p>
+                  </div>
+                  <div className="field wide">
+                    <Switch checked={v.manual} disabled={!canWrite} onChange={(x) => set({ manual: x })} label={t("adm.pay.manual")} />
+                    <p className="hint">{t("adm.pay.manualHint")}</p>
+                  </div>
+                  <Field id="pn-window" label={t("adm.pay.window")} error={e.manual_window_min} hint={t("adm.pay.windowHint")}>
+                    <TextInput id="pn-window" type="number" inputMode="numeric" min={5} max={120} value={String(v.manual_window_min)} error={e.manual_window_min} disabled={!canWrite} onChange={(x) => set({ manual_window_min: Number(x.target.value) })} />
                   </Field>
-                ))}
-                <Field id="pn-note-bn" label={t("adm.pay.noteBn")} error={e.manual_note_bn}>
-                  <TextArea id="pn-note-bn" rows={3} maxLength={500} value={v.manual_note_bn} disabled={!canWrite} onChange={(x) => set({ manual_note_bn: x.target.value })} />
-                </Field>
-                <Field id="pn-note-en" label={t("adm.pay.noteEn")} error={e.manual_note_en}>
-                  <TextArea id="pn-note-en" rows={3} maxLength={500} value={v.manual_note_en} disabled={!canWrite} onChange={(x) => set({ manual_note_en: x.target.value })} />
-                </Field>
-                <div className="notice wide">
-                  <Icon name="shield" />
-                  <div>
-                    <b>{t("adm.pay.secretsTitle")}</b>
-                    <p>{t("adm.pay.secretsBody")}</p>
+                  {(["bkash", "nagad", "rocket"] as const).map((m) => (
+                    <Field key={m} id={`pn-${m}`} label={t("adm.pay.number", { name: t(`method.${m}` as "method.bkash") })} error={e[`manual_numbers.${m}`]}>
+                      <TextInput id={`pn-${m}`} inputMode="tel" value={v.manual_numbers[m]} error={e[`manual_numbers.${m}`]} disabled={!canWrite} onChange={(x) => set({ manual_numbers: { ...v.manual_numbers, [m]: x.target.value } })} />
+                    </Field>
+                  ))}
+                  <Field id="pn-note-bn" label={t("adm.pay.noteBn")} error={e.manual_note_bn}>
+                    <TextArea id="pn-note-bn" rows={3} maxLength={500} value={v.manual_note_bn} disabled={!canWrite} onChange={(x) => set({ manual_note_bn: x.target.value })} />
+                  </Field>
+                  <Field id="pn-note-en" label={t("adm.pay.noteEn")} error={e.manual_note_en}>
+                    <TextArea id="pn-note-en" rows={3} maxLength={500} value={v.manual_note_en} disabled={!canWrite} onChange={(x) => set({ manual_note_en: x.target.value })} />
+                  </Field>
+                  <div className="notice wide">
+                    <Icon name="shield" />
+                    <div>
+                      <b>{t("adm.pay.secretsTitle")}</b>
+                      <p>{t("adm.pay.secretsBody")}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </Group>
+              )}
+            </Group>
+            <PaymentCheck />
+          </>
         )}
         {tab === "policies" && (
           <Group name="policies" data={s.policies} canWrite={canWrite}>

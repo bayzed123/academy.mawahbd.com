@@ -195,6 +195,9 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .pay-opt b{display:block}
 .pay-opt small{color:var(--ink-3)}
 .pay-ico{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:var(--ivory-2);color:var(--k-800);flex:none}
+.pay-marks{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.pay-mark{display:inline-flex;align-items:center;height:26px;padding:0 7px;border-radius:8px;background:#fff;box-shadow:0 0 0 1px var(--line-2)}
+.pay-mark img{display:block;height:17px;width:auto}
 .manual-box{margin-top:14px;padding:16px;border-radius:16px;background:var(--g-100);border:1px solid var(--g-300)}
 .num-list{list-style:none;margin:.4rem 0 1rem;padding:0;display:grid;gap:8px}
 .num-list li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:.6rem .9rem;background:#fff;border:1px solid var(--line);border-radius:12px}

@@ -87,9 +87,19 @@ const sections = [...report.slice(report.indexOf("function questions("), report.
 if (sections.length < 10) fail(`services/analytics.ts: the report sections parse looks wrong (${sections.length})`);
 need(admin, "analytics report sections", sections.map((x) => `adm.an.sec.${x}`));
 
+// Online payment: every way SSLCommerz can say no is explained in plain words (Settings → Payments → Check the connection) and has its short line in the owner's e-mail
+const sslSource = readFileSync(resolve(root, "worker/src/services/payments/sslcommerz.ts"), "utf8");
+const sslProblems = [...(/export type SslProblem =([\s\S]*?);/.exec(sslSource)?.[1] ?? "").matchAll(/\| "([a-z_]+)"/g)].map((m) => m[1]);
+if (sslProblems.length < 6) fail(`sslcommerz.ts: the problem list parse looks wrong (${sslProblems.length})`);
+need(admin, "online payment problems", sslProblems.flatMap((p) => [`adm.pay.p.${p}.title`, `adm.pay.p.${p}.body`]));
+const noticeSource = readFileSync(resolve(root, "worker/src/services/notify.ts"), "utf8");
+const failedWords = [...(/const PAYMENT_FAILED_WORDS[^=]*= \{([\s\S]*?)\n\};/.exec(noticeSource)?.[1] ?? "").matchAll(/\n  ([a-z_]+):/g)].map((m) => m[1]);
+for (const p of sslProblems) if (!failedWords.includes(p)) fail(`notify.ts: PAYMENT_FAILED_WORDS has no line for the online payment problem "${p}"`);
+need(admin, "owner note kinds", constants.NOTIFY_KINDS.flatMap((k) => [`adm.notify.kind.${k}`, `adm.notify.kind.${k}.d`]));
+
 // every error code the Worker can throw should have a translation in both UIs (generic is the safety net, but specific is kinder)
 const codes = new Set();
-for (const f of ["worker/src/routes/api/auth.ts", "worker/src/routes/api/checkout.ts", "worker/src/routes/api/student.tsx", "worker/src/services/orders.ts", "worker/src/services/learning.ts"]) {
+for (const f of ["worker/src/routes/api/auth.ts", "worker/src/routes/api/checkout.ts", "worker/src/routes/api/student.tsx", "worker/src/services/orders.ts", "worker/src/services/learning.ts", "worker/src/services/payments/bkash.ts"]) {
   for (const m of readFileSync(resolve(root, f), "utf8").matchAll(/(?:HttpError\(\d{3}, |forbidden\(|conflict\(|badRequest\(|unauthorized\(|notFound\()"([a-z_]+)"/g)) codes.add(m[1]);
 }
 const skip = new Set(["not_found", "unauthorized", "forbidden", "bad_request", "invalid_json", "validation", "unsupported_media_type", "payload_too_large", "invalid_token", "payment_unavailable", "gateway_init_failed"]);

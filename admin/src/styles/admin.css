@@ -186,6 +186,7 @@ html[lang=bn] .rail-in h3{letter-spacing:0;text-transform:none;font-size:.9rem}
 .kv-grid{display:grid;gap:12px 22px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:0}
 .kv-grid dt{font-size:.8rem;color:var(--ink-3);font-weight:600}
 .kv-grid dd{margin:0;font-weight:600;word-break:break-word}
+code.brk{font-size:.88em;word-break:break-all}
 .proof-shot{display:inline-block;max-width:100%;text-decoration:none;color:var(--ink-3)}
 .proof-shot img{display:block;max-width:min(100%,360px);max-height:420px;border-radius:12px;border:1px solid var(--line);background:#fff}
 .proof-shot small{display:block;margin-top:.3rem}

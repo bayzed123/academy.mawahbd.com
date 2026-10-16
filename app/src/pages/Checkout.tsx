@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toBnDigits, type Channel, type QuoteDTO, type StudentMe } from "@mawah/shared";
+import { CHANNEL_LOGOS, PAY_LOGOS, toBnDigits, type Channel, type QuoteDTO, type StudentMe } from "@mawah/shared";
 import { CURRENCY, gaItem, track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -110,6 +110,24 @@ function ExistingAccount({ who, passwordless, onSignedIn, onOther }: { who: stri
   );
 }
 
+/** The marks of the services a way of paying takes (the same pictures as the footer), so a buyer sees "bKash / Nagad / Rocket / cards" and not just a word. */
+function PayMarks({ channel }: { channel: Channel }) {
+  const { t } = useI18n();
+  const keys = CHANNEL_LOGOS[channel];
+  if (!keys.length) return null;
+  const marks = PAY_LOGOS.filter((p) => keys.includes(p.key));
+  // one spoken name for the whole row ("bKash, Nagad, Rocket"), the pictures themselves are decoration
+  return (
+    <span className="pay-marks" role="img" aria-label={marks.map((p) => t(`method.${p.key}` as "method.bkash")).join(", ")}>
+      {marks.map((p) => (
+        <span className="pay-mark" key={p.key} aria-hidden="true">
+          <img src={p.src} width={p.width} height={p.height} alt="" loading="lazy" decoding="async" />
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export default function Checkout() {
   const { t, lang, pick, money, err } = useI18n();
   const [params] = useSearchParams();
@@ -147,6 +165,8 @@ export default function Checkout() {
   const [payer, setPayer] = useState("");
   const [fields, setFields] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
+  // the online gateway turned this purchase away: the error says so, and the other way of paying is offered right there
+  const [gatewayDown, setGatewayDown] = useState(false);
 
   const cart = { courses: slug ? [slug] : undefined, bundle_id: bundle ? Number(bundle) : undefined };
   const quote = useQuery({
@@ -233,6 +253,7 @@ export default function Checkout() {
       track("checkout_error", { code: e instanceof ApiError ? e.code : "generic" });
       setFields(fieldErrors(e));
       setFormError(e instanceof ApiError && e.code !== "validation" ? err(e.code) : "");
+      setGatewayDown(e instanceof ApiError && e.code === "gateway_error");
     },
   });
 
@@ -269,6 +290,7 @@ export default function Checkout() {
     e.preventDefault();
     setFields({});
     setFormError("");
+    setGatewayDown(false);
     // name, mobile number and address are needed (a signed-in student already has a name); the e-mail is up to them
     const missing: Record<string, string> = {};
     if (!student && !name.trim()) missing.name = t("err.required");
@@ -366,6 +388,7 @@ export default function Checkout() {
                     <span>
                       <b>{t(`app.checkout.channel.${c}` as "app.checkout.channel.manual")}</b>
                       <small>{t(`app.checkout.channel.${c}.sub` as "app.checkout.channel.manual.sub")}</small>
+                      <PayMarks channel={c} />
                     </span>
                   </label>
                 ))}
@@ -397,6 +420,25 @@ export default function Checkout() {
             {formError && (
               <div className="flash err mt" role="alert">
                 {formError}
+                {gatewayDown && channels.includes("manual") && (
+                  <>
+                    <br />
+                    {t("app.checkout.gatewayManual")}
+                    <div className="mt">
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        onClick={() => {
+                          setChannel("manual");
+                          setFormError("");
+                          setGatewayDown(false);
+                        }}
+                      >
+                        {t("app.checkout.useManual")}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </section>

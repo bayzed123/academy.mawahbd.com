@@ -84,6 +84,20 @@
 
 > ম্যানুয়াল অপশন সেটিংসে **আপনার নম্বর না বসানো পর্যন্ত শিক্ষার্থীদের কাছে আসে না**।
 
+**অনলাইন পেমেন্টে শিক্ষার্থী ভুল বার্তা দেখলে (SSLCommerz)** — *সেটিংস → পেমেন্ট* খুলে নিচে নামুন, **“অনলাইন পেমেন্টের সংযোগ”** অংশে:
+1. দেখুন ওয়েবসাইট **লাইভ** না **টেস্ট** মোডে আছে, স্টোর আইডি/পাসওয়ার্ড **দেওয়া আছে** কি না, আর SSLCommerz-কে কোন ওয়েবসাইট ও ফেরার ঠিকানা দেওয়া হচ্ছে।
+2. **“সংযোগ পরীক্ষা করুন”** চাপুন। ওয়েবসাইট ঠিক কেনাকাটার মতো করেই SSLCommerz-এর কাছে একটি ১০ টাকার পেমেন্ট পেজ চায় এবং তাদের **নিজের কথা** দেখায়। কারও টাকা কাটা হয় না।
+3. কারণ বোঝার সহজ হিসাব:
+   * **“স্টোরের কী মানছে না”** — কী-গুলো টেস্ট (স্যান্ডবক্স) কিন্তু ওয়েবসাইট লাইভ মোডে (বা উল্টো), অথবা লাইভ স্টোর SSLCommerz এখনো চালু করেনি, অথবা মার্চেন্ট পাসওয়ার্ড বদলানোর পর GitHub সিক্রেট বদলানো হয়নি।
+   * **“এই ওয়েবসাইটের ঠিকানা অনুমোদন করছে না”** — স্টোরটি আগে অন্য ডোমেইনের নামে নেওয়া হয়েছিল। SSLCommerz-কে (মার্চেন্ট প্যানেলের সাপোর্ট, বা যিনি আপনাকে চালু করে দিয়েছেন) জানান: *“আমাদের স্টোরে এখন `mawahacademy.com` ব্যবহার হবে — ওয়েবসাইট ঠিকানা বদলে দিন এবং `https://mawahacademy.com/api/payments/sslcommerz/` দিয়ে শুরু হওয়া ফেরার ঠিকানাগুলো অনুমোদন করুন।”* সাধারণত একই অ্যাকাউন্ট ও একই কী থাকে; তারা নতুন কী দিলে GitHub সিক্রেট বদলে Deploy চালান।
+   * **“সার্ভারকে ফিরিয়ে দিয়েছে”** — SSLCommerz-এর ফায়ারওয়াল আটকাচ্ছে (কিছু স্টোর শুধু নির্দিষ্ট সার্ভার IP থেকে অনুরোধ নেয়; Cloudflare-এর IP বদলায়)। তাদের লিখুন: *“আমাদের ওয়েবসাইট Cloudflare Workers-এ চলে; লাইভ স্টোরের IP বাধা তুলে দিন।”* নিচের **“SSLCommerz যা বলেছে”** কথাটি সাথে পাঠান।
+   * বাকিগুলোয় (**“রাজি হয়নি”**) নিচের কথাটি SSLCommerz সাপোর্টকে পাঠান — ঠিক কী বলেছে সেটাই আসল সূত্র।
+4. ঠিক করার পর আবার **“সংযোগ পরীক্ষা করুন”** চাপুন — “সংযোগ ঠিক আছে” দেখালেই হলো; ড্যাশবোর্ডের পেমেন্ট কার্ডের হলুদ সতর্কতাও তখন চলে যায়।
+5. কোনো শিক্ষার্থী আটকে গেলে আপনার **ইমেইলে সাথে সাথে একটি বার্তা** যায় (“একজন শিক্ষার্থী অনলাইন পেমেন্ট শুরু করতে পারেননি”), তাতে SSLCommerz-এর নিজের কথাও থাকে। এটি *সেটিংস → ইমেইল → বিজ্ঞপ্তি*-তে বন্ধ করা যায়। *কার্যকলাপের লগে*ও “checkout.gateway_failed” নামে ধরা থাকে।
+6. শিক্ষার্থী নিজে শুধু সাধারণ বার্তা দেখেন (“অনলাইন পেমেন্ট এই মুহূর্তে শুরু করা যায়নি, কোনো টাকা কাটা হয়নি”) এবং এক চাপে **সেন্ড মানি** পদ্ধতিতে চলে যেতে পারেন — তাই ঠিক করার সময়টুকুতেও বিক্রি বন্ধ হয় না (ম্যানুয়াল অপশন চালু থাকলে)।
+
+> লাইভ আর টেস্ট কী আলাদা: SSLCommerz টেস্টের জন্য একসেট, আসল টাকার জন্য আরেকসেট কী দেয়। ওয়েবসাইট এখন **লাইভ** (`PAYMENT_MODE = "live"`), তাই লাইভ কী-ই বসাতে হবে।
+
 **জেনে রাখুন:**
 * **২০ মিনিট** (সেটিংস → পেমেন্টে ৫–১২০ মিনিটের মধ্যে বদলানো যায়) শুধু শিক্ষার্থীকে গাইড করে। সময় পেরিয়ে গেলেও পরে পাঠানো প্রমাণ **গ্রহণ করা হয়**; অর্ডারে লেখা থাকে “সময়ের কত মিনিট পরে”। আপনি দেখে সিদ্ধান্ত নেন।
 * শিক্ষার্থীর কাছে একটি **পেমেন্ট রেফারেন্স কোড** (অর্ডার নম্বরের প্রথম ৮ অক্ষর) দেখানো হয় — টাকা পাঠানোর রেফারেন্স ঘরে লিখতে বলা হয়, যাতে আপনি সহজে মেলাতে পারেন।
@@ -249,7 +263,7 @@
 
 **আপনার জিমেইলে সব খবর — `mawahacademy@gmail.com`**
 
-* ওয়েবসাইটে যা-ই ঘটে, আপনার জিমেইলে একটি ইমেইল আসে: নতুন পেমেন্ট (পেইড অর্ডার), যাচাইয়ের অপেক্ষায় থাকা পেমেন্ট, যোগাযোগ ফর্মের বার্তা, নতুন শিক্ষার্থী, ক্লাসে প্রশ্ন, রিভিউ অনুমোদনের অপেক্ষায়, চ্যাটবট থেকে আপনার কাছে হস্তান্তর, প্রাইভেট গ্রুপে যোগ দেওয়ার অনুরোধ, “জানাও” সাইন-আপ এবং নিউজলেটার সাইন-আপ। প্রতিটি ইমেইলে সংক্ষেপে কী ঘটেছে আর কোথায় ক্লিক করে দেখবেন তা থাকে।
+* ওয়েবসাইটে যা-ই ঘটে, আপনার জিমেইলে একটি ইমেইল আসে: নতুন পেমেন্ট (পেইড অর্ডার), যাচাইয়ের অপেক্ষায় থাকা পেমেন্ট, শিক্ষার্থী শুরু করতে পারেননি এমন অনলাইন পেমেন্ট (গেটওয়ের নিজের কথাসহ), যোগাযোগ ফর্মের বার্তা, নতুন শিক্ষার্থী, ক্লাসে প্রশ্ন, রিভিউ অনুমোদনের অপেক্ষায়, চ্যাটবট থেকে আপনার কাছে হস্তান্তর, প্রাইভেট গ্রুপে যোগ দেওয়ার অনুরোধ, “জানাও” সাইন-আপ এবং নিউজলেটার সাইন-আপ। প্রতিটি ইমেইলে সংক্ষেপে কী ঘটেছে আর কোথায় ক্লিক করে দেখবেন তা থাকে।
 * **সেটিংস → ইমেইল → আপনার কাছে নোটিফিকেশন** থেকে আরও ঠিকানা যোগ করা যায়, প্রতিটি ধরন আলাদাভাবে বন্ধ/চালু করা যায়, আর **একটি পরীক্ষামূলক নোটিফিকেশন পাঠান** বোতামে এখনই একটা নমুনা পাঠিয়ে দেখা যায়।
 * ইমেইলগুলো আসে `no-reply@mawahacademy.com` ঠিকানা থেকে (জিমেইল ঠিকানা থেকে সরাসরি পাঠানো Resend-এ সম্ভব নয়)। **রিপ্লাই** চাপলে উত্তর আপনার জিমেইলেই যায়।
 * ডোমেইন যাচাই না হওয়া পর্যন্ত আপনার নিজের নোটিফিকেশনগুলো Resend-এর পরীক্ষামূলক প্রেরক (`onboarding@resend.dev`) দিয়ে আসে — তাই আপনি খবর পেতে থাকেন — কিন্তু **শিক্ষার্থীদের** রসিদ ও পাসওয়ার্ড-সেট লিংক যায় না। ডোমেইন যাচাই করতে `docs/email-dns-records.txt` ফাইলটি Cloudflare → DNS → Import and export থেকে ইমপোর্ট করুন (চারটি রেকর্ডই **DNS only**), তারপর Resend → Domains-এ **Verify DNS Records** চাপুন।
@@ -402,6 +416,20 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 3. If they match, **Approve payment** — the class opens immediately and the invoice number is created. If not, **Reject** — the student is e-mailed and can try again.
 
 > The manual option is **not shown to students until you enter your number**.
+
+**When students see an error after choosing online payment (SSLCommerz)** — open *Settings → Payments* and scroll down to **Online payment connection**:
+1. See whether the website is in **live** or **test** mode, whether the Store ID and password are **set**, and which website and return addresses SSLCommerz is given.
+2. Press **Check the connection**. The website asks SSLCommerz for a 10-taka payment page exactly as a purchase would, and shows **its own words**. Nobody is charged.
+3. Reading the answer:
+   * **“SSLCommerz does not accept the store keys”** — the keys are the test (sandbox) ones but the website is live (or the other way round), or SSLCommerz has not activated the live store yet, or you changed the merchant password and not the GitHub secret.
+   * **“SSLCommerz does not allow this website address”** — the store was taken for another domain. Tell SSLCommerz (merchant-panel support, or the person who set you up): *“Our store now uses `mawahacademy.com` — please change the store’s website address and allow the return addresses starting with `https://mawahacademy.com/api/payments/sslcommerz/`.”* Normally you keep the same account and keys; if they issue new keys, change the GitHub secrets and run Deploy.
+   * **“turned the website’s server away”** — SSLCommerz’s firewall is refusing the request (some stores only accept a list of server IP addresses, and Cloudflare’s change). Write to them: *“Our website runs on Cloudflare Workers; please remove the IP restriction for our live store”* and send the words shown under **What SSLCommerz said**.
+   * Anything else (**“said no”**) — send the words shown to SSLCommerz support: what exactly it said is the clue.
+4. After the fix press **Check the connection** again; “Connected” is what you want, and the amber warning on the dashboard’s payments card goes away.
+5. When a student is turned away you get an **e-mail straight away** (“A student could not start the online payment”) with SSLCommerz’s own words; switch it off in *Settings → E-mail → Notifications* if you do not want it. It is also in the *Activity log* as `checkout.gateway_failed`.
+6. The student only sees a plain message (“Online payment could not be started just now. Nothing was charged.”) and, with one press, can pay by **sending money** instead — so sales do not stop while you fix it (as long as the manual option is on).
+
+> Live and test keys are different sets: SSLCommerz gives one set for testing and one for real money. The website is in **live** mode now (`PAYMENT_MODE = "live"`), so the live keys must be the ones saved.
 
 **Good to know:**
 * The **20 minutes** (changeable in *Settings → Payments*, 5–120) only guides the student. Proof that arrives **after** the time is still accepted; the order says how many minutes late it was, and you decide.
@@ -568,7 +596,7 @@ Receipts, password resets and “the class is open” announcements go out by e-
 
 **Everything that happens, in your Gmail — `mawahacademy@gmail.com`**
 
-* Whatever happens on the website, an e-mail lands in your Gmail: a paid order, a payment waiting to be checked, a contact-form message, a new student, a question on a class, a review waiting for approval, a chatbot hand-over, a private-group request, a “notify me” sign-up and a newsletter sign-up. Each e-mail says in a few lines what happened and where to click.
+* Whatever happens on the website, an e-mail lands in your Gmail: a paid order, a payment waiting to be checked, an online payment a student could not start (with the gateway’s own words), a contact-form message, a new student, a question on a class, a review waiting for approval, a chatbot hand-over, a private-group request, a “notify me” sign-up and a newsletter sign-up. Each e-mail says in a few lines what happened and where to click.
 * **Settings → E-mail → Notifications to you** adds more addresses, switches single kinds on or off, and has a **Send a test notification** button that sends a sample right now.
 * The e-mails come *from* `no-reply@mawahacademy.com` (Resend cannot send directly from a Gmail address). Pressing **Reply** answers to your Gmail inbox.
 * Until the domain is verified, your own notifications arrive through Resend’s test sender (`onboarding@resend.dev`) — so you keep getting the news — but **students’** receipts and set-your-password links are not sent. To verify the domain, import `docs/email-dns-records.txt` in Cloudflare → DNS → Import and export (all four rows **DNS only**), then press **Verify DNS Records** at Resend → Domains.

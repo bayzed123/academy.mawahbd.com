@@ -13,6 +13,7 @@ import { getSettings, SETTING_KEYS, setSetting, type SettingKey } from "../../..
 import { requirePerm } from "../../../middleware/auth";
 import { rateLimit } from "../../../middleware/ratelimit";
 import { notices, notificationRecipients, sendNotice } from "../../../services/notify";
+import { SSL_LAST_KEY, sslCheck, sslConfigured, sslHost, sslMode, sslReturnUrls, type SslLast } from "../../../services/payments/sslcommerz";
 
 /** Every business setting (contacts, payment options, policies, analytics …) is edited here — nothing needs a redeploy. */
 export const settings = new Hono<AppEnv>();
@@ -172,6 +173,38 @@ async function underHourlyCap(c: Ctx, name: string, max: number): Promise<void> 
   if (count >= max) throw new HttpError(429, "rate_limited");
   await c.env.KV.put(used, String(count + 1), { expirationTtl: 3700 });
 }
+
+/* ------------------------------------------------------------------------------------------------
+ * Online payment (SSLCommerz). When the gateway turns a student away, all the student can see is "could not start"; the reason — wrong keys,
+ * another website registered for the store, a firewall — is in the gateway's own sentence. So the owner can ask the gateway for a session
+ * (nothing is charged) and read, in plain words with the steps, what it said. The keys never leave the Worker: only whether they are set.
+ * ---------------------------------------------------------------------------------------------- */
+
+settings.get("/settings/payments/ssl", requirePerm("settings:read"), async (c) => {
+  const [last, s] = await Promise.all([c.env.KV.get<SslLast>(SSL_LAST_KEY, "json"), getSettings(c.env, { fresh: true })]);
+  return ok(c, {
+    enabled: s.payments.sslcommerz,
+    configured: sslConfigured(c.env),
+    store_id_set: !!c.env.SSLCOMMERZ_STORE_ID?.trim(),
+    password_set: !!c.env.SSLCOMMERZ_STORE_PASSWORD?.trim(),
+    // live = real money, on the gateway's real address; test = the gateway's sandbox (keys of one kind do not open the other)
+    mode: sslMode(c.env),
+    host: sslHost(c.env),
+    // the website address and the return addresses the gateway is given — the store has to be registered for them
+    site: new URL(c.env.SITE_URL).host,
+    return_urls: sslReturnUrls(c.env),
+    last,
+  });
+});
+
+settings.post("/settings/payments/ssl/check", requirePerm("settings:write"), rateLimit("RL_FORM"), async (c) => {
+  await underHourlyCap(c, "sslcheck", 20);
+  const r = await sslCheck(c.env);
+  // the audit trail records that a check happened and how it ended — the gateway's words are in the answer, not in the trail
+  await audit(c, { action: "payments.ssl_checked", entity: "settings", entityId: "payments", meta: { connected: r.connected, problem: r.connected ? null : r.problem, mode: r.mode } });
+  // never `{ ok: false }`: the admin client reads that as a failed request, and the plain-words explanation would never be shown
+  return ok(c, { ...r });
+});
 
 settings.post("/settings/sms/balance", requirePerm("settings:write"), rateLimit("RL_FORM"), async (c) => {
   await underHourlyCap(c, "smsbalance", 20);
