@@ -350,3 +350,35 @@ test("a signed-in student with no address on file is asked for it — only for i
   await expect(page.getByRole("heading", { name: "Your details" })).toHaveCount(0);
   await ctx.close();
 });
+
+test("a returning student whose profile has no address signs in in the middle of checkout: what was typed fills the gap, the payment goes on, nothing is asked twice", async ({ browser }) => {
+  // a registered student with a password of their own, a number on file, and no address yet
+  const reg = await visitor(browser);
+  const made = await registerStudent(reg.page, { name: "Gap Filler", address: "" });
+  await reg.ctx.close();
+
+  const typedAddress = "Flat 9, Road 2, Mirpur, Dhaka";
+  const { ctx, page } = await visitor(browser);
+  await page.goto("/app/checkout?c=beginners-baking-class");
+  await fillDetails(page, { name: "Someone Typed", phone: "01912345670", email: made.email, address: typedAddress });
+  await page.getByText("Test payment").click();
+  await page.getByRole("button", { name: /Pay ৳400/ }).click();
+
+  const panel = page.getByRole("region", { name: "You already have an account" });
+  await expect(panel).toBeVisible();
+  await panel.getByLabel("Password").fill(made.password);
+  await panel.getByRole("button", { name: "Sign in and continue" }).click();
+
+  // no second stop to ask for the address again: the payment carries on with what was typed
+  await page.getByRole("button", { name: "Simulate successful payment" }).click();
+  await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
+  await expect(page.getByText("This field is required.")).toHaveCount(0);
+
+  // the address typed above is now on the account (and on the order); the number already on file is kept, and so is the name
+  const found = (await apiGet<{ items: { name: string; phone: string; address: string; enrollments: number }[] }>(admin, `/admin/students?q=${encodeURIComponent(made.email)}`)).items;
+  expect(found).toHaveLength(1);
+  expect(found[0]).toMatchObject({ name: "Gap Filler", phone: "01712345678", address: typedAddress, enrollments: 1 });
+  const orders = (await apiGet<{ items: { status: string; customer_address: string }[] }>(admin, `/admin/orders?q=${encodeURIComponent(made.email)}`)).items;
+  expect(orders[0]).toMatchObject({ status: "paid", customer_address: typedAddress });
+  await ctx.close();
+});
