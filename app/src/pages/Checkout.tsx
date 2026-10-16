@@ -17,7 +17,7 @@ type PayResult = { order: { public_id: string; status: string; total: number }; 
  * them: they sign in right here (and the payment goes on at once), or — when that account has no password yet — they are sent a link, by
  * e-mail or by text message to the number. `who` is what they typed.
  */
-function ExistingAccount({ who, passwordless, onSignedIn, onOther }: { who: string; passwordless: boolean; onSignedIn: () => void; onOther: () => void }) {
+function ExistingAccount({ who, passwordless, onSignedIn, onOther }: { who: string; passwordless: boolean; onSignedIn: (s: StudentMe) => void; onOther: () => void }) {
   const { t, lang, err } = useI18n();
   const { login } = useAuth();
   const [password, setPassword] = useState("");
@@ -30,8 +30,7 @@ function ExistingAccount({ who, passwordless, onSignedIn, onOther }: { who: stri
     setBusy(true);
     setError("");
     try {
-      await login(who, password);
-      onSignedIn();
+      onSignedIn(await login(who, password));
     } catch (x) {
       setError(err(x instanceof ApiError ? x.code : "generic"));
     } finally {
@@ -176,11 +175,15 @@ export default function Checkout() {
   });
 
   const pay = useMutation({
-    // "student": already signed in (or just signed in here); "guest": a visitor, with the details typed above
-    mutationFn: async (as: "student" | "guest") => {
+    // "student": already signed in (or just signed in here — `gaps` then says what their profile lacks, which the details typed above fill);
+    // "guest": a visitor, with the details typed above
+    mutationFn: async (v: { as: "student" | "guest"; gaps?: { phone: boolean; address: boolean } }) => {
       const order = { ...cart, coupon, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined };
-      // a signed-in student whose profile lacks a mobile number or an address gives them here (the form shows only then)
-      if (as === "student") return api<PayResult>("/checkout", { json: { ...order, details: needsDetails ? { phone: phone.trim(), address: address.trim() } : undefined } });
+      if (v.as === "student") {
+        // a signed-in student whose profile lacks a mobile number or an address gives them here (the form shows only then)
+        const details = v.gaps ? { ...(v.gaps.phone ? { phone: phone.trim() } : {}), ...(v.gaps.address ? { address: address.trim() } : {}) } : needsDetails ? { phone: phone.trim(), address: address.trim() } : {};
+        return api<PayResult>("/checkout", { json: { ...order, details: Object.keys(details).length ? details : undefined } });
+      }
       return api<PayResult>("/checkout/guest", { json: { ...order, name: name.trim(), email: email.trim() || undefined, phone: phone.trim(), address: address.trim(), lang, turnstile: captcha || undefined } });
     },
     onSuccess: (res) => {
@@ -249,7 +252,7 @@ export default function Checkout() {
       document.getElementById(missing.name ? "g-name" : missing.phone ? "g-phone" : "g-address")?.focus();
       return;
     }
-    pay.mutate(student ? "student" : "guest");
+    pay.mutate({ as: student ? "student" : "guest" });
   };
   const policy = lang === "en" ? "/en/policies" : "/policies";
 
@@ -293,9 +296,9 @@ export default function Checkout() {
                 <ExistingAccount
                   who={exists.who}
                   passwordless={exists.passwordless}
-                  onSignedIn={() => {
+                  onSignedIn={(s) => {
                     setExists(null);
-                    pay.mutate("student");
+                    pay.mutate({ as: "student", gaps: { phone: !s.phone, address: !s.address } });
                   }}
                   onOther={() => {
                     setExists(null);
