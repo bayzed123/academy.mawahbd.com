@@ -3,6 +3,7 @@ import { formatDate, formatDuration, formatNumber, loc, MATERIAL_KINDS, type Cou
 import { renderMarkdown } from "../../lib/markdown";
 import type { CourseDetail, PublicReview, ReviewSummary } from "../../services/catalog";
 import type { FaqDTO } from "../../services/faqs";
+import type { GalleryImageDTO } from "../../services/gallery";
 import type { Included } from "../../services/materials";
 import type { PageCtx } from "../ctx";
 import { ClassFaq } from "../faq";
@@ -19,6 +20,8 @@ export interface CourseData {
   faqs: FaqDTO[];
   /** what the class gives beyond lessons (Admin → Materials): counts and titles of what is switched on — never an address or a file */
   included: Included;
+  /** the pictures the owner added besides the main one (Admin → a class → Pictures), in the order they set */
+  pictures: GalleryImageDTO[];
   flash?: string;
 }
 
@@ -46,6 +49,10 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
   // one line per kind the owner really added ("2 PDFs to download", "A private community group" …) — nothing if they added none
   const materialLines = MATERIAL_KINDS.filter((k) => (inc.counts[k] ?? 0) > 0).map((k) => t(`course.inc.m.${k}${inc.counts[k] === 1 ? "" : ".n"}` as "course.inc.m.pdf", { n: num(inc.counts[k] ?? 0) }));
   const hasFiles = (["video", "pdf", "zip", "book"] as const).some((k) => (inc.counts[k] ?? 0) > 0);
+  // the viewer walks the main picture first (when there is one), then the others
+  const pics = data.pictures;
+  const mainCount = course.banner_key ? 1 : 0;
+  const picTotal = pics.length + mainCount;
   const includes = [t("course.inc.lessons"), t("course.inc.progress"), t("course.inc.ask"), ...materialLines, ...(course.cert_enabled ? [t("course.inc.cert")] : [])];
 
   return (
@@ -56,8 +63,9 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
       ogType="website"
       image={course.banner_key ? ctx.abs(`/media/${course.banner_key}`) : undefined}
       hasBuybar
+      gallery={pics.length > 0}
       jsonLd={[
-        courseLd(ctx, course, data.reviews),
+        courseLd(ctx, course, data.reviews, pics),
         breadcrumbLd(ctx, [
           { name: t("nav.home"), path: ctx.href("/") },
           { name: t("nav.classes"), path: ctx.href("/courses") },
@@ -122,17 +130,63 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
       <div class="wrap detail">
         <div class={`detail-main a-${cat?.accent ?? "snack"}`}>
           <Flash ctx={ctx} flag={data.flash} />
-          <div class="detail-banner">
-            <div class="banner banner-art">
-              {course.banner_key ? (
-                <img src={`/media/${course.banner_key}`} alt={title} width="1200" height="750" loading="eager" fetchpriority="high" decoding="async" />
-              ) : (
-                <>
-                  <span class="frame" />
-                  <Icon name={course.icon ?? cat?.icon ?? "cake"} />
-                </>
-              )}
+          <div class="detail-media">
+            <div class="detail-banner">
+              <div class="banner banner-art">
+                {course.banner_key ? (
+                  pics.length > 0 ? (
+                    <a class="gal-main" href={`/media/${course.banner_key}`} data-gallery-item data-alt={title} data-caption="" aria-label={t("course.gallery.see", { n: num(picTotal) })}>
+                      <img src={`/media/${course.banner_key}`} alt="" width="1200" height="750" loading="eager" fetchpriority="high" decoding="async" />
+                    </a>
+                  ) : (
+                    <img src={`/media/${course.banner_key}`} alt={title} width="1200" height="750" loading="eager" fetchpriority="high" decoding="async" />
+                  )
+                ) : (
+                  <>
+                    <span class="frame" />
+                    <Icon name={course.icon ?? cat?.icon ?? "cake"} />
+                  </>
+                )}
+              </div>
             </div>
+            {pics.length > 0 && (
+              <section class="gal" aria-labelledby="gal-h">
+                <h2 id="gal-h" class="vh">
+                  {t("course.gallery.title")}
+                </h2>
+                <ul class="gal-grid">
+                  {pics.map((p, i) => {
+                    const cap = loc(p, "caption", lang);
+                    const alt = cap || t("course.gallery.alt", { title, n: num(i + 1 + mainCount), total: num(picTotal) });
+                    return (
+                      <li>
+                        <a href={`/media/${p.image_key}`} data-gallery-item data-alt={alt} data-caption={cap}>
+                          <img src={`/media/${p.thumb_key ?? p.image_key}`} alt={alt} width="480" height="360" loading="lazy" decoding="async" />
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <dialog class="lb" data-lightbox data-count={t("gallery.count", { n: "%n", total: "%t" })} aria-label={t("course.gallery.title")}>
+                  <div class="lb-top">
+                    <span class="lb-count" data-lb-count aria-live="polite" />
+                    <button type="button" class="lb-x" data-lb-close aria-label={t("gallery.close")}>
+                      <Icon name="x" />
+                    </button>
+                  </div>
+                  <button type="button" class="lb-nav lb-prev" data-lb-prev aria-label={t("gallery.prev")}>
+                    <Icon name="chevron" />
+                  </button>
+                  <figure class="lb-fig" data-lb-fig>
+                    <img data-lb-img alt="" />
+                    <figcaption data-lb-cap />
+                  </figure>
+                  <button type="button" class="lb-nav lb-next" data-lb-next aria-label={t("gallery.next")}>
+                    <Icon name="chevron" />
+                  </button>
+                </dialog>
+              </section>
+            )}
           </div>
 
           <section class="prose" aria-labelledby="about-h">

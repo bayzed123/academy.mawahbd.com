@@ -47,7 +47,7 @@ export const faqLd = (ctx: PageCtx, items: FaqDTO[]) => ({
   })),
 });
 
-export function courseLd(ctx: PageCtx, course: CourseDetail, reviews: PublicReview[]) {
+export function courseLd(ctx: PageCtx, course: CourseDetail, reviews: PublicReview[], pictures: { image_key: string }[] = []) {
   const lang = ctx.lang;
   const description = stripMarkdown(loc(course, "short", lang) || loc(course, "long", lang), 300);
   const data: Record<string, unknown> = {
@@ -60,7 +60,10 @@ export function courseLd(ctx: PageCtx, course: CourseDetail, reviews: PublicRevi
     provider: { "@type": "EducationalOrganization", name: "MAWAH Academy", sameAs: ctx.abs("/") },
     courseMode: "online",
   };
-  if (course.banner_key) data.image = ctx.abs(`/media/${course.banner_key}`);
+  // the main picture first, then the others the owner added (Admin → a class → Pictures)
+  const images = [course.banner_key, ...pictures.map((p) => p.image_key)].filter((k): k is string => !!k).map((k) => ctx.abs(`/media/${k}`));
+  if (images.length === 1) data.image = images[0];
+  else if (images.length > 1) data.image = images;
   if (course.category) data.about = loc(course.category, "name", lang);
   if (course.instructor) {
     data.instructor = { "@type": "Person", name: loc(course.instructor, "name", lang), url: ctx.abs(ctx.href(`/instructors/${course.instructor.slug}`)) };

@@ -130,6 +130,9 @@ export const ADMIN_NAV = [
 export const BANNER_PLACEMENTS = ["hero", "popup"] as const;
 export type BannerPlacement = (typeof BANNER_PLACEMENTS)[number];
 
+/** Pictures a class can show besides its main one (Admin → a class → Pictures). */
+export const MAX_CLASS_PICTURES = 12;
+
 /** What a question is about (site-wide questions are grouped by it on the FAQ page). */
 export const FAQ_TOPICS = ["general", "payment", "learning", "certificate", "refund"] as const;
 export type FaqTopic = (typeof FAQ_TOPICS)[number];

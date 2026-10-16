@@ -115,6 +115,37 @@ html[lang=bn] .step::before{content:counter(step,bengali)}
 .detail-banner{border-radius:22px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--sh-1)}
 .detail-banner .banner{aspect-ratio:16/9}
 .detail-banner .banner-art .icon{width:34%}
+/* a class's pictures: the grid under the main picture, and the full-screen viewer (marketing/gallery.js; without it they are plain links) */
+.gal-main{display:block;cursor:zoom-in}
+.gal-main:focus-visible{outline-offset:-4px} /* the picture's frame clips an outline drawn outside it */
+.detail-banner .banner-art::before,.detail-banner .banner-art::after{pointer-events:none} /* the decorative layers over the picture must not catch the click meant for it */
+.gal-main img{display:block;width:100%;height:auto}
+.gal-grid{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr))}
+.gal-grid a{display:block;aspect-ratio:4/3;overflow:hidden;border-radius:14px;border:1px solid var(--line);background:var(--paper);cursor:zoom-in}
+.gal-grid img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .25s}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){.gal-grid a:hover img{transform:scale(1.05)}}
+html.lb-open{overflow:hidden}
+.lb[open]{position:fixed;inset:0;display:grid;grid-template-areas:"top top top" "prev fig next";grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr);gap:8px;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:8px;border:0;background:transparent;color:#fff;overflow:hidden}
+.lb::backdrop{background:rgba(7,3,4,.96)}
+.lb[open]{touch-action:pinch-zoom;overscroll-behavior:contain} /* a swipe turns the picture; it must not scroll the page behind */
+.lb-top{grid-area:top;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-inline:6px}
+.lb-count{font-size:.95rem;font-variant-numeric:tabular-nums}
+.lb-x,.lb-nav{display:grid;place-items:center;width:48px;height:48px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;cursor:pointer}
+.lb-x:hover,.lb-nav:hover{background:rgba(255,255,255,.3)}
+.lb-prev{grid-area:prev;align-self:center}
+.lb-next{grid-area:next;align-self:center}
+.lb-prev .icon{transform:rotate(90deg)}
+.lb-next .icon{transform:rotate(-90deg)}
+.lb-fig{grid-area:fig;margin:0;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.lb-fig img{max-width:100%;max-height:calc(100dvh - 150px);width:auto;height:auto;object-fit:contain;border-radius:10px}
+.lb-fig figcaption{max-width:60ch;max-height:5em;overflow:auto;padding:0 8px;text-align:center;line-height:1.5}
+.lb-fig figcaption:empty{display:none}
+@media (max-width:640px){
+  .lb[open]{grid-template-areas:"top top" "fig fig" "prev next";grid-template-columns:1fr 1fr;grid-template-rows:auto minmax(0,1fr) auto}
+  .lb-prev{justify-self:start}
+  .lb-next{justify-self:end}
+  .lb-fig img{max-height:calc(100dvh - 215px)}
+}
 .checks{list-style:none;padding:0;margin:0;display:grid;gap:.7rem 1.4rem;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 .checks li{display:flex;gap:.65rem;align-items:flex-start;line-height:1.55}
 .checks .icon{color:var(--g-600);margin-top:.3em;width:1.1em;height:1.1em}
