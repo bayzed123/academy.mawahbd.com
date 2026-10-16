@@ -3,8 +3,9 @@ APP_SECRET=dev-only-secret-change-me-0123456789abcdef
 SETUP_TOKEN=dev-setup-token
 # enables the simulated payment gateway (ignored when ENVIRONMENT=production)
 ALLOW_MOCK_PAYMENTS=true
-# lets pages carry the analytics tag on this machine (only when an ID is set in Admin -> Settings -> Analytics; ignored when ENVIRONMENT=production)
-ANALYTICS_DEV=true
+# Pages carry the Google Analytics tag only on the real site. To see the tag on this machine, switch this on AND set an ID in Admin -> Settings -> Analytics
+# (ignored when ENVIRONMENT=production). Leave it off unless you need it: with an ID of the real shop, your own browsing here would be counted as visits.
+# ANALYTICS_DEV=true
 
 # --- optional integrations: leave commented out to keep them switched off -------------
 # SSLCOMMERZ_STORE_ID=

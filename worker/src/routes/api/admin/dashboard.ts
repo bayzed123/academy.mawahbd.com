@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv, Env } from "../../../env";
 import { activeProvider } from "../../../services/chatbot";
 import { all, first } from "../../../lib/db";
+import { GA4_LAST_KEY } from "../../../lib/ga4";
 import { ok } from "../../../lib/http";
 import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_TEST_KEY } from "../../../lib/mailer";
 import { getSettings } from "../../../lib/settings";
@@ -31,7 +32,7 @@ const fill = (labels: string[], rows: { period: string; v: number }[]) => {
 
 export type HealthStatus = "ok" | "warn" | "error" | "info";
 export interface HealthCheck {
-  key: "database" | "storage" | "payments" | "email" | "sms" | "video" | "chatbot" | "security";
+  key: "database" | "storage" | "payments" | "email" | "sms" | "analytics" | "video" | "chatbot" | "security";
   status: HealthStatus;
   /** machine codes the admin UI translates, e.g. ["sslcommerz_keys_missing"] */
   issues: string[];
@@ -101,6 +102,20 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
   if (!smsConfigured(env)) sms.push("sms_not_configured");
   else if ((await env.KV.get<SmsLast>(SMS_LAST_KEY, "json"))?.ok === false) sms.push("sms_last_failed");
   checks.push({ key: "sms", status: sms.length ? "warn" : "ok", issues: sms });
+  // counting visits: the tag needs the ID (Settings → Analytics); the numbers inside this admin need the Google key (Analytics) — and a look that failed is said
+  const ga: string[] = [];
+  let gaStatus: HealthStatus = "ok";
+  if (!settings.analytics.ga4) {
+    ga.push("analytics_no_id");
+    gaStatus = "warn";
+  } else if (!env.GA4_SERVICE_ACCOUNT_JSON) {
+    ga.push("analytics_key_missing");
+    gaStatus = "info";
+  } else if ((await env.KV.get<{ ok: boolean }>(GA4_LAST_KEY, "json"))?.ok === false) {
+    ga.push("analytics_last_failed");
+    gaStatus = "warn";
+  }
+  checks.push({ key: "analytics", status: gaStatus, issues: ga });
   checks.push({ key: "video", status: env.STREAM ? "ok" : "warn", issues: env.STREAM ? [] : ["stream_not_configured"] });
 
   const chat: string[] = [];

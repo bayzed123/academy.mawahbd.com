@@ -196,7 +196,8 @@
   if (page.item) emit("view_item", { currency: CURRENCY, value: page.item.price || 0, items: [Object.assign({ quantity: 1 }, page.item)] });
   (page.events || []).forEach(function (e) { if (e && e[0]) emit(e[0], e[1] || {}); });
 
-  /* class lists are "viewed" when they come on screen (a list far down the page that nobody scrolls to is not a view) */
+  /* class lists are "viewed" when they come on screen (a list far down the page that nobody scrolls to is not a view). It is the FIRST card that is
+     watched, not the whole list: a long list is taller than the screen, so "a fifth of it is visible" would never come true. */
   var seenLists = [];
   function watchLists() {
     q("[data-ga-list]").forEach(function (list) {
@@ -208,8 +209,8 @@
         if (items.length) emit("view_item_list", Object.assign({ items: items }, meta));
       };
       if (!("IntersectionObserver" in w)) return fire();
-      var io = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting; })) { io.disconnect(); fire(); } }, { threshold: 0.2 });
-      io.observe(list);
+      var io = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting; })) { io.disconnect(); fire(); } }, { threshold: 0.5 });
+      io.observe(q("[data-ga-item]", list)[0] || list);
     });
   }
   watchLists();

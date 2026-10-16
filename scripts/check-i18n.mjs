@@ -43,11 +43,11 @@ const importProblems = [...(/export type ProblemCode =([^;]+);/.exec(imp)?.[1] ?
 if (importFields.length < 10 || importProblems.length < 10) fail(`import.ts parse looks wrong (${importFields.length}/${importProblems.length})`);
 
 const dash = readFileSync(resolve(root, "worker/src/routes/api/admin/dashboard.ts"), "utf8");
-const issues = [...dash.matchAll(/\b(?:pay|chat|sec|mail)\.push\("([a-z_]+)"\)/g)].map((m) => m[1]);
+const issues = [...dash.matchAll(/\b(?:pay|chat|sec|mail|sms|ga)\.push\("([a-z_]+)"\)/g)].map((m) => m[1]);
 issues.push(...[...dash.matchAll(/issues: [^\n]*?\["([a-z_]+)"\]/g)].map((m) => m[1]));
 const attention = [...dash.matchAll(/\{ key: "([a-z_]+)", severity:/g)].map((m) => m[1]);
 const steps = [...dash.matchAll(/\{ key: "([a-z]+)", done:/g)].map((m) => m[1]);
-const checks = ["database", "storage", "payments", "email", "video", "chatbot", "security"];
+const checks = ["database", "storage", "payments", "email", "sms", "analytics", "video", "chatbot", "security"];
 if (issues.length < 10 || attention.length < 6 || steps.length < 7) fail(`dashboard.ts parse looks wrong (${issues.length}/${attention.length}/${steps.length})`);
 
 need(admin, "import columns", importFields.map((f) => `adm.imp.field.${f}`));

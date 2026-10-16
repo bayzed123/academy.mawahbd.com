@@ -58,12 +58,43 @@ const KV_TITLES = [`${WORKER_NAME}-KV`, "KV", "mawah-academy-KV"];
 const R2_NAME = "mawah-academy-media";
 const MIN_SETUP_TOKEN = 12;
 
+/**
+ * The key file of the Google service account that reads the shop's Google Analytics numbers (Admin → Analytics), as the owner pastes it into the
+ * GitHub secret: the file itself, or that file in base64. Returns the file's JSON text, or null when it is not a service-account key file.
+ */
+function serviceAccountFile(v) {
+  let text = v;
+  if (!v.startsWith("{")) {
+    try {
+      text = Buffer.from(v.replace(/\s+/g, ""), "base64").toString("utf8");
+    } catch {
+      return null;
+    }
+  }
+  try {
+    const j = JSON.parse(text);
+    const key = typeof j?.private_key === "string" ? j.private_key.replace(/\\n/g, "\n") : "";
+    const ok =
+      j && typeof j === "object" && (j.type === undefined || j.type === "service_account") && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(j.client_email ?? "")) && /-----BEGIN PRIVATE KEY-----[\s\S]+-----END PRIVATE KEY-----/.test(key);
+    // one line, whatever shape it came in: the Worker reads it the same way every time
+    return ok ? JSON.stringify(j) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Optional keys that may come from GitHub secrets (see the "Secrets" step): how each must look, so a pasted-in mistake is refused instead of breaking the site. */
 const OPTIONAL_SECRETS = [
   { name: "SMS_API_KEY", valid: (v) => /^[\x21-\x7e]{8,200}$/.test(v), hint: "the key from your SMS company's panel, with no spaces" },
   { name: "SMS_API_URL", valid: (v) => /^https:\/\/[^\s/]+\.[^\s/]+(\/\S*)?$/.test(v), hint: "an https address such as https://msg.mram.com.bd" },
   { name: "SSLCOMMERZ_STORE_ID", valid: (v) => /^[\x21-\x7e]{3,80}$/.test(v), hint: "the Store ID from the SSLCommerz panel, with no spaces" },
   { name: "SSLCOMMERZ_STORE_PASSWORD", valid: (v) => /^[\x21-\x7e]{3,120}$/.test(v), hint: "the Store Password from the SSLCommerz panel (not your login password), with no spaces" },
+  {
+    name: "GA4_SERVICE_ACCOUNT_JSON",
+    valid: (v) => serviceAccountFile(v) !== null,
+    normalize: serviceAccountFile,
+    hint: "the whole key file (.json) of the Google service account, as it was downloaded — not a part of it, and not the account's e-mail address alone",
+  },
 ];
 
 const bold = (s) => `\x1b[1m${s}\x1b[0m`;
@@ -226,11 +257,11 @@ if (has("--secrets")) {
   // Same rule as the e-mail key: a GitHub secret of that name is copied to the Worker at every deploy (so changing it is one edit and one run
   // of Deploy); with none, whatever is set in Cloudflare is left exactly as it is. Values are checked for shape only and never printed.
   if (!DRY && CI) {
-    for (const { name, valid, hint } of OPTIONAL_SECRETS) {
+    for (const { name, valid, hint, normalize } of OPTIONAL_SECRETS) {
       const have = present.includes(name);
       const value = (process.env[name] ?? "").trim();
       if (value && valid(value)) {
-        wrangler(["secret", "put", name], { input: value });
+        wrangler(["secret", "put", name], { input: normalize ? normalize(value) : value });
         info(green(have ? `${name} updated` : `${name} created`) + ` from the GitHub secret ${name} (not shown)`);
       } else if (value) info(yellow(`the GitHub secret ${name} does not look right (${hint}) — not used${have ? "; the value already on the Worker stays" : ""}`));
       else if (have) info(`${name} is set on the Worker — left untouched (there is no GitHub secret of that name to replace it with)`);

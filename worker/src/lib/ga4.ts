@@ -15,6 +15,9 @@ import { isProd, type Env } from "../env";
  * a different job from "the account has not been added to the property".
  */
 
+/** Where the outcome of the last look at Google is kept (KV): the Analytics screen and the dashboard's health strip both read it. */
+export const GA4_LAST_KEY = "ga4:last";
+
 export type Ga4Problem =
   | "not_configured" // there is no key on the Worker yet
   | "key_invalid" // the secret is not a service-account key file

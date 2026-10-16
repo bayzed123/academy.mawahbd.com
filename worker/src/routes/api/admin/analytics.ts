@@ -2,12 +2,12 @@ import { Hono } from "hono";
 import type { AppEnv, Ctx } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { csvResponse, toCsv } from "../../../lib/csv";
-import { checkConnection, forgetPass, parseServiceAccount, propertyId, type Ga4Problem } from "../../../lib/ga4";
+import { checkConnection, forgetPass, GA4_LAST_KEY, parseServiceAccount, propertyId, type Ga4Problem } from "../../../lib/ga4";
 import { HttpError, ok } from "../../../lib/http";
 import { getSettings } from "../../../lib/settings";
 import { trackingFor } from "../../../lib/tracking";
 import { requirePerm } from "../../../middleware/auth";
-import { buildRealtime, buildReport, RANGE_KEYS, type AnalyticsReport, type NotConnected, type RangeKey } from "../../../services/analytics";
+import { buildRealtime, buildReport, RANGE_KEYS, type AnalyticsReport, type NotConnected, type Realtime, type RangeKey } from "../../../services/analytics";
 
 /*
  * Admin → Analytics. Reads the shop's Google Analytics numbers with the service-account key (lib/ga4.ts). Reports are kept for ten minutes (the
@@ -17,11 +17,13 @@ import { buildRealtime, buildReport, RANGE_KEYS, type AnalyticsReport, type NotC
  */
 export const analytics = new Hono<AppEnv>();
 
-const LAST_KEY = "ga4:last";
+const LAST_KEY = GA4_LAST_KEY;
 const reportKey = (r: RangeKey) => `ga4:report:${r}`;
 const LIVE_KEY = "ga4:live";
 const REPORT_TTL_S = 600;
-const LIVE_TTL_S = 30;
+// Cloudflare KV cannot keep anything for less than 60 seconds, so the answer is stored for a minute and used for half of it
+const LIVE_TTL_S = 60;
+const LIVE_FRESH_MS = 30_000;
 
 interface Last {
   at: string;
@@ -102,8 +104,8 @@ analytics.get("/analytics/classes.csv", requirePerm("analytics:read"), async (c)
 });
 
 analytics.get("/analytics/realtime", requirePerm("analytics:read"), async (c) => {
-  const cached = await c.env.KV.get(LIVE_KEY, "json");
-  if (cached) return ok(c, { live: cached });
+  const cached = await c.env.KV.get<Realtime>(LIVE_KEY, "json");
+  if (cached && Date.now() - Date.parse(cached.fetched_at) < LIVE_FRESH_MS) return ok(c, { live: cached });
   const live = await buildRealtime(c.env);
   if (live.connected) await c.env.KV.put(LIVE_KEY, JSON.stringify(live), { expirationTtl: LIVE_TTL_S });
   return ok(c, { live });

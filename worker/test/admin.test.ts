@@ -890,7 +890,7 @@ describe("launch notifications, reports and dashboard", () => {
     expect(d.onboarding.steps.every((s: any) => typeof s.done === "boolean")).toBe(true);
 
     const health = (await json(await admin.get("/api/admin/health"))).checks;
-    expect(health.map((h: any) => h.key)).toEqual(["database", "storage", "payments", "email", "sms", "video", "chatbot", "security"]);
+    expect(health.map((h: any) => h.key)).toEqual(["database", "storage", "payments", "email", "sms", "analytics", "video", "chatbot", "security"]);
     expect(health.find((h: any) => h.key === "database").status).toBe("ok");
     expect(health.find((h: any) => h.key === "email")).toMatchObject({ status: "warn", issues: ["email_not_configured"] });
     expect(health.find((h: any) => h.key === "security").issues).toContain("setup_token_still_set");

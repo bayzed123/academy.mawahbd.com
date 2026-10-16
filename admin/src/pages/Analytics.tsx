@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { GA_EVENT_GROUPS, GA_EVENTS, GA_FUNNEL } from "@mawah/shared";
 import { adm, ApiError, qstring } from "../lib/api";
@@ -300,6 +300,15 @@ function Connection({ status: s, problem, checked, canManage, checking, onCheck,
   );
 }
 
+/** A table that may be wider than the screen scrolls inside its own box; the box can be reached and scrolled with the keyboard (and has a name for screen readers). */
+function Scroll({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="table-scroll" tabIndex={0} role="region" aria-label={label}>
+      {children}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------------------------------------ the numbers */
 function Dashboard({ report: r, live }: { report: Report; live: Live | null }) {
   const { t, tx, lang, num, money } = useI18n();
@@ -378,7 +387,7 @@ function Dashboard({ report: r, live }: { report: Report; live: Live | null }) {
         {r.classes.length === 0 ? (
           <p className="muted">{t("adm.an.none")}</p>
         ) : (
-          <div className="table-scroll">
+          <Scroll label={t("adm.an.classes.title")}>
             <table className="table compact" data-testid="an-classes">
               <thead>
                 <tr>
@@ -423,7 +432,7 @@ function Dashboard({ report: r, live }: { report: Report; live: Live | null }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Scroll>
         )}
         <p className="hint">{t("adm.an.c.note")}</p>
       </Panel>
@@ -479,7 +488,7 @@ function Dashboard({ report: r, live }: { report: Report; live: Live | null }) {
           {r.promotions.length === 0 ? (
             <p className="muted">{t("adm.an.promo.none")}</p>
           ) : (
-            <div className="table-scroll">
+            <Scroll label={t("adm.an.promo.title")}>
               <table className="table compact">
                 <thead>
                   <tr>
@@ -500,7 +509,7 @@ function Dashboard({ report: r, live }: { report: Report; live: Live | null }) {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Scroll>
           )}
         </Panel>
       </div>
@@ -515,7 +524,7 @@ function Dashboard({ report: r, live }: { report: Report; live: Live | null }) {
           return (
             <div key={g} className="mt">
               <h3>{t(`adm.an.g.${g}` as "adm.an.g.buying")}</h3>
-              <div className="table-scroll">
+              <Scroll label={t(`adm.an.g.${g}` as "adm.an.g.buying")}>
                 <table className="table compact">
                   <thead>
                     <tr>
@@ -534,7 +543,7 @@ function Dashboard({ report: r, live }: { report: Report; live: Live | null }) {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </Scroll>
             </div>
           );
         })}
@@ -545,7 +554,7 @@ function Dashboard({ report: r, live }: { report: Report; live: Live | null }) {
         {r.pages.length === 0 ? (
           <p className="muted">{t("adm.an.none")}</p>
         ) : (
-          <div className="table-scroll">
+          <Scroll label={t("adm.an.pages.title")}>
             <table className="table compact">
               <thead>
                 <tr>
@@ -566,7 +575,7 @@ function Dashboard({ report: r, live }: { report: Report; live: Live | null }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Scroll>
         )}
       </Panel>
 
@@ -595,7 +604,7 @@ function Buckets({ rows, head, visits, people, none }: { rows: Bucket[]; head: s
   const { num } = useI18n();
   if (rows.length === 0) return <p className="muted">{none}</p>;
   return (
-    <div className="table-scroll">
+    <Scroll label={head}>
       <table className="table compact">
         <thead>
           <tr>
@@ -614,6 +623,6 @@ function Buckets({ rows, head, visits, people, none }: { rows: Bucket[]; head: s
           ))}
         </tbody>
       </table>
-    </div>
+    </Scroll>
   );
 }

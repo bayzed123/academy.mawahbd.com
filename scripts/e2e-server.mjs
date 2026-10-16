@@ -4,6 +4,7 @@
  * Local-only bindings: the generated dev config drops the remote-only Stream / Workers AI bindings, and the dev
  * demo seed adds lessons, a free class, a coupon and business settings. No Cloudflare account is touched.
  */
+import { generateKeyPairSync } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, rmSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -31,11 +32,27 @@ const wr = (...a) => ["wrangler", ...a, "-c", config, "--persist-to", state];
 run("npx", wr("d1", "migrations", "apply", "DB", "--local"));
 run("npx", wr("d1", "execute", "DB", "--local", "--file", "./seed/dev-demo.sql"));
 
-const server = spawn("npx", ["wrangler", "dev", "-c", config, "--persist-to", state, "--port", PORT, "--ip", "127.0.0.1", "--inspector-port", "9331"], {
-  cwd: worker,
-  stdio: ["ignore", "ignore", "inherit"],
-  env: process.env,
+// Admin → Analytics reads Google Analytics with a service-account key. The tests use a made-up key, generated here for this run only (it is
+// handed to the Worker and kept nowhere else) and a stand-in for Google that the Worker itself serves (worker/src/routes/api/dev-google.ts).
+const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const googleKey = JSON.stringify({
+  type: "service_account",
+  project_id: "mawah-e2e",
+  private_key_id: "e2e",
+  private_key: privateKey.export({ type: "pkcs8", format: "pem" }),
+  client_email: "reader@mawah-e2e.iam.gserviceaccount.com",
+  client_id: "1",
 });
+
+const server = spawn(
+  "npx",
+  ["wrangler", "dev", "-c", config, "--persist-to", state, "--port", PORT, "--ip", "127.0.0.1", "--inspector-port", "9331", "--var", `GA4_SERVICE_ACCOUNT_JSON:${googleKey}`, "--var", `GOOGLE_API_BASE:http://127.0.0.1:${PORT}/api/dev/google`, "--var", "ANALYTICS_DEV:true"],
+  {
+    cwd: worker,
+    stdio: ["ignore", "ignore", "inherit"],
+    env: process.env,
+  },
+);
 const stop = () => server.kill("SIGTERM");
 process.on("SIGINT", stop);
 process.on("SIGTERM", stop);
