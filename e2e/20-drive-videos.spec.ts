@@ -1,0 +1,277 @@
+import { expect, test, type Browser, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import { adminLogin, apiGet, apiPost, registerStudent, useLang } from "./helpers";
+
+/*
+ * Class videos kept in Google Drive, played inside the student portal. A video in Drive is private, and a student sent to its Drive address saw
+ * "You need permission". Now the owner shares the video with the website's own Google address, and the website hands the video to the student's
+ * player. Google Drive is stood in for by the dev Worker itself (with a real, tiny, playable video), and the website holds a made-up Google key, so
+ * everything between the browser and "Drive" is the real code. What is checked is what the owner and the students live: a student really sees and
+ * hears a video start on the class page (no Drive address anywhere, nothing blocked by the page's security policy), a video the website cannot read
+ * keeps the old "open the video" link, a failure is a plain message with "Try again", and the owner finds out in the lesson editor — in plain words,
+ * with the address to share with — whether it will work. Runs after the admin spec (the owner exists).
+ */
+test.describe.configure({ mode: "serial" });
+
+const DRIVE_OK = "DEV_video_ok_0000000001";
+const DRIVE_PRIVATE = "DEV_not_shared_0000000001";
+const driveUrl = (id: string) => `https://drive.google.com/file/d/${id}/view?usp=sharing`;
+const SERVICE_EMAIL = "reader@mawah-e2e.iam.gserviceaccount.com";
+
+let admin: Page;
+let slug = "";
+let courseId = 0;
+let lessons: { ok: number; privateOne: number; youtube: number };
+
+test.beforeAll(async ({ browser }) => {
+  const ctx = await browser.newContext({ locale: "en-US" });
+  await useLang(ctx, "en");
+  admin = await ctx.newPage();
+  await adminLogin(admin);
+  await expect(admin.getByRole("heading", { level: 1 })).toContainText(", Owner");
+
+  // a free class with three link lessons: a Drive video the website can read, one it cannot, and a YouTube link
+  slug = `drive-videos-e2e-${Date.now().toString(36)}`;
+  const made = await apiPost(admin, "/admin/courses", { title_bn: "ড্রাইভ ক্লাস", title_en: "Drive Videos E2E", slug, price: 0, status: "published", short_bn: "", short_en: "", long_bn: "", long_en: "", banner_key: null, icon: "cake", category_id: null, instructor_id: null, level: null, details_url: null, featured: false, cert_enabled: true, seo_title_bn: "", seo_title_en: "", seo_desc_bn: "", seo_desc_en: "", sort: 100, launch_at: null });
+  expect(made.status).toBe(201);
+  courseId = (made.body as { item: { id: number } }).item.id;
+  const mod = await apiPost(admin, `/admin/courses/${courseId}/modules`, { title_bn: "ভিডিও", title_en: "Videos", drip_days: 0 });
+  expect(mod.status).toBe(201);
+  const moduleId = (mod.body as { module: { id: number } }).module.id;
+  const lesson = async (title: string, external_url: string) => {
+    const res = await apiPost(admin, `/admin/courses/${courseId}/lessons`, { module_id: moduleId, title_bn: "লেসন", title_en: title, type: "external", stream_uid: "", external_url, body_bn: "", body_en: "", duration_sec: 180, is_preview: false });
+    expect(res.status).toBe(201);
+    return (res.body as { lesson: { id: number } }).lesson.id;
+  };
+  lessons = { ok: await lesson("Dough from Drive", driveUrl(DRIVE_OK)), privateOne: await lesson("Private from Drive", driveUrl(DRIVE_PRIVATE)), youtube: await lesson("From YouTube", "https://youtu.be/dQw4w9WgXcQ") };
+});
+test.afterAll(async () => admin.context().close());
+
+async function student(browser: Browser, lang: "en" | "bn" = "en") {
+  // signs up in English (the helper types into English labels); a student who prefers Bangla switches afterwards, as they would
+  const ctx = await browser.newContext({ locale: lang === "bn" ? "bn-BD" : "en-US" });
+  await useLang(ctx, "en");
+  const page = await ctx.newPage();
+  await registerStudent(page);
+  expect((await apiPost(page, "/checkout", { courses: [slug] })).status).toBe(201); // a free class: enrolled at once
+  if (lang === "bn") await page.evaluate(() => localStorage.setItem("mawah_lang", "bn"));
+  return { ctx, page };
+}
+
+test("a student watches a Drive video inside the class page — it starts, with no Drive address anywhere and nothing blocked", async ({ browser }) => {
+  const { ctx, page } = await student(browser);
+  const requests: { url: string; status: number; type: string | null; range: string | null }[] = [];
+  const toGoogle: string[] = [];
+  const blocked: string[] = [];
+  page.on("response", (r) => {
+    const u = new URL(r.url());
+    if (/\/lessons\/\d+\/media$/.test(u.pathname)) requests.push({ url: u.pathname, status: r.status(), type: r.headers()["content-type"] ?? null, range: r.request().headers()["range"] ?? null });
+    if (/google/.test(u.hostname)) toGoogle.push(r.url());
+  });
+  page.on("console", (m) => {
+    if (/content security policy|refused to/i.test(m.text())) blocked.push(m.text());
+  });
+
+  await page.goto(`/app/learn/${slug}/${lessons.ok}`);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Dough from Drive");
+  const video = page.locator(".video-frame video");
+  await expect(video).toBeVisible();
+  expect(await video.getAttribute("src")).toBe(`/api/student/lessons/${lessons.ok}/media`);
+  await expect(page.locator(".video-frame iframe")).toHaveCount(0);
+
+  // the browser's own player really got a video: it knows how long it is, it has a picture, and it has no error
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState)).toBeGreaterThanOrEqual(2);
+  const info = await video.evaluate((v: HTMLVideoElement) => ({ duration: v.duration, width: v.videoWidth, height: v.videoHeight, error: v.error?.code ?? null }));
+  expect(info.error).toBeNull();
+  expect(info.duration).toBeGreaterThan(2.5);
+  expect(info.duration).toBeLessThan(3.5);
+  expect({ w: info.width, h: info.height }).toEqual({ w: 96, h: 54 });
+
+  // it can be played and skipped through
+  await video.evaluate(async (v: HTMLVideoElement) => {
+    v.muted = true;
+    await v.play();
+    v.currentTime = 1.5;
+    await new Promise((r) => v.addEventListener("seeked", r, { once: true }));
+  });
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(1);
+
+  expect(requests.length).toBeGreaterThan(0);
+  expect(requests.every((r) => (r.status === 200 || r.status === 206) && r.type === "video/webm")).toBe(true);
+  // nothing went to Google from the student's browser, and the page never held the file's address
+  expect(toGoogle).toEqual([]);
+  const html = await page.content();
+  expect(html).not.toContain(DRIVE_OK);
+  expect(html).not.toContain("drive.google.com");
+  expect(JSON.stringify(await apiGet(page, `/student/lessons/${lessons.ok}`))).not.toContain(DRIVE_OK);
+  // the page's security policy let the video through
+  expect(blocked).toEqual([]);
+
+  // the lesson works like any other: it can be marked complete
+  await page.getByRole("button", { name: "Mark as complete" }).click();
+  await expect(page.getByRole("button", { name: "Completed" })).toBeVisible();
+  await ctx.close();
+});
+
+test("a video the website cannot read keeps the old link to open it; YouTube is untouched", async ({ browser }) => {
+  const { ctx, page } = await student(browser);
+  await page.goto(`/app/learn/${slug}/${lessons.privateOne}`);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Private from Drive");
+  await expect(page.locator(".video-frame video")).toHaveCount(0);
+  const open = page.getByRole("link", { name: "Open the video" });
+  await expect(open).toHaveAttribute("href", driveUrl(DRIVE_PRIVATE));
+
+  await page.goto(`/app/learn/${slug}/${lessons.youtube}`);
+  await expect(page.locator('.video-frame iframe[src^="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"]')).toHaveCount(1);
+  await expect(page.locator(".video-frame video")).toHaveCount(0);
+  await ctx.close();
+});
+
+test("a video that cannot start says so plainly, offers “Try again”, and plays once it can — in English and in Bangla", async ({ browser }) => {
+  for (const lang of ["en", "bn"] as const) {
+    const { ctx, page } = await student(browser, lang);
+    let down = true;
+    await page.route(/\/api\/student\/lessons\/\d+\/media$/, (route) => (down ? route.fulfill({ status: 503, contentType: "application/json", json: { ok: false, error: { code: "video_unavailable" } } }) : route.continue()));
+    await page.goto(`/app/learn/${slug}/${lessons.ok}`);
+    const note = page.getByRole("alert").filter({ hasText: lang === "en" ? "This video could not be played right now" : "এই মুহূর্তে ভিডিওটি চালানো যাচ্ছে না" });
+    await expect(note).toBeVisible();
+    await expect(page.locator(".video-frame video")).toHaveCount(0);
+    // the explanation names nothing of Google or the file
+    await expect(note).not.toContainText(/google|drive|quota/i);
+
+    down = false;
+    await note.getByRole("button", { name: lang === "en" ? "Try again" : "আবার চেষ্টা করুন" }).click();
+    const video = page.locator(".video-frame video");
+    await expect(video).toBeVisible();
+    await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState)).toBeGreaterThanOrEqual(2);
+    await expect(note).toHaveCount(0);
+    await ctx.close();
+  }
+});
+
+test("the video on a phone: it fits the 360 px screen, and the page passes the accessibility scan", async ({ browser }) => {
+  const { ctx, page } = await student(browser);
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto(`/app/learn/${slug}/${lessons.ok}`);
+  const video = page.locator(".video-frame video");
+  await expect(video).toBeVisible();
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState)).toBeGreaterThanOrEqual(2);
+  const box = await video.boundingBox();
+  expect(box!.width).toBeLessThanOrEqual(360);
+  expect(box!.width / box!.height).toBeGreaterThan(1.6); // still 16:9
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  await expect(page.getByLabel("Dough from Drive").first()).toBeVisible(); // the player has a name for screen readers
+  const axe = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
+  await ctx.close();
+});
+
+test("someone who does not own the class gets nothing from the video address", async ({ browser }) => {
+  const ctx = await browser.newContext({ locale: "en-US" });
+  await useLang(ctx, "en");
+  const page = await ctx.newPage();
+  const stranger = await page.request.get(`/api/student/lessons/${lessons.ok}/media`);
+  expect(stranger.status()).toBe(401);
+  await registerStudent(page); // signed in, but never bought this class
+  const denied = await page.request.get(`/api/student/lessons/${lessons.ok}/media`);
+  expect(denied.status()).toBe(403);
+  expect(await denied.text()).not.toContain("webm");
+  await ctx.close();
+});
+
+test.describe("the owner's lesson editor", () => {
+  async function openLesson(title: string) {
+    await admin.goto(`/admin/courses/${courseId}/edit?tab=curriculum`);
+    await admin.locator("button.lesson-title", { hasText: title }).click();
+    await expect(admin.getByRole("heading", { name: "Edit lesson" })).toBeVisible();
+  }
+  const panel = () => admin.getByRole("region", { name: "Google Drive video" });
+  const url = () => admin.locator("#l-url"); // the link box, whatever the language
+
+  test("a Drive link shows which address to share with, and “Check access” says what it found", async () => {
+    await openLesson("Dough from Drive");
+    await expect(panel()).toBeVisible();
+    await expect(panel().getByText(SERVICE_EMAIL)).toBeVisible();
+    await expect(panel().getByText("no Google sign-in")).toBeVisible();
+    await expect(panel().getByText("Disable options to download, print, and copy")).toBeVisible();
+
+    await panel().getByRole("button", { name: "Check access" }).click();
+    await expect(panel().getByText("Ready — “Class 1 — dough.webm” will play inside the class page.")).toBeVisible();
+    await expect(panel().getByText("video/webm")).toBeVisible();
+    await expect(panel().getByRole("alert")).toHaveCount(0);
+
+    // a link typed over it is a new question: the old answer goes
+    await url().fill(driveUrl(DRIVE_PRIVATE));
+    await expect(panel().getByText("will play inside the class page")).toHaveCount(0);
+    await panel().getByRole("button", { name: "Check access" }).click();
+    const no = panel().getByRole("alert").filter({ hasText: "The website cannot see this file" });
+    await expect(no).toBeVisible();
+    await expect(no).toContainText("share it with the address shown above");
+    await expect(no).toContainText("What Google said");
+    await expect(no).toContainText("notFound");
+
+    await url().fill(driveUrl("DEV_google_doc_0000000001"));
+    await panel().getByRole("button", { name: "Check access" }).click();
+    await expect(panel().getByRole("alert").filter({ hasText: "This file is not a video" })).toBeVisible();
+
+    await url().fill(driveUrl("DEV_download_off_0000000001"));
+    await panel().getByRole("button", { name: "Check access" }).click();
+    await expect(panel().getByRole("alert").filter({ hasText: "Google will not hand this video to a Viewer" })).toBeVisible();
+
+    await url().fill("https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz012345");
+    await panel().getByRole("button", { name: "Check access" }).click();
+    await expect(panel().getByRole("alert").filter({ hasText: "This is a folder link, not a video" })).toBeVisible();
+
+    await url().fill(driveUrl("DEV_video_mov_0000000001"));
+    await panel().getByRole("button", { name: "Check access" }).click();
+    await expect(panel().getByText("may not play on every phone")).toBeVisible();
+
+    // nothing secret on the screen, and the panel passes the accessibility scan
+    await expect(admin.locator("body")).not.toContainText(/PRIVATE KEY/);
+    const axe = await new AxeBuilder({ page: admin }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
+  });
+
+  test("a YouTube link shows none of it; and the panel reads in Bangla", async () => {
+    await openLesson("From YouTube");
+    await expect(panel()).toHaveCount(0);
+    await url().fill("https://youtu.be/dQw4w9WgXcQ");
+    await expect(panel()).toHaveCount(0);
+    await url().fill(driveUrl(DRIVE_OK));
+    await expect(panel()).toBeVisible(); // a Drive link typed in appears at once
+
+    await admin.evaluate(() => localStorage.setItem("mawah_admin_lang", "bn"));
+    await admin.reload();
+    await admin.locator("button.lesson-title", { hasText: "লেসন" }).first().click();
+    await url().fill(driveUrl(DRIVE_PRIVATE));
+    const bn = admin.getByRole("region", { name: "গুগল ড্রাইভের ভিডিও" });
+    await expect(bn).toBeVisible();
+    await expect(bn.getByText(SERVICE_EMAIL)).toBeVisible();
+    await bn.getByRole("button", { name: "অ্যাক্সেস পরীক্ষা করুন" }).click();
+    await expect(bn.getByRole("alert").filter({ hasText: "ওয়েবসাইট এই ফাইলটি দেখতে পাচ্ছে না" })).toBeVisible();
+    await admin.evaluate(() => localStorage.setItem("mawah_admin_lang", "en"));
+  });
+
+  test("on a 360 px phone the panel fits the screen", async ({ browser }) => {
+    const ctx = await browser.newContext({ locale: "en-US", viewport: { width: 360, height: 800 } });
+    await useLang(ctx, "en");
+    const phone = await ctx.newPage();
+    await adminLogin(phone);
+    await expect(phone.getByRole("heading", { level: 1 })).toContainText(", Owner");
+    await phone.goto(`/admin/courses/${courseId}/edit?tab=curriculum`);
+    await phone.locator("button.lesson-title", { hasText: "Dough from Drive" }).click();
+    const section = phone.getByRole("region", { name: "Google Drive video" });
+    await expect(section).toBeVisible();
+    await section.getByRole("button", { name: "Check access" }).click();
+    await expect(section.getByText("will play inside the class page")).toBeVisible();
+    expect(await phone.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await ctx.close();
+  });
+
+  test("the lesson row and the activity log carry no Drive address; “Check access” leaves a mark that it happened", async () => {
+    const log = await apiGet<{ items: { action: string; meta: string }[] }>(admin, "/admin/activity?per_page=50");
+    const checks = log.items.filter((i) => i.action === "drive.checked");
+    expect(checks.length).toBeGreaterThan(0);
+    expect(JSON.stringify(checks)).not.toContain("DEV_");
+  });
+});

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LessonContentDTO } from "@mawah/shared";
 import { track } from "../lib/analytics";
@@ -8,7 +8,45 @@ import { Button, Icon, useToast } from "./ui";
 
 const kb = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 
-/** The playable part of a lesson: Stream video (signed iframe), a YouTube/Vimeo embed, or a link-out card. */
+/**
+ * A video the website hands on itself (a Google Drive file shared with the website's Google account): the browser's own player on the website's own
+ * address — no Google sign-in, no "You need permission". If it cannot start, a plain message and "try again" instead of a black box.
+ */
+function HostedVideo({ src, title }: { src: string; title: string }) {
+  const { t } = useI18n();
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  // another lesson is another video: forget that the last one failed
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+  if (failed) {
+    return (
+      <div className="video-frame">
+        <div className="video-note" role="alert">
+          <Icon name="play" />
+          <p>{t("app.lesson.driveFailed")}</p>
+          <Button
+            className="btn-outline"
+            onClick={() => {
+              setFailed(false);
+              setAttempt((n) => n + 1);
+            }}
+          >
+            {t("app.lesson.driveRetry")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="video-frame">
+      <video key={`${src}#${attempt}`} src={src} aria-label={title} controls controlsList="nodownload" playsInline preload="metadata" onError={() => setFailed(true)} />
+    </div>
+  );
+}
+
+/** The playable part of a lesson: Stream video (signed iframe), a Drive video the website plays itself, a YouTube/Vimeo embed, or a link-out card. */
 export function LessonMedia({ lesson }: { lesson: LessonContentDTO }) {
   const { t, pick } = useI18n();
   const title = pick(lesson, "title");
@@ -33,6 +71,7 @@ export function LessonMedia({ lesson }: { lesson: LessonContentDTO }) {
     );
   }
   if (lesson.type === "external" && lesson.external) {
+    if (lesson.external.media_url) return <HostedVideo src={lesson.external.media_url} title={title} />;
     return lesson.external.embed_url ? (
       <div className="video-frame">
         <iframe src={lesson.external.embed_url} title={title} allow="encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin" />

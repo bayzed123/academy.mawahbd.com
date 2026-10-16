@@ -59,13 +59,32 @@
 1. **মডিউল যোগ করুন** (অধ্যায়ের মতো) → নাম দিন।
 2. মডিউলের ভেতরে **লেসন যোগ করুন**। চার ধরনের লেসন:
    * **ভিডিও** — ভিডিও ফাইল আপলোড করুন; Cloudflare Stream নিজে ছোট-বড় ফোনের জন্য ঠিক করে নেয়। “আপলোড হচ্ছে → প্রসেস হচ্ছে → প্রস্তুত” দেখাবে; প্রস্তুত না হওয়া পর্যন্ত অপেক্ষা করুন।
-   * **লিংক (ইউটিউব/ভিমিও)** — আগে থেকে আপলোড করা ভিডিওর লিংক বসান।
+   * **লিংক (ইউটিউব/ভিমিও/গুগল ড্রাইভ)** — আগে থেকে আপলোড করা ভিডিওর লিংক বসান। **গুগল ড্রাইভের ভিডিও** শিক্ষার্থীরা ক্লাসের পাতাতেই দেখবেন (নিচের “গুগল ড্রাইভের ভিডিও” অংশ দেখুন)।
    * **লিখিত নোট** — রেসিপি লিখে দিন (সহজ ফরম্যাটসহ)।
    * **ডাউনলোড** — রেসিপি কার্ড/পিডিএফ। লেসন সংরক্ষণের পর “ফাইল যোগ করুন” দিয়ে ফাইল জুড়ুন। **শুধু ভর্তি হওয়া শিক্ষার্থী** ডাউনলোড করতে পারবেন।
 3. **“ফ্রি প্রিভিউ”** টিক দিলে সেই লেসন যে কেউ (লগইন ছাড়াই) দেখতে পারবে — নতুন ক্রেতা টানার ভালো উপায়।
 4. **ওপরে/নিচে** বোতামে লেসনের ক্রম বদলান। মডিউলের **“খুলবে”** ঘরে দিন সংখ্যা দিলে (ড্রিপ) ভর্তির এতদিন পর মডিউলটি খুলবে — ০ মানে সাথে সাথে।
 
 ভিডিও ও রেসিপি ফাইলের **মূল কপি আপনার কাছে রেখে দিন** (গুগল ড্রাইভ বা হার্ড ডিস্কে)।
+
+### গুগল ড্রাইভের ভিডিও — ক্লাসের পাতাতেই চলবে
+
+**সমস্যা:** ড্রাইভে ভিডিও “প্রাইভেট” থাকলে শিক্ষার্থী কিনে ড্রাইভের লিংকে গেলে “You need permission” দেখেন। **সমাধান:** ভিডিওটি ওয়েবসাইটের **নিজস্ব গুগল ঠিকানার** সাথে শেয়ার করুন — তখন ওয়েবসাইট নিজেই ভিডিওটি এনে ক্লাসের পাতায় চালায়। শিক্ষার্থীর গুগল অ্যাকাউন্ট লাগে না, ড্রাইভের ঠিকানাও তাঁর কাছে পৌঁছায় না, আর ভিডিও **প্রাইভেটই থাকে**।
+
+**একবারের কাজ:**
+1. Google Cloud-এ (যে প্রজেক্টে সার্ভিস অ্যাকাউন্ট বানিয়েছেন) *APIs & Services → Library → Google Drive API → Enable* (আপনার তালিকায় আগে থেকেই আছে)। অ্যানালিটিক্সের জন্য যে `GOOGLE_SERVICE_ACCOUNT` কী দিয়েছেন **সেটাই** লাগে — নতুন কিছু বানাতে হয় না।
+2. *অ্যাডমিন → ক্লাস → (ক্লাস) → কারিকুলাম → লেসন → ধরন “লিংক”* — ড্রাইভের লিংক বসালেই নিচে **“গুগল ড্রাইভের ভিডিও”** বক্স আসে, তাতে ওয়েবসাইটের গুগল ঠিকানা (`…@….iam.gserviceaccount.com`) আর **কপি** বোতাম থাকে।
+3. গুগল ড্রাইভে ভিডিওটিতে (বা সব ক্লাসের ভিডিও যে ফোল্ডারে আছে সেটিতে) রাইট-ক্লিক → *Share* → ওই ঠিকানা বসান → **Viewer** → *Send* (“Notify people” বন্ধ রাখতে পারেন)। **ফোল্ডার একবার শেয়ার করলে তার সব ভিডিও কভার হয়।**
+4. লেসনে ফিরে **“অ্যাক্সেস পরীক্ষা করুন”** চাপুন। “তৈরি — ভিডিওর নাম ক্লাসের পাতাতেই চলবে” এলে হয়ে গেল; না এলে বক্সটি সহজ ভাষায় কারণ ও করণীয় বলে দেয় (গুগলের নিজের কথাসহ)।
+
+**জেনে রাখুন (সৎ কথা):**
+* **ফরম্যাট:** ড্রাইভ ফাইলটি যেমন আপলোড হয়েছিল ঠিক তেমনই দেয় (নিজের প্লেয়ারের মতো রূপান্তর করে না)। **MP4 (H.264) সব ফোনে চলে**; MOV, MKV, AVI কিছু ফোনে নাও চলতে পারে — বক্স সেটি আগেই জানিয়ে দেয়।
+* **ডাউনলোড বন্ধ করা ভিডিও:** ভিডিওতে “Disable options to download, print, and copy for commenters and viewers” চালু থাকলে গুগল সেটি Viewer-কে দেয় না। অপশনটি বন্ধ করুন, বা ঠিকানাটিকে **Editor** দিন (তখন ওয়েবসাইট শুধু পড়ে — পরিবর্তন করে না)।
+* **গুগলের সীমা:** একটি ফাইল দিনে নির্দিষ্ট পরিমাণই ডাউনলোড হতে দেয়; বহু শিক্ষার্থী একই ভিডিও একসাথে দেখলে কিছুক্ষণ “চালানো যাচ্ছে না” আসতে পারে (নিজে থেকে ঠিক হয়)। ছোট একাডেমির জন্য ঠিক আছে; **একসাথে অনেক শিক্ষার্থী হলে ভিডিও Cloudflare Stream-এ রাখুন** (লেসনের ধরন “ভিডিও”)।
+* **ডেটা:** ভিডিও ফোনের ইন্টারনেট দিয়েই আসে; বড় ফাইলে ডেটা বেশি লাগে। ছোট করে (720p, MP4) রাখলে ভালো।
+* **কপি ঠেকানো:** স্ক্রিন রেকর্ড বা বিশেষ টুলে ভিডিও নামানো যায় — অন্য সব ভিডিও প্ল্যাটফর্মের মতোই (ডিআরএম নেই)। কেনা ছাড়া কেউ ভিডিও পায় না — এটুকু নিশ্চিত।
+* কোনো ড্রাইভ ভিডিও ওয়েবসাইট পড়তে না পারলে শিক্ষার্থী আগের মতোই “ভিডিওটি খুলুন” লিংক দেখেন (সেটি ড্রাইভে অনুমতি চাইবে) — তাই শেয়ার করার পর **অবশ্যই “অ্যাক্সেস পরীক্ষা করুন”** চাপুন।
+* ওয়েবসাইটের ঠিকানাকে শেয়ার থেকে সরালেই সব ভিডিও আবার বন্ধ হয়ে যায়।
 
 ## ৫. পেমেন্ট গ্রহণ
 
@@ -180,6 +199,7 @@
 | Meta (Facebook), Google বা Bing ওয়েবসাইটে একটি যাচাই-ফাইল রাখতে বলছে | ফাইলটি যেমন পেয়েছেন ঠিক তেমন (নাম ও ভেতরের লেখা না বদলে) GitHub-এ প্রজেক্টের **`marketing/verification/`** ফোল্ডারে আপলোড করুন (*Add file → Upload files*), তারপর Deploy শেষ হলে ব্রাউজারে `https://mawahacademy.com/<ফাইলের নাম>` খুলে দেখুন লেখাটি আসছে কি না, তারপর ওদের পাতায় *Verify* চাপুন। প্রজেক্টের মূল ফোল্ডারে (root) রাখা ফাইল ওয়েবসাইটে যায় না |
 | ইমেইল যাচ্ছে না | ড্যাশবোর্ডে “ইমেইল সংযুক্ত নয়” দেখাচ্ছে কি না দেখুন → ডেভেলপারকে বলুন |
 | ভিডিও চলছে না | কারিকুলামে ভিডিওর অবস্থা “প্রস্তুত” কি না দেখুন; Stream চালু আছে কি না দেখুন |
+| কিনেও শিক্ষার্থী “You need permission” দেখছেন (বা ড্রাইভের ভিডিও চলছে না) | ড্রাইভের ভিডিওটি এখনো ওয়েবসাইটের গুগল ঠিকানার সাথে শেয়ার করা হয়নি। *অ্যাডমিন → ক্লাস → কারিকুলাম → লেসন → লিংক বসান → “অ্যাক্সেস পরীক্ষা করুন”* — কোন ঠিকানায় শেয়ার করবেন আর কী সমস্যা, সহজ ভাষায় বলে দেয় (ধাপ ৪-এর “গুগল ড্রাইভের ভিডিও” অংশ দেখুন) |
 | কেউ অন্যের অ্যাকাউন্ট ব্যবহার করছেন মনে হচ্ছে | *শিক্ষার্থী*-তে খুঁজে **ব্লক** করুন (সব ডিভাইস থেকে লগআউট হবে) |
 | কোনো টিম সদস্যের ফোন/ল্যাপটপ হারিয়ে গেছে | *টিম*-এ তাকে **নিষ্ক্রিয়** করুন, পরে নতুন পাসওয়ার্ড দিন |
 | কিছু একটা অদ্ভুত লাগছে | *অ্যাক্টিভিটি লগ* খুলুন — কে, কখন, কী করেছেন সব আছে। তারপর [নিরাপত্তা ও ঘটনা-প্রতিক্রিয়া](security.md#10-incident-response-outline) অংশ অনুসরণ করুন |
@@ -392,13 +412,32 @@ In a class, open the **Curriculum** tab:
 1. **Add module** (like a chapter) → give it a name.
 2. Inside a module, **Add lesson**. Four kinds:
    * **Video** — upload the video file; Cloudflare Stream prepares it for every phone and connection speed. You will see *uploading → processing → ready*; wait for *ready*.
-   * **Link (YouTube/Vimeo)** — paste the link of a video you already uploaded there.
+   * **Link (YouTube/Vimeo/Google Drive)** — paste the link of a video you already uploaded there. A **Google Drive video** plays inside the class page (see “Google Drive videos” below).
    * **Written notes** — type the recipe (simple formatting works).
    * **Download** — a recipe card/PDF. Save the lesson, then use **Add a file**. **Only enrolled students** can download it.
 3. Tick **Free preview** and anyone can watch that lesson without an account — a good way to win new buyers.
 4. Use the **up/down** buttons to reorder. On a module, **days until it opens** (drip) releases lessons step by step.
 
 Keep **the original video and recipe files** safe on your side (Google Drive or a hard disk).
+
+### Google Drive videos — they play inside the class page
+
+**The problem:** a video kept private in Drive shows a student who bought the class “You need permission” when they follow its Drive link. **The fix:** share the video with the website’s **own Google address** — the website then fetches it itself and plays it on the class page. The student needs no Google account, never sees the Drive address, and the video **stays private**.
+
+**Once:**
+1. In Google Cloud (the project of your service account) *APIs & Services → Library → Google Drive API → Enable* (it is on your list already). It uses **the same** `GOOGLE_SERVICE_ACCOUNT` key you gave for Analytics — nothing new to make.
+2. *Admin → Classes → (the class) → Curriculum → a lesson of type “Link”* — paste the Drive link and a **“Google Drive video”** box appears with the website’s Google address (`…@….iam.gserviceaccount.com`) and a **Copy** button.
+3. In Google Drive right-click the video (or the folder that holds all your class videos) → *Share* → paste that address → **Viewer** → *Send* (you can switch “Notify people” off). **Sharing a folder once covers every video in it.**
+4. Back in the lesson press **“Check access”**. “Ready — <video name> will play inside the class page” means done; anything else, the box says why in plain words with the steps (and Google’s own sentence).
+
+**Good to know (the honest part):**
+* **Format:** Drive hands over the file exactly as uploaded (it does not convert it the way its own player does). **MP4 (H.264) plays on every phone**; MOV, MKV or AVI may not — the box warns you.
+* **Videos with downloading switched off:** if the video has “Disable options to download, print, and copy for commenters and viewers” on, Google will not give it to a Viewer. Switch that off, or share with the address as **Editor** (the website only reads, it never changes anything).
+* **Google’s limits:** Google allows only so much downloading of one file per day; if many students watch the same video at once you may see “could not be played right now” for a while (it clears by itself). Fine for a small academy; **for many students at once put the video on Cloudflare Stream** (lesson type “Video”).
+* **Data:** the video travels over the student’s mobile data; big files use a lot. Smaller (720p, MP4) is kinder.
+* **Copying:** like every video site without DRM, a determined person can screen-record or save a video. What is certain: nobody gets the video without owning the class.
+* If the website cannot read a Drive video, the student sees the old “Open the video” link (it asks for permission in Drive) — so **always press “Check access”** after sharing.
+* Remove the address from the sharing and every video turns off again.
 
 ## 5. Getting paid
 
@@ -513,6 +552,7 @@ When someone leaves, **deactivate** their account — their access ends at once.
 | Meta (Facebook), Google or Bing asks for a verification file on the website | Upload the file exactly as you received it (same name, same content) to the project’s **`marketing/verification/`** folder on GitHub (*Add file → Upload files*); when the Deploy has finished open `https://mawahacademy.com/<file name>` in a browser and check the text shows, then press *Verify* on their page. A file in the project’s main folder is not on the website |
 | E-mails are not arriving | Check whether the dashboard says “E-mail is not connected” → ask your developer |
 | A video will not play | In the curriculum check the video says *ready*; check Stream is enabled |
+| A student who bought sees “You need permission” (or a Drive video will not play) | The Drive video is not shared with the website’s Google address yet. *Admin → the class → Curriculum → the lesson → paste the link → “Check access”* shows the address to share with and says what is wrong in plain words (see “Google Drive videos” in section 4) |
 | Someone seems to be sharing an account | *Students* → search → **Block** (signs out every device) |
 | A team member lost their phone/laptop | *Team* → **Deactivate**, then re-add with a new password later |
 | Anything odd | Open the **Activity log** — who did what and when. Then follow [security → incident response](security.md#10-incident-response-outline) |
