@@ -40,6 +40,8 @@ export interface ServiceAccount {
 export type Failure = { ok: false; problem: Ga4Problem; detail?: string; status?: number };
 export type Answer<T> = { ok: true; data: T } | Failure;
 
+/** Google answers in well under a second; a call that has not come back in 15 seconds is given up, so the screen can say so instead of waiting. */
+const TIMEOUT_MS = 15_000;
 const SCOPE = "https://www.googleapis.com/auth/analytics.readonly";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 const GOOGLE_DATA = "https://analyticsdata.googleapis.com/v1beta";
@@ -154,6 +156,7 @@ async function signIn(env: Env): Promise<Answer<string>> {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
       body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: note }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (e) {
     return { ok: false, problem: "network", detail: scrub(e instanceof Error ? e.message : "no answer") };
@@ -236,6 +239,7 @@ async function ask(env: Env, kind: "runReport" | "runRealtimeReport", body: unkn
       method: "POST",
       headers: { Authorization: `Bearer ${signed.data}`, "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch (e) {
     return { ok: false, problem: "network", detail: scrub(e instanceof Error ? e.message : "no answer") };
