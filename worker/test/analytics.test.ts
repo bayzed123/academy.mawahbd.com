@@ -236,7 +236,13 @@ describe("who is counted", () => {
 
   it("asks first in Europe (EU, EEA, UK, Switzerland, Tor) and counts the rest of the world unless they say no", () => {
     for (const country of ["DE", "fr", "GB", "CH", "NO", "IS", "T1", " it "]) expect(regionOf(country), country).toBe("eu");
-    for (const country of ["BD", "US", "IN", "AE", "SA", "MY", "", null, undefined]) expect(regionOf(country), String(country)).toBe("row");
+    for (const country of ["BD", "US", "IN", "AE", "SA", "MY"]) expect(regionOf(country), country).toBe("row");
+    // a country nobody knows: left to the caller — the real site asks first, a developer's machine (no such header) does not
+    for (const unknown of ["", "XX", "xx", null, undefined]) {
+      expect(regionOf(unknown), String(unknown)).toBe("row");
+      expect(regionOf(unknown, "eu"), String(unknown)).toBe("eu");
+    }
+    expect(regionOf("BD", "eu")).toBe("row"); // a known country is never overruled
   });
 });
 
@@ -339,6 +345,19 @@ describe("pages of the real site", () => {
     });
   });
 
+  it("ask first when the real site cannot tell where a visitor is (no country from Cloudflare, or \"XX\") — and not on a developer's machine", async () => {
+    await setOwnId(REAL_ID);
+    const geo = (res: Response) => res.headers.getSetCookie().find((c) => c.startsWith("mawah_geo="));
+    await asRealSite(async () => {
+      expect(geo(await at(`${PUBLIC}/en/faq`))).toMatch(/^mawah_geo=eu;/);
+      expect(geo(await at(`${PUBLIC}/en/faq`, { "cf-ipcountry": "XX" }))).toMatch(/^mawah_geo=eu;/);
+      expect(geo(await at(`${PUBLIC}/en/faq`, { "cf-ipcountry": "BD" }))).toMatch(/^mawah_geo=row;/);
+    });
+    await measured(async () => {
+      expect(geo(await at("http://localhost/en/faq"))).toMatch(/^mawah_geo=row;/);
+    });
+  });
+
   it("keep serving from the page cache and still give each visitor their own region cookie", async () => {
     await setOwnId(REAL_ID);
     await asRealSite(async () => {
@@ -412,6 +431,22 @@ describe("the student app and the admin", () => {
     await withShell(async () => {
       expect(await (await new Client().get("/app/")).text()).toBe(SHELL); // a test machine that was not asked to count
     });
+  });
+
+  it("never count the page behind a password link — its address is a one-time secret — and pass no referrer on from it", async () => {
+    await setOwnId(OWN_ID);
+    await measured(() =>
+      withShell(async () => {
+        const link = await new Client().get("/app/reset/a-one-time-secret-token");
+        expect(await link.text()).toBe(SHELL);
+        expect(link.headers.get("content-security-policy")).not.toContain("google");
+        expect(link.headers.get("referrer-policy")).toBe("no-referrer");
+        // …while the rest of the student app is counted and keeps the usual policy
+        const login = await new Client().get("/app/login");
+        expect(await login.text()).toContain('name="mawah:ga4"');
+        expect(login.headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
+      }),
+    );
   });
 
   it("never count the admin: no tag, no script and no door in the policy, even with an ID set on the real site", async () => {
@@ -934,7 +969,7 @@ describe("Admin → Analytics: the report", () => {
     expect(res.headers.get("content-disposition")).toMatch(/^attachment; filename="classes-28d-\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}-/);
     const csv = await res.text();
     const lines = csv.replace(/^﻿/, "").trim().split("\r\n");
-    expect(lines[0]).toBe("Class,Address name,Page views,People,Seconds on page per person,Pressed Enroll now,Opened checkout,Paid (Google saw),Paid sales (shop records),Money (BDT, shop records)".replace("Money (BDT, shop records)", '"Money (BDT, shop records)"'));
+    expect(lines[0]).toBe("Class,Address name,Page views,People,Seconds on page per person,Pressed Enroll now,Opened checkout,Bought (Google saw),Paid sales (shop records),Money (BDT, shop records)".replace("Money (BDT, shop records)", '"Money (BDT, shop records)"'));
     expect(lines.length).toBeGreaterThan(5);
     expect(lines.some((l) => l.includes(`,${SLUGS.a},150,75,56,20,10,4,2,1200`))).toBe(true);
 

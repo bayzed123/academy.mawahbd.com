@@ -39,10 +39,12 @@ The website counts what visitors look at and choose, and the **Admin → Analyti
 |---|---|
 | Anyone outside Europe, the UK and Switzerland | **Yes**, unless one of the rows below applies |
 | Visitors in the EU/EEA, the UK, Switzerland (and Tor, `T1`) | **Only after they press “Accept”** on the question that appears at the bottom of the page (in their language); “No thanks” is final and remembered |
+| A visitor whose country Cloudflare cannot tell (no country, or `XX`) — on the real site only | **Asked first**, like Europe: counting someone who should have been asked is the mistake to avoid |
 | A browser with **Do Not Track** or **Global Privacy Control** switched on | **Never** |
 | Anyone who pressed **“Stop counting my visits”** in the footer | **Never** on that device (until they press “Count my visits again”); Google’s own `ga-disable-<ID>` switch is set too |
 | Test browsers, Lighthouse, bots, uptime checks | **Never** |
 | The admin (`/admin`) | **Never**: no tag in the page, none in its security policy |
+| The page behind a password link (`/app/reset/<one-time secret>` — the link in a password e-mail or a receipt) | **Never**: Google records the address of every page it counts, and this address is a secret. The page also passes no referrer on. (Anything the person does in that same browser tab afterwards is counted from the next full page load — a reload or a new tab.) |
 
 What is sent — and what never is:
 
@@ -97,9 +99,10 @@ Google Cloud sometimes refuses to *create* a key (“Service account key creatio
 ### 3.4 What the numbers mean
 
 * **Google’s numbers are not live and not exact.** They can be hours behind; visitors who say no (and some ad blockers) are not counted, so the real number of visitors is a little higher. “People” counts a person who read a class in both languages once in each language.
-* **“Paid sales” and “Money” come from the shop’s own orders**, not from Google, and are exact (a free enrolment is not a sale; a refund is not a sale). *Reports → Revenue* is the book of record. “Paid (Google saw)” is what the browser reported; it is lower when a buyer closes the tab before the order page loads, or has counting switched off.
+* **“Paid sales” and “Money” come from the shop’s own orders**, not from Google, and are exact (a free enrolment is not a sale; a refund is not a sale). *Reports → Revenue* is the book of record. “Bought (Google saw)” is what the buyers’ browsers reported — a free enrolment counts too; it is lower when a buyer closes the tab before the order page loads, or has counting switched off.
 * **A purchase is counted once per order and device**, when the buyer’s browser shows the paid order (a reload does not count it again). A manual payment counts as a sale only when staff have confirmed it and the buyer opens the order again; the shop’s own “Paid sales” does not depend on that.
-* **Server-side purchase tracking (Measurement Protocol) is not built.** It would need an `api_secret` and would make “Paid (Google saw)” match the shop’s records exactly; the on-screen note says why the two can differ.
+* **Video playback is not measured** — only that a lesson was opened (`lesson_start`) and marked done (`lesson_complete`). “Watched 25 / 50 / 75 %” would need Cloudflare Stream’s player SDK, another third-party script on the lesson page.
+* **Server-side purchase tracking (Measurement Protocol) is not built.** It would need an `api_secret` and would make “Bought (Google saw)” match the shop’s records exactly; the on-screen note says why the two can differ.
 * Everything on the screen is a number Google (or the shop’s database) returned. A panel Google could not answer says so; nothing is estimated or filled in.
 
 ## Every event

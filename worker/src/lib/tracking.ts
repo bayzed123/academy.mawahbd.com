@@ -51,5 +51,13 @@ const ASK_FIRST = new Set([
   "T1",
 ]);
 
-/** `eu` = ask first, `row` = the rest of the world. Cloudflare puts the visitor's country in the CF-IPCountry header; without it we do not guess. */
-export const regionOf = (country: string | null | undefined): "eu" | "row" => (country && ASK_FIRST.has(country.trim().toUpperCase()) ? "eu" : "row");
+/**
+ * `eu` = ask first, `row` = the rest of the world. Cloudflare puts the visitor's country in the CF-IPCountry header ("XX" when it does not know).
+ * When the country is not known, `whenUnknown` decides: the real site asks first (counting someone who should have been asked is the mistake
+ * to avoid), a developer's machine, which has no such header, does not.
+ */
+export const regionOf = (country: string | null | undefined, whenUnknown: "eu" | "row" = "row"): "eu" | "row" => {
+  const c = (country ?? "").trim().toUpperCase();
+  if (!c || c === "XX") return whenUnknown;
+  return ASK_FIRST.has(c) ? "eu" : "row";
+};

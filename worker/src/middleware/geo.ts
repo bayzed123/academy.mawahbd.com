@@ -21,7 +21,9 @@ export const regionHint: MiddlewareHandler<AppEnv> = async (c, next) => {
     const path = new URL(c.req.url).pathname;
     if (path === "/admin" || path.startsWith("/admin/") || path.startsWith("/api/")) return;
     if (!isTracking(trackingFor(c.env, c.req.url, await getSettings(c.env)))) return;
-    const want = regionOf(c.req.header("cf-ipcountry"));
+    // the header Cloudflare adds; on the real site, if it is missing, the country Workers itself knows from the connection; a country nobody knows is asked first
+    const country = c.req.header("cf-ipcountry") ?? (isProd(c.env) ? (c.req.raw as { cf?: { country?: string } }).cf?.country : undefined);
+    const want = regionOf(country, isProd(c.env) ? "eu" : "row");
     if (getCookie(c, REGION_COOKIE) === want) return;
     const headers = new Headers(res.headers);
     headers.append("Set-Cookie", `${REGION_COOKIE}=${want}; Path=/; Max-Age=86400; SameSite=Lax${isProd(c.env) ? "; Secure" : ""}`);

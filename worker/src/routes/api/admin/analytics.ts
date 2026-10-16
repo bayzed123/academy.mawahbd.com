@@ -96,7 +96,7 @@ analytics.get("/analytics/classes.csv", requirePerm("analytics:read"), async (c)
       { key: "seconds_per_person", label: "Seconds on page per person" },
       { key: "carts", label: "Pressed Enroll now" },
       { key: "checkouts", label: "Opened checkout" },
-      { key: "ga_purchases", label: "Paid (Google saw)" },
+      { key: "ga_purchases", label: "Bought (Google saw)" },
       { key: "paid_sales", label: "Paid sales (shop records)" },
       { key: "revenue", label: "Money (BDT, shop records)" },
     ]),

@@ -14,7 +14,8 @@ export const baseSecurity: MiddlewareHandler<AppEnv> = async (c, next) => {
   const headers = new Headers(res.headers);
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("X-Frame-Options", "DENY");
-  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  // a page may ask for "no referrer" (the password link: its address is a secret); nothing may ask for less than the default
+  headers.set("Referrer-Policy", res.headers.get("Referrer-Policy") === "no-referrer" ? "no-referrer" : "strict-origin-when-cross-origin");
   headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(self), interest-cohort=()");
   headers.set("Cross-Origin-Opener-Policy", "same-origin");
   headers.set("X-Request-Id", c.get("reqId"));

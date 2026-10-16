@@ -272,6 +272,15 @@ test("the student app carries the tag, the admin never does — and a purchase i
   const adminShell = await v.page.goto("/admin/");
   expect(adminShell!.headers()["content-security-policy"]).not.toContain("googletagmanager");
 
+  // the page behind a password link has a secret in its address: never counted, no referrer passed on
+  const secretPage = await v.page.goto("/app/reset/a-one-time-secret-token");
+  await expect(v.page.getByRole("heading", { name: "Choose a new password" })).toBeVisible();
+  expect(secretPage!.headers()["referrer-policy"]).toBe("no-referrer");
+  expect(secretPage!.headers()["content-security-policy"]).not.toContain("googletagmanager");
+  await expect(v.page.locator(`meta[name="mawah:ga4"]`)).toHaveCount(0);
+  await v.page.waitForTimeout(2600);
+  expect(v.log.filter((a) => a[0] === "config" || a[0] === "event"), "nothing was told to Google on that page").toEqual([]);
+
   // buying as a guest, the way a visitor does
   await v.page.goto(`/en/courses/${CLASS}`);
   await v.page.getByRole("link", { name: /Enroll Now/ }).first().click();
@@ -344,7 +353,7 @@ test.describe("Admin → Analytics", () => {
     const row = admin.getByTestId("an-classes").locator("tr", { hasText: "Beginners Baking Class" });
     await expect(row.locator("td").nth(1)).toHaveText("150");
     await expect(row.locator("td").nth(5)).toHaveText("10"); // opened checkout
-    await expect(row.locator("td").nth(6)).toHaveText("4"); // paid, as Google saw it
+    await expect(row.locator("td").nth(6)).toHaveText("4"); // bought, as Google saw it (a free enrolment counts too)
     // a class nobody opened is listed too, and says so; a page that is no longer a class is shown as that
     await expect(admin.getByTestId("an-classes").getByText("Nobody opened it").first()).toBeVisible();
     await expect(admin.getByTestId("an-classes").getByText("a-class-that-was-renamed")).toBeVisible();

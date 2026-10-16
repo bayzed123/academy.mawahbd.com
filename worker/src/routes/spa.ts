@@ -37,8 +37,11 @@ async function shell(c: { env: AppEnv["Bindings"]; req: { url: string } }, base:
   if (!asset.ok) {
     return new Response(`${base} build missing — run "npm run build"`, { status: 503, headers: { "Content-Type": "text/plain" } });
   }
+  // The link in a password e-mail or a receipt (/app/reset/<one-time secret>) carries a secret in its address: Google Analytics records the address of every
+  // page, so that page is never counted, and it passes no referrer on (a next page loaded from it would otherwise name the address as where the visitor came from).
+  const secretAddress = base === "app" && /^\/app\/reset\//.test(new URL(c.req.url).pathname);
   let ids = NO_TRACKING;
-  if (base === "app") {
+  if (base === "app" && !secretAddress) {
     try {
       ids = trackingFor(c.env, c.req.url, await getSettings(c.env));
     } catch {
@@ -51,6 +54,7 @@ async function shell(c: { env: AppEnv["Bindings"]; req: { url: string } }, base:
     "Content-Security-Policy": buildCsp({ spa: true, turnstile: turnstileEnabled(c.env), analytics: { ga4: !!ids.ga4, clarity: !!ids.clarity, pixel: !!ids.pixel } }),
   });
   if (base === "admin") headers.set("X-Robots-Tag", "noindex, nofollow");
+  if (secretAddress) headers.set("Referrer-Policy", "no-referrer");
   return new Response(isTracking(ids) ? withTracking(await asset.text(), ids) : asset.body, { status: 200, headers });
 }
 
