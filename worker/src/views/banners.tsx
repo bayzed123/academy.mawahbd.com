@@ -1,4 +1,4 @@
-import { formatNumber, loc } from "@mawah/shared";
+import { bannerDesign, bannerIcon, formatNumber, loc } from "@mawah/shared";
 import type { BannerDTO } from "../services/banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { Icon } from "./ui";
@@ -36,13 +36,17 @@ function Slide({ ctx, b, i, total }: { ctx: PageCtx; b: BannerDTO; i: number; to
   const text = loc(b, "text", lang);
   const label = loc(b, "button", lang);
   const alt = loc(b, "alt", lang);
+  const kicker = loc(b, "kicker", lang);
   const href = b.link_url ? bannerHref(ctx, b.link_url) : "";
   const button = !!label && !!href;
   // a picture with a link but no button is itself the link
   const wholePictureLinks = !!href && !label && !!b.image_key;
   const picture = <Picture b={b} alt={alt || (wholePictureLinks ? "" : title)} eager={i === 0} />;
+  // a banner with no picture may carry a large line drawing instead (one of the class icons)
+  const icon = bannerIcon(b);
+  const design = bannerDesign(b, true);
   return (
-    <div class={`bn-slide${b.image_key ? "" : " bn-plain"}`} role="group" aria-roledescription="slide" aria-label={t("banner.slide", { n: numLabel(ctx, i + 1), total: numLabel(ctx, total) })}>
+    <div class={`bn-slide${b.image_key ? "" : " bn-plain"}${design ? ` ${design}` : ""}`} role="group" aria-roledescription="slide" aria-label={t("banner.slide", { n: numLabel(ctx, i + 1), total: numLabel(ctx, total) })}>
       {wholePictureLinks ? (
         <a class="bn-media" href={href} {...newTab(b)} aria-label={alt || title || t("banner.open")}>
           {picture}
@@ -50,8 +54,14 @@ function Slide({ ctx, b, i, total }: { ctx: PageCtx; b: BannerDTO; i: number; to
       ) : (
         b.image_key && <div class="bn-media">{picture}</div>
       )}
-      {(title || text || button) && (
+      {icon && (
+        <div class="bn-art" aria-hidden="true">
+          <Icon name={icon} />
+        </div>
+      )}
+      {(kicker || title || text || button) && (
         <div class="bn-copy">
+          {kicker && <p class="bn-kicker">{kicker}</p>}
           {title && <p class="bn-title">{title}</p>}
           {text && <p class="bn-text">{text}</p>}
           {button && (
@@ -112,11 +122,13 @@ export function OfferPopup({ ctx, banner: b }: { ctx: PageCtx; banner: BannerDTO
   const text = loc(b, "text", lang);
   const label = loc(b, "button", lang);
   const alt = loc(b, "alt", lang);
+  const kicker = loc(b, "kicker", lang);
   const href = b.link_url ? bannerHref(ctx, b.link_url) : "";
   const button = !!label && !!href;
+  const design = bannerDesign(b, false);
   return (
     <div class="offer" data-offer data-id={b.id} data-v={b.updated_at} data-delay={b.popup_delay_sec} data-days={b.popup_repeat_days} role="dialog" aria-modal="true" aria-label={title || t("banner.offer")} hidden>
-      <div class="offer-card">
+      <div class={`offer-card${design ? ` ${design}` : ""}`}>
         <button type="button" class="offer-x" data-offer-close aria-label={t("btn.close")}>
           <Icon name="x" />
         </button>
@@ -130,8 +142,9 @@ export function OfferPopup({ ctx, banner: b }: { ctx: PageCtx; banner: BannerDTO
               <Picture b={b} alt={alt || title} eager={false} />
             </div>
           ))}
-        {(title || text || button) && (
+        {(kicker || title || text || button) && (
           <div class="offer-copy">
+            {kicker && <p class="offer-kicker bn-kicker">{kicker}</p>}
             {title && <p class="offer-title">{title}</p>}
             {text && <p class="offer-text">{text}</p>}
             {button && (

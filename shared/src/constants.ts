@@ -130,6 +130,16 @@ export const ADMIN_NAV = [
 export const BANNER_PLACEMENTS = ["hero", "popup"] as const;
 export type BannerPlacement = (typeof BANNER_PLACEMENTS)[number];
 
+/** How a banner is laid out: the words on the left over the picture, in the middle, or in their own panel beside the picture. */
+export const BANNER_LAYOUTS = ["left", "center", "split"] as const;
+export type BannerLayout = (typeof BANNER_LAYOUTS)[number];
+/** The colour of a banner: the brand's dark, its red, its gold, or ivory paper. */
+export const BANNER_THEMES = ["dark", "ruby", "gold", "ivory"] as const;
+export type BannerTheme = (typeof BANNER_THEMES)[number];
+/** Which part of a tall or wide photo stays in view when the banner crops it. */
+export const BANNER_FOCUS = ["top", "center", "bottom"] as const;
+export type BannerFocus = (typeof BANNER_FOCUS)[number];
+
 /** What a question is about (site-wide questions are grouped by it on the FAQ page). */
 export const FAQ_TOPICS = ["general", "payment", "learning", "certificate", "refund"] as const;
 export type FaqTopic = (typeof FAQ_TOPICS)[number];
