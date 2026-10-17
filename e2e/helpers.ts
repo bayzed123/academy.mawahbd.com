@@ -112,7 +112,11 @@ export async function adminLogin(page: Page, creds: { email: string; password: s
   await page.goto("/admin/");
   await page.getByLabel(/^Email|^ইমেইল/).fill(creds.email);
   await page.getByLabel(/^Password|^পাসওয়ার্ড/).fill(creds.password);
+  // wait for the server's answer (and its sign-in cookie) before going on: a test that opens another page straight after pressing the button
+  // left before the cookie arrived and landed, signed out, on the login form — a race that failed a deploy once
+  const answered = page.waitForResponse((r) => r.url().endsWith("/api/admin/auth/login") && r.request().method() === "POST");
   await page.getByRole("button", { name: /^Log in$|^লগইন$/ }).click();
+  await answered;
 }
 
 /** Create the owner through the one-time setup form (only works while the site has no staff yet). */
