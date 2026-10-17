@@ -72,6 +72,17 @@ export function LessonMedia({ lesson }: { lesson: LessonContentDTO }) {
   }
   if (lesson.type === "external" && lesson.external) {
     if (lesson.external.media_url) return <HostedVideo src={lesson.external.media_url} title={title} />;
+    // a Google Drive video the website cannot play yet: said plainly, with no link — a student is never sent to the owner's Drive
+    if (lesson.external.pending) {
+      return (
+        <div className="video-frame is-note">
+          <div className="video-note" role="status">
+            <Icon name="play" />
+            <p>{t("app.lesson.drivePending")}</p>
+          </div>
+        </div>
+      );
+    }
     return lesson.external.embed_url ? (
       <div className="video-frame">
         <iframe src={lesson.external.embed_url} title={title} allow="encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin" />

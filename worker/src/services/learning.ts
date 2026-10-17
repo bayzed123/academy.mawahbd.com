@@ -191,11 +191,17 @@ export async function lessonContent(env: Env, lessonId: number, studentId: numbe
     video = { embed_url: embed ?? "" };
   } else if (lesson.type === "external" && lesson.external_url) {
     const drive = driveRef(lesson.external_url);
-    // a Drive video that the website's own Google account can read plays inside the portal (lib/drive.ts): its address stays with the website
-    external =
-      drive?.kind === "file" && (await driveReadable(env, drive.id))
-        ? { url: "", embed_url: null, media_url: `/api/${enrolled ? "student" : "preview"}/lessons/${lesson.id}/media` }
-        : { url: lesson.external_url, embed_url: externalEmbed(lesson.external_url), media_url: null };
+    if (drive?.kind === "file" || drive?.kind === "folder") {
+      // A Google Drive video plays only inside the portal, for the people who may watch this lesson (lib/drive.ts) — a student is never sent to
+      // Drive: it would only ask them for permission, and it is the owner's private Drive. Until the website's own Google account can read the
+      // file, the lesson says the video is being prepared; the owner sees why in the lesson editor ("Check access").
+      external =
+        drive.kind === "file" && (await driveReadable(env, drive.id))
+          ? { url: "", embed_url: null, media_url: `/api/${enrolled ? "student" : "preview"}/lessons/${lesson.id}/media`, pending: false }
+          : { url: "", embed_url: null, media_url: null, pending: true };
+    } else {
+      external = { url: lesson.external_url, embed_url: externalEmbed(lesson.external_url), media_url: null, pending: false };
+    }
   }
 
   return {

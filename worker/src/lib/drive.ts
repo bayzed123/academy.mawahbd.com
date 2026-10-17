@@ -177,9 +177,13 @@ const readableKey = (id: string) => `drive:readable:${id}`;
 /**
  * Whether the lesson page may say "play it here" for this file: the account can read it, it is a video, and viewers may download it. Remembered
  * ten minutes (a "no" for a minute and a half, so a fix is felt quickly); never throws. With no key on the Worker it is false and Google is not asked.
+ * A "no" is noted for the owner (the lesson editor's "last time" line): a student is looking at a lesson whose video cannot play yet.
  */
 export async function driveReadable(env: Env, id: string): Promise<boolean> {
-  if (!driveConfigured(env)) return false;
+  if (!driveConfigured(env)) {
+    await rememberFailure(env, "not_configured", null);
+    return false;
+  }
   try {
     const kept = await env.KV.get(readableKey(id));
     if (kept === "1") return true;
@@ -189,6 +193,7 @@ export async function driveReadable(env: Env, id: string): Promise<boolean> {
     // a problem that is Google's or the network's, not the file's, is not remembered: the next look asks again
     const settled = info.ok || ["no_access", "not_downloadable", "not_video"].includes(info.problem);
     if (settled) await env.KV.put(readableKey(id), yes ? "1" : "0", { expirationTtl: yes ? READABLE_YES_S : READABLE_NO_S });
+    if (!yes) await rememberFailure(env, info.ok ? (isMedia(info.data.mime) ? "not_downloadable" : "not_video") : info.problem, info.ok ? null : (info.status ?? null));
     return yes;
   } catch {
     return false;

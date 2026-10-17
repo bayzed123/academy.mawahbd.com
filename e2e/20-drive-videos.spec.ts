@@ -8,7 +8,7 @@ import { adminLogin, apiGet, apiPost, registerStudent, useLang } from "./helpers
  * player. Google Drive is stood in for by the dev Worker itself (with a real, tiny, playable video), and the website holds a made-up Google key, so
  * everything between the browser and "Drive" is the real code. What is checked is what the owner and the students live: a student really sees and
  * hears a video start on the class page (no Drive address anywhere, nothing blocked by the page's security policy), a video the website cannot read
- * keeps the old "open the video" link, a failure is a plain message with "Try again", and the owner finds out in the lesson editor — in plain words,
+ * says it is being prepared (never a link to the owner's Drive), a failure is a plain message with "Try again", and the owner finds out in the lesson editor — in plain words,
  * with the address to share with — whether it will work. Runs after the admin spec (the owner exists).
  */
 test.describe.configure({ mode: "serial" });
@@ -113,13 +113,21 @@ test("a student watches a Drive video inside the class page — it starts, with 
   await ctx.close();
 });
 
-test("a video the website cannot read keeps the old link to open it; YouTube is untouched", async ({ browser }) => {
+test("a video the website cannot read yet says it is being prepared — never a link to Drive; YouTube is untouched", async ({ browser }) => {
   const { ctx, page } = await student(browser);
   await page.goto(`/app/learn/${slug}/${lessons.privateOne}`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Private from Drive");
   await expect(page.locator(".video-frame video")).toHaveCount(0);
-  const open = page.getByRole("link", { name: "Open the video" });
-  await expect(open).toHaveAttribute("href", driveUrl(DRIVE_PRIVATE));
+  await expect(page.getByRole("status").filter({ hasText: "This class video is being prepared" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open the video" })).toHaveCount(0);
+  expect(await page.content()).not.toContain("drive.google.com");
+  expect(await page.content()).not.toContain(DRIVE_PRIVATE);
+  // on a phone the words fit inside the frame
+  await page.setViewportSize({ width: 360, height: 800 });
+  const frame = (await page.locator(".video-frame").boundingBox())!;
+  const note = (await page.locator(".video-frame .video-note p").boundingBox())!;
+  expect(note.y + note.height).toBeLessThanOrEqual(frame.y + frame.height + 1);
+  await page.setViewportSize({ width: 1440, height: 900 });
 
   await page.goto(`/app/learn/${slug}/${lessons.youtube}`);
   await expect(page.locator('.video-frame iframe[src^="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"]')).toHaveCount(1);

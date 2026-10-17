@@ -115,9 +115,10 @@ export interface LessonContentDTO {
   video: { embed_url: string } | null;
   /**
    * A link lesson. `embed_url` = a YouTube / Vimeo player; `media_url` = a video the website plays itself (a Google Drive file shared with the
-   * website's Google account) — then `url` is empty, the file's own address is never given to the student; neither = just a link to open.
+   * website's Google account); `pending` = a Google Drive video the website cannot play yet ("being prepared"). For a Drive link `url` is always
+   * empty: the owner's Drive address is never given to a student. Neither of the three = just a link to open (any other website).
    */
-  external: { url: string; embed_url: string | null; media_url: string | null } | null;
+  external: { url: string; embed_url: string | null; media_url: string | null; pending: boolean } | null;
   resources: LessonResourceDTO[];
   completed: boolean;
   prev_id: number | null;
