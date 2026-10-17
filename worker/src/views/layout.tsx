@@ -2,7 +2,7 @@ import { raw } from "hono/html";
 import { loc, readSslLogo } from "@mawah/shared";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
-import { ANALYTICS_JS, BANNERS_JS, CSS, GALLERY_JS, HAS_OG_IMAGE, SITE_JS } from "../generated/assets";
+import { ANALYTICS_JS, BANNERS_JS, CSS, GALLERY_JS, OG_IMAGE, SITE_JS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
@@ -39,7 +39,7 @@ export function Layout(props: LayoutProps) {
   const { t, lang, settings, env } = ctx;
   const chrome = props.chrome !== false;
   const canonical = ctx.abs(props.canonicalPath ?? ctx.href(ctx.path));
-  const image = props.image ?? ctx.abs(HAS_OG_IMAGE ? "/og-default.jpg" : "/icon-512.png");
+  const image = props.image ?? ctx.abs(OG_IMAGE ?? "/icon-512.png");
   // a certificate or an invoice (chrome off) carries a person's name and a secret address: it is never measured, whatever the request
   const ids = chrome ? ctx.track : NO_TRACKING;
   const measuring = isTracking(ids);

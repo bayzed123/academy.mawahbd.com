@@ -83,6 +83,16 @@ test.describe("public site", () => {
     await expect(page.getByRole("link").first()).toBeVisible();
   });
 
+  test("the share image a page names for Facebook / WhatsApp opens: a small JPEG at an address that changes with the picture", async ({ page, request }) => {
+    await page.goto("/");
+    const shared = await page.locator('meta[property="og:image"]').getAttribute("content");
+    expect(shared).toMatch(/\/assets\/og\.[0-9a-f]{10}\.jpg$/);
+    const res = await request.get(new URL(shared!).pathname);
+    expect(res.status()).toBe(200);
+    expect(res.headers()["content-type"]).toContain("image/jpeg");
+    expect((await res.body()).length).toBeLessThan(100 * 1024); // WhatsApp skips big previews
+  });
+
   test("performance budget: lean HTML, no render-blocking third parties, fonts self-hosted", async ({ page }) => {
     const requests: { url: string; type: string; size: number }[] = [];
     page.on("response", async (r) => {
