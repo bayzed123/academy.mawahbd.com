@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { readSslLogo, SSL_LOGO_MAX } from "@mawah/shared";
 import { SETTING_DEFAULTS, setSetting } from "../src/lib/settings";
+import { buildCsp } from "../src/middleware/security";
 import { Client, env, freshState, json, loginStaff, registerStudent } from "./helpers";
 
 /*
@@ -148,15 +149,22 @@ describe("SSLCommerz's logo on the site", () => {
   });
 
   it("the page's security policy lets pictures come from SSLCommerz — on the public pages, the student app and the admin", async () => {
-    for (const path of ["/", "/en/courses", "/app/checkout", "/admin/"]) {
+    const imgSources = (csp: string) =>
+      (
+        csp
+          .split(";")
+          .map((d) => d.trim())
+          .find((d) => d.startsWith("img-src ")) ?? ""
+      ).split(" ");
+    const wanted = ["'self'", "https://sslcommerz.com", "https://*.sslcommerz.com"];
+    // the public pages, as served
+    for (const path of ["/", "/en/courses"]) {
       const res = await new Client().get(path);
-      const img = (res.headers.get("content-security-policy") ?? "")
-        .split(";")
-        .map((d) => d.trim())
-        .find((d) => d.startsWith("img-src "));
-      expect(img, path).toBeDefined();
-      expect(img!.split(" "), path).toEqual(expect.arrayContaining(["'self'", "https://sslcommerz.com", "https://*.sslcommerz.com"]));
+      expect(imgSources(res.headers.get("content-security-policy") ?? ""), path).toEqual(expect.arrayContaining(wanted));
     }
+    // the student app and the admin take their policy from the same builder (routes/spa.ts); their built pages are not needed for this
+    expect(imgSources(buildCsp({ spa: true }))).toEqual(expect.arrayContaining(wanted));
+    expect(imgSources(buildCsp({ spa: true, analytics: { ga4: true, clarity: true, pixel: true }, turnstile: true }))).toEqual(expect.arrayContaining(wanted));
   });
 });
 
