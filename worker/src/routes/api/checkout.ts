@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
-import { formatMoney, isNoEmail, MAX_PROOF_IMAGE_BYTES, readSslLogo, type Channel, type QuoteDTO } from "@mawah/shared";
+import { formatMoney, isNoEmail, MAX_PROOF_IMAGE_BYTES, readSslLogo, type Channel, type PayMethodDTO, type QuoteDTO } from "@mawah/shared";
 import type { AppEnv, Ctx, StudentCtx } from "../../env";
 import { audit } from "../../lib/audit";
 import { first, nowIso, run } from "../../lib/db";
@@ -149,6 +149,8 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
   const summary = quote.items.map((i) => i.title_en).join(", ");
   try {
     let redirectUrl: string;
+    // SSLCommerz's ways of paying (bKash, Nagad, cards …): the buyer taps one on the website and goes straight to it; none = SSLCommerz's own page
+    let payMethods: PayMethodDTO[] = [];
     if (channel === "sslcommerz") {
       // the gateway wants an e-mail address: a buyer who gave none is sent through with the shop's own
       const gatewayEmail = isNoEmail(student.email) ? c.env.NOTIFY_EMAIL?.trim() || "customer@mawahacademy.com" : student.email;
@@ -162,6 +164,7 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
         throw new HttpError(502, "gateway_error");
       }
       redirectUrl = r.redirectUrl;
+      payMethods = r.methods;
       await run(c.env.DB, "UPDATE orders SET gateway_ref = ? WHERE id = ?", r.sessionKey, order.id);
     } else if (channel === "bkash") {
       const r = await bkashCreate(c.env, { public_id: order.public_id, total: quote.total }, isNoEmail(student.email) ? (student.phone ?? "student") : student.email);
@@ -171,7 +174,7 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
       redirectUrl = `/api/payments/mock/pay/${order.public_id}`;
     }
     await audit(c, { action: "checkout.started", entity: "order", entityId: order.id, summary: channel });
-    return ok(c, { order: { public_id: order.public_id, status: "pending", total: quote.total }, redirect_url: redirectUrl, ...extra }, 201);
+    return ok(c, { order: { public_id: order.public_id, status: "pending", total: quote.total }, redirect_url: redirectUrl, pay_methods: payMethods, ...extra }, 201);
   } catch (err) {
     await closeOrder(c.env, order.public_id, "failed", "gateway_init_failed");
     if (channel === "bkash" && err instanceof HttpError && err.code === "gateway_error") await audit(c, { action: "checkout.gateway_failed", entity: "order", entityId: order.id, summary: "bkash" });

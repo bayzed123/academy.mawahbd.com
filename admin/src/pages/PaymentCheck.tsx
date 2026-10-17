@@ -25,7 +25,7 @@ interface Status {
   return_urls: { success: string; fail: string; cancel: string; ipn: string };
   last: Last | null;
 }
-type Check = { connected: true; mode: "live" | "sandbox"; host: string } | { connected: false; mode: "live" | "sandbox"; host: string; problem: Problem; detail?: string; status?: number };
+type Check = { connected: true; mode: "live" | "sandbox"; host: string; methods?: string[] } | { connected: false; mode: "live" | "sandbox"; host: string; problem: Problem; detail?: string; status?: number };
 
 /**
  * Settings → Payments, below the switches: is the online payment (SSLCommerz) really working? From the outside there is no way to tell: a student
@@ -115,6 +115,8 @@ export function PaymentCheck() {
               <Icon name="check" />
               <div>
                 <b>{t("adm.pay.chk.ok", { mode: modeWord(result.mode) })}</b>
+                {/* the ways of paying SSLCommerz has switched on for the store: what buyers choose from after "Pay" */}
+                {result.methods && result.methods.length > 0 && <p>{t("adm.pay.chk.methods", { list: result.methods.join(", ") })}</p>}
               </div>
             </div>
           ) : (

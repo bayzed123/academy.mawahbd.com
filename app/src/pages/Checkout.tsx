@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CHANNEL_LOGOS, PAY_LOGOS, toBnDigits, type Channel, type QuoteDTO, type StudentMe } from "@mawah/shared";
+import { CHANNEL_LOGOS, PAY_LOGOS, toBnDigits, type Channel, type PayMethodDTO, type QuoteDTO, type StudentMe } from "@mawah/shared";
 import { CURRENCY, gaItem, track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -11,7 +11,7 @@ import { Button, Empty, ErrorState, Field, Icon, Spinner, TextInput, Turnstile, 
 
 const CHANNEL_ICON: Record<Channel, string> = { sslcommerz: "wallet", bkash: "wallet", manual: "phone", mock: "sparkle" };
 type Method = "bkash" | "nagad" | "rocket";
-type PayResult = { order: { public_id: string; status: string; total: number }; redirect_url?: string; student?: StudentMe };
+type PayResult = { order: { public_id: string; status: string; total: number }; redirect_url?: string; pay_methods?: PayMethodDTO[]; student?: StudentMe };
 
 /**
  * Someone who typed the e-mail — or, with no e-mail, the mobile number — of a student account in "Your details". Nothing is opened for
@@ -139,6 +139,65 @@ function PayMarks({ channel, sslLogo }: { channel: Channel; sslLogo: string | nu
   );
 }
 
+const PAY_GROUPS = ["mobile", "card", "bank", "other"] as const;
+
+/**
+ * The buyer chose the online payment and pressed Pay: SSLCommerz opened the payment and said which ways of paying this store takes. They are shown
+ * here, on the website — SSLCommerz's own names and logos, mobile wallets first — and a tap goes straight to that one (bKash's page for bKash,
+ * Nagad's for Nagad …) instead of SSLCommerz's list. "All ways to pay" is SSLCommerz's own page, as before; "Change how to pay" goes back.
+ */
+function PayChooser({ methods, all, total, onBack }: { methods: PayMethodDTO[]; all: string; total: number; onBack: () => void }) {
+  const { t, money } = useI18n();
+  const heading = useRef<HTMLHeadingElement>(null);
+  // a new step: move the reader (and the screen reader) to its heading
+  useEffect(() => {
+    heading.current?.focus();
+  }, []);
+  const groups = PAY_GROUPS.map((g) => ({ g, list: methods.filter((m) => m.group === g) })).filter((x) => x.list.length);
+  return (
+    <>
+      <div className="page-head">
+        <h1 ref={heading} tabIndex={-1}>
+          {t("app.pay.title")}
+        </h1>
+      </div>
+      <section className="panel pay-chooser" aria-labelledby="pc-sub">
+        <p id="pc-sub" className="muted">
+          {t("app.pay.sub", { total: money(total) })}
+        </p>
+        {groups.map(({ g, list }) => (
+          <div className="pay-group" key={g}>
+            <h2>{t(`app.pay.g.${g}` as "app.pay.g.mobile")}</h2>
+            <ul className="pay-grid">
+              {list.map((m) => (
+                <li key={m.url}>
+                  <a className="pay-method" href={m.url}>
+                    <span className="pay-logo" aria-hidden="true">
+                      {m.logo ? <img src={m.logo} alt="" loading="lazy" decoding="async" /> : <Icon name="wallet" />}
+                    </span>
+                    <span className="pay-name">{m.name}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        <div className="pay-foot">
+          <a className="btn btn-outline" href={all}>
+            {t("app.pay.all")}
+          </a>
+          <Button className="btn-ghost" onClick={onBack}>
+            {t("app.pay.back")}
+          </Button>
+        </div>
+        <p className="hint pay-secure">
+          <Icon name="lock" /> {t("app.pay.secure")}
+        </p>
+      </section>
+    </>
+  );
+}
+
 export default function Checkout() {
   const { t, lang, pick, money, err } = useI18n();
   const [params] = useSearchParams();
@@ -178,6 +237,8 @@ export default function Checkout() {
   const [formError, setFormError] = useState("");
   // the online gateway turned this purchase away: the error says so, and the other way of paying is offered right there
   const [gatewayDown, setGatewayDown] = useState(false);
+  // the online payment is open and SSLCommerz listed the ways this store takes: the buyer taps one (null = still on the form)
+  const [online, setOnline] = useState<{ methods: PayMethodDTO[]; all: string; total: number } | null>(null);
 
   const cart = { courses: slug ? [slug] : undefined, bundle_id: bundle ? Number(bundle) : undefined };
   const quote = useQuery({
@@ -247,7 +308,10 @@ export default function Checkout() {
       if (res.student && v.as === "guest") track("sign_up", { method: "checkout" });
       void qc.invalidateQueries({ queryKey: ["orders"] });
       void qc.invalidateQueries({ queryKey: ["my-courses"] });
-      if (res.redirect_url) {
+      if (res.redirect_url && res.pay_methods?.length) {
+        setOnline({ methods: res.pay_methods, all: res.redirect_url, total: res.order.total });
+        window.scrollTo({ top: 0 });
+      } else if (res.redirect_url) {
         toast(t("app.checkout.redirecting"));
         window.location.assign(res.redirect_url);
       } else navigate(`/orders/${res.order.public_id}`, { replace: true });
@@ -269,6 +333,7 @@ export default function Checkout() {
   });
 
   if (student === undefined) return <Spinner />;
+  if (online) return <PayChooser methods={online.methods} all={online.all} total={online.total} onBack={() => setOnline(null)} />;
   // someone signed in who has no mobile number or address on file yet: the same two boxes as a visitor sees
   const needsDetails = !!student && (!student.phone || !student.address);
   if (!slug && !bundle) {

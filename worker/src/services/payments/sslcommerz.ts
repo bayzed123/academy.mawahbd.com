@@ -1,4 +1,4 @@
-import type { PaymentMethod } from "@mawah/shared";
+import { sslcommerzUrl, type PayMethodDTO, type PaymentMethod } from "@mawah/shared";
 import type { Env } from "../../env";
 
 /**
@@ -40,7 +40,40 @@ export type SslProblem =
   | "gateway_down" // it had an error of its own (5xx)
   | "other";
 
-export type SslSession = { ok: true; redirectUrl: string; sessionKey: string } | { ok: false; problem: SslProblem; detail: string; status?: number };
+export type SslSession = { ok: true; redirectUrl: string; sessionKey: string; methods: PayMethodDTO[] } | { ok: false; problem: SslProblem; detail: string; status?: number };
+
+const GROUPS: readonly PayMethodDTO["group"][] = ["mobile", "card", "bank", "other"];
+/** SSLCommerz's own kind of a way of paying ("mobilebanking", "internetbanking", "visa", "master", "amex", "othercards" …) in four groups. */
+function methodGroup(type: string): PayMethodDTO["group"] {
+  const t = type.toLowerCase();
+  if (t.includes("mobile")) return "mobile";
+  if (t.includes("internet")) return "bank";
+  if (/visa|master|amex|card/.test(t)) return "card";
+  return "other";
+}
+
+/**
+ * The ways of paying SSLCommerz offers this store, from its answer to a new session (`desc`: name, type, logo, gw, redirectGatewayURL): what the
+ * buyer chooses from on the website after "Pay" — tapping bKash opens bKash's payment at once, without SSLCommerz's own list. Taken as SSLCommerz
+ * sends it, so only what the store really has switched on is offered; an entry without an https address on sslcommerz.com is left out (and a
+ * logo from anywhere else is not shown). Mobile wallets first — what most buyers here use — then cards, banks and the rest, each in SSLCommerz's
+ * own order. (Exported for the tests.)
+ */
+export function sslMethods(desc: unknown): PayMethodDTO[] {
+  if (!Array.isArray(desc)) return [];
+  const found: PayMethodDTO[] = [];
+  const seen = new Set<string>();
+  for (const item of desc.slice(0, 120)) {
+    if (!item || typeof item !== "object") continue;
+    const d = item as Record<string, unknown>;
+    const url = typeof d.redirectGatewayURL === "string" ? sslcommerzUrl(d.redirectGatewayURL) : null;
+    const name = typeof d.name === "string" ? d.name.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 60) : "";
+    if (!url || !name || seen.has(url)) continue;
+    seen.add(url);
+    found.push({ name, group: methodGroup(typeof d.type === "string" ? d.type : ""), logo: typeof d.logo === "string" ? sslcommerzUrl(d.logo) : null, url });
+  }
+  return GROUPS.flatMap((g) => found.filter((m) => m.group === g));
+}
 
 /** Where the outcome of the last attempt is kept (KV): Settings → Payments and the dashboard's health strip read it. */
 export const SSL_LAST_KEY = "ssl:last";
@@ -152,14 +185,14 @@ async function openSession(env: Env, form: URLSearchParams): Promise<SslSession>
     return { ok: false, problem: "network", detail: scrubSsl(env, e instanceof Error ? e.message : "no answer") };
   }
   const text = await res.text().catch(() => "");
-  let json: { status?: unknown; GatewayPageURL?: unknown; sessionkey?: unknown; failedreason?: unknown } = {};
+  let json: { status?: unknown; GatewayPageURL?: unknown; sessionkey?: unknown; failedreason?: unknown; desc?: unknown } = {};
   try {
     json = JSON.parse(text) as typeof json;
   } catch {
     json = {};
   }
   if (res.ok && json.status === "SUCCESS" && typeof json.GatewayPageURL === "string" && json.GatewayPageURL) {
-    return { ok: true, redirectUrl: json.GatewayPageURL, sessionKey: typeof json.sessionkey === "string" ? json.sessionkey : "" };
+    return { ok: true, redirectUrl: json.GatewayPageURL, sessionKey: typeof json.sessionkey === "string" ? json.sessionkey : "", methods: sslMethods(json.desc) };
   }
   const said = scrubSsl(env, typeof json.failedreason === "string" && json.failedreason ? json.failedreason : text) || `HTTP ${res.status}`;
   return { ok: false, problem: sslProblem(res.status, said), detail: said, status: res.status };
@@ -169,11 +202,14 @@ export function sslInit(env: Env, order: { public_id: string; total: number }, c
   return openSession(env, sessionForm(env, order, customer, productName));
 }
 
-export type SslCheck = { connected: true; mode: "live" | "sandbox"; host: string } | { connected: false; mode: "live" | "sandbox"; host: string; problem: SslProblem; detail?: string; status?: number };
+export type SslCheck =
+  | { connected: true; mode: "live" | "sandbox"; host: string; methods: string[] }
+  | { connected: false; mode: "live" | "sandbox"; host: string; problem: SslProblem; detail?: string; status?: number };
 
 /**
  * "Check the connection": open a session for a made-up 10-taka order, exactly as a purchase would, and read what SSLCommerz says. Nothing is
- * charged and nobody is sent to the gateway page (its address is thrown away); SSLCommerz only lists one unpaid test entry.
+ * charged and nobody is sent to the gateway page (its address is thrown away); SSLCommerz only lists one unpaid test entry. When it works, the
+ * names of the ways of paying SSLCommerz offers the store are kept (what buyers will choose from) — never their addresses.
  */
 export async function sslCheck(env: Env): Promise<SslCheck> {
   const mode = sslMode(env);
@@ -183,7 +219,9 @@ export async function sslCheck(env: Env): Promise<SslCheck> {
   const mail = (env.NOTIFY_EMAIL ?? "").trim() || "customer@mawahacademy.com";
   const r = await openSession(env, sessionForm(env, { public_id: tran, total: 10 }, { name: "Connection check", email: mail, phone: "01700000000", address: "Dhaka" }, "Connection check"));
   await rememberSsl(env, r, "check");
-  return r.ok ? { connected: true, mode, host } : { connected: false, mode, host, problem: r.problem, detail: r.detail, ...(r.status ? { status: r.status } : {}) };
+  return r.ok
+    ? { connected: true, mode, host, methods: r.methods.map((m) => m.name).slice(0, 60) }
+    : { connected: false, mode, host, problem: r.problem, detail: r.detail, ...(r.status ? { status: r.status } : {}) };
 }
 
 /** Ask SSLCommerz whether `valId` is a genuine, completed payment. Returns null on any transport problem. */
