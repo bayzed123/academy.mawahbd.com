@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS } from "@mawah/shared";
+import { MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS, readSslLogo, SSL_LOGO_MAX } from "@mawah/shared";
 import { isDev, type AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { underHourlyCap } from "../../../lib/cap";
@@ -41,6 +41,13 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     manual_note_bn: textSchema(500),
     manual_note_en: textSchema(500),
     manual_window_min: z.number().int().min(MANUAL_WINDOW_RANGE_MIN.min).max(MANUAL_WINDOW_RANGE_MIN.max).optional(),
+    // SSLCommerz's own logo, as SSLCommerz gave it (a link or its HTML): kept as pasted, but only when it holds an https picture on sslcommerz.com
+    ssl_logo: z
+      .string()
+      .trim()
+      .max(SSL_LOGO_MAX, "too_long")
+      .refine((v) => v === "" || readSslLogo(v) !== null, "ssl_logo_invalid")
+      .default(""),
   }),
   policies: z.object({ refund_bn: long(20000), refund_en: long(20000), privacy_bn: long(20000), privacy_en: long(20000), terms_bn: long(20000), terms_en: long(20000) }),
   about: z.object({ bn: long(20000), en: long(20000) }),

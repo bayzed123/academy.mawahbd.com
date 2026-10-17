@@ -1,5 +1,5 @@
 import { raw } from "hono/html";
-import { loc } from "@mawah/shared";
+import { loc, readSslLogo } from "@mawah/shared";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
 import { ANALYTICS_JS, BANNERS_JS, CSS, GALLERY_JS, HAS_OG_IMAGE, SITE_JS } from "../generated/assets";
@@ -50,6 +50,8 @@ export function Layout(props: LayoutProps) {
   const fb = httpUrl(settings.contact.facebook);
   const yt = httpUrl(settings.contact.youtube);
   const ig = httpUrl(settings.contact.instagram);
+  // SSLCommerz's own logo, when the owner has pasted the link SSLCommerz gave (Settings → Payments): it takes the place of the five small marks
+  const sslLogo = settings.payments.sslcommerz ? readSslLogo(settings.payments.ssl_logo) : null;
   const shop = shopOf(ctx);
   const shopAttrs = { target: "_blank", rel: "noopener noreferrer", "data-shop": "" } as const;
 
@@ -286,13 +288,26 @@ export function Layout(props: LayoutProps) {
                   <p class="foot-h mt" id="pay-h">
                     {t("footer.payments")}
                   </p>
-                  <ul class="pay-logos" aria-labelledby="pay-h">
-                    {PAY_LOGOS.map((p) => (
-                      <li>
-                        <img src={p.src} width={p.width} height={p.height} alt={t(`method.${p.key}` as "method.bkash")} loading="lazy" decoding="async" />
-                      </li>
-                    ))}
-                  </ul>
+                  {sslLogo ? (
+                    <p class="ssl-logo">
+                      {sslLogo.href ? (
+                        <a href={sslLogo.href} rel="noopener noreferrer" target="_blank">
+                          <img src={sslLogo.src} alt={t("footer.sslAlt")} loading="lazy" decoding="async" />
+                          <span class="vh"> ({t("shop.opens")})</span>
+                        </a>
+                      ) : (
+                        <img src={sslLogo.src} alt={t("footer.sslAlt")} loading="lazy" decoding="async" />
+                      )}
+                    </p>
+                  ) : (
+                    <ul class="pay-logos" aria-labelledby="pay-h">
+                      {PAY_LOGOS.map((p) => (
+                        <li>
+                          <img src={p.src} width={p.width} height={p.height} alt={t(`method.${p.key}` as "method.bkash")} loading="lazy" decoding="async" />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
               <div class="wrap foot-bottom">

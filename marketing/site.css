@@ -204,6 +204,10 @@ body.has-buybar{padding-bottom:78px}
 .site-footer .pay-logos{display:flex;flex-wrap:wrap;gap:6px;margin-top:.7rem}
 .pay-logos li{display:flex;align-items:center;justify-content:center;height:36px;padding:0 8px;border-radius:9px;background:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.16)}
 .pay-logos img{display:block;height:24px;width:auto}
+/* SSLCommerz's own logo (one picture with every way to pay), on a white card like the small marks; it may be wide, so it shrinks to the column */
+.ssl-logo{margin:.7rem 0 0}
+.ssl-logo a{display:inline-block}
+.ssl-logo img{display:block;max-width:100%;height:auto;max-height:140px;padding:6px 8px;border-radius:10px;background:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.16)}
 .foot-bottom{border-top:1px solid rgba(255,255,255,.1);padding-block:18px;font-size:.88rem;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
 /* the developer credit: a plain, visible link (underlined, gold) so it reads as one */
 .foot-credit a{color:var(--g-300);text-decoration:underline;text-underline-offset:3px;font-weight:600}

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
-import { formatMoney, isNoEmail, MAX_PROOF_IMAGE_BYTES, type Channel, type QuoteDTO } from "@mawah/shared";
+import { formatMoney, isNoEmail, MAX_PROOF_IMAGE_BYTES, readSslLogo, type Channel, type QuoteDTO } from "@mawah/shared";
 import type { AppEnv, Ctx, StudentCtx } from "../../env";
 import { audit } from "../../lib/audit";
 import { first, nowIso, run } from "../../lib/db";
@@ -81,6 +81,7 @@ function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<
     bundle_id: q.bundle_id,
     channels: q.total === 0 ? [] : channels,
     manual: channels.includes("manual") ? manualPayInfo(settings) : null,
+    ssl_logo: q.total > 0 && channels.includes("sslcommerz") ? (readSslLogo(settings.payments.ssl_logo)?.src ?? null) : null,
   };
 }
 

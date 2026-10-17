@@ -15,6 +15,8 @@ export interface Settings {
     manual_note_en: string;
     /** minutes a student is asked to pay within after choosing manual payment */
     manual_window_min: number;
+    /** what SSLCommerz gave the shop to show its logo (a link, or its few lines of HTML) — read by readSslLogo; empty = not shown */
+    ssl_logo: string;
   };
   policies: {
     refund_bn: string;
@@ -47,6 +49,7 @@ export const SETTING_DEFAULTS: Settings = {
     manual_note_bn: "",
     manual_note_en: "",
     manual_window_min: MANUAL_WINDOW_DEFAULT_MIN,
+    ssl_logo: "",
   },
   policies: { refund_bn: "", refund_en: "", privacy_bn: "", privacy_en: "", terms_bn: "", terms_en: "" },
   about: { bn: "", en: "" },

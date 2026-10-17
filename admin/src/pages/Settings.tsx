@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { readSslLogo, SSL_LOGO_MAX } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -13,13 +14,37 @@ interface S {
   contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string };
   announcement: { bn: string; en: string };
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
-  payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number };
+  payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number; ssl_logo: string };
   policies: { refund_bn: string; refund_en: string; privacy_bn: string; privacy_en: string; terms_bn: string; terms_en: string };
   about: { bn: string; en: string };
   analytics: { ga4: string; clarity: string; meta_pixel: string };
 }
 type Key = keyof Pick<S, "contact" | "announcement" | "shop" | "payments" | "policies" | "about" | "analytics">;
 type Tab = "contact" | "payments" | "email" | "sms" | "policies" | "about" | "analytics";
+
+/**
+ * SSLCommerz's logo as it will look, from what is in the box: SSLCommerz's picture when the box holds the link (or code) SSLCommerz gave, or
+ * plainly why it does not — before Save, so a wrong paste is seen at once.
+ */
+function SslLogoPreview({ value, hasError }: { value: string; hasError: boolean }) {
+  const { t } = useI18n();
+  if (!value.trim()) return null;
+  const logo = readSslLogo(value);
+  // after Save the box itself says what is wrong; the same words twice would be noise
+  if (!logo && hasError) return null;
+  return (
+    <div className="field wide ssl-preview" aria-live="polite">
+      {logo ? (
+        <>
+          <p className="hint">{t("adm.pay.sslLogoPreview")}</p>
+          <img src={logo.src} alt={t("adm.pay.sslLogoAlt")} />
+        </>
+      ) : (
+        <p className="err-text">{t("err.ssl_logo_invalid")}</p>
+      )}
+    </div>
+  );
+}
 
 /** One settings group: local edits, one Save button, server-side validation errors shown per field. */
 function Group<K extends Key>({ name, data, canWrite, children }: { name: K; data: S[K]; canWrite: boolean; children: (v: S[K], set: (patch: Partial<S[K]>) => void, errors: Record<string, string>) => React.ReactNode }) {
@@ -171,6 +196,10 @@ export function Settings() {
                     <Switch checked={v.sslcommerz} disabled={!canWrite} onChange={(x) => set({ sslcommerz: x })} label={t("adm.pay.ssl")} />
                     <p className="hint">{t("adm.pay.sslHint")}</p>
                   </div>
+                  <Field id="pn-ssl-logo" label={t("adm.pay.sslLogo")} hint={t("adm.pay.sslLogoHint")} error={e.ssl_logo} wide>
+                    <TextArea id="pn-ssl-logo" rows={3} className="mono" maxLength={SSL_LOGO_MAX} spellCheck={false} value={v.ssl_logo} disabled={!canWrite} onChange={(x) => set({ ssl_logo: x.target.value })} />
+                  </Field>
+                  <SslLogoPreview value={v.ssl_logo} hasError={Boolean(e.ssl_logo)} />
                   <div className="field wide">
                     <Switch checked={v.bkash_direct} disabled={!canWrite} onChange={(x) => set({ bkash_direct: x })} label={t("adm.pay.bkash")} />
                     <p className="hint">{t("adm.pay.bkashHint")}</p>

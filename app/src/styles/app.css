@@ -201,6 +201,9 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .pay-marks{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
 .pay-mark{display:inline-flex;align-items:center;height:26px;padding:0 7px;border-radius:8px;background:#fff;box-shadow:0 0 0 1px var(--line-2)}
 .pay-mark img{display:block;height:17px;width:auto}
+/* SSLCommerz's own logo on the online-payment choice: one wide picture with every way to pay, fitted to the card (room kept so nothing jumps) */
+.pay-ssl{display:block;margin-top:8px;min-height:36px}
+.pay-ssl img{display:block;max-width:100%;height:auto;max-height:72px;padding:4px 6px;border-radius:8px;background:#fff;box-shadow:0 0 0 1px var(--line-2)}
 .manual-box{margin-top:14px;padding:16px;border-radius:16px;background:var(--g-100);border:1px solid var(--g-300)}
 .num-list{list-style:none;margin:.4rem 0 1rem;padding:0;display:grid;gap:8px}
 .num-list li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:.6rem .9rem;background:#fff;border:1px solid var(--line);border-radius:12px}

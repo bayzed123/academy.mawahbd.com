@@ -180,6 +180,8 @@ export interface QuoteDTO {
   /** payment channels that can be used right now (empty when total is 0: enrolment is instant) */
   channels: Channel[];
   manual: ManualPayInfo | null;
+  /** SSLCommerz's own logo (the picture's address), shown on the online-payment choice when the owner has pasted it; null = the small marks */
+  ssl_logo: string | null;
 }
 
 export interface CertificateDTO {
