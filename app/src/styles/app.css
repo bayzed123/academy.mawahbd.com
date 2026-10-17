@@ -77,6 +77,9 @@ html[lang=bn] .brand-name{font-weight:400;letter-spacing:.02em;font-size:1.1rem;
 .mat-note{margin:0;color:var(--ink-2);font-size:.95rem}
 .mat-meta{margin:0;color:var(--ink-3);font-size:.88rem;overflow-wrap:anywhere}
 .mat-actions{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+/* a video that plays in its card (or says it is being prepared) takes the whole row: big enough to watch */
+.mat-grid>li.mat-wide{grid-column:1/-1}
+.mat-card .video-frame{margin-top:auto}
 .mat-chip{flex:none;padding:.15rem .6rem;border-radius:99px;font-size:.78rem;font-weight:700;background:var(--g-100);border:1px solid var(--g-300);color:var(--g-800)}
 .mat-chip.live{background:var(--red-50);border-color:var(--red-100);color:var(--red-800)}
 .mat-chip.ended{background:var(--ivory-2);border-color:var(--line);color:var(--ink-3)}

@@ -920,6 +920,160 @@ describe("Admin → the lesson editor: which address to share with, and “Check
   });
 });
 
+/* ================================================================================================ a Drive video in the class's materials */
+
+/** A link in the class's materials (Admin → Materials), switched on unless said otherwise. */
+async function material(courseId: number, url: string | null, opts: { kind?: string; active?: number; r2_key?: string } = {}) {
+  const r = await env.DB.prepare("INSERT INTO materials (course_id, kind, title_bn, title_en, url, r2_key, filename, mime, size_bytes, active) VALUES (?, ?, 'ভিডিও', ?, ?, ?, ?, ?, ?, ?)")
+    .bind(courseId, opts.kind ?? "video", `Material ${++seq}`, url, opts.r2_key ?? null, opts.r2_key ? "notes.pdf" : null, opts.r2_key ? "application/pdf" : null, opts.r2_key ? 10 : null, opts.active ?? 1)
+    .run();
+  return r.meta.last_row_id as number;
+}
+const materialsOf = async (client: Client, slug: string) => {
+  const raw = await (await client.get(`/api/student/courses/${slug}/materials`)).text();
+  return { raw, list: JSON.parse(raw).materials as Record<string, unknown>[] };
+};
+const opensOf = async (materialId: number) =>
+  (await env.DB.prepare("SELECT action FROM material_downloads WHERE material_id = ?").bind(materialId).all<{ action: string }>()).results.map((r) => r.action);
+
+describe("a Drive video in the class's materials", () => {
+  it("plays in its card for a student who owns the class: the list names the website's address, never Drive's, and the video comes whole or in parts", async () => {
+    await connected(async () => {
+      const g = googleIsStoodIn();
+      const cls = await makeClass([]);
+      const mat = await material(cls.courseId, viewUrl(OK));
+      const student = await enrolled(cls.courseId);
+      const { raw, list } = await materialsOf(student, cls.slug);
+      expect(list).toHaveLength(1);
+      expect(list[0]).toMatchObject({ id: mat, kind: "video", delivery: "play", media_url: `/api/student/materials/${mat}/media`, filename: null });
+      expect(raw).not.toContain(OK);
+      expect(raw).not.toContain("drive.google.com");
+
+      const whole = await student.get(`/api/student/materials/${mat}/media`);
+      expect(whole.status).toBe(200);
+      expect(whole.headers.get("content-type")).toBe("video/webm");
+      expect(whole.headers.get("cache-control")).toBe("private, no-store");
+      expect(whole.headers.get("content-disposition")).toBe("inline");
+      expect(sameBytes(await bytesOf(whole), DEV_WEBM)).toBe(true);
+      const part = await student.fetch(`/api/student/materials/${mat}/media`, { headers: { Range: "bytes=0-99" } });
+      expect(part.status).toBe(206);
+      expect(part.headers.get("content-range")).toBe(`bytes 0-99/${DEV_WEBM.length}`);
+      expect(sameBytes(await bytesOf(part), DEV_WEBM.slice(0, 100))).toBe(true);
+      // the file the owner put in the material, asked for with the read-only pass
+      expect(g.drive.filter((c) => c.url.includes("alt=media")).map((c) => [c.url.includes(`/files/${OK}?`), c.range])).toEqual([
+        [true, null],
+        [true, "bytes=0-99"],
+      ]);
+    });
+  });
+
+  it("says “being prepared” — never a link — for one the website cannot play (not shared, a document, no download, a folder, no key), and the owner is told why", async () => {
+    const pending = { delivery: "pending", media_url: null };
+    await connected(async () => {
+      googleIsStoodIn();
+      for (const [kind, problem] of [
+        ["not_shared", "no_access"],
+        ["google_doc", "not_video"],
+        ["download_off", "not_downloadable"],
+      ] as const) {
+        const cls = await makeClass([]);
+        await material(cls.courseId, viewUrl(id(kind)));
+        const student = await enrolled(cls.courseId);
+        await env.KV.delete(DRIVE_LAST_KEY);
+        const { raw, list } = await materialsOf(student, cls.slug);
+        expect(list[0], kind).toMatchObject(pending);
+        expect(raw, kind).not.toContain("drive.google.com");
+        expect(raw, kind).not.toContain(id(kind));
+        expect((await env.KV.get<{ problem: string }>(DRIVE_LAST_KEY, "json"))?.problem, kind).toBe(problem);
+      }
+      const folder = await makeClass([]);
+      await material(folder.courseId, "https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz012345", { kind: "link" });
+      const { raw, list } = await materialsOf(await enrolled(folder.courseId), folder.slug);
+      expect(list[0]).toMatchObject(pending);
+      expect(raw).not.toContain("folders");
+    });
+    const cls = await makeClass([]);
+    await material(cls.courseId, viewUrl(OK));
+    const student = await enrolled(cls.courseId);
+    await withEnv({ GOOGLE_SERVICE_ACCOUNT: undefined }, async () => {
+      expect((await materialsOf(student, cls.slug)).list[0]).toMatchObject(pending);
+    });
+  });
+
+  it("“open” never hands out a Drive address (it plays here instead) and records nothing; Google Docs and other links open as before", async () => {
+    await connected(async () => {
+      googleIsStoodIn();
+      const cls = await makeClass([]);
+      const ready = await material(cls.courseId, viewUrl(OK));
+      const notShared = await material(cls.courseId, viewUrl(id("not_shared")));
+      const folder = await material(cls.courseId, "https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz012345", { kind: "link" });
+      const doc = await material(cls.courseId, "https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/edit", { kind: "link" });
+      const yt = await material(cls.courseId, "https://youtu.be/dQw4w9WgXcQ");
+      const student = await enrolled(cls.courseId);
+      for (const m of [ready, notShared, folder]) {
+        const res = await student.post(`/api/student/materials/${m}/open`, {});
+        expect(res.status, String(m)).toBe(409);
+        const text = await res.text();
+        expect(JSON.parse(text).error.code).toBe("plays_here");
+        expect(text).not.toContain("google.com");
+        expect(await opensOf(m)).toEqual([]);
+      }
+      const list = (await materialsOf(student, cls.slug)).list;
+      expect(list.find((x) => x.id === doc)).toMatchObject({ delivery: "link", media_url: null });
+      expect(list.find((x) => x.id === yt)).toMatchObject({ delivery: "link", media_url: null });
+      expect((await json(await student.post(`/api/student/materials/${doc}/open`, {}))).url).toBe("https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/edit");
+      expect((await json(await student.post(`/api/student/materials/${yt}/open`, {}))).url).toBe("https://youtu.be/dQw4w9WgXcQ");
+    });
+  });
+
+  it("pressing play is recorded like an opened link (Admin → Materials shows who watched); a video that is not ready is refused", async () => {
+    await connected(async () => {
+      googleIsStoodIn();
+      const cls = await makeClass([]);
+      const ready = await material(cls.courseId, viewUrl(OK));
+      const notShared = await material(cls.courseId, viewUrl(id("not_shared")));
+      const student = await enrolled(cls.courseId);
+      const played = await student.post(`/api/student/materials/${ready}/play`, {});
+      expect(played.status).toBe(200);
+      expect(await json(played)).toEqual({ ok: true, media_url: `/api/student/materials/${ready}/media` });
+      const end = Date.now() + 1500;
+      while ((await opensOf(ready)).length === 0 && Date.now() < end) await new Promise((r) => setTimeout(r, 25));
+      expect(await opensOf(ready)).toEqual(["open"]);
+      const refused = await student.post(`/api/student/materials/${notShared}/play`, {});
+      expect(refused.status).toBe(409);
+      expect(await errorCode(refused)).toBe("video_pending");
+      expect(await opensOf(notShared)).toEqual([]);
+    });
+  });
+
+  it("only for a student who owns the class: a stranger, a visitor, a switched-off material and anything but a Drive file get nothing — and Google is not asked", async () => {
+    await connected(async () => {
+      const g = googleIsStoodIn();
+      const cls = await makeClass([], { price: 500 });
+      const mat = await material(cls.courseId, viewUrl(OK));
+      const media = `/api/student/materials/${mat}/media`;
+      expect((await new Client().get(media)).status).toBe(401);
+      const { client: stranger } = await registerStudent();
+      const denied = await stranger.get(media);
+      expect(denied.status).toBe(403);
+      expect(await errorCode(denied)).toBe("not_enrolled");
+      expect((await stranger.post(`/api/student/materials/${mat}/play`, {})).status).toBe(403);
+      expect((await stranger.get(`/api/student/courses/${cls.slug}/materials`)).status).toBe(403);
+
+      const student = await enrolled(cls.courseId);
+      const off = await material(cls.courseId, viewUrl(OK), { active: 0 });
+      const folder = await material(cls.courseId, "https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz012345", { kind: "link" });
+      const yt = await material(cls.courseId, "https://youtu.be/dQw4w9WgXcQ");
+      const file = await material(cls.courseId, null, { kind: "pdf", r2_key: "materials/test/notes.pdf" });
+      for (const m of [off, folder, yt, file]) {
+        expect((await student.get(`/api/student/materials/${m}/media`)).status, String(m)).toBe(404);
+        expect((await student.post(`/api/student/materials/${m}/play`, {})).status, String(m)).toBe(404);
+      }
+      expect(g.drive.filter((c) => c.url.includes("alt=media"))).toHaveLength(0);
+    });
+  });
+});
+
 describe("the stand-in for Google Drive (development and tests only)", () => {
   it("answers 404 on the real site", async () => {
     await withEnv({ ENVIRONMENT: "production", SITE_URL: PUBLIC }, async () => {

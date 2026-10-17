@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FILE_MATERIAL_KINDS, GROUP_PLATFORMS, LIVE_PLATFORMS, MATERIAL_KINDS, MAX_UPLOAD_MATERIAL_BYTES, type MaterialKind } from "@mawah/shared";
 import { adm, ApiError, upload } from "../lib/api";
 import { useI18n } from "../lib/i18n";
+import { DriveHelp } from "./DriveHelp";
 import { Button, Field, Icon, Progress, Select, SlideOver, Switch, TextArea, TextInput, useFieldErrors, useToast } from "./ui";
 
 /** A material as the list returns it. */
@@ -280,6 +281,8 @@ export function MaterialDrawer({ open, row, courseId, classes, onClose }: { open
                 <TextInput id="mat-url" type="url" inputMode="url" placeholder="https://" value={d.url} error={errors.url} onChange={(e) => set({ url: e.target.value })} />
               </Field>
             )}
+            {/* a Google Drive video plays inside the class page once it is shared with the website's Google address: how, and "Check access" */}
+            {!byFile && kind !== "group" && <DriveHelp url={d.url} />}
 
             <Field id="mat-note-bn" label={t("adm.mat.noteBn")} error={errors.note_bn}>
               <TextArea id="mat-note-bn" rows={2} maxLength={300} value={d.note_bn} error={errors.note_bn} onChange={(e) => set({ note_bn: e.target.value })} />

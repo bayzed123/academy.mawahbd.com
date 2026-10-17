@@ -291,3 +291,86 @@ test.describe("the owner's lesson editor", () => {
     expect(JSON.stringify(checks)).not.toContain("DEV_");
   });
 });
+
+test.describe("a Drive video in the class's materials", () => {
+  let mats: { ok: number; privateOne: number };
+  const material = async (title_en: string, url: string) => {
+    const res = await apiPost(admin, "/admin/materials", { course_id: courseId, kind: "video", title_bn: "ভিডিও", title_en, note_bn: "", note_en: "", r2_key: null, url, platform: null, starts_at: null, duration_min: null, active: true, sort: 100 });
+    expect(res.status).toBe(201);
+    return (res.body as { item: { id: number } }).item.id;
+  };
+  test.beforeAll(async () => {
+    // the way the owner added the biryani class: the videos under Materials, each a Drive link
+    mats = { ok: await material("Biryani part 1", driveUrl(DRIVE_OK)), privateOne: await material("Biryani part 2", driveUrl(DRIVE_PRIVATE)) };
+  });
+
+  test("plays right in its card — no new tab, no Drive address anywhere — and one the website cannot read says it is being prepared", async ({ browser }) => {
+    const { ctx, page } = await student(browser);
+    const toGoogle: string[] = [];
+    page.on("request", (r) => {
+      if (/google/.test(new URL(r.url()).hostname)) toGoogle.push(r.url());
+    });
+    const tabs: string[] = [];
+    ctx.on("page", (p) => tabs.push(p.url()));
+
+    await page.goto(`/app/learn/${slug}`);
+    const section = page.locator("#materials");
+    const ok = section.locator(".mat-card", { hasText: "Biryani part 1" });
+    const video = ok.locator(".video-frame video");
+    await expect(video).toBeVisible();
+    expect(await video.getAttribute("src")).toBe(`/api/student/materials/${mats.ok}/media`);
+    // a list of videos fetches nothing until one is pressed
+    expect(await video.getAttribute("preload")).toBe("none");
+    await expect(ok.getByRole("button", { name: /Watch video/ })).toHaveCount(0);
+
+    // pressed: it really plays, and the website notes that this student watched it
+    const played = page.waitForResponse((r) => r.url().endsWith(`/api/student/materials/${mats.ok}/play`) && r.request().method() === "POST");
+    await video.evaluate(async (v: HTMLVideoElement) => {
+      v.muted = true;
+      await v.play();
+    });
+    expect((await played).status()).toBe(200);
+    await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0.2);
+    expect(await video.evaluate((v: HTMLVideoElement) => v.error?.code ?? null)).toBeNull();
+
+    const pending = section.locator(".mat-card", { hasText: "Biryani part 2" });
+    await expect(pending.getByRole("status")).toContainText("This class video is being prepared");
+    await expect(pending.locator("video")).toHaveCount(0);
+    await expect(pending.getByRole("button")).toHaveCount(0);
+    await expect(pending.getByRole("link")).toHaveCount(0);
+
+    expect(tabs).toEqual([]);
+    expect(toGoogle).toEqual([]);
+    const html = await page.content();
+    for (const secret of ["drive.google.com", DRIVE_OK, DRIVE_PRIVATE]) expect(html, secret).not.toContain(secret);
+
+    // on a 360 px phone the video and the note fit the screen
+    await page.setViewportSize({ width: 360, height: 800 });
+    await expect(video).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await ctx.close();
+  });
+
+  test("the owner's material editor shows the address to share with and “Check access”, as the lesson editor does", async () => {
+    await admin.goto("/admin/materials");
+    await admin.getByRole("button", { name: "+ Add" }).click();
+    const drawer = admin.getByRole("dialog");
+    await drawer.getByLabel("Which class is it for?").selectOption({ label: "Drive Videos E2E" });
+    await drawer.getByRole("radio", { name: /^Video/ }).click();
+    await drawer.getByRole("radio", { name: /Add a link instead/ }).click();
+    const panel = drawer.getByRole("region", { name: "Google Drive video" });
+    await expect(panel).toHaveCount(0); // nothing until a Drive link is there
+    await drawer.locator("#mat-url").fill(driveUrl(DRIVE_OK));
+    await expect(panel).toBeVisible();
+    await expect(panel.getByText(SERVICE_EMAIL)).toBeVisible();
+    await panel.getByRole("button", { name: "Check access" }).click();
+    await expect(panel.getByText("Ready — “Class 1 — dough.webm” will play inside the class page.")).toBeVisible();
+    await drawer.locator("#mat-url").fill(driveUrl(DRIVE_PRIVATE));
+    await panel.getByRole("button", { name: "Check access" }).click();
+    await expect(panel.getByRole("alert").filter({ hasText: "The website cannot see this file" })).toBeVisible();
+    await drawer.locator("#mat-url").fill("https://youtu.be/dQw4w9WgXcQ");
+    await expect(panel).toHaveCount(0);
+    const axe = await new AxeBuilder({ page: admin }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
+  });
+});

@@ -19,9 +19,9 @@ const LOOKS_LIKE_DRIVE = /^\s*https?:\/\/(?:drive|docs|drive\.usercontent)\.goog
 const size = (n: number) => (n >= 1073741824 ? `${(n / 1073741824).toFixed(1)} GB` : n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 
 /**
- * Under the link of a "link" lesson, when the link is a Google Drive one: how to make the video play inside the class page (share it with the
- * website's own Google address) and a "Check access" button that says — in plain words — whether that worked. Without this the owner could not tell:
- * a video the website cannot read just sends the student to a Drive page that says "You need permission".
+ * Under the link of a "link" lesson or of a class material, when the link is a Google Drive one: how to make the video play inside the class page
+ * (share it with the website's own Google address) and a "Check access" button that says — in plain words — whether that worked. Without this the
+ * owner could not tell: a video the website cannot read only tells the student it is being prepared (a student is never sent to Drive).
  */
 export function DriveHelp({ url }: { url: string }) {
   const { t, lang } = useI18n();
