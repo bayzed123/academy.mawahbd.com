@@ -1,18 +1,24 @@
 #!/usr/bin/env node
 /**
  * Renders marketing/public/og-default.jpg (1200x630, a JPEG so it stays under ~100 KB: WhatsApp skips big preview images) — the picture shown when a page without its own image is
- * shared on Facebook / WhatsApp / Google. It shows the owner's logo (brand/mawah-logo.jpg) on the brand black, in the brand fonts, so re-run this after
- * a rebrand:   node scripts/gen-og-image.mjs      (CHROMIUM_PATH=/path/to/chrome if Playwright's browser is not installed)
+ * shared on Facebook / WhatsApp / Google. It shows the owner's logo (brand/mawah-logo.jpg) on the brand black, in the brand fonts, and the site's
+ * address — taken from SITE_URL in worker/wrangler.toml, never written in here — so re-run this after a rebrand or a change of domain:
+ *   npm run og:image      (CHROMIUM_PATH=/path/to/chrome if Playwright's browser is not installed)
+ * The picture carries the address it shows as a comment (scripts/lib/share-image.mjs): a test fails when SITE_URL changed and this was not re-run.
  * Nothing here is a claim about the business: no counts, no ratings, no prices.
  */
 import { chromium } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { shareImageHost, shareImageStamp, withJpegComment } from "./lib/share-image.mjs";
+import { readSiteUrl } from "./lib/toml-patch.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const font = (name) => `data:font/woff2;base64,${readFileSync(resolve(root, "marketing/public/fonts", name)).toString("base64")}`;
 const logo = `data:image/jpeg;base64,${readFileSync(resolve(root, "brand/mawah-logo.jpg")).toString("base64")}`;
+const site = readSiteUrl(readFileSync(resolve(root, "worker/wrangler.toml"), "utf8"));
+if (!site) throw new Error("gen-og-image: SITE_URL is missing from worker/wrangler.toml");
 
 /** The artwork inside the 972x972 original (same numbers as scripts/gen-brand-assets.mjs) and how large it is drawn here. */
 const BOX = { x: 40 - 14, y: 246 - 18, w: 867 + 28, h: 451 + 36 };
@@ -40,14 +46,14 @@ body{width:1200px;height:630px;overflow:hidden;font-family:Hind,sans-serif;color
 <div class="logo" role="img" aria-label="MAWAH"></div>
 <div class="en">Cooking &amp; baking classes you can learn at home</div>
 <div class="bn">ঘরে বসেই ধাপে ধাপে শিখুন রান্না ও বেকিং</div>
-<div class="url">ACADEMY.MAWAHBD.COM</div>`;
+<div class="url">${shareImageHost(site).toUpperCase()}</div>`;
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined, args: ["--no-sandbox"] });
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
 await page.setContent(html);
 await page.evaluate(() => document.fonts.ready);
-const img = await page.screenshot({ type: "jpeg", quality: 84 });
+const img = withJpegComment(await page.screenshot({ type: "jpeg", quality: 84 }), shareImageStamp(site));
 await browser.close();
 const out = resolve(root, "marketing/public/og-default.jpg");
 writeFileSync(out, img);
-console.log(`wrote ${out.replace(root + "/", "")} (${(img.length / 1024).toFixed(0)} KB)`);
+console.log(`wrote ${out.replace(root + "/", "")} (${(img.length / 1024).toFixed(0)} KB) for ${shareImageHost(site)}`);

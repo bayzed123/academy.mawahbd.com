@@ -3,6 +3,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { jpegComments, shareImageHost, shareImageStamp, withJpegComment } from "./share-image.mjs";
+import { readSiteUrl } from "./toml-patch.mjs";
 
 /*
  * Guards the brand: the colours measured from the owner's logo, enough contrast between the palette's text and background
@@ -108,6 +110,26 @@ test("the logo and icon files the pages point at exist and are the right kind of
   assert.equal(og[0], 0xff); assert.equal(og[1], 0xd8);
   assert.ok(og.length < 100 * 1024, "the share image must stay under 100 KB (WhatsApp skips big previews)");
   assert.ok(existsSync(join(root, "brand/mawah-logo.jpg")), "the original logo (source of the generated files) must stay in the repository");
+});
+
+test("the share image shows the site's own address (SITE_URL), so a change of domain cannot leave the old one on it", () => {
+  const site = readSiteUrl(read("worker/wrangler.toml"));
+  const og = readFileSync(join(root, "marketing/public/og-default.jpg"));
+  assert.deepEqual(jpegComments(og), [shareImageStamp(site)], `the share image was made for another address than ${site}: run npm run og:image and commit the picture`);
+  // the address is never written into the generator by hand — that is how the old domain stayed on the picture after the move
+  assert.doesNotMatch(read("scripts/gen-og-image.mjs"), /\b[a-z0-9-]+\.(?:com|net|org|bd)\b/i);
+});
+
+test("the share image's address is SITE_URL's host without www., and the comment that records it reads back", () => {
+  assert.equal(shareImageHost("https://mawahacademy.com"), "mawahacademy.com");
+  assert.equal(shareImageHost("https://www.Example.com/path"), "example.com");
+  // a JPEG's start marker, a JFIF header, the image data, the end
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x4a, 0x46, 0xff, 0xda, 0x00, 0x02, 0xff, 0xd9]);
+  assert.deepEqual(jpegComments(jpeg), []);
+  const stamped = withJpegComment(jpeg, "site=example.com");
+  assert.deepEqual(jpegComments(stamped), ["site=example.com"]);
+  assert.deepEqual([...stamped.subarray(0, 8)], [...jpeg.subarray(0, 8)], "the JFIF header stays straight after the start marker");
+  assert.deepEqual([...stamped.subarray(-6)], [...jpeg.subarray(-6)], "the image itself is untouched");
 });
 
 test("the web manifest and the page heads only reference files that exist", () => {
