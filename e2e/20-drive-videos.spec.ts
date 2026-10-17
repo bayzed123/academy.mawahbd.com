@@ -216,7 +216,6 @@ test.describe("the owner's lesson editor", () => {
     await expect(panel().getByText("video/webm")).toBeVisible();
     await expect(panel().getByRole("alert")).toHaveCount(0);
 
-    // a link typed over it is a new question: the old answer goes
     // "Play here": the video in the box, exactly as a student will get it — it really plays
     const play = panel().getByRole("button", { name: "Play here" });
     await play.click();
@@ -231,12 +230,8 @@ test.describe("the owner's lesson editor", () => {
     expect(await preview.evaluate((v: HTMLVideoElement) => v.error?.code ?? null)).toBeNull();
     await panel().getByRole("button", { name: "Close the video" }).click();
     await expect(preview).toHaveCount(0);
-    // a video the website cannot read says so plainly in the box, and points at "Check access"
-    await url().fill(driveUrl(DRIVE_PRIVATE));
-    await play.click();
-    await expect(panel().getByRole("alert").filter({ hasText: "could not be played here" })).toContainText("Check access");
-    await panel().getByRole("button", { name: "Close the video" }).click();
 
+    // a link typed over it is a new question: the old answer goes
     await url().fill(driveUrl(DRIVE_PRIVATE));
     await expect(panel().getByText("will play inside the class page")).toHaveCount(0);
     await panel().getByRole("button", { name: "Check access" }).click();
@@ -245,6 +240,10 @@ test.describe("the owner's lesson editor", () => {
     await expect(no).toContainText("share it with the address shown above");
     await expect(no).toContainText("What Google said");
     await expect(no).toContainText("notFound");
+    // and "Play here" on a video the website cannot read says so plainly in the box, pointing at "Check access"
+    await play.click();
+    await expect(panel().getByRole("alert").filter({ hasText: "could not be played here" })).toContainText("Check access");
+    await panel().getByRole("button", { name: "Close the video" }).click();
 
     await url().fill(driveUrl("DEV_google_doc_0000000001"));
     await panel().getByRole("button", { name: "Check access" }).click();
