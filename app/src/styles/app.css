@@ -197,6 +197,20 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .pay-opt input{width:22px;height:22px;accent-color:var(--red-600);flex:none}
 .pay-opt b{display:block}
 .pay-opt small{color:var(--ink-3)}
+/* after "Pay": SSLCommerz's ways of paying with their own logos, big enough to tap — mobile wallets first */
+.pay-group{margin-top:18px}
+.pay-group h2{font-size:1.02rem;margin:0 0 10px}
+.pay-grid{list-style:none;margin:0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,132px),1fr))}
+.pay-method{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;height:100%;min-height:100px;padding:12px 10px;border:1.5px solid var(--line-2);border-radius:14px;background:#fff;color:var(--ink);text-decoration:none;text-align:center;font-weight:600;font-size:.9rem;line-height:1.25;transition:border-color .15s,box-shadow .15s}
+.pay-method:hover{border-color:var(--g-500);box-shadow:var(--sh-1)}
+.pay-method:focus-visible{border-color:var(--k-900);box-shadow:0 0 0 4px rgba(196,177,74,.32)}
+.pay-logo{display:grid;place-items:center;height:46px;width:100%}
+.pay-logo img{max-height:46px;max-width:min(120px,100%);width:auto;height:auto;object-fit:contain}
+.pay-logo .icon{width:30px;height:30px;color:var(--ink-3)}
+.pay-name{overflow-wrap:anywhere}
+.pay-foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:22px}
+.pay-secure{display:flex;gap:8px;align-items:flex-start;margin-top:14px}
+.pay-secure .icon{flex:none;width:18px;height:18px}
 .pay-ico{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:var(--ivory-2);color:var(--k-800);flex:none}
 .pay-marks{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
 .pay-mark{display:inline-flex;align-items:center;height:26px;padding:0 7px;border-radius:8px;background:#fff;box-shadow:0 0 0 1px var(--line-2)}

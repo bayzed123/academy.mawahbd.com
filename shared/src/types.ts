@@ -185,6 +185,20 @@ export interface QuoteDTO {
   ssl_logo: string | null;
 }
 
+/**
+ * One way of paying that SSLCommerz offers this store (bKash, Nagad, Rocket, Upay, a card, a bank …), as SSLCommerz described it when the
+ * payment was opened: its own name and logo, and the address that opens that way of paying at once. Shown on the website after "Pay" so the
+ * buyer taps the one they want; only SSLCommerz's https addresses ever get here.
+ */
+export interface PayMethodDTO {
+  name: string;
+  /** mobile wallets, cards, internet banking, anything else — the order they are shown in */
+  group: "mobile" | "card" | "bank" | "other";
+  /** SSLCommerz's picture of it (on sslcommerz.com); null = the name alone */
+  logo: string | null;
+  url: string;
+}
+
 export interface CertificateDTO {
   id: number;
   code: string;

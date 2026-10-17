@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NOTIFY_KINDS } from "@mawah/shared";
 import { setSetting } from "../src/lib/settings";
 import { notices } from "../src/services/notify";
-import { SSL_LAST_KEY, scrubSsl, sslCheck, sslHost, sslInit, sslProblem, type SslProblem } from "../src/services/payments/sslcommerz";
+import { SSL_LAST_KEY, scrubSsl, sslCheck, sslHost, sslInit, sslMethods, sslProblem, type SslProblem } from "../src/services/payments/sslcommerz";
 import { Client, env, json, loginStaff, registerStudent, uniqueEmail } from "./helpers";
 
 /*
@@ -39,6 +39,50 @@ function gatewaySays(reply: (call: Call, n: number) => Response | Promise<Respon
   return calls;
 }
 const GOOD = () => Response.json({ status: "SUCCESS", GatewayPageURL: "https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc", sessionkey: "abc", failedreason: "" });
+/** The ways of paying, as SSLCommerz lists them in its answer (`desc`): its names, kinds, logos and the address that opens each one. */
+const GW = "https://sandbox.sslcommerz.com/gwprocess/v4";
+const way = (name: string, type: string, gw: string, over: Record<string, unknown> = {}) => ({
+  name,
+  type,
+  logo: `${GW}/image/gw/${gw}.png`,
+  gw,
+  r_flag: "1",
+  redirectGatewayURL: `${GW}/bankgw/indexhtmlotp.php?mamount=1850.00&ssl_id=x1&Q=REDIRECT&SESSIONKEY=abc&tran_type=success&cardname=${gw}`,
+  ...over,
+});
+const DESC = [
+  way("VISA", "visa", "visacard"),
+  way("bKash", "mobilebanking", "bkash"),
+  way("Nagad", "mobilebanking", "nagad"),
+  way("City Touch", "internetbanking", "city"),
+  way("DBBL Mobile Banking", "mobilebanking", "dbblmobilebanking"),
+  way("MASTER", "master", "mastercard"),
+  way("Upay", "mobilebanking", "upay"),
+  way("<b>AMEX</b>", "amex", "amexcard", { logo: "https://evil.example/amex.png" }), // markup in a name, a logo from elsewhere
+  way("Elsewhere", "mobilebanking", "x", { redirectGatewayURL: "https://evil.example/pay" }), // an address that is not SSLCommerz's
+  way("Plain http", "mobilebanking", "y", { redirectGatewayURL: "http://sandbox.sslcommerz.com/pay" }),
+  way("Look-alike", "mobilebanking", "z", { redirectGatewayURL: "https://sslcommerz.com.evil.example/pay" }),
+  way("", "mobilebanking", "nameless"),
+  way("bKash again", "mobilebanking", "bkash"), // the same address twice
+  "not an entry",
+  null,
+];
+const WAYS = [
+  ["bKash", "mobile", "bkash"],
+  ["Nagad", "mobile", "nagad"],
+  ["DBBL Mobile Banking", "mobile", "dbblmobilebanking"],
+  ["Upay", "mobile", "upay"],
+  ["VISA", "card", "visacard"],
+  ["MASTER", "card", "mastercard"],
+  ["AMEX", "card", "amexcard"],
+  ["City Touch", "bank", "city"],
+].map(([name, group, gw]) => ({
+  name,
+  group,
+  logo: gw === "amexcard" ? null : `${GW}/image/gw/${gw}.png`,
+  url: `${GW}/bankgw/indexhtmlotp.php?mamount=1850.00&ssl_id=x1&Q=REDIRECT&SESSIONKEY=abc&tran_type=success&cardname=${gw}`,
+}));
+const GOOD_WITH_WAYS = () => Response.json({ status: "SUCCESS", GatewayPageURL: "https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc", sessionkey: "abc", failedreason: "", desc: DESC });
 const NO = (reason: string, extra: Record<string, unknown> = {}) => Response.json({ status: "FAILED", failedreason: reason, sessionkey: "", GatewayPageURL: "", ...extra });
 
 let seq = 0;
@@ -130,7 +174,7 @@ describe("asking the gateway for a payment page", () => {
   it("sends the order as the gateway wants it — whole-number-free amount, the return addresses, no instalments — and hands back the page", async () => {
     const calls = gatewaySays(GOOD);
     const r = await sslInit(env, order, buyer, "Beginners baking");
-    expect(r).toEqual({ ok: true, redirectUrl: "https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc", sessionKey: "abc" });
+    expect(r).toEqual({ ok: true, redirectUrl: "https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc", sessionKey: "abc", methods: [] });
     expect(calls).toHaveLength(1);
     const f = calls[0].form;
     expect(calls[0].method).toBe("POST");
@@ -148,6 +192,15 @@ describe("asking the gateway for a payment page", () => {
     expect(f.get("product_profile")).toBe("non-physical-goods");
     // a firewall that turns away requests with no name on them gets one
     expect(calls[0].headers.get("user-agent")).toMatch(/^MAWAH-Academy\//);
+  });
+
+  it("reads SSLCommerz's list of ways to pay — its names and logos, mobile wallets first — and keeps only SSLCommerz's own https addresses", async () => {
+    expect(sslMethods(DESC)).toEqual(WAYS);
+    // nothing usable: no list at all, or not a list
+    for (const nothing of [undefined, null, "bkash", {}, 42, []]) expect(sslMethods(nothing)).toEqual([]);
+    gatewaySays(GOOD_WITH_WAYS);
+    const r = await sslInit(env, order, buyer, "Beginners baking");
+    expect(r).toEqual({ ok: true, redirectUrl: "https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc", sessionKey: "abc", methods: WAYS });
   });
 
   it("keeps the gateway’s own sentence when it says no", async () => {
@@ -220,6 +273,28 @@ describe("a student turned away at checkout", () => {
     expect(note.text).toContain("does not accept the store keys");
     expect(note.text).toContain("/admin/settings?tab=payments");
     expect(note.html).toContain("কোনো টাকা কাটা হয়নি"); // in Bangla as well
+  });
+
+  it("a purchase that goes through hands the buyer SSLCommerz's ways of paying to tap — each opening that way at once — and SSLCommerz's own page", async () => {
+    gatewaySays(GOOD_WITH_WAYS);
+    const course = await makeCourse(500);
+    const { client } = await registerStudent();
+    const res = await client.post("/api/checkout", { courses: [course.slug], channel: "sslcommerz" });
+    expect(res.status).toBe(201);
+    const body = await json(res);
+    expect(body.redirect_url).toBe("https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc");
+    expect(body.pay_methods).toEqual(WAYS);
+    // only what the buyer needs: never another site's address, never the store's keys
+    const text = JSON.stringify(body);
+    expect(text).not.toContain("evil.example");
+    expect(text).not.toContain("http://");
+    expect(text).not.toContain(STORE_PASSWORD);
+    // SSLCommerz sent no list: SSLCommerz's own page, as before
+    vi.restoreAllMocks();
+    gatewaySays(GOOD);
+    const plain = await json(await client.post("/api/checkout", { courses: [(await makeCourse(600)).slug], channel: "sslcommerz" }));
+    expect(plain.redirect_url).toContain("sslcommerz.com");
+    expect(plain.pay_methods).toEqual([]);
   });
 
   it("the next purchase that goes through clears the warning", async () => {
@@ -295,7 +370,7 @@ describe("Settings → Payments → Check the connection", () => {
     const res = await admin.post("/api/admin/settings/payments/ssl/check");
     expect(res.status).toBe(200);
     const body = await json(res);
-    expect(body).toEqual({ ok: true, connected: true, mode: "sandbox", host: sslHost(env) });
+    expect(body).toEqual({ ok: true, connected: true, mode: "sandbox", host: sslHost(env), methods: [] });
     // the page the gateway handed back is thrown away: nobody can be sent to pay a test order
     expect(JSON.stringify(body)).not.toContain("SESSIONKEY");
     expect(calls).toHaveLength(1);
@@ -305,6 +380,15 @@ describe("Settings → Payments → Check the connection", () => {
     expect(calls[0].form.get("product_name")).toBe("Connection check");
     expect(await env.KV.get(SSL_LAST_KEY, "json")).toMatchObject({ ok: true, by: "check", problem: null });
     expect((await audits("payments.ssl_checked"))[0].meta).toBe(JSON.stringify({ connected: true, problem: null, mode: "sandbox" }));
+  });
+
+  it("when it works, names the ways to pay SSLCommerz has switched on for the store — names only, never their addresses", async () => {
+    gatewaySays(GOOD_WITH_WAYS);
+    const res = await (await owner()).post("/api/admin/settings/payments/ssl/check");
+    const body = await json(res);
+    expect(body).toEqual({ ok: true, connected: true, mode: "sandbox", host: sslHost(env), methods: WAYS.map((w) => w.name) });
+    expect(JSON.stringify(body)).not.toContain("SESSIONKEY");
+    expect(JSON.stringify(body)).not.toContain("indexhtmlotp");
   });
 
   it("reports the gateway's own words and what they mean when it says no — and the dashboard says so too", async () => {

@@ -20,8 +20,11 @@ export const SSL_LOGO_MAX = 2000;
 
 const isSslHost = (host: string) => host === "sslcommerz.com" || host.endsWith(".sslcommerz.com");
 
-/** An https address on sslcommerz.com, cleaned up; null for anything else (another site, http, a user name or port in it, not an address). */
-function sslAddress(raw: string): string | null {
+/**
+ * An https address on sslcommerz.com, cleaned up; null for anything else (another site, http, a user name or port in it, not an address). Also
+ * what decides which of SSLCommerz's own addresses — a way of paying, its logo — the checkout may send a buyer to or show.
+ */
+export function sslcommerzUrl(raw: string): string | null {
   let u: URL;
   try {
     u = new URL(raw.trim().replace(/&amp;/gi, "&"));
@@ -46,12 +49,12 @@ export function readSslLogo(input: string | null | undefined): SslLogo | null {
   const text = (input ?? "").trim();
   if (!text || text.length > SSL_LOGO_MAX) return null;
   if (/<img\b/i.test(text)) {
-    const src = sslAddress(attr(text, "img", "src") ?? "");
+    const src = sslcommerzUrl(attr(text, "img", "src") ?? "");
     if (!src) return null;
     const href = attr(text, "a", "href");
-    return { src, href: href ? sslAddress(href) : null };
+    return { src, href: href ? sslcommerzUrl(href) : null };
   }
   const first = /https?:\/\/[^\s"'<>]+/i.exec(text)?.[0];
-  const src = first ? sslAddress(first) : null;
+  const src = first ? sslcommerzUrl(first) : null;
   return src ? { src, href: null } : null;
 }

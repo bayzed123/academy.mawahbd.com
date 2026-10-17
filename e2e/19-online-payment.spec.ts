@@ -101,6 +101,107 @@ test("the same, in Bangla", async ({ browser }) => {
   await ctx.close();
 });
 
+/* ---------------------------------------------------------------------------------------- paying by tapping a logo */
+
+const GW = "https://sandbox.sslcommerz.com/gwprocess/v4";
+const ALL = `${GW}/gw.php?Q=PAY&SESSIONKEY=e2e`;
+const way = (name: string, group: string, gw: string) => ({ name, group, logo: `${GW}/image/gw/${gw}.png`, url: `${GW}/bankgw/indexhtmlotp.php?SESSIONKEY=e2e&cardname=${gw}` });
+const WAYS = [
+  way("bKash", "mobile", "bkash"),
+  way("Nagad", "mobile", "nagad"),
+  way("DBBL Mobile Banking", "mobile", "dbblmobilebanking"),
+  way("Upay", "mobile", "upay"),
+  way("VISA", "card", "visacard"),
+  way("MASTER", "card", "mastercard"),
+  way("City Touch", "bank", "city"),
+];
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEklEQVR4nGP4z8Dwn+E/w38AEAAB/wGJp5ySAAAAAElFTkSuQmCC", "base64");
+
+/**
+ * The Worker's answer to "Pay" with SSLCommerz's list of ways to pay (this copy of the site has no store keys; the Worker's side is in
+ * worker/test/payment-gateway.test.ts), and SSLCommerz's pictures and pages stood in for — the test never leaves this machine.
+ */
+async function sslcommerzAnswers(ctx: import("@playwright/test").BrowserContext, page: Page) {
+  await page.route("**/api/checkout/guest", (route) =>
+    route.fulfill({ status: 201, contentType: "application/json", json: { ok: true, order: { public_id: "ORD-E2E-WAYS", status: "pending", total: 1850 }, redirect_url: ALL, pay_methods: WAYS } }),
+  );
+  await ctx.route("https://sandbox.sslcommerz.com/**", (route) => {
+    const u = new URL(route.request().url());
+    if (u.pathname.endsWith(".png")) return route.fulfill({ status: 200, contentType: "image/png", body: PNG });
+    return route.fulfill({ status: 200, contentType: "text/html", body: `<title>SSLCommerz ${u.searchParams.get("cardname") ?? "all"}</title>` });
+  });
+}
+
+test("after Pay the buyer taps the way they pay — SSLCommerz's own logos, on this website, wallets first — and goes straight to it", async ({ browser }) => {
+  const { ctx, page } = await checkout(browser, "en");
+  await sslcommerzAnswers(ctx, page);
+  await fillDetails(page, "en");
+  await page.getByRole("button", { name: /^Pay ৳/ }).click();
+
+  const heading = page.getByRole("heading", { level: 1, name: "Choose your payment method" });
+  await expect(heading).toBeVisible();
+  await expect(heading).toBeFocused(); // a new step: the reader is taken to it
+  await expect(page.getByText("You pay ৳1,850 on that service’s own secure page")).toBeVisible();
+  const groups = page.locator(".pay-group");
+  await expect(groups.locator("h2")).toHaveText(["Mobile banking", "Cards", "Internet banking"]);
+  await expect(groups.nth(0).getByRole("link")).toHaveText(["bKash", "Nagad", "DBBL Mobile Banking", "Upay"]);
+  await expect(groups.nth(1).getByRole("link")).toHaveText(["VISA", "MASTER"]);
+  await expect(groups.nth(2).getByRole("link")).toHaveText(["City Touch"]);
+  for (const w of WAYS) await expect(page.getByRole("link", { name: w.name, exact: true })).toHaveAttribute("href", w.url);
+  // SSLCommerz's pictures really show (the page's security policy lets them in)
+  const logos = page.locator(".pay-method img");
+  await expect(logos).toHaveCount(WAYS.length);
+  await expect.poll(() => logos.evaluateAll((imgs) => imgs.every((i) => (i as HTMLImageElement).complete && (i as HTMLImageElement).naturalWidth > 0))).toBe(true);
+  await expect(page.getByRole("link", { name: "All ways to pay (SSLCommerz page)" })).toHaveAttribute("href", ALL);
+  await expect(page.getByText("never on this website")).toBeVisible();
+
+  const axe = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+  expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
+  // on a phone the logos wrap, two or more to a row, and nothing is wider than the screen
+  await page.setViewportSize({ width: 360, height: 800 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  const [first, second] = await Promise.all([page.locator(".pay-method").nth(0).boundingBox(), page.locator(".pay-method").nth(1).boundingBox()]);
+  expect(Math.abs(first!.y - second!.y)).toBeLessThan(2);
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  // "Change how to pay" goes back to the form, with what was typed still there
+  await page.getByRole("button", { name: "Change how to pay" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Checkout" })).toBeVisible();
+  await expect(page.getByLabel(/^Full name/)).toHaveValue("Rina Akter");
+
+  // tapping bKash goes straight to bKash's payment at SSLCommerz — not to SSLCommerz's list
+  await page.getByRole("button", { name: /^Pay ৳/ }).click();
+  await page.getByRole("link", { name: "bKash", exact: true }).click();
+  await page.waitForURL(/cardname=bkash$/);
+  await expect(page).toHaveTitle("SSLCommerz bkash");
+  await ctx.close();
+});
+
+test("the same choice, in Bangla", async ({ browser }) => {
+  const { ctx, page } = await checkout(browser, "bn");
+  await sslcommerzAnswers(ctx, page);
+  await fillDetails(page, "bn");
+  await page.getByRole("button", { name: /পেমেন্ট করুন$/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "পেমেন্ট মাধ্যম বেছে নিন" })).toBeVisible();
+  await expect(page.locator(".pay-group h2")).toHaveText(["মোবাইল ব্যাংকিং", "কার্ড", "ইন্টারনেট ব্যাংকিং"]);
+  await expect(page.getByRole("link", { name: "সব উপায় দেখুন (SSLCommerz পেজ)" })).toHaveAttribute("href", ALL);
+  await expect(page.getByRole("button", { name: "পেমেন্টের ধরন বদলান" })).toBeVisible();
+  await ctx.close();
+});
+
+test("when SSLCommerz sends no list, Pay goes to SSLCommerz's own page as before", async ({ browser }) => {
+  const { ctx, page } = await checkout(browser, "en");
+  await page.route("**/api/checkout/guest", (route) =>
+    route.fulfill({ status: 201, contentType: "application/json", json: { ok: true, order: { public_id: "ORD-E2E-ALL", status: "pending", total: 1850 }, redirect_url: ALL, pay_methods: [] } }),
+  );
+  await ctx.route("https://sandbox.sslcommerz.com/**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<title>SSLCommerz all</title>" }));
+  await fillDetails(page, "en");
+  await page.getByRole("button", { name: /^Pay ৳/ }).click();
+  await page.waitForURL(ALL);
+  await expect(page).toHaveTitle("SSLCommerz all");
+  await ctx.close();
+});
+
 test("a failure that is not the gateway's (anything else) keeps the ordinary message and no send-money button", async ({ browser }) => {
   const { ctx, page } = await checkout(browser, "en");
   await page.route("**/api/checkout/guest", (route) => route.fulfill({ status: 500, contentType: "application/json", json: { ok: false, error: { code: "internal" } } }));
