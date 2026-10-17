@@ -11,7 +11,7 @@ import { Client, env, json, loginStaff, registerStudent } from "./helpers";
  * the owner cannot see, and these tests protect: only a student who owns the class (or anyone, for a free preview) gets a video, and only the file the
  * owner put in that lesson — never one the student names; the video starts at once and can be skipped through (the "give me this part" requests
  * browsers make); nothing but video and audio is ever handed on under the website's address; a video that cannot be fetched says nothing of Google's
- * words; the Google key never comes out; the lesson page offers "play it here" only when it will work, and falls back to the old link when it will not;
+ * words; the Google key never comes out; the lesson page offers "play it here" only when it will work, and otherwise says the video is being prepared — a student is never sent to Drive;
  * and the owner's "Check access" explains each way it can fail. Google Drive is stood in for by the dev Worker itself (nothing leaves the machine).
  */
 
@@ -716,37 +716,59 @@ describe("what the lesson page offers", () => {
       const student = await enrolled(cls.courseId);
       const raw = await (await student.get(`/api/student/lessons/${cls.ids[0]}`)).text();
       const lesson = JSON.parse(raw).lesson;
-      expect(lesson.external).toEqual({ url: "", embed_url: null, media_url: `/api/student/lessons/${cls.ids[0]}/media` });
+      expect(lesson.external).toEqual({ url: "", embed_url: null, media_url: `/api/student/lessons/${cls.ids[0]}/media`, pending: false });
       expect(raw).not.toContain(OK);
       expect(raw).not.toContain("drive.google.com");
     });
   });
 
-  it("the old link-out, unchanged, when the account cannot play it — not shared, a document, no download, no key", async () => {
+  it("never a link to Drive when the account cannot play it — not shared, a document, no download, a folder, no key: “being prepared” instead, and the owner is told why", async () => {
+    const pending = { url: "", embed_url: null, media_url: null, pending: true };
     await connected(async () => {
       googleIsStoodIn();
-      for (const kind of ["not_shared", "google_doc", "pdf_file", "download_off"]) {
+      for (const [kind, problem] of [
+        ["not_shared", "no_access"],
+        ["google_doc", "not_video"],
+        ["pdf_file", "not_video"],
+        ["download_off", "not_downloadable"],
+      ] as const) {
         const url = viewUrl(id(kind));
         const cls = await makeClass([{ url }]);
         const student = await enrolled(cls.courseId);
-        expect((await lessonOf(student, cls.ids[0])).external, kind).toEqual({ url, embed_url: null, media_url: null });
+        await env.KV.delete(DRIVE_LAST_KEY);
+        const raw = await (await student.get(`/api/student/lessons/${cls.ids[0]}`)).text();
+        expect(JSON.parse(raw).lesson.external, kind).toEqual(pending);
+        // nothing of the owner's Drive reaches the student: not the address, not the file's id
+        expect(raw, kind).not.toContain("drive.google.com");
+        expect(raw, kind).not.toContain(id(kind));
+        // the lesson editor's "last time" line says why
+        expect((await env.KV.get<{ problem: string }>(DRIVE_LAST_KEY, "json"))?.problem, kind).toBe(problem);
       }
+      // a folder link is not a video either
+      const folder = await makeClass([{ url: "https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz012345" }]);
+      const s2 = await enrolled(folder.courseId);
+      expect((await lessonOf(s2, folder.ids[0])).external).toEqual(pending);
     });
     const cls = await makeClass([{ url: viewUrl(OK) }]);
     const student = await enrolled(cls.courseId);
     await withEnv({ GOOGLE_SERVICE_ACCOUNT: undefined }, async () => {
-      expect((await lessonOf(student, cls.ids[0])).external).toEqual({ url: viewUrl(OK), embed_url: null, media_url: null });
+      await env.KV.delete(DRIVE_LAST_KEY);
+      expect((await lessonOf(student, cls.ids[0])).external).toEqual(pending);
+      expect((await env.KV.get<{ problem: string }>(DRIVE_LAST_KEY, "json"))?.problem).toBe("not_configured");
     });
   });
 
-  it("YouTube and Vimeo are exactly what they were", async () => {
+  it("YouTube, Vimeo, other websites and Google Docs links are exactly what they were", async () => {
     await connected(async () => {
       const g = googleIsStoodIn();
-      const cls = await makeClass([{ url: "https://youtu.be/dQw4w9WgXcQ" }, { url: "https://vimeo.com/123456789" }, { url: "https://example.com/recipe" }]);
+      const doc = "https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd/edit";
+      const cls = await makeClass([{ url: "https://youtu.be/dQw4w9WgXcQ" }, { url: "https://vimeo.com/123456789" }, { url: "https://example.com/recipe" }, { url: doc }]);
       const student = await enrolled(cls.courseId);
-      expect((await lessonOf(student, cls.ids[0])).external).toEqual({ url: "https://youtu.be/dQw4w9WgXcQ", embed_url: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ", media_url: null });
-      expect((await lessonOf(student, cls.ids[1])).external).toMatchObject({ embed_url: "https://player.vimeo.com/video/123456789", media_url: null });
-      expect((await lessonOf(student, cls.ids[2])).external).toEqual({ url: "https://example.com/recipe", embed_url: null, media_url: null });
+      expect((await lessonOf(student, cls.ids[0])).external).toEqual({ url: "https://youtu.be/dQw4w9WgXcQ", embed_url: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ", media_url: null, pending: false });
+      expect((await lessonOf(student, cls.ids[1])).external).toMatchObject({ embed_url: "https://player.vimeo.com/video/123456789", media_url: null, pending: false });
+      expect((await lessonOf(student, cls.ids[2])).external).toEqual({ url: "https://example.com/recipe", embed_url: null, media_url: null, pending: false });
+      // a Google Doc is a page to read, not a Drive video: still a link (the owner shares it the way they want)
+      expect((await lessonOf(student, cls.ids[3])).external).toEqual({ url: doc, embed_url: null, media_url: null, pending: false });
       expect(g.calls).toHaveLength(0);
     });
   });

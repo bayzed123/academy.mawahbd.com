@@ -83,7 +83,8 @@
 * **গুগলের সীমা:** একটি ফাইল দিনে নির্দিষ্ট পরিমাণই ডাউনলোড হতে দেয়; বহু শিক্ষার্থী একই ভিডিও একসাথে দেখলে কিছুক্ষণ “চালানো যাচ্ছে না” আসতে পারে (নিজে থেকে ঠিক হয়)। ছোট একাডেমির জন্য ঠিক আছে; **একসাথে অনেক শিক্ষার্থী হলে ভিডিও Cloudflare Stream-এ রাখুন** (লেসনের ধরন “ভিডিও”)।
 * **ডেটা:** ভিডিও ফোনের ইন্টারনেট দিয়েই আসে; বড় ফাইলে ডেটা বেশি লাগে। ছোট করে (720p, MP4) রাখলে ভালো।
 * **কপি ঠেকানো:** স্ক্রিন রেকর্ড বা বিশেষ টুলে ভিডিও নামানো যায় — অন্য সব ভিডিও প্ল্যাটফর্মের মতোই (ডিআরএম নেই)। কেনা ছাড়া কেউ ভিডিও পায় না — এটুকু নিশ্চিত।
-* কোনো ড্রাইভ ভিডিও ওয়েবসাইট পড়তে না পারলে শিক্ষার্থী আগের মতোই “ভিডিওটি খুলুন” লিংক দেখেন (সেটি ড্রাইভে অনুমতি চাইবে) — তাই শেয়ার করার পর **অবশ্যই “অ্যাক্সেস পরীক্ষা করুন”** চাপুন।
+* শিক্ষার্থীকে কখনো ড্রাইভে পাঠানো হয় না, ড্রাইভের ঠিকানাও তাঁর কাছে যায় না। ওয়েবসাইট ভিডিওটি পড়তে না পারলে শিক্ষার্থী দেখেন “ভিডিওটি প্রস্তুত করা হচ্ছে” — আর আপনি লেসনের বক্সে কারণ দেখেন (“শেষবার…”)। তাই শেয়ার করার পর **অবশ্যই “অ্যাক্সেস পরীক্ষা করুন”** চাপুন।
+* ভিডিও চলে শুধু সেই শিক্ষার্থীর জন্য যিনি ক্লাসটি কিনেছেন (লগইন করা অবস্থায়, প্রতিবার যাচাই করে); রিফান্ড/বাতিল হলে সাথে সাথে বন্ধ।
 * ওয়েবসাইটের ঠিকানাকে শেয়ার থেকে সরালেই সব ভিডিও আবার বন্ধ হয়ে যায়।
 
 ## ৫. পেমেন্ট গ্রহণ
@@ -442,7 +443,8 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 * **Google’s limits:** Google allows only so much downloading of one file per day; if many students watch the same video at once you may see “could not be played right now” for a while (it clears by itself). Fine for a small academy; **for many students at once put the video on Cloudflare Stream** (lesson type “Video”).
 * **Data:** the video travels over the student’s mobile data; big files use a lot. Smaller (720p, MP4) is kinder.
 * **Copying:** like every video site without DRM, a determined person can screen-record or save a video. What is certain: nobody gets the video without owning the class.
-* If the website cannot read a Drive video, the student sees the old “Open the video” link (it asks for permission in Drive) — so **always press “Check access”** after sharing.
+* A student is never sent to Drive, and your Drive address never reaches them. If the website cannot read the video, the student sees “This class video is being prepared” — and you see why in the lesson’s box (“Last time …”). So **always press “Check access”** after sharing.
+* The video plays only for a student who bought the class (signed in, checked on every request); a refund or a cancelled access stops it at once.
 * Remove the address from the sharing and every video turns off again.
 
 ## 5. Getting paid
