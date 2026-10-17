@@ -103,6 +103,12 @@
 
 > ম্যানুয়াল অপশন সেটিংসে **আপনার নম্বর না বসানো পর্যন্ত শিক্ষার্থীদের কাছে আসে না**।
 
+**SSLCommerz-এর লোগো** — SSLCommerz প্রতিটি দোকানকে ওয়েবসাইটে তাদের লোগো (একটি ছবিতে সব পেমেন্ট মাধ্যমের লোগো) দেখাতে বলে, আর সেই ছবির লিংক তারাই দেয় — ওয়েবসাইট নিজে থেকে কোনো লিংক বানায় না।
+1. *সেটিংস → পেমেন্ট → “SSLCommerz-এর লোগো”* ঘরে SSLCommerz যে লিংক (বা পুরো কোড) দিয়েছে সেটি হুবহু বসান। ঠিক থাকলে ঘরের নিচেই ছবিটি দেখা যাবে; ভুল হলে সাথে সাথে লেখা আসবে কেন।
+2. **সংরক্ষণ করুন** চাপুন। ছবিটি তখন প্রতিটি পাতার একদম নিচে (“আমরা গ্রহণ করি”) আর চেকআউটে অনলাইন পেমেন্টের অপশনে দেখাবে — ওয়েবসাইটের নিজের ছোট লোগোগুলোর জায়গায়। (সেন্ড মানির অপশনে বিকাশ/নগদ/রকেটের লোগো থাকে, কারণ সেটি আপনার নিজের নম্বর।)
+3. শুধু `https://` দিয়ে শুরু আর `sslcommerz.com`-এর লিংক নেওয়া হয় — ছবিটি SSLCommerz-এর নিজের সার্ভার থেকেই আসে। ঘর খালি করলে আবার ছোট লোগোগুলো ফিরে আসে।
+4. লোগো বসানোর পর SSLCommerz-কে ওয়েবসাইট আবার দেখে স্টোর চালু করতে বলুন। তারা সাধারণত রিফান্ড নীতি, গোপনীয়তা নীতি, ব্যবহারের শর্তাবলি আর যোগাযোগের তথ্যও দেখে — *সেটিংস → নীতিমালা* আর *যোগাযোগ* ভরা আছে কি না দেখে নিন।
+
 **অনলাইন পেমেন্টে শিক্ষার্থী ভুল বার্তা দেখলে (SSLCommerz)** — *সেটিংস → পেমেন্ট* খুলে নিচে নামুন, **“অনলাইন পেমেন্টের সংযোগ”** অংশে:
 1. দেখুন ওয়েবসাইট **লাইভ** না **টেস্ট** মোডে আছে, স্টোর আইডি/পাসওয়ার্ড **দেওয়া আছে** কি না, আর SSLCommerz-কে কোন ওয়েবসাইট ও ফেরার ঠিকানা দেওয়া হচ্ছে।
 2. **“সংযোগ পরীক্ষা করুন”** চাপুন। ওয়েবসাইট ঠিক কেনাকাটার মতো করেই SSLCommerz-এর কাছে একটি ১০ টাকার পেমেন্ট পেজ চায় এবং তাদের **নিজের কথা** দেখায়। কারও টাকা কাটা হয় না।
@@ -455,6 +461,12 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 3. If they match, **Approve payment** — the class opens immediately and the invoice number is created. If not, **Reject** — the student is e-mailed and can try again.
 
 > The manual option is **not shown to students until you enter your number**.
+
+**SSLCommerz’s logo** — SSLCommerz asks every shop to show its logo on the website (one picture with the logos of every way to pay), and SSLCommerz itself gives the link to that picture — the website never makes one up.
+1. In *Settings → Payments → “SSLCommerz logo”* paste exactly what SSLCommerz gave you (the link, or the whole code). If it is right, the picture shows under the box at once; if not, the box says why straight away.
+2. Press **Save**. The picture then shows at the bottom of every page (“We accept”) and on the online-payment choice at checkout — in place of the website’s own small logos. (The send-money choice keeps the bKash/Nagad/Rocket logos: that is your own number.)
+3. Only a link starting with `https://` on `sslcommerz.com` is taken — the picture comes from SSLCommerz’s own server. Empty the box and the small logos come back.
+4. Once the logo is up, ask SSLCommerz to look at the website again and switch the store on. They usually also check the refund policy, privacy policy, terms and contact details — make sure *Settings → Policies* and *Contact* are filled in.
 
 **When students see an error after choosing online payment (SSLCommerz)** — open *Settings → Payments* and scroll down to **Online payment connection**:
 1. See whether the website is in **live** or **test** mode, whether the Store ID and password are **set**, and which website and return addresses SSLCommerz is given.

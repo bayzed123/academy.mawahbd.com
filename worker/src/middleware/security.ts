@@ -40,7 +40,8 @@ const STREAM = "https://*.cloudflarestream.com";
 export function buildCsp(opts: CspOptions = {}): string {
   const script = ["'self'"];
   const connect = ["'self'"];
-  const img = ["'self'", "data:", STREAM];
+  // SSLCommerz's own logo (Admin → Settings → Payments) is shown from SSLCommerz's server, as SSLCommerz asks
+  const img = ["'self'", "data:", STREAM, "https://sslcommerz.com", "https://*.sslcommerz.com"];
   const frame = [STREAM, "https://www.youtube-nocookie.com", "https://player.vimeo.com"];
   const style = ["'self'", ...(opts.styleHashes ?? [])];
 

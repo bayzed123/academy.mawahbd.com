@@ -25,6 +25,8 @@ code.secret{display:block;margin:.8rem 0;padding:1rem;text-align:center;font-siz
 .ok-text{color:var(--ok-700);font-weight:600}
 .warn-text{color:#a66a00;font-weight:700}
 .err-text{color:var(--red-700);font-size:.9rem;font-weight:600;margin:.1rem 0 0}
+/* SSLCommerz's logo as it will look (Settings → Payments): on white, like on the site */
+.ssl-preview img{display:block;max-width:100%;height:auto;max-height:140px;margin-top:6px;padding:6px 8px;border-radius:10px;background:#fff;box-shadow:0 0 0 1px var(--line-2)}
 .hint{color:var(--ink-3);font-size:.88rem;margin:.15rem 0 0}
 .inline-icon{display:inline-block;vertical-align:-3px;width:1.05em;height:1.05em}
 .inline-icon.ok{color:var(--ok-600)}

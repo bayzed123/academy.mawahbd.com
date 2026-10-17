@@ -110,9 +110,20 @@ function ExistingAccount({ who, passwordless, onSignedIn, onOther }: { who: stri
   );
 }
 
-/** The marks of the services a way of paying takes (the same pictures as the footer), so a buyer sees "bKash / Nagad / Rocket / cards" and not just a word. */
-function PayMarks({ channel }: { channel: Channel }) {
+/**
+ * The marks of the services a way of paying takes (the same pictures as the footer), so a buyer sees "bKash / Nagad / Rocket / cards" and not
+ * just a word. For the online payment, SSLCommerz's own logo takes their place once the owner has pasted the link SSLCommerz gave (Settings →
+ * Payments) — it is SSLCommerz's picture, from SSLCommerz's server.
+ */
+function PayMarks({ channel, sslLogo }: { channel: Channel; sslLogo: string | null }) {
   const { t } = useI18n();
+  if (channel === "sslcommerz" && sslLogo) {
+    return (
+      <span className="pay-ssl">
+        <img src={sslLogo} alt={t("app.checkout.sslAlt")} decoding="async" />
+      </span>
+    );
+  }
   const keys = CHANNEL_LOGOS[channel];
   if (!keys.length) return null;
   const marks = PAY_LOGOS.filter((p) => keys.includes(p.key));
@@ -388,7 +399,7 @@ export default function Checkout() {
                     <span>
                       <b>{t(`app.checkout.channel.${c}` as "app.checkout.channel.manual")}</b>
                       <small>{t(`app.checkout.channel.${c}.sub` as "app.checkout.channel.manual.sub")}</small>
-                      <PayMarks channel={c} />
+                      <PayMarks channel={c} sslLogo={q.ssl_logo ?? null} />
                     </span>
                   </label>
                 ))}
