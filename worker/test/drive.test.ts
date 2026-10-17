@@ -669,6 +669,16 @@ describe("when the video cannot be fetched", () => {
   });
 });
 
+/**
+ * The rate limiter counts per clock minute (Miniflare's windows, like Cloudflare's, are aligned to the wall clock): a burst that runs across the
+ * turn of a minute is counted in two windows, and its last request is not refused. A burst here takes about two seconds, so it starts only with
+ * time to spare in the current minute — otherwise it waits for the next one (well inside the test's time limit).
+ */
+async function roomInThisMinute(needMs = 8_000) {
+  const left = 60_000 - (Date.now() % 60_000);
+  if (left < needMs) await new Promise((r) => setTimeout(r, left + 100));
+}
+
 describe("limits", () => {
   it("a playing video asks many times: it has a limit of its own, apart from the rest of the API (which it does not use up)", async () => {
     await connected(async () => {
@@ -678,6 +688,7 @@ describe("limits", () => {
       const url = `/api/student/lessons/${cls.ids[0]}/media`;
       let refused = 0;
       let served = 0;
+      await roomInThisMinute();
       for (let i = 0; i < 125; i++) {
         const res = await student.fetch(url, { headers: { Range: "bytes=0-9" } });
         if (res.status === 429) refused++;
@@ -696,6 +707,7 @@ describe("limits", () => {
       googleIsStoodIn();
       const cls = await makeClass([{ url: viewUrl(OK) }]);
       const student = await enrolled(cls.courseId);
+      await roomInThisMinute();
       for (let i = 0; i < 125; i++) await (await student.get("/api/student/courses")).arrayBuffer();
       expect((await student.get("/api/student/courses")).status).toBe(429); // the ordinary limit is still the ordinary limit
       const res = await student.fetch(`/api/student/lessons/${cls.ids[0]}/media`, { headers: { Range: "bytes=0-9" } });
