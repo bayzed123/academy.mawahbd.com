@@ -76,6 +76,7 @@
 2. *অ্যাডমিন → ক্লাস → (ক্লাস) → কারিকুলাম → লেসন → ধরন “লিংক”* — ড্রাইভের লিংক বসালেই নিচে **“গুগল ড্রাইভের ভিডিও”** বক্স আসে, তাতে ওয়েবসাইটের গুগল ঠিকানা (`…@….iam.gserviceaccount.com`) আর **কপি** বোতাম থাকে। ভিডিও যদি **ম্যাটেরিয়াল**-এ রাখেন (*অ্যাডমিন → ম্যাটেরিয়াল → ভিডিও → লিংক দিন*), সেখানেও লিংকের নিচে একই বক্স আসে — আর ভিডিওটি ক্লাসের পাতায় নিজের কার্ডেই চলে।
 3. গুগল ড্রাইভে ভিডিওটিতে (বা সব ক্লাসের ভিডিও যে ফোল্ডারে আছে সেটিতে) রাইট-ক্লিক → *Share* → ওই ঠিকানা বসান → **Viewer** → *Send* (“Notify people” বন্ধ রাখতে পারেন)। **ফোল্ডার একবার শেয়ার করলে তার সব ভিডিও কভার হয়।**
 4. লেসনে ফিরে **“অ্যাক্সেস পরীক্ষা করুন”** চাপুন। “তৈরি — ভিডিওর নাম ক্লাসের পাতাতেই চলবে” এলে হয়ে গেল; না এলে বক্সটি সহজ ভাষায় কারণ ও করণীয় বলে দেয় (গুগলের নিজের কথাসহ)।
+5. **“এখানে চালান”** চাপলে ভিডিওটি ওই বক্সেই চলে — ক্লাস কেনা শিক্ষার্থী ঠিক যেভাবে পাবেন (ওয়েবসাইট থেকে, ড্রাইভ থেকে নয়)। চললে নিশ্চিত, শিক্ষার্থীর কাছেও চলবে।
 
 **জেনে রাখুন (সৎ কথা):**
 * **ফরম্যাট:** ড্রাইভ ফাইলটি যেমন আপলোড হয়েছিল ঠিক তেমনই দেয় (নিজের প্লেয়ারের মতো রূপান্তর করে না)। **MP4 (H.264) সব ফোনে চলে**; MOV, MKV, AVI কিছু ফোনে নাও চলতে পারে — বক্স সেটি আগেই জানিয়ে দেয়।
@@ -442,6 +443,7 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 2. *Admin → Classes → (the class) → Curriculum → a lesson of type “Link”* — paste the Drive link and a **“Google Drive video”** box appears with the website’s Google address (`…@….iam.gserviceaccount.com`) and a **Copy** button. A video kept under **Materials** (*Admin → Materials → Video → Add a link instead*) gets the same box under its link — and it plays right in its own card on the class page.
 3. In Google Drive right-click the video (or the folder that holds all your class videos) → *Share* → paste that address → **Viewer** → *Send* (you can switch “Notify people” off). **Sharing a folder once covers every video in it.**
 4. Back in the lesson press **“Check access”**. “Ready — <video name> will play inside the class page” means done; anything else, the box says why in plain words with the steps (and Google’s own sentence).
+5. Press **“Play here”** to watch the video right in that box — exactly as a student who bought the class will get it (from the website, not from Drive). If it plays there, it plays for students.
 
 **Good to know (the honest part):**
 * **Format:** Drive hands over the file exactly as uploaded (it does not convert it the way its own player does). **MP4 (H.264) plays on every phone**; MOV, MKV or AVI may not — the box warns you.

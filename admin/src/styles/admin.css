@@ -521,3 +521,6 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
 .pv-offer{display:grid;place-items:center;padding:6px 0}
 .pv-offer .offer-card{position:relative;display:grid;width:min(100%,420px);overflow:hidden;border-radius:20px;background:var(--paper);border:1.5px solid var(--g-500)}
 .bn-swatch{background:var(--bn-bg);color:var(--bn-a)}
+/* "Play here": the Drive video in the help box, as a student will get it */
+.drive-play{margin-top:12px}
+.drive-play video{display:block;width:100%;max-width:640px;aspect-ratio:16/9;border-radius:12px;background:#000}
