@@ -62,6 +62,16 @@ describe("home & navigation", () => {
     expect(await text(await new Client().get("/"))).toContain("/icon-512.png");
   });
 
+  it("a page without a picture of its own is shared with the site's share image, at an address that changes with the picture", async () => {
+    // Facebook / WhatsApp keep a picture they fetched once for weeks: a new picture (a new domain on it …) must come with a new address
+    for (const path of ["/", "/en", "/en/faq", "/courses"]) {
+      const html = await text(await new Client().get(path));
+      expect(html, path).toMatch(/<meta property="og:image" content="http:\/\/localhost:8787\/assets\/og\.[0-9a-f]{10}\.jpg"/);
+      expect(html, path).toMatch(/<meta name="twitter:image" content="http:\/\/localhost:8787\/assets\/og\.[0-9a-f]{10}\.jpg"/);
+      expect(html, path).not.toContain("og-default.jpg");
+    }
+  });
+
   it("never ships inline style attributes or inline scripts (CSP-safe markup)", async () => {
     const soon = await course(`soon-${Date.now()}`, "Soon Course", { status: "coming_soon" });
     for (const path of ["/", "/en", "/courses", "/courses/beginners-baking-class", "/contact", "/about", "/verify", "/blog", "/policies/refund"]) {
