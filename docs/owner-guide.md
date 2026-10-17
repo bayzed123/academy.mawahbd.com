@@ -110,6 +110,11 @@
 3. শুধু `https://` দিয়ে শুরু আর `sslcommerz.com`-এর লিংক নেওয়া হয় — ছবিটি SSLCommerz-এর নিজের সার্ভার থেকেই আসে। ঘর খালি করলে আবার ছোট লোগোগুলো ফিরে আসে।
 4. লোগো বসানোর পর SSLCommerz-কে ওয়েবসাইট আবার দেখে স্টোর চালু করতে বলুন। তারা সাধারণত রিফান্ড নীতি, গোপনীয়তা নীতি, ব্যবহারের শর্তাবলি আর যোগাযোগের তথ্যও দেখে — *সেটিংস → নীতিমালা* আর *যোগাযোগ* ভরা আছে কি না দেখে নিন।
 
+**লোগোতে চেপে পেমেন্ট** — শিক্ষার্থী অনলাইন পেমেন্ট বেছে **পেমেন্ট করুন** চাপলে ওয়েবসাইট নিজেই দেখায় SSLCommerz আপনার স্টোরে কোন কোন উপায় চালু রেখেছে — বিকাশ, নগদ, রকেট (DBBL), উপায়, ভিসা, মাস্টারকার্ড, ব্যাংক… — SSLCommerz-এর নিজের লোগোসহ, মোবাইল ব্যাংকিং আগে। বিকাশে চাপলে সরাসরি বিকাশের পেমেন্ট খোলে; পিন শুধু বিকাশের পেজেই লেখা হয়। **সব উপায় দেখুন** চাপলে SSLCommerz-এর সাধারণ পেজ খোলে।
+* তালিকাটি প্রতিবার SSLCommerz থেকেই আসে — আপনার স্টোরে যা চালু, ঠিক সেগুলোই দেখায়। **কোনো উপায় যোগ করতে (যেমন নগদ বা উপায়) SSLCommerz-কে আপনার স্টোরে সেটি চালু করতে বলুন** — তারপর নিজে থেকেই দেখা যাবে।
+* *সেটিংস → পেমেন্ট → সংযোগ পরীক্ষা করুন* — এই মুহূর্তে SSLCommerz কোন কোন উপায় দিচ্ছে তার নাম দেখায়।
+* SSLCommerz তালিকা না পাঠালে আগের মতোই সরাসরি SSLCommerz-এর পেজে যায়।
+
 **অনলাইন পেমেন্টে শিক্ষার্থী ভুল বার্তা দেখলে (SSLCommerz)** — *সেটিংস → পেমেন্ট* খুলে নিচে নামুন, **“অনলাইন পেমেন্টের সংযোগ”** অংশে:
 1. দেখুন ওয়েবসাইট **লাইভ** না **টেস্ট** মোডে আছে, স্টোর আইডি/পাসওয়ার্ড **দেওয়া আছে** কি না, আর SSLCommerz-কে কোন ওয়েবসাইট ও ফেরার ঠিকানা দেওয়া হচ্ছে।
 2. **“সংযোগ পরীক্ষা করুন”** চাপুন। ওয়েবসাইট ঠিক কেনাকাটার মতো করেই SSLCommerz-এর কাছে একটি ১০ টাকার পেমেন্ট পেজ চায় এবং তাদের **নিজের কথা** দেখায়। কারও টাকা কাটা হয় না।
@@ -469,6 +474,11 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 2. Press **Save**. The picture then shows at the bottom of every page (“We accept”) and on the online-payment choice at checkout — in place of the website’s own small logos. (The send-money choice keeps the bKash/Nagad/Rocket logos: that is your own number.)
 3. Only a link starting with `https://` on `sslcommerz.com` is taken — the picture comes from SSLCommerz’s own server. Empty the box and the small logos come back.
 4. Once the logo is up, ask SSLCommerz to look at the website again and switch the store on. They usually also check the refund policy, privacy policy, terms and contact details — make sure *Settings → Policies* and *Contact* are filled in.
+
+**Paying by tapping a logo** — when a buyer chooses online payment and presses **Pay**, the website itself shows the ways to pay SSLCommerz has switched on for your store — bKash, Nagad, Rocket (DBBL), Upay, Visa, Mastercard, banks … — with SSLCommerz’s own logos, mobile wallets first. Tapping bKash opens bKash’s payment straight away; the PIN is typed only on bKash’s page. **All ways to pay** opens SSLCommerz’s usual page.
+* The list comes from SSLCommerz every time — the website shows exactly what your store has. **To add a way to pay (for example Nagad or Upay), ask SSLCommerz to switch it on for your store**; it then appears by itself.
+* *Settings → Payments → Check the connection* names the ways SSLCommerz offers right now.
+* If SSLCommerz sends no list, Pay goes straight to SSLCommerz’s page as before.
 
 **When students see an error after choosing online payment (SSLCommerz)** — open *Settings → Payments* and scroll down to **Online payment connection**:
 1. See whether the website is in **live** or **test** mode, whether the Store ID and password are **set**, and which website and return addresses SSLCommerz is given.
