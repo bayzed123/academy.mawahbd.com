@@ -5,6 +5,7 @@ import { adm, api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { Button, Chip, Empty, ErrorState, Field, Icon, IconButton, Progress, Select, Spinner, Switch, TextArea, TextInput, useConfirm, SlideOver, useFieldErrors, useToast } from "./ui";
+import { DriveHelp } from "./DriveHelp";
 
 interface Resource {
   id: number;
@@ -272,9 +273,12 @@ function LessonDrawer({ courseId, modules, lessonId, moduleId, onClose, onSaved 
             </>
           )}
           {v.type === "external" && (
-            <Field id="l-url" label={t("adm.lesson.externalUrl")} hint={t("adm.lesson.externalUrlHint")} error={errors.external_url} wide>
-              <TextInput id="l-url" inputMode="url" placeholder="https://youtu.be/…" value={v.external_url} error={errors.external_url} onChange={(e) => set("external_url", e.target.value)} />
-            </Field>
+            <>
+              <Field id="l-url" label={t("adm.lesson.externalUrl")} hint={t("adm.lesson.externalUrlHint")} error={errors.external_url} wide>
+                <TextInput id="l-url" inputMode="url" placeholder="https://youtu.be/…" value={v.external_url} error={errors.external_url} onChange={(e) => set("external_url", e.target.value)} />
+              </Field>
+              <DriveHelp url={v.external_url} />
+            </>
           )}
 
           <Field id="l-min" label={t("adm.lesson.minutes")} error={errors.duration_sec}>

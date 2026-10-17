@@ -97,6 +97,12 @@ const failedWords = [...(/const PAYMENT_FAILED_WORDS[^=]*= \{([\s\S]*?)\n\};/.ex
 for (const p of sslProblems) if (!failedWords.includes(p)) fail(`notify.ts: PAYMENT_FAILED_WORDS has no line for the online payment problem "${p}"`);
 need(admin, "owner note kinds", constants.NOTIFY_KINDS.flatMap((k) => [`adm.notify.kind.${k}`, `adm.notify.kind.${k}.d`]));
 
+// Drive videos: every way the website's Google account can fail to read a video is explained in plain words (the lesson editor's "Check access")
+const driveSource = readFileSync(resolve(root, "worker/src/lib/drive.ts"), "utf8");
+const driveProblems = [...(/export type DriveProblem =([\s\S]*?);/.exec(driveSource)?.[1] ?? "").matchAll(/\| "([a-z_]+)"/g)].map((m) => m[1]);
+if (driveProblems.length < 10) fail(`drive.ts: the problem list parse looks wrong (${driveProblems.length})`);
+need(admin, "drive problems", driveProblems.flatMap((p) => [`adm.drive.p.${p}.title`, `adm.drive.p.${p}.body`]));
+
 // every error code the Worker can throw should have a translation in both UIs (generic is the safety net, but specific is kinder)
 const codes = new Set();
 for (const f of ["worker/src/routes/api/auth.ts", "worker/src/routes/api/checkout.ts", "worker/src/routes/api/student.tsx", "worker/src/services/orders.ts", "worker/src/services/learning.ts", "worker/src/services/payments/bkash.ts"]) {

@@ -13,6 +13,9 @@ import { isProd, type Env } from "../env";
  *   4. the pass is shown to the Analytics Data API with a question ("how many page views did each class page get?"), and the answer is read.
  * Every failure is named in words the owner can act on (see Ga4Problem) — "the API is switched off in your Google project" is
  * a different job from "the account has not been added to the property".
+ *
+ * The same account can read private Drive videos for the students' player (lib/drive.ts): the sign-in below takes the kind of access wanted
+ * (a "scope"), and keeps one pass per scope.
  */
 
 /** Where the outcome of the last look at Google is kept (KV): the Analytics screen and the dashboard's health strip both read it. */
@@ -43,13 +46,16 @@ export type Answer<T> = { ok: true; data: T } | Failure;
 /** Google answers in well under a second; a call that has not come back in 15 seconds is given up, so the screen can say so instead of waiting. */
 const TIMEOUT_MS = 15_000;
 const SCOPE = "https://www.googleapis.com/auth/analytics.readonly";
+/** Reading files the owner shared with the account (the Drive videos). Read-only: the account can never change or delete anything. */
+export const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 const GOOGLE_DATA = "https://analyticsdata.googleapis.com/v1beta";
+const GOOGLE_DRIVE = "https://www.googleapis.com/drive/v3";
 
 /** Google's addresses. Only a development or test machine may point them at a stand-in (the dev Worker itself); the real site never can. */
-function endpoints(env: Env): { token: string; data: string } {
+export function endpoints(env: Env): { token: string; data: string; drive: string } {
   const base = !isProd(env) ? (env.GOOGLE_API_BASE ?? "").trim().replace(/\/+$/, "") : "";
-  return base ? { token: `${base}/token`, data: `${base}/v1beta` } : { token: GOOGLE_TOKEN, data: GOOGLE_DATA };
+  return base ? { token: `${base}/token`, data: `${base}/v1beta`, drive: `${base}/drive/v3` } : { token: GOOGLE_TOKEN, data: GOOGLE_DATA, drive: GOOGLE_DRIVE };
 }
 
 export const propertyId = (env: Env): string => (env.GA_PROPERTY_ID ?? "").replace(/\D/g, "");
@@ -120,31 +126,34 @@ const pemToDer = (pem: string): ArrayBuffer => {
 };
 
 /** The signed note that asks Google for a pass: who we are, what we want to read, until when. (Exported for the tests.) */
-export async function signedNote(account: ServiceAccount, audience: string, nowSec = Math.floor(Date.now() / 1000)): Promise<string> {
+export async function signedNote(account: ServiceAccount, audience: string, nowSec = Math.floor(Date.now() / 1000), scope = SCOPE): Promise<string> {
   const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT", ...(account.private_key_id ? { kid: account.private_key_id } : {}) }));
-  const claims = b64url(JSON.stringify({ iss: account.client_email, scope: SCOPE, aud: audience, iat: nowSec, exp: nowSec + 3600 }));
+  const claims = b64url(JSON.stringify({ iss: account.client_email, scope, aud: audience, iat: nowSec, exp: nowSec + 3600 }));
   const key = await crypto.subtle.importKey("pkcs8", pemToDer(account.private_key), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
   const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(`${header}.${claims}`));
   return `${header}.${claims}.${b64url(signature)}`;
 }
 
-let pass: { token: string; until: number; who: string } | null = null;
+/** One pass per kind of access (a pass for reading Analytics cannot read Drive, and the other way round). */
+const passes = new Map<string, { token: string; until: number; who: string }>();
 
-/** Forget the pass (tests, and when Google says it no longer works). */
+/** Forget the passes (tests, and when Google says one no longer works). */
 export function forgetPass(): void {
-  pass = null;
+  passes.clear();
 }
 
-async function signIn(env: Env): Promise<Answer<string>> {
+/** A pass for `scope` — kept an hour, signed for again shortly before it runs out. (Exported for lib/drive.ts.) */
+export async function googleToken(env: Env, scope: string = SCOPE): Promise<Answer<string>> {
   const parsed = parseServiceAccount(env.GOOGLE_SERVICE_ACCOUNT);
   if (!parsed.ok) return { ok: false, problem: parsed.problem };
   const { account } = parsed;
-  if (pass && pass.who === account.client_email && pass.until - Date.now() > 5 * 60_000) return { ok: true, data: pass.token };
+  const kept = passes.get(scope);
+  if (kept && kept.who === account.client_email && kept.until - Date.now() > 5 * 60_000) return { ok: true, data: kept.token };
 
   const audience = endpoints(env).token;
   let note: string;
   try {
-    note = await signedNote(account, audience);
+    note = await signedNote(account, audience, undefined, scope);
   } catch {
     // the text looked like a key but the browser's crypto cannot read it: it was damaged on the way (cut off, edited)
     return { ok: false, problem: "key_invalid", detail: "The private key in the key file cannot be read." };
@@ -169,7 +178,7 @@ async function signIn(env: Env): Promise<Answer<string>> {
   }
   if (res.ok && typeof body.access_token === "string") {
     const seconds = typeof body.expires_in === "number" ? body.expires_in : 3600;
-    pass = { token: body.access_token, until: Date.now() + seconds * 1000, who: account.client_email };
+    passes.set(scope, { token: body.access_token, until: Date.now() + seconds * 1000, who: account.client_email });
     return { ok: true, data: body.access_token };
   }
   const said = scrub(`${typeof body.error === "string" ? body.error : ""} ${typeof body.error_description === "string" ? body.error_description : text}`);
@@ -230,7 +239,7 @@ export function classify(status: number, said: string): Ga4Problem {
 async function ask(env: Env, kind: "runReport" | "runRealtimeReport", body: unknown, retried = false): Promise<Answer<Table>> {
   const property = propertyId(env);
   if (!property) return { ok: false, problem: "property_missing", detail: "GA_PROPERTY_ID is not set." };
-  const signed = await signIn(env);
+  const signed = await googleToken(env);
   if (!signed.ok) return signed;
   let res: Response;
   try {

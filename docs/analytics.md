@@ -111,7 +111,7 @@ Google Cloud sometimes refuses to *create* a key (“Service account key creatio
 
 ### 3.5 The same key, other Google services
 
-`GOOGLE_SERVICE_ACCOUNT` is a general Google service-account key; the website uses it today **only** for the Analytics Data API (read-only, scope `analytics.readonly`). Two different things must both be true before any Google service can be read:
+`GOOGLE_SERVICE_ACCOUNT` is a general Google service-account key; the website uses it for the Analytics Data API (read-only, scope `analytics.readonly`) and to play **private Google Drive videos** inside the class page (read-only, scope `drive.readonly`; see [owner-guide.md](owner-guide.md) — the Drive API must be on, and the video or its folder shared with the account’s e-mail). Two different things must both be true before any Google service can be read:
 
 1. the **API is switched on** in the Google Cloud project (*APIs & Services → Library*), and
 2. the **service account has been given access inside that product**: its e-mail added as a user of the Analytics property, of the Search Console site, or the Sheet / Calendar / Drive folder shared with it. Switching an API on gives no access to anybody’s data by itself.

@@ -113,7 +113,11 @@ export interface LessonContentDTO {
   body_html_bn: string;
   body_html_en: string;
   video: { embed_url: string } | null;
-  external: { url: string; embed_url: string | null } | null;
+  /**
+   * A link lesson. `embed_url` = a YouTube / Vimeo player; `media_url` = a video the website plays itself (a Google Drive file shared with the
+   * website's Google account) — then `url` is empty, the file's own address is never given to the student; neither = just a link to open.
+   */
+  external: { url: string; embed_url: string | null; media_url: string | null } | null;
   resources: LessonResourceDTO[];
   completed: boolean;
   prev_id: number | null;

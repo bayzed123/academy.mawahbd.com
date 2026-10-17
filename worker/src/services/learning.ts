@@ -14,6 +14,7 @@ import { generateCertificateCode, normalizeCertificateCode } from "../lib/crypto
 import { addSeconds, all, first, nowIso, run } from "../lib/db";
 import { forbidden, HttpError, notFound, unauthorized } from "../lib/http";
 import { renderMarkdown } from "../lib/markdown";
+import { driveReadable, driveRef } from "../lib/drive";
 import { externalEmbed, streamEmbedUrl } from "../lib/stream";
 import { getCurriculum, getCourseBySlug, toCard } from "./catalog";
 
@@ -189,7 +190,12 @@ export async function lessonContent(env: Env, lessonId: number, studentId: numbe
     const embed = await streamEmbedUrl(env, lesson.stream_uid);
     video = { embed_url: embed ?? "" };
   } else if (lesson.type === "external" && lesson.external_url) {
-    external = { url: lesson.external_url, embed_url: externalEmbed(lesson.external_url) };
+    const drive = driveRef(lesson.external_url);
+    // a Drive video that the website's own Google account can read plays inside the portal (lib/drive.ts): its address stays with the website
+    external =
+      drive?.kind === "file" && (await driveReadable(env, drive.id))
+        ? { url: "", embed_url: null, media_url: `/api/${enrolled ? "student" : "preview"}/lessons/${lesson.id}/media` }
+        : { url: lesson.external_url, embed_url: externalEmbed(lesson.external_url), media_url: null };
   }
 
   return {
@@ -207,6 +213,18 @@ export async function lessonContent(env: Env, lessonId: number, studentId: numbe
     prev_id: idx > 0 ? ids[idx - 1] : null,
     next_id: idx >= 0 && idx < ids.length - 1 ? ids[idx + 1] : null,
   };
+}
+
+/**
+ * Which Drive file this lesson plays, for a person who may watch the lesson (enrolled and past any drip date, or a free preview). The file is the one
+ * the owner put in the lesson's link — never anything the student sends. 404 when the lesson is not a Drive video.
+ */
+export async function lessonDriveFile(env: Env, lessonId: number, studentId: number | null): Promise<string> {
+  const lesson = await loadLesson(env, lessonId);
+  await authoriseLesson(env, lesson, studentId);
+  const ref = lesson.type === "external" && lesson.external_url ? driveRef(lesson.external_url) : null;
+  if (ref?.kind !== "file") throw notFound();
+  return ref.id;
 }
 
 /** Authorise + locate a downloadable lesson file. Enrolled students only. */

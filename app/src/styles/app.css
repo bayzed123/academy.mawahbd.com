@@ -149,8 +149,11 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .layout-player{display:grid;gap:22px}
 .video-frame{position:relative;aspect-ratio:16/9;border-radius:20px;overflow:hidden;background:var(--k-950);box-shadow:var(--sh-2)}
 .video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.video-frame video{position:absolute;inset:0;width:100%;height:100%;background:#000}
 .video-note{display:grid;place-items:center;text-align:center;gap:.8rem;padding:24px;color:#eadfd4}
 .video-note .icon{width:48px;height:48px;color:var(--g-400)}
+/* a frame that holds words and a button instead of a video: at least 16:9, but it grows to fit them rather than cutting them off on a phone */
+.video-frame.is-note{overflow:visible;display:grid}
 .player-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:16px 0}
 .player-title{font-size:clamp(1.3rem,2.8vw,1.8rem);margin:0}
 .prose{max-width:46rem;line-height:1.85}
