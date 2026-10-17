@@ -4,12 +4,14 @@ import type { MaterialKind } from "@mawah/shared";
 import { track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useI18n } from "../lib/i18n";
+import { HostedVideo } from "./LessonView";
 import { Button, Field, Icon, TextInput, useToast } from "./ui";
 
 /**
  * Class materials the owner added (Admin → Materials): files to download, links, live classes and private groups.
  * The list carries no address and no file key — a file comes through /download, a link through /open, and both check that
- * the student is enrolled and are recorded. The notice at the top says plainly that these are for the student alone.
+ * the student is enrolled and are recorded. A video kept in Google Drive plays right in its card (the website hands it on itself),
+ * or says it is being prepared — never a link to Drive. The notice at the top says plainly that these are for the student alone.
  */
 export interface StudentMaterial {
   id: number;
@@ -18,7 +20,8 @@ export interface StudentMaterial {
   title_en: string;
   note_bn: string;
   note_en: string;
-  delivery: "file" | "link";
+  delivery: "file" | "link" | "play" | "pending";
+  media_url: string | null;
   filename: string | null;
   size_bytes: number | null;
   platform: string | null;
@@ -67,7 +70,7 @@ export function MaterialsSection({ slug, materials }: { slug: string; materials:
       </div>
       <ul className="mat-grid">
         {materials.map((m) => (
-          <li key={m.id}>
+          <li key={m.id} className={m.delivery === "play" || m.delivery === "pending" ? "mat-wide" : undefined}>
             <MaterialCard slug={slug} m={m} />
           </li>
         ))}
@@ -111,6 +114,12 @@ function MaterialCard({ slug, m }: { slug: string; m: StudentMaterial }) {
     onError: (e) => toast(e instanceof ApiError ? err(e.code) : t("err.generic"), true),
   });
 
+  // a Drive video was started: recorded like an opened link (who watched what is in Admin → Materials)
+  const played = useMutation({
+    mutationFn: () => api(`/student/materials/${m.id}/play`, { method: "POST", json: {} }),
+    onSuccess: () => track("material_open", { material_id: m.id, material_type: m.kind }),
+  });
+
   const join = useMutation({
     mutationFn: () => api<{ request: { status: "pending" | "approved" | "rejected" }; url: string }>(`/student/materials/${m.id}/join`, { method: "POST", json: { profile_url: profile } }),
     onSuccess: () => {
@@ -148,26 +157,38 @@ function MaterialCard({ slug, m }: { slug: string; m: StudentMaterial }) {
       {note && <p className="mat-note">{note}</p>}
       {meta && <p className="mat-meta">{meta}</p>}
 
-      <div className="mat-actions">
-        {m.delivery === "file" ? (
-          <a className="btn btn-primary" href={`/api/student/materials/${m.id}/download`} download onClick={() => track("material_download", { material_id: m.id, material_type: m.kind })}>
-            <Icon name="download" /> {t("app.mat.download")}
-            <span className="vh">: {title}</span>
-          </a>
-        ) : m.kind === "group" ? (
-          <GroupActions m={m} profile={profile} setProfile={setProfile} profileError={profileError} join={join} open={open} />
-        ) : (
-          <Button className="btn-primary" busy={open.isPending} onClick={() => open.mutate()}>
-            <Icon name={m.kind === "live" ? "play" : "external"} /> {m.kind === "live" ? t("app.mat.joinLive") : m.kind === "video" ? t("app.mat.watch") : t("app.mat.openLink")}
-            <span className="vh">: {title}</span>
-          </Button>
-        )}
-        {fallback && (
-          <a className="btn btn-outline" href={fallback} target="_blank" rel="noopener noreferrer">
-            {t("app.mat.openHere")}
-          </a>
-        )}
-      </div>
+      {m.delivery === "play" && m.media_url ? (
+        <HostedVideo src={m.media_url} title={title} preload="none" onFirstPlay={() => played.mutate()} />
+      ) : m.delivery === "pending" ? (
+        // a Google Drive video the website cannot play yet: said plainly, with no link — a student is never sent to the owner's Drive
+        <div className="video-frame is-note">
+          <div className="video-note" role="status">
+            <Icon name="play" />
+            <p>{t("app.lesson.drivePending")}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="mat-actions">
+          {m.delivery === "file" ? (
+            <a className="btn btn-primary" href={`/api/student/materials/${m.id}/download`} download onClick={() => track("material_download", { material_id: m.id, material_type: m.kind })}>
+              <Icon name="download" /> {t("app.mat.download")}
+              <span className="vh">: {title}</span>
+            </a>
+          ) : m.kind === "group" ? (
+            <GroupActions m={m} profile={profile} setProfile={setProfile} profileError={profileError} join={join} open={open} />
+          ) : (
+            <Button className="btn-primary" busy={open.isPending} onClick={() => open.mutate()}>
+              <Icon name={m.kind === "live" ? "play" : "external"} /> {m.kind === "live" ? t("app.mat.joinLive") : m.kind === "video" ? t("app.mat.watch") : t("app.mat.openLink")}
+              <span className="vh">: {title}</span>
+            </Button>
+          )}
+          {fallback && (
+            <a className="btn btn-outline" href={fallback} target="_blank" rel="noopener noreferrer">
+              {t("app.mat.openHere")}
+            </a>
+          )}
+        </div>
+      )}
     </article>
   );
 }

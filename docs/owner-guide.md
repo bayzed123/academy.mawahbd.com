@@ -73,7 +73,7 @@
 
 **একবারের কাজ:**
 1. Google Cloud-এ (যে প্রজেক্টে সার্ভিস অ্যাকাউন্ট বানিয়েছেন) *APIs & Services → Library → Google Drive API → Enable* (আপনার তালিকায় আগে থেকেই আছে)। অ্যানালিটিক্সের জন্য যে `GOOGLE_SERVICE_ACCOUNT` কী দিয়েছেন **সেটাই** লাগে — নতুন কিছু বানাতে হয় না।
-2. *অ্যাডমিন → ক্লাস → (ক্লাস) → কারিকুলাম → লেসন → ধরন “লিংক”* — ড্রাইভের লিংক বসালেই নিচে **“গুগল ড্রাইভের ভিডিও”** বক্স আসে, তাতে ওয়েবসাইটের গুগল ঠিকানা (`…@….iam.gserviceaccount.com`) আর **কপি** বোতাম থাকে।
+2. *অ্যাডমিন → ক্লাস → (ক্লাস) → কারিকুলাম → লেসন → ধরন “লিংক”* — ড্রাইভের লিংক বসালেই নিচে **“গুগল ড্রাইভের ভিডিও”** বক্স আসে, তাতে ওয়েবসাইটের গুগল ঠিকানা (`…@….iam.gserviceaccount.com`) আর **কপি** বোতাম থাকে। ভিডিও যদি **ম্যাটেরিয়াল**-এ রাখেন (*অ্যাডমিন → ম্যাটেরিয়াল → ভিডিও → লিংক দিন*), সেখানেও লিংকের নিচে একই বক্স আসে — আর ভিডিওটি ক্লাসের পাতায় নিজের কার্ডেই চলে।
 3. গুগল ড্রাইভে ভিডিওটিতে (বা সব ক্লাসের ভিডিও যে ফোল্ডারে আছে সেটিতে) রাইট-ক্লিক → *Share* → ওই ঠিকানা বসান → **Viewer** → *Send* (“Notify people” বন্ধ রাখতে পারেন)। **ফোল্ডার একবার শেয়ার করলে তার সব ভিডিও কভার হয়।**
 4. লেসনে ফিরে **“অ্যাক্সেস পরীক্ষা করুন”** চাপুন। “তৈরি — ভিডিওর নাম ক্লাসের পাতাতেই চলবে” এলে হয়ে গেল; না এলে বক্সটি সহজ ভাষায় কারণ ও করণীয় বলে দেয় (গুগলের নিজের কথাসহ)।
 
@@ -83,7 +83,7 @@
 * **গুগলের সীমা:** একটি ফাইল দিনে নির্দিষ্ট পরিমাণই ডাউনলোড হতে দেয়; বহু শিক্ষার্থী একই ভিডিও একসাথে দেখলে কিছুক্ষণ “চালানো যাচ্ছে না” আসতে পারে (নিজে থেকে ঠিক হয়)। ছোট একাডেমির জন্য ঠিক আছে; **একসাথে অনেক শিক্ষার্থী হলে ভিডিও Cloudflare Stream-এ রাখুন** (লেসনের ধরন “ভিডিও”)।
 * **ডেটা:** ভিডিও ফোনের ইন্টারনেট দিয়েই আসে; বড় ফাইলে ডেটা বেশি লাগে। ছোট করে (720p, MP4) রাখলে ভালো।
 * **কপি ঠেকানো:** স্ক্রিন রেকর্ড বা বিশেষ টুলে ভিডিও নামানো যায় — অন্য সব ভিডিও প্ল্যাটফর্মের মতোই (ডিআরএম নেই)। কেনা ছাড়া কেউ ভিডিও পায় না — এটুকু নিশ্চিত।
-* শিক্ষার্থীকে কখনো ড্রাইভে পাঠানো হয় না, ড্রাইভের ঠিকানাও তাঁর কাছে যায় না। ওয়েবসাইট ভিডিওটি পড়তে না পারলে শিক্ষার্থী দেখেন “ভিডিওটি প্রস্তুত করা হচ্ছে” — আর আপনি লেসনের বক্সে কারণ দেখেন (“শেষবার…”)। তাই শেয়ার করার পর **অবশ্যই “অ্যাক্সেস পরীক্ষা করুন”** চাপুন।
+* শিক্ষার্থীকে কখনো ড্রাইভে পাঠানো হয় না (লেসন হোক বা ম্যাটেরিয়াল), ড্রাইভের ঠিকানাও তাঁর কাছে যায় না। ওয়েবসাইট ভিডিওটি পড়তে না পারলে শিক্ষার্থী দেখেন “ভিডিওটি প্রস্তুত করা হচ্ছে” — আর আপনি লেসনের বক্সে কারণ দেখেন (“শেষবার…”)। তাই শেয়ার করার পর **অবশ্যই “অ্যাক্সেস পরীক্ষা করুন”** চাপুন।
 * ভিডিও চলে শুধু সেই শিক্ষার্থীর জন্য যিনি ক্লাসটি কিনেছেন (লগইন করা অবস্থায়, প্রতিবার যাচাই করে); রিফান্ড/বাতিল হলে সাথে সাথে বন্ধ।
 * ওয়েবসাইটের ঠিকানাকে শেয়ার থেকে সরালেই সব ভিডিও আবার বন্ধ হয়ে যায়।
 
@@ -211,7 +211,7 @@
 | Meta (Facebook), Google বা Bing ওয়েবসাইটে একটি যাচাই-ফাইল রাখতে বলছে | ফাইলটি যেমন পেয়েছেন ঠিক তেমন (নাম ও ভেতরের লেখা না বদলে) GitHub-এ প্রজেক্টের **`marketing/verification/`** ফোল্ডারে আপলোড করুন (*Add file → Upload files*), তারপর Deploy শেষ হলে ব্রাউজারে `https://mawahacademy.com/<ফাইলের নাম>` খুলে দেখুন লেখাটি আসছে কি না, তারপর ওদের পাতায় *Verify* চাপুন। প্রজেক্টের মূল ফোল্ডারে (root) রাখা ফাইল ওয়েবসাইটে যায় না |
 | ইমেইল যাচ্ছে না | ড্যাশবোর্ডে “ইমেইল সংযুক্ত নয়” দেখাচ্ছে কি না দেখুন → ডেভেলপারকে বলুন |
 | ভিডিও চলছে না | কারিকুলামে ভিডিওর অবস্থা “প্রস্তুত” কি না দেখুন; Stream চালু আছে কি না দেখুন |
-| কিনেও শিক্ষার্থী “You need permission” দেখছেন (বা ড্রাইভের ভিডিও চলছে না) | ড্রাইভের ভিডিওটি এখনো ওয়েবসাইটের গুগল ঠিকানার সাথে শেয়ার করা হয়নি। *অ্যাডমিন → ক্লাস → কারিকুলাম → লেসন → লিংক বসান → “অ্যাক্সেস পরীক্ষা করুন”* — কোন ঠিকানায় শেয়ার করবেন আর কী সমস্যা, সহজ ভাষায় বলে দেয় (ধাপ ৪-এর “গুগল ড্রাইভের ভিডিও” অংশ দেখুন) |
+| কিনেও শিক্ষার্থী “You need permission” দেখছেন (বা ড্রাইভের ভিডিও চলছে না) | ড্রাইভের ভিডিওটি এখনো ওয়েবসাইটের গুগল ঠিকানার সাথে শেয়ার করা হয়নি। *অ্যাডমিন → ক্লাস → কারিকুলাম → লেসন* (অথবা *অ্যাডমিন → ম্যাটেরিয়াল → ভিডিও*) *→ লিংক বসান → “অ্যাক্সেস পরীক্ষা করুন”* — কোন ঠিকানায় শেয়ার করবেন আর কী সমস্যা, সহজ ভাষায় বলে দেয় (ধাপ ৪-এর “গুগল ড্রাইভের ভিডিও” অংশ দেখুন) |
 | কেউ অন্যের অ্যাকাউন্ট ব্যবহার করছেন মনে হচ্ছে | *শিক্ষার্থী*-তে খুঁজে **ব্লক** করুন (সব ডিভাইস থেকে লগআউট হবে) |
 | কোনো টিম সদস্যের ফোন/ল্যাপটপ হারিয়ে গেছে | *টিম*-এ তাকে **নিষ্ক্রিয়** করুন, পরে নতুন পাসওয়ার্ড দিন |
 | কিছু একটা অদ্ভুত লাগছে | *অ্যাক্টিভিটি লগ* খুলুন — কে, কখন, কী করেছেন সব আছে। তারপর [নিরাপত্তা ও ঘটনা-প্রতিক্রিয়া](security.md#10-incident-response-outline) অংশ অনুসরণ করুন |
@@ -308,6 +308,7 @@
 * **ধাপ ১ — ক্লাস বাছুন; ধাপ ২ — কী যোগ করছেন বাছুন:** ভিডিও, পিডিএফ, জিপ ফাইল, বই, লাইভ ক্লাস, লিংক অথবা প্রাইভেট গ্রুপ। ধরন বাছলে ফর্মে শুধু ওই ধরনের দরকারি ঘরগুলোই থাকে; প্রতিটি কার্ডের নিচে এক লাইনে লেখা আছে সেটা কী।
 * **ফাইল আপলোড:** ভিডিও, পিডিএফ, জিপ/ওয়ার্ড/এক্সেল/পাওয়ারপয়েন্ট বা বই (পিডিএফ/EPUB) সরাসরি এখানে আপলোড হয় — প্রতিটি সর্বোচ্চ **৯৫ এমবি**। আপলোডের সময় শতকরা হিসাব দেখায়। ভুল ধরনের ফাইল (যেমন নাম পিডিএফ, কিন্তু ভেতরে অন্য কিছু) সিস্টেম নিজেই ফিরিয়ে দেয়।
 * **বড় ফাইল বা লম্বা ভিডিও:** ৯৫ এমবির বেশি হলে গুগল ড্রাইভ / ইউটিউব / ভিমিওতে রেখে এখানে **লিংক** দিন। প্রতিটি ম্যাটেরিয়ালে “ফাইল আপলোড” অথবা “লিংক দিন” — দুটোর একটি বাছতে হয়, দুটো একসাথে নয়।
+* **গুগল ড্রাইভের ভিডিও:** ক্লাসের পাতায় নিজের কার্ডেই চলে — শিক্ষার্থী ড্রাইভে যান না। আগে ভিডিওটি ওয়েবসাইটের গুগল ঠিকানার সাথে শেয়ার করুন: লিংকের নিচের **“গুগল ড্রাইভের ভিডিও”** বক্সে ঠিকানা আর **“অ্যাক্সেস পরীক্ষা করুন”** আছে (বিস্তারিত: অংশ ৪, “গুগল ড্রাইভের ভিডিও”)। শেয়ার না হওয়া পর্যন্ত কার্ডে লেখা থাকে “ভিডিওটি প্রস্তুত করা হচ্ছে”।
 * **লাইভ ক্লাস:** জুম / গুগল মিট / ফেসবুক লাইভের লিংক ও শুরুর সময় (বাংলাদেশ সময়) দিন; চাইলে কত মিনিট চলবে তাও। শিক্ষার্থী দেখেন ক্লাসটি শুরু হবে, চলছে, না শেষ।
 * **প্রাইভেট গ্রুপ:** ফেসবুক, হোয়াটসঅ্যাপ বা টেলিগ্রাম বাছুন এবং আমন্ত্রণের লিংক দিন। **ফেসবুক গ্রুপ হলে** শিক্ষার্থী আগে তাঁর **ফেসবুক প্রোফাইলের লিংক** পাঠান — তবেই তিনি গ্রুপের লিংক দেখতে পান। অনুরোধগুলো **ম্যাটেরিয়াল → গ্রুপে যোগের অনুরোধ** পাতায় আসে (মেনুতে কতজন অপেক্ষায় আছেন দেখায়): প্রোফাইল খুলে ফেসবুকে তাঁকে গ্রুপে অনুমোদন দিন, তারপর এখানে **অনুমোদন** চাপুন। হোয়াটসঅ্যাপ/টেলিগ্রামে প্রোফাইল চাওয়া হয় না।
 * **কে পাবেন:** শুধু ওই ক্লাসে **চালু ভর্তি** থাকা শিক্ষার্থী। ভর্তি না থাকলে বা রিফান্ড/বাতিল হলে ফাইল ও লিংক আর খোলে না। ফাইলের আসল সংরক্ষণ-ঠিকানা কেউ দেখতে পায় না; ডাউনলোড সবসময় আপনার সাইট হয়েই যায়।
@@ -438,7 +439,7 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 
 **Once:**
 1. In Google Cloud (the project of your service account) *APIs & Services → Library → Google Drive API → Enable* (it is on your list already). It uses **the same** `GOOGLE_SERVICE_ACCOUNT` key you gave for Analytics — nothing new to make.
-2. *Admin → Classes → (the class) → Curriculum → a lesson of type “Link”* — paste the Drive link and a **“Google Drive video”** box appears with the website’s Google address (`…@….iam.gserviceaccount.com`) and a **Copy** button.
+2. *Admin → Classes → (the class) → Curriculum → a lesson of type “Link”* — paste the Drive link and a **“Google Drive video”** box appears with the website’s Google address (`…@….iam.gserviceaccount.com`) and a **Copy** button. A video kept under **Materials** (*Admin → Materials → Video → Add a link instead*) gets the same box under its link — and it plays right in its own card on the class page.
 3. In Google Drive right-click the video (or the folder that holds all your class videos) → *Share* → paste that address → **Viewer** → *Send* (you can switch “Notify people” off). **Sharing a folder once covers every video in it.**
 4. Back in the lesson press **“Check access”**. “Ready — <video name> will play inside the class page” means done; anything else, the box says why in plain words with the steps (and Google’s own sentence).
 
@@ -448,7 +449,7 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 * **Google’s limits:** Google allows only so much downloading of one file per day; if many students watch the same video at once you may see “could not be played right now” for a while (it clears by itself). Fine for a small academy; **for many students at once put the video on Cloudflare Stream** (lesson type “Video”).
 * **Data:** the video travels over the student’s mobile data; big files use a lot. Smaller (720p, MP4) is kinder.
 * **Copying:** like every video site without DRM, a determined person can screen-record or save a video. What is certain: nobody gets the video without owning the class.
-* A student is never sent to Drive, and your Drive address never reaches them. If the website cannot read the video, the student sees “This class video is being prepared” — and you see why in the lesson’s box (“Last time …”). So **always press “Check access”** after sharing.
+* A student is never sent to Drive (from a lesson or from Materials), and your Drive address never reaches them. If the website cannot read the video, the student sees “This class video is being prepared” — and you see why in the lesson’s box (“Last time …”). So **always press “Check access”** after sharing.
 * The video plays only for a student who bought the class (signed in, checked on every request); a refund or a cancelled access stops it at once.
 * Remove the address from the sharing and every video turns off again.
 
@@ -576,7 +577,7 @@ When someone leaves, **deactivate** their account — their access ends at once.
 | Meta (Facebook), Google or Bing asks for a verification file on the website | Upload the file exactly as you received it (same name, same content) to the project’s **`marketing/verification/`** folder on GitHub (*Add file → Upload files*); when the Deploy has finished open `https://mawahacademy.com/<file name>` in a browser and check the text shows, then press *Verify* on their page. A file in the project’s main folder is not on the website |
 | E-mails are not arriving | Check whether the dashboard says “E-mail is not connected” → ask your developer |
 | A video will not play | In the curriculum check the video says *ready*; check Stream is enabled |
-| A student who bought sees “You need permission” (or a Drive video will not play) | The Drive video is not shared with the website’s Google address yet. *Admin → the class → Curriculum → the lesson → paste the link → “Check access”* shows the address to share with and says what is wrong in plain words (see “Google Drive videos” in section 4) |
+| A student who bought sees “You need permission” (or a Drive video will not play) | The Drive video is not shared with the website’s Google address yet. *Admin → the class → Curriculum → the lesson* (or *Admin → Materials → the video*) *→ paste the link → “Check access”* shows the address to share with and says what is wrong in plain words (see “Google Drive videos” in section 4) |
 | Someone seems to be sharing an account | *Students* → search → **Block** (signs out every device) |
 | A team member lost their phone/laptop | *Team* → **Deactivate**, then re-add with a new password later |
 | Anything odd | Open the **Activity log** — who did what and when. Then follow [security → incident response](security.md#10-incident-response-outline) |
@@ -673,6 +674,7 @@ Whatever you give a class besides its lessons — a PDF of recipe cards, a ZIP, 
 * **Step 1 — choose the class; step 2 — choose what you are adding:** Video, PDF, ZIP file pack, Book, Live class, Link or Private group. Once you choose a type the form shows only what that type needs; each card has one line saying what it is.
 * **Uploading a file:** a video, a PDF, a ZIP / Word / Excel / PowerPoint file or a book (PDF / EPUB) is uploaded right here — up to **95 MB** each, with a progress percentage. A file of the wrong kind (a name that says PDF but something else inside) is turned away automatically.
 * **Big files and long videos:** over 95 MB, keep the file on Google Drive / YouTube / Vimeo and paste the **link** here instead. Each material is either “Upload a file” or “Add a link” — not both.
+* **Google Drive videos** play right in their card on the class page — the student is never sent to Drive. Share the video with the website’s Google address first: the **“Google Drive video”** box under the link shows the address and **“Check access”** (details: section 4, “Google Drive videos”). Until it is shared, the card says “This class video is being prepared”.
 * **Live class:** paste the Zoom / Google Meet / Facebook Live link and the start time (Bangladesh time), and optionally the length in minutes. Students see whether it is upcoming, live now or over.
 * **Private group:** choose Facebook, WhatsApp or Telegram and paste the invite link. For a **Facebook group** the student first sends their **Facebook profile link** — only then do they see the group’s link. The requests arrive under **Materials → Group requests** (the menu shows how many are waiting): open the profile, approve them inside the Facebook group, then press **Approve** here. WhatsApp and Telegram do not ask for a profile.
 * **Who gets it:** only students with an **active enrolment** in that class. Not enrolled, refunded or cancelled — the file and the link no longer open. Nobody sees a file’s real storage address; downloads always go through your site.
