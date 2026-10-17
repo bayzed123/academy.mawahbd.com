@@ -10,15 +10,19 @@ const kb = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${
 
 /**
  * A video the website hands on itself (a Google Drive file shared with the website's Google account): the browser's own player on the website's own
- * address — no Google sign-in, no "You need permission". If it cannot start, a plain message and "try again" instead of a black box.
+ * address — no Google sign-in, no "You need permission". If it cannot start, a plain message and "try again" instead of a black box. A lesson's video
+ * loads its first frame at once; a class material's waits until it is pressed (`preload="none"`: a list of videos fetches nothing until one is
+ * watched), and says once that it was started (`onFirstPlay`).
  */
-function HostedVideo({ src, title }: { src: string; title: string }) {
+export function HostedVideo({ src, title, preload = "metadata", onFirstPlay }: { src: string; title: string; preload?: "metadata" | "none"; onFirstPlay?: () => void }) {
   const { t } = useI18n();
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [started, setStarted] = useState(false);
   // another lesson is another video: forget that the last one failed
   useEffect(() => {
     setFailed(false);
+    setStarted(false);
   }, [src]);
   if (failed) {
     return (
@@ -41,7 +45,21 @@ function HostedVideo({ src, title }: { src: string; title: string }) {
   }
   return (
     <div className="video-frame">
-      <video key={`${src}#${attempt}`} src={src} aria-label={title} controls controlsList="nodownload" playsInline preload="metadata" onError={() => setFailed(true)} />
+      <video
+        key={`${src}#${attempt}`}
+        src={src}
+        aria-label={title}
+        controls
+        controlsList="nodownload"
+        playsInline
+        preload={preload}
+        onError={() => setFailed(true)}
+        onPlay={() => {
+          if (started) return;
+          setStarted(true);
+          onFirstPlay?.();
+        }}
+      />
     </div>
   );
 }

@@ -105,6 +105,8 @@ const en = {
   "app.mat.group.err.required": "Please paste your Facebook profile link.",
   "app.mat.group.err.facebook": "That does not look like a Facebook profile link. It should start with https://www.facebook.com/",
   "err.profile_required": "Please send your Facebook profile link first.",
+  "err.plays_here": "This video plays right here on the class page. Please refresh the page.",
+  "err.video_pending": "This class video is being prepared and will play right here soon.",
 
   "app.lesson.markDone": "Mark as complete",
   "app.lesson.done": "Completed",
@@ -410,6 +412,8 @@ const bn: Record<keyof typeof en, string> = {
   "app.mat.group.err.required": "আপনার ফেসবুক প্রোফাইলের লিংকটি পেস্ট করুন।",
   "app.mat.group.err.facebook": "এটি ফেসবুক প্রোফাইল লিংক মনে হচ্ছে না। লিংকটি https://www.facebook.com/ দিয়ে শুরু হবে।",
   "err.profile_required": "আগে আপনার ফেসবুক প্রোফাইল লিংক পাঠান।",
+  "err.plays_here": "এই ভিডিওটি ক্লাসের পাতাতেই চলে। পাতাটি একবার রিফ্রেশ করুন।",
+  "err.video_pending": "এই ক্লাসের ভিডিওটি প্রস্তুত করা হচ্ছে, শিগগিরই এখানেই চলবে।",
 
   "app.lesson.markDone": "সম্পন্ন হিসেবে চিহ্নিত করুন",
   "app.lesson.done": "সম্পন্ন হয়েছে",

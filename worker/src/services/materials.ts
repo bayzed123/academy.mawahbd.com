@@ -1,13 +1,15 @@
 import { MATERIAL_KINDS, type MaterialKind } from "@mawah/shared";
 import type { Env } from "../env";
 import { all, first, run } from "../lib/db";
+import { driveReadable, driveRef, type DriveRef } from "../lib/drive";
 
 /**
  * Class materials (Admin → Materials): files to download, links, live classes and private groups.
  *
  * What a STUDENT gets is a list without any address: a file is fetched through the authorised download endpoint, a link through
- * the "open" endpoint (both check the enrolment and are recorded). What a VISITOR gets on the public class page is only what
- * is included — a count per kind and the titles — never a link, a file name or a key.
+ * the "open" endpoint (both check the enrolment and are recorded). A video kept in Google Drive is neither: the website plays it itself,
+ * inside the class page (lib/drive.ts), and its Drive address is never handed out. What a VISITOR gets on the public class page is only
+ * what is included — a count per kind and the titles — never a link, a file name or a key.
  */
 
 /** Hosts a Facebook group or profile link may have. */
@@ -44,8 +46,14 @@ export interface StudentMaterial {
   title_en: string;
   note_bn: string;
   note_en: string;
-  /** "file" = downloaded through the authorised endpoint; "link" = opened through the authorised "open" endpoint */
-  delivery: "file" | "link";
+  /**
+   * "file" = downloaded through the authorised endpoint; "link" = opened through the authorised "open" endpoint; "play" = a Google Drive video the
+   * website plays itself, inside the class page (media_url); "pending" = a Google Drive video the website cannot play yet (not shared with its
+   * Google account, a folder, not a video …) — said plainly, with no link: a student is never sent to the owner's Drive
+   */
+  delivery: "file" | "link" | "play" | "pending";
+  /** "play" only: where the player gets the video — for an enrolled student, checked on every request */
+  media_url: string | null;
   filename: string | null;
   size_bytes: number | null;
   platform: string | null;
@@ -64,6 +72,7 @@ interface Row {
   note_bn: string;
   note_en: string;
   r2_key: string | null;
+  url: string | null;
   filename: string | null;
   size_bytes: number | null;
   platform: string | null;
@@ -73,11 +82,22 @@ interface Row {
   request_status: "pending" | "approved" | "rejected" | null;
 }
 
+/**
+ * A Google Drive file or folder in a material's link (not a group's): the website plays it itself, or says it is being prepared — the address is
+ * never handed to a student, who would only meet Drive's "You need permission" and see where the owner keeps the class videos. Google Docs and
+ * every other address stay ordinary links.
+ */
+export function materialDrive(m: { kind: MaterialKind; url: string | null; r2_key: string | null }): Exclude<DriveRef, { kind: "other" }> | null {
+  if (m.r2_key || !m.url || m.kind === "group") return null;
+  const ref = driveRef(m.url);
+  return ref && ref.kind !== "other" ? ref : null;
+}
+
 /** Everything that is switched on for a class, for a student who is enrolled in it (the caller checks that). */
 export async function materialsForStudent(env: Env, studentId: number, courseId: number): Promise<StudentMaterial[]> {
   const rows = await all<Row>(
     env.DB,
-    `SELECT m.id, m.kind, m.title_bn, m.title_en, m.note_bn, m.note_en, m.r2_key, m.filename, m.size_bytes, m.platform, m.starts_at,
+    `SELECT m.id, m.kind, m.title_bn, m.title_en, m.note_bn, m.note_en, m.r2_key, m.url, m.filename, m.size_bytes, m.platform, m.starts_at,
             m.duration_min, m.ask_profile, g.status AS request_status
        FROM materials m
        LEFT JOIN group_requests g ON g.material_id = m.id AND g.student_id = ?
@@ -86,14 +106,22 @@ export async function materialsForStudent(env: Env, studentId: number, courseId:
     studentId,
     courseId,
   );
-  return rows.map((r) => ({
+  // whether the website can play each Drive video (remembered a few minutes, so a page that opens again does not ask Google again)
+  const playable = await Promise.all(
+    rows.map(async (r) => {
+      const drive = materialDrive(r);
+      return drive ? drive.kind === "file" && (await driveReadable(env, drive.id)) : null;
+    }),
+  );
+  return rows.map((r, i) => ({
     id: r.id,
     kind: r.kind,
     title_bn: r.title_bn,
     title_en: r.title_en,
     note_bn: r.note_bn,
     note_en: r.note_en,
-    delivery: r.r2_key ? "file" : "link",
+    delivery: r.r2_key ? "file" : playable[i] === null ? "link" : playable[i] ? "play" : "pending",
+    media_url: playable[i] ? `/api/student/materials/${r.id}/media` : null,
     filename: r.r2_key ? r.filename : null,
     size_bytes: r.r2_key ? r.size_bytes : null,
     platform: r.platform,

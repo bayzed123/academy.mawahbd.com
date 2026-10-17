@@ -4,7 +4,7 @@ import { shownEmail } from "@mawah/shared";
 import type { AppEnv } from "../../env";
 import { audit } from "../../lib/audit";
 import { all, first, nowIso, run } from "../../lib/db";
-import { driveMedia } from "../../lib/drive";
+import { driveMedia, driveReadable } from "../../lib/drive";
 import { forbidden, HttpError, intParam, notFound, ok, parseBody } from "../../lib/http";
 import { textSchema } from "../../lib/schemas";
 import { getSettings } from "../../lib/settings";
@@ -24,7 +24,7 @@ import {
   resourceForDownload,
   setLessonComplete,
 } from "../../services/learning";
-import { facebookUrl, materialsForStudent, recordUse, usableMaterial } from "../../services/materials";
+import { facebookUrl, materialDrive, materialsForStudent, recordUse, usableMaterial } from "../../services/materials";
 import { notices, notifyOwner } from "../../services/notify";
 import { orderForStudent, ordersForStudent } from "../../services/orders";
 import { manualPayInfo } from "../../services/payments";
@@ -140,9 +140,10 @@ studentRoutes.get("/materials/:id/download", async (c) => {
   });
 });
 
-/** The address of a link, a live class or a group — given only to an enrolled student, and recorded. */
+/** The address of a link, a live class or a group — given only to an enrolled student, and recorded. Never a Google Drive address (see /play). */
 studentRoutes.post("/materials/:id/open", async (c) => {
   const { m, me } = await materialFor(c);
+  if (materialDrive(m)) throw new HttpError(409, "plays_here");
   if (!m.url) throw notFound();
   if (m.kind === "group" && m.ask_profile) {
     // a private group with a profile question: the link comes after the student has answered it
@@ -151,6 +152,27 @@ studentRoutes.post("/materials/:id/open", async (c) => {
   }
   c.executionCtx.waitUntil(recordUse(c.env, m, me.id, "open"));
   return ok(c, { url: m.url });
+});
+
+/**
+ * A Google Drive video in the class's materials, played inside the class page (services/materials.ts): the player's "I started" — recorded like an
+ * opened link — and the video itself, handed on from Google by the Worker (lib/drive.ts) to an enrolled student only, with its own limit as for a
+ * lesson's video. The file is the one the owner put in the material, never one the student names; its Drive address never leaves the Worker.
+ */
+studentRoutes.post("/materials/:id/play", async (c) => {
+  const { m, me } = await materialFor(c);
+  const drive = materialDrive(m);
+  if (drive?.kind !== "file") throw notFound();
+  if (!(await driveReadable(c.env, drive.id))) throw new HttpError(409, "video_pending");
+  c.executionCtx.waitUntil(recordUse(c.env, m, me.id, "open"));
+  return ok(c, { media_url: `/api/student/materials/${m.id}/media` });
+});
+
+studentRoutes.get("/materials/:id/media", rateLimit("RL_API", (c) => `media:${c.get("student")?.id}`), async (c) => {
+  const { m } = await materialFor(c);
+  const drive = materialDrive(m);
+  if (drive?.kind !== "file") throw notFound();
+  return driveMedia(c.env, drive.id, c.req.header("range") ?? null);
 });
 
 const joinSchema = z.object({ profile_url: z.string().trim().max(300).default("") });
