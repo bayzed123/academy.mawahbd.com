@@ -195,6 +195,16 @@ export function pageRoutes(lang: Lang) {
     });
   });
 
+  // the help pages: how to use the site, how to buy a class, and the numbers to call
+  for (const [path, kind] of [["/guide", "guide"], ["/how-to-order", "order"], ["/hotline", "hotline"]] as const) {
+    r.get(path, (c) =>
+      cachedPage(c, { ttl: 600 }, async () => {
+        const ctx = await pageCtxFor(c, lang, path);
+        return renderHtml(c, ctx, <PolicyPage ctx={ctx} kind={kind} />);
+      }),
+    );
+  }
+
   /* Certificate lookups are never cached and are rate-limited: the code (60 bits) is the credential. */
   const verify = async (c: C, rawCode: string | undefined) => {
     const code = rawCode?.trim().slice(0, 40) || undefined;

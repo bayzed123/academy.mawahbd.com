@@ -250,6 +250,14 @@ const en = {
   "cert.signed": "MAWAH Academy",
 
   "policy.refund": "Refund policy",
+  "policy.guide": "User guide",
+  "policy.order": "How to order",
+  "policy.hotline": "Hotline",
+  "page.contactTitle": "Need help? Contact us",
+  "page.call": "Call {phone}",
+  "page.whatsapp": "Message on WhatsApp",
+  "page.email": "E-mail {email}",
+  "footer.help": "Help",
   "policy.privacy": "Privacy policy",
   "policy.terms": "Terms of use",
 
@@ -536,6 +544,14 @@ const bn: Record<keyof typeof en, string> = {
   "cert.signed": "মাওয়াহ একাডেমি",
 
   "policy.refund": "রিফান্ড নীতি",
+  "policy.guide": "ব্যবহার নির্দেশিকা",
+  "policy.order": "কীভাবে অর্ডার করবেন",
+  "policy.hotline": "হট লাইন",
+  "page.contactTitle": "সাহায্য দরকার? যোগাযোগ করুন",
+  "page.call": "কল করুন {phone}",
+  "page.whatsapp": "হোয়াটসঅ্যাপে মেসেজ দিন",
+  "page.email": "ইমেইল করুন {email}",
+  "footer.help": "সহায়তা",
   "policy.privacy": "গোপনীয়তা নীতি",
   "policy.terms": "ব্যবহারের শর্তাবলি",
 

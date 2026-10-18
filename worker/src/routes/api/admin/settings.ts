@@ -49,7 +49,20 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
       .refine((v) => v === "" || readSslLogo(v) !== null, "ssl_logo_invalid")
       .default(""),
   }),
-  policies: z.object({ refund_bn: long(20000), refund_en: long(20000), privacy_bn: long(20000), privacy_en: long(20000), terms_bn: long(20000), terms_en: long(20000) }),
+  policies: z.object({
+    refund_bn: long(20000),
+    refund_en: long(20000),
+    privacy_bn: long(20000),
+    privacy_en: long(20000),
+    terms_bn: long(20000),
+    terms_en: long(20000),
+    guide_bn: long(20000),
+    guide_en: long(20000),
+    order_bn: long(20000),
+    order_en: long(20000),
+    hotline_bn: long(20000),
+    hotline_en: long(20000),
+  }),
   about: z.object({ bn: long(20000), en: long(20000) }),
   // these IDs are injected into pages as script parameters, so they are validated strictly
   analytics: z.object({
