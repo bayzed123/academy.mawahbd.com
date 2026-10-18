@@ -144,6 +144,9 @@ function RightPanel({ onNavigate }: { onNavigate?: () => void }) {
           <Button className="btn-outline" onClick={() => setLang(lang === "bn" ? "en" : "bn")}>
             {t("lang.switch")}
           </Button>
+          <Link className="btn btn-outline" to="/account" onClick={onNavigate}>
+            {t("adm.account.open")}
+          </Link>
           <Button
             className="btn-outline"
             onClick={async () => {
