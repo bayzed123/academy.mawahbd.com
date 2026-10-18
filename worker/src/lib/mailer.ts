@@ -189,18 +189,25 @@ const button = (href: string, label: string) =>
 
 const brandName = (lang: Lang) => (lang === "bn" ? "মাওয়াহ একাডেমি" : "MAWAH Academy");
 
-export function passwordResetMail(lang: Lang, link: string): Omit<MailMessage, "to"> {
+/** `code`: the 6-digit code the student can type on the "Forgot password" page instead of following the link (the same as in the text message). */
+export function passwordResetMail(lang: Lang, link: string, code?: string): Omit<MailMessage, "to"> {
   const subject = lang === "bn" ? "পাসওয়ার্ড রিসেট করুন" : "Reset your password";
   const intro =
     lang === "bn"
       ? "আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেটের অনুরোধ পাওয়া গেছে। নিচের বোতামে ক্লিক করে নতুন পাসওয়ার্ড দিন। লিংকটি ১ ঘণ্টা পর্যন্ত কাজ করবে।"
       : "We received a request to reset your account password. Press the button below to choose a new one. The link works for 1 hour.";
+  const byCode = code
+    ? lang === "bn"
+      ? `অথবা “পাসওয়ার্ড ভুলে গেছেন” পাতায় এই কোডটি লিখুন: ${code} (১৫ মিনিট চলবে)।`
+      : `Or type this code on the “Forgot password” page: ${code} (it works for 15 minutes).`
+    : "";
   const ignore = lang === "bn" ? "আপনি অনুরোধ না করলে এই ইমেইল উপেক্ষা করুন।" : "If you did not request this, you can ignore this email.";
   const label = lang === "bn" ? "নতুন পাসওয়ার্ড দিন" : "Choose a new password";
+  const codeHtml = byCode ? `<p style="font-size:16px;line-height:1.6">${escapeHtml(byCode)}</p>` : "";
   return {
     subject: `${subject} — ${brandName(lang)}`,
-    html: layout(lang, subject, `<p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p>${button(link, label)}<p style="color:#6d5f60;font-size:14px">${escapeHtml(ignore)}</p>`, brandName(lang)),
-    text: `${intro}\n\n${link}\n\n${ignore}`,
+    html: layout(lang, subject, `<p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p>${button(link, label)}${codeHtml}<p style="color:#6d5f60;font-size:14px">${escapeHtml(ignore)}</p>`, brandName(lang)),
+    text: `${intro}\n\n${link}\n\n${byCode ? `${byCode}\n\n` : ""}${ignore}`,
   };
 }
 

@@ -413,17 +413,31 @@ describe("signing in with the mobile number or the student ID", () => {
 });
 
 describe("forgot my password, by number", () => {
-  it("sends the link by text message to the number; a number nobody has looks exactly the same and sends nothing", async () => {
+  const codeIn = (text: string) => /\b(\d{6})\b/.exec(text)?.[1];
+  const codeTexts = async (phone: string) => (await smsTo(phone)).filter((m) => /password code|পাসওয়ার্ড বদলানোর কোড/.test(m.text));
+
+  it("texts a 6-digit code with no link in it; the code and a new password change it and sign this phone in; a number nobody has looks exactly the same and sends nothing", async () => {
     const { phone, id } = await paidBuyer();
-    const before = (await smsTo(phone)).length;
+    const before = (await codeTexts(phone)).length;
     const res = await new Client().post("/api/auth/forgot", { identifier: phone, lang: "en" });
     expect(res.status).toBe(200);
-    const text = await until(async () => (await smsTo(phone)).slice(before).find((m) => /choose a new password/.test(m.text)));
-    const token = tokenIn(text.text)!;
-    expect(token).toBeTruthy();
-    expect((await new Client().post("/api/auth/reset", { token, password: "a-brand-new-password-1" })).status).toBe(200);
+    const text = await until(async () => (await codeTexts(phone)).slice(before).at(-1));
+    expect(text.text).not.toMatch(/https?:|\/app\/|www\./); // texts with a link in them were not arriving
+    const code = codeIn(text.text)!;
+    expect(code).toMatch(/^\d{6}$/);
+    // only a keyed hash of the code is kept
+    const stored = await env.DB.prepare("SELECT code_hash FROM reset_codes WHERE student_id = ? ORDER BY id DESC").bind(id).first<{ code_hash: string }>();
+    expect(stored!.code_hash).not.toContain(code);
+    expect(stored!.code_hash).toMatch(/^[0-9a-f]{64}$/);
+
+    const phoneNow = new Client();
+    const done = await phoneNow.post("/api/auth/reset-code", { identifier: phone, code, password: "a-brand-new-password-1" });
+    expect(done.status).toBe(200);
+    expect((await json(done)).student.id).toBe(id);
+    expect((await phoneNow.get("/api/student/courses")).status).toBe(200); // signed in on this phone
     expect((await new Client().post("/api/auth/login", { identifier: phone, password: "a-brand-new-password-1" })).status).toBe(200);
-    expect(id).toBeGreaterThan(0);
+    // a code works once
+    expect((await new Client().post("/api/auth/reset-code", { identifier: phone, code, password: "another-password-12" })).status).toBe(422);
 
     const stranger = uniquePhone();
     const none = await new Client().post("/api/auth/forgot", { identifier: stranger, lang: "en" });
@@ -431,33 +445,79 @@ describe("forgot my password, by number", () => {
     expect(await json(none)).toEqual(await json(res));
     await new Promise((r) => setTimeout(r, 150));
     expect(await smsTo(stranger)).toHaveLength(0);
+    // and a made-up code for a number nobody has is answered like a wrong one
+    const nobody = await new Client().post("/api/auth/reset-code", { identifier: stranger, code: "123456", password: "a-brand-new-password-1" });
+    expect(nobody.status).toBe(422);
+    expect((await json(nobody)).error.fields).toEqual({ code: "invalid_code" });
   });
 
-  it("a student ID works too; an e-mail is answered by e-mail", async () => {
+  it("a student ID works too; an e-mail gets the code and the link by e-mail, and the code by text as well", async () => {
     const phone = uniquePhone();
     const email = uniqueEmail("forgot");
     const { id } = await registerStudent(new Client(), { phone, email });
     const code = `STU-${String(id).padStart(6, "0")}`;
     await new Client().post("/api/auth/forgot", { identifier: email, lang: "en" });
-    await until(async () => (await outbox(email)).find((m) => tokenIn(m.text)));
-    expect(await smsTo(phone)).toHaveLength(0); // typed an e-mail: answered by e-mail only
+    const mail = await until(async () => (await outbox(email)).find((m) => tokenIn(m.text)));
+    const mailed = /: (\d{6}) \(/.exec(mail.text)?.[1]; // "… this code on the “Forgot password” page: 123456 (it works for 15 minutes)"
+    expect(mailed).toMatch(/^\d{6}$/);
+    const texted = await until(async () => (await codeTexts(phone)).at(-1));
+    expect(codeIn(texted.text)).toBe(mailed); // the same code both ways
 
     await new Client().post("/api/auth/forgot", { identifier: code, lang: "en" });
-    await new Promise((r) => setTimeout(r, 150));
-    expect((await outbox(email)).filter((m) => tokenIn(m.text))).toHaveLength(2);
-    expect(await smsTo(phone)).toHaveLength(0);
+    await until(async () => (await outbox(email)).filter((m) => tokenIn(m.text)).length === 2);
+    await until(async () => (await codeTexts(phone)).length === 2);
+    // the newest code works; the one before it no longer does
+    const latest = codeIn((await codeTexts(phone)).at(-1)!.text)!;
+    if (latest !== mailed) expect((await new Client().post("/api/auth/reset-code", { identifier: email, code: mailed!, password: "a-brand-new-password-1" })).status).toBe(422);
+    expect((await new Client().post("/api/auth/reset-code", { identifier: code, code: latest, password: "a-brand-new-password-1" })).status).toBe(200);
+    // the link e-mailed with it is no longer needed, and no longer works
+    const link = tokenIn((await outbox(email)).filter((m) => tokenIn(m.text)).at(-1)!.text)!;
+    expect((await new Client().post("/api/auth/reset", { token: link, password: "yet-another-password-1" })).status).toBe(400);
   });
 
-  it("a few texts per number per hour, then no more — and the answer stays the same, so nobody learns anything", async () => {
+  it("5 wrong tries end a code — the right one too, after that — and a new code works; tries sent all at once get no more than 5 looks", async () => {
+    const { phone, id } = await paidBuyer();
+    await new Client().post("/api/auth/forgot", { identifier: phone, lang: "en" });
+    const code = codeIn((await until(async () => (await codeTexts(phone)).at(-1))).text)!;
+    const wrong = code === "000000" ? "111111" : "000000";
+    // ten at the same moment
+    const all = await Promise.all(Array.from({ length: 10 }, () => new Client().post("/api/auth/reset-code", { identifier: phone, code: wrong, password: "a-brand-new-password-1" })));
+    expect(all.map((r) => r.status)).toEqual(Array(10).fill(422));
+    const left = await env.DB.prepare("SELECT attempts, used_at FROM reset_codes WHERE student_id = ? ORDER BY id DESC").bind(id).first<{ attempts: number; used_at: string | null }>();
+    expect(left!.attempts).toBe(5);
+    expect(left!.used_at).not.toBeNull();
+    expect((await new Client().post("/api/auth/reset-code", { identifier: phone, code, password: "a-brand-new-password-1" })).status).toBe(422);
+
+    await new Client().post("/api/auth/forgot", { identifier: phone, lang: "en" });
+    const fresh = codeIn((await until(async () => (await codeTexts(phone)).length >= 2 && (await codeTexts(phone)).at(-1))).text)!;
+    expect((await new Client().post("/api/auth/reset-code", { identifier: phone, code: fresh, password: "a-brand-new-password-1" })).status).toBe(200);
+  });
+
+  it("a code works for 15 minutes, and only for the account it was sent to", async () => {
+    const a = await paidBuyer();
+    const b = await paidBuyer();
+    await new Client().post("/api/auth/forgot", { identifier: a.phone, lang: "en" });
+    const code = codeIn((await until(async () => (await codeTexts(a.phone)).at(-1))).text)!;
+    // someone else's number with this code: no
+    expect((await new Client().post("/api/auth/reset-code", { identifier: b.phone, code, password: "a-brand-new-password-1" })).status).toBe(422);
+    // 16 minutes later: no
+    await env.DB.prepare("UPDATE reset_codes SET expires_at = ? WHERE student_id = ?").bind(new Date(Date.now() - 60_000).toISOString().replace(/\.\d{3}Z$/, "Z"), a.id).run();
+    expect((await new Client().post("/api/auth/reset-code", { identifier: a.phone, code, password: "a-brand-new-password-1" })).status).toBe(422);
+    // a code must be 6 digits
+    const short = await new Client().post("/api/auth/reset-code", { identifier: a.phone, code: "12345", password: "a-brand-new-password-1" });
+    expect(short.status).toBe(422);
+    expect((await json(short)).error.fields.code).toBe("invalid_code");
+  });
+
+  it("a few codes per number per hour, then no more — and the answer stays the same, so nobody learns anything", async () => {
     const { phone } = await paidBuyer();
-    const base = (await smsTo(phone)).length;
+    const base = (await codeTexts(phone)).length;
     for (let i = 0; i < 5; i++) {
-      // a different client each time: the caps under test are the number's, not the visitor's address
+      // a different client each time: the caps under test are the account's and the number's, not the visitor's address
       expect((await new Client().post("/api/auth/forgot", { identifier: phone, lang: "en" })).status).toBe(200);
     }
     await new Promise((r) => setTimeout(r, 250));
-    const sent = (await smsTo(phone)).slice(base).filter((m) => /choose a new password/.test(m.text));
-    expect(sent.length).toBe(3);
+    expect((await codeTexts(phone)).slice(base).length).toBe(3);
   });
 
   it("a blocked account is sent nothing", async () => {
@@ -467,6 +527,19 @@ describe("forgot my password, by number", () => {
     expect((await new Client().post("/api/auth/forgot", { identifier: phone, lang: "en" })).status).toBe(200);
     await new Promise((r) => setTimeout(r, 150));
     expect((await smsTo(phone)).length).toBe(base);
+  });
+
+  it("the owner sees in the activity log whether the code went out, and how", async () => {
+    const { phone, id } = await paidBuyer();
+    await new Client().post("/api/auth/forgot", { identifier: phone, lang: "en" });
+    const sent = await until(async () =>
+      env.DB.prepare("SELECT meta FROM activity_log WHERE action = 'student.password_code_sent' AND entity_id = ? ORDER BY id DESC").bind(String(id)).first<{ meta: string }>(),
+    );
+    expect(JSON.parse(sent.meta)).toEqual({ sms: "sent", email: "not_sent" });
+    // never the code
+    const code = codeIn((await codeTexts(phone)).at(-1)!.text)!;
+    const logged = await env.DB.prepare("SELECT GROUP_CONCAT(meta, ' ') AS all_meta FROM activity_log WHERE entity_id = ?").bind(String(id)).first<{ all_meta: string }>();
+    expect(logged!.all_meta).not.toContain(code);
   });
 });
 
@@ -553,7 +626,9 @@ describe("staff add and change students known by number", () => {
 
     const reset = await json(await a.post(`/api/admin/students/${id}/send-reset`, {}));
     expect(reset.sent).toBe(true);
-    expect((await smsTo(phone)).filter((m) => /choose a new password/.test(m.text))).toHaveLength(1);
+    // the text carries the code for the "Forgot password" page, and no link
+    const code = await until(async () => (await smsTo(phone)).find((m) => /password code is \d{6}/.test(m.text)));
+    expect(code.text).not.toMatch(/https?:|\/app\//);
   });
 
   it("an e-mail can be added later (it is then who they are), and the address can be changed", async () => {
