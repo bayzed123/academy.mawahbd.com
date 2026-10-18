@@ -370,6 +370,36 @@ test.describe("a Drive video in the class's materials", () => {
     await ctx.close();
   });
 
+  test("a Vimeo or YouTube video plays in its card too, in that site's own player — no new tab — after “Watch video”", async ({ browser }) => {
+    const vimeo = await material("Biryani on Vimeo", "https://vimeo.com/123456789?share=copy");
+    const youtube = await material("Biryani on YouTube", "https://youtu.be/dQw4w9WgXcQ");
+    const { ctx, page } = await student(browser);
+    const tabs: string[] = [];
+    ctx.on("page", (p) => tabs.push(p.url()));
+    // the players' own sites are not reached from the test machine: only the address the frame is given matters here
+    await page.route(/player\.vimeo\.com|youtube-nocookie\.com/, (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>player</title>" }));
+    await page.goto(`/app/learn/${slug}`);
+    const section = page.locator("#materials");
+    for (const [title, id, src] of [
+      ["Biryani on Vimeo", vimeo, "https://player.vimeo.com/video/123456789?autoplay=1"],
+      ["Biryani on YouTube", youtube, "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1"],
+    ] as const) {
+      const card = section.locator(".mat-card", { hasText: title });
+      await expect(card.locator("iframe")).toHaveCount(0); // nothing loads until it is pressed
+      const opened = page.waitForResponse((r) => r.url().endsWith(`/api/student/materials/${id}/open`) && r.request().method() === "POST");
+      await card.getByRole("button", { name: /Watch video/ }).click();
+      expect((await opened).status()).toBe(200);
+      const frame = card.locator(".video-frame iframe");
+      await expect(frame).toHaveAttribute("src", src);
+      await expect(frame).toHaveAttribute("title", title);
+    }
+    expect(tabs).toEqual([]);
+    // on a 360 px phone the player fits the screen
+    await page.setViewportSize({ width: 360, height: 800 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await ctx.close();
+  });
+
   test("a video already in Materials: open its row, “Check access” and “Play here” are right under its link, and it plays in the admin", async () => {
     await admin.goto("/admin/materials");
     await admin.getByRole("row").filter({ hasText: "Biryani part 1" }).click();

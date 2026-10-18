@@ -20,7 +20,7 @@ export interface StudentMaterial {
   title_en: string;
   note_bn: string;
   note_en: string;
-  delivery: "file" | "link" | "play" | "pending";
+  delivery: "file" | "link" | "play" | "pending" | "embed";
   media_url: string | null;
   filename: string | null;
   size_bytes: number | null;
@@ -70,7 +70,7 @@ export function MaterialsSection({ slug, materials }: { slug: string; materials:
       </div>
       <ul className="mat-grid">
         {materials.map((m) => (
-          <li key={m.id} className={m.delivery === "play" || m.delivery === "pending" ? "mat-wide" : undefined}>
+          <li key={m.id} className={m.delivery === "play" || m.delivery === "pending" || m.delivery === "embed" ? "mat-wide" : undefined}>
             <MaterialCard slug={slug} m={m} />
           </li>
         ))}
@@ -88,6 +88,8 @@ function MaterialCard({ slug, m }: { slug: string; m: StudentMaterial }) {
   const [profile, setProfile] = useState("");
   const [profileError, setProfileError] = useState("");
   const [fallback, setFallback] = useState<string | null>(null);
+  // a YouTube or Vimeo video: its player, once the student pressed "Watch video" (null = not started yet)
+  const [embed, setEmbed] = useState<string | null>(null);
 
   /** The address comes from the server (after the enrolment check); the tab is opened now, inside the click, so a pop-up blocker allows it. */
   const open = useMutation({
@@ -110,6 +112,17 @@ function MaterialCard({ slug, m }: { slug: string; m: StudentMaterial }) {
         setFallback(url); // the browser refused to open a tab: show the link instead
         toast(t("app.mat.popup"), true);
       }
+    },
+    onError: (e) => toast(e instanceof ApiError ? err(e.code) : t("err.generic"), true),
+  });
+
+  /** A YouTube or Vimeo video plays here, in that site's own player: "open" gives its address (and records it), and no tab is opened. */
+  const watch = useMutation({
+    mutationFn: () => api<{ url: string; embed_url: string | null }>(`/student/materials/${m.id}/open`, { method: "POST", json: {} }),
+    onSuccess: (r) => {
+      track("material_open", { material_id: m.id, material_type: m.kind });
+      if (r.embed_url) setEmbed(`${r.embed_url}${r.embed_url.includes("?") ? "&" : "?"}autoplay=1`);
+      else setFallback(r.url); // cannot be played here after all: the link, to open by hand
     },
     onError: (e) => toast(e instanceof ApiError ? err(e.code) : t("err.generic"), true),
   });
@@ -167,9 +180,18 @@ function MaterialCard({ slug, m }: { slug: string; m: StudentMaterial }) {
             <p>{t("app.lesson.drivePending")}</p>
           </div>
         </div>
+      ) : m.delivery === "embed" && embed ? (
+        <div className="video-frame">
+          <iframe src={embed} title={title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin" />
+        </div>
       ) : (
         <div className="mat-actions">
-          {m.delivery === "file" ? (
+          {m.delivery === "embed" ? (
+            <Button className="btn-primary" busy={watch.isPending} onClick={() => watch.mutate()}>
+              <Icon name="play" /> {t("app.mat.watch")}
+              <span className="vh">: {title}</span>
+            </Button>
+          ) : m.delivery === "file" ? (
             <a className="btn btn-primary" href={`/api/student/materials/${m.id}/download`} download onClick={() => track("material_download", { material_id: m.id, material_type: m.kind })}>
               <Icon name="download" /> {t("app.mat.download")}
               <span className="vh">: {title}</span>

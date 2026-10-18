@@ -78,9 +78,13 @@ export function externalEmbed(url: string): string | null {
       }
     }
     if (id && /^[\w-]{11}$/.test(id)) return `https://www.youtube-nocookie.com/embed/${id}`;
-    if (host === "vimeo.com") {
-      const m = /^\/(\d{6,12})/.exec(u.pathname);
-      if (m) return `https://player.vimeo.com/video/${m[1]}`;
+    if (host === "vimeo.com" || host === "player.vimeo.com") {
+      const m = /^\/(?:video\/)?(\d{6,12})(?:\/([0-9a-f]{6,20}))?(?:\/|$)/.exec(u.pathname);
+      if (m) {
+        // an unlisted video's link carries its private hash (vimeo.com/<id>/<hash>, or ?h=<hash>): the player needs it too
+        const hash = m[2] ?? u.searchParams.get("h");
+        return `https://player.vimeo.com/video/${m[1]}${hash && /^[0-9a-f]{6,20}$/.test(hash) ? `?h=${hash}` : ""}`;
+      }
     }
   } catch {
     /* not a URL */

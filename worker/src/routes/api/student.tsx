@@ -24,6 +24,7 @@ import {
   resourceForDownload,
   setLessonComplete,
 } from "../../services/learning";
+import { externalEmbed } from "../../lib/stream";
 import { facebookUrl, materialDrive, materialsForStudent, recordUse, usableMaterial } from "../../services/materials";
 import { notices, notifyOwner } from "../../services/notify";
 import { orderForStudent, ordersForStudent } from "../../services/orders";
@@ -151,7 +152,8 @@ studentRoutes.post("/materials/:id/open", async (c) => {
     if (!asked) throw new HttpError(409, "profile_required");
   }
   c.executionCtx.waitUntil(recordUse(c.env, m, me.id, "open"));
-  return ok(c, { url: m.url });
+  // a video on YouTube or Vimeo: the player's address too, so it plays inside the class page (the link stays for when it cannot)
+  return ok(c, { url: m.url, embed_url: m.kind === "video" ? externalEmbed(m.url) : null });
 });
 
 /**
