@@ -29,7 +29,7 @@
 2. **পেমেন্ট সেটআপ করুন** — *সেটিংস → পেমেন্ট* (নিচে ৫ নম্বর অংশ দেখুন)।
 3. **প্রশিক্ষকের প্রোফাইল পূর্ণ করুন** — *প্রশিক্ষক* মেনুতে ছবি, পরিচিতি, যোগ্যতা। ছবি আপলোড করলে সিস্টেম নিজেই ছোট ও দ্রুত করে নেয়।
 4. **প্রথম ক্লাসে লেসন যোগ করুন** (৩ ও ৪ নম্বর অংশ)।
-5. **রিফান্ড নীতি লিখুন** — *সেটিংস → নীতিমালা*। রিফান্ড, গোপনীয়তা ও শর্তাবলী বাংলা ও ইংরেজিতে লিখুন।
+5. **নীতিমালা ও সহায়তার পাতাগুলো দেখে নিন** — *সেটিংস → নীতিমালা*। রিফান্ড, গোপনীয়তা, শর্তাবলী, **ব্যবহার নির্দেশিকা**, **কীভাবে অর্ডার করবেন** ও **হট লাইন** — বাংলা ও ইংরেজিতে আগে থেকেই লেখা আছে (আপনার MAWAH-এর নীতিমালা থেকে একাডেমির জন্য নতুন করে লেখা, কার্যকর ১৮ অক্টোবর ২০২৬)। যেকোনোটি বদলালে ওয়েবসাইটে সেটিই দেখায়। লেখায় কোনো নম্বর বা ইমেইল নেই: প্রতিটি পাতার নিচে যোগাযোগের বাক্সটি *সেটিংস → যোগাযোগ* থেকে আসে (হট লাইন পাতায় সবার আগে)। পাতাগুলো: `/policies/refund`, `/policies/privacy`, `/policies/terms`, `/guide`, `/how-to-order`, `/hotline` — সবগুলোর লিংক ফুটারে।
 6. **ইমেইল সংযুক্ত করুন** — ডেভেলপারের সাহায্যে (Resend কী)। এটি ছাড়া রসিদ ও পাসওয়ার্ড-রিসেট ইমেইল যাবে না।
 7. **এআই চ্যাটবট যাচাই করুন** (১১ নম্বর অংশ)।
 8. **টিমের একজনকে যুক্ত করুন** (১২ নম্বর অংশ) — আপনি একা থাকলে দ্বিতীয় একজন সুপার অ্যাডমিন রাখা ভালো, যাতে কখনো ঢুকতে না-পারার ঝুঁকি না থাকে।
@@ -395,7 +395,7 @@ Below the health strip the dashboard shows **First steps**; it ticks itself off 
 2. **Set up payments** — *Settings → Payments* (section 5).
 3. **Complete the instructor profile** — *Instructors*: photo, bio, credentials. Photos are shrunk automatically so pages stay fast.
 4. **Add lessons to your first class** (sections 3 and 4).
-5. **Write your refund policy** — *Settings → Policies*. Refund, privacy and terms, in Bangla and English.
+5. **Check the policy and help pages** — *Settings → Policies*. Refund, privacy, terms, **User guide**, **How to order** and **Hotline** are already written in Bangla and English (rewritten for the academy from your MAWAH policies, effective 18 October 2026). Change any of them and the website shows yours. The texts hold no numbers or e-mail: the contact box under every page comes from *Settings → Contact* (first on the Hotline page). The pages: `/policies/refund`, `/policies/privacy`, `/policies/terms`, `/guide`, `/how-to-order`, `/hotline` — all linked in the footer.
 6. **Connect e-mail** — with your developer (a Resend key). Without it receipts and password resets are not sent.
 7. **Check the AI chatbot** (section 11).
 8. **Invite a team member** (section 12). If you are alone, add a second Super Admin so you can never be locked out.
