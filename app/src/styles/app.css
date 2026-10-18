@@ -206,6 +206,9 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .pay-tiles h3{font-size:1.05rem;margin:0 0 4px}
 .pay-tiles .pay-group{margin-top:14px}
 .pay-tiles h4{font-size:.95rem;margin:0 0 8px;color:var(--ink-2)}
+/* two to a row on a 360 px phone (the box sits inside the checkout card, so the shared 132 px minimum would leave one per row) */
+.pay-tiles .pay-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,108px),1fr))}
+@media (max-width:420px){.pay-tiles{padding:12px}}
 button.pay-method{font:inherit;cursor:pointer;width:100%}
 button.pay-method:disabled{cursor:progress;opacity:.7}
 button.pay-method[aria-busy="true"]{opacity:1;border-color:var(--k-900)}
