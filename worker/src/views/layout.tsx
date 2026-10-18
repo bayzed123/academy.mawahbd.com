@@ -263,6 +263,18 @@ export function Layout(props: LayoutProps) {
                       <a href={ctx.href("/policies/terms")}>{t("policy.terms")}</a>
                     </li>
                   </ul>
+                  <p class="foot-h mt">{t("footer.help")}</p>
+                  <ul>
+                    <li>
+                      <a href={ctx.href("/how-to-order")}>{t("policy.order")}</a>
+                    </li>
+                    <li>
+                      <a href={ctx.href("/guide")}>{t("policy.guide")}</a>
+                    </li>
+                    <li>
+                      <a href={ctx.href("/hotline")}>{t("policy.hotline")}</a>
+                    </li>
+                  </ul>
                 </div>
                 <div>
                   <p class="foot-h">{t("footer.contact")}</p>

@@ -3,6 +3,7 @@ import { formatDate, formatMoney, loc, type CourseCardDTO, type OrderDTO } from 
 import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
 import type { InstructorDTO, InstructorReview } from "../../services/catalog";
 import type { CertRow } from "../../services/learning";
+import type { PageKind } from "../../content/pageTexts";
 import type { PageCtx } from "../ctx";
 import { Layout } from "../layout";
 import { qrSvg } from "../qr";
@@ -283,7 +284,51 @@ export function ContactPage({ ctx, flash }: { ctx: PageCtx; flash?: string }) {
   );
 }
 
-export function PolicyPage({ ctx, kind }: { ctx: PageCtx; kind: "refund" | "privacy" | "terms" }) {
+/**
+ * How to reach the shop, from Settings → Contact — under every policy and help page, and first on the Hotline page (`big`). Nothing is
+ * written into the texts themselves, so a changed number shows everywhere at once.
+ */
+function ContactBox({ ctx, big }: { ctx: PageCtx; big?: boolean }) {
+  const { t } = ctx;
+  const c = ctx.settings.contact;
+  const tel = c.phone.replace(/[^\d+]/g, "");
+  const wa = c.whatsapp.replace(/\D/g, "");
+  if (!tel && !wa && !c.email) return null;
+  return (
+    <aside class={big ? "page-contact big" : "page-contact"} aria-labelledby="page-contact-h">
+      <h2 id="page-contact-h">{t("page.contactTitle")}</h2>
+      <ul>
+        {tel && (
+          <li>
+            <a class="btn btn-primary" href={`tel:${tel}`}>
+              <Icon name="phone" />
+              {t("page.call", { phone: c.phone })}
+            </a>
+          </li>
+        )}
+        {wa && (
+          <li>
+            <a class="btn btn-outline" href={`https://wa.me/${wa}?text=${encodeURIComponent(t("wa.prefill"))}`} rel="noopener noreferrer" target="_blank">
+              <Icon name="whatsapp" />
+              {t("page.whatsapp")}
+            </a>
+          </li>
+        )}
+        {c.email && (
+          <li>
+            <a class="btn btn-outline" href={`mailto:${c.email}`}>
+              <Icon name="mail" />
+              {t("page.email", { email: c.email })}
+            </a>
+          </li>
+        )}
+      </ul>
+    </aside>
+  );
+}
+
+/** The policy and help pages: the owner's text (Admin → Settings → Policies) — or the site's own until they write one — and how to reach us. */
+export function PolicyPage({ ctx, kind }: { ctx: PageCtx; kind: PageKind }) {
   const { t, lang } = ctx;
   const p = ctx.settings.policies;
   const body = lang === "bn" ? p[`${kind}_bn` as const] || p[`${kind}_en` as const] : p[`${kind}_en` as const] || p[`${kind}_bn` as const];
@@ -298,7 +343,9 @@ export function PolicyPage({ ctx, kind }: { ctx: PageCtx; kind: "refund" | "priv
       </section>
       <section class="section tight">
         <div class="wrap">
+          {kind === "hotline" && <ContactBox ctx={ctx} big />}
           <div class="prose">{raw(renderMarkdown(body))}</div>
+          {kind !== "hotline" && <ContactBox ctx={ctx} />}
         </div>
       </section>
     </Layout>

@@ -15,7 +15,20 @@ interface S {
   announcement: { bn: string; en: string };
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
   payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number; ssl_logo: string };
-  policies: { refund_bn: string; refund_en: string; privacy_bn: string; privacy_en: string; terms_bn: string; terms_en: string };
+  policies: {
+    refund_bn: string;
+    refund_en: string;
+    privacy_bn: string;
+    privacy_en: string;
+    terms_bn: string;
+    terms_en: string;
+    guide_bn: string;
+    guide_en: string;
+    order_bn: string;
+    order_en: string;
+    hotline_bn: string;
+    hotline_en: string;
+  };
   about: { bn: string; en: string };
   analytics: { ga4: string; clarity: string; meta_pixel: string };
 }
@@ -239,7 +252,7 @@ export function Settings() {
           <Group name="policies" data={s.policies} canWrite={canWrite}>
             {(v, set, e) => (
               <div className="form-grid">
-                {(["refund", "terms", "privacy"] as const).flatMap((k) =>
+                {(["refund", "terms", "privacy", "guide", "order", "hotline"] as const).flatMap((k) =>
                   (["bn", "en"] as const).map((l) => {
                     const key = `${k}_${l}` as keyof S["policies"];
                     return (

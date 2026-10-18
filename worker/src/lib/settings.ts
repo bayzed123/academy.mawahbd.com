@@ -1,4 +1,5 @@
 import { MANUAL_WINDOW_DEFAULT_MIN, type NotifyKind } from "@mawah/shared";
+import { ABOUT_TEXT, PAGE_TEXTS } from "../content/pageTexts";
 import type { Env } from "../env";
 import { all, nowIso, run, safeJson } from "./db";
 
@@ -18,6 +19,7 @@ export interface Settings {
     /** what SSLCommerz gave the shop to show its logo (a link, or its few lines of HTML) — read by readSslLogo; empty = not shown */
     ssl_logo: string;
   };
+  /** the policy and help pages (Markdown); until the owner writes their own, the site's texts (content/pageTexts.ts) */
   policies: {
     refund_bn: string;
     refund_en: string;
@@ -25,6 +27,12 @@ export interface Settings {
     privacy_en: string;
     terms_bn: string;
     terms_en: string;
+    guide_bn: string;
+    guide_en: string;
+    order_bn: string;
+    order_en: string;
+    hotline_bn: string;
+    hotline_en: string;
   };
   about: { bn: string; en: string };
   analytics: { ga4: string; clarity: string; meta_pixel: string };
@@ -51,8 +59,21 @@ export const SETTING_DEFAULTS: Settings = {
     manual_window_min: MANUAL_WINDOW_DEFAULT_MIN,
     ssl_logo: "",
   },
-  policies: { refund_bn: "", refund_en: "", privacy_bn: "", privacy_en: "", terms_bn: "", terms_en: "" },
-  about: { bn: "", en: "" },
+  policies: {
+    refund_bn: PAGE_TEXTS.refund.bn,
+    refund_en: PAGE_TEXTS.refund.en,
+    privacy_bn: PAGE_TEXTS.privacy.bn,
+    privacy_en: PAGE_TEXTS.privacy.en,
+    terms_bn: PAGE_TEXTS.terms.bn,
+    terms_en: PAGE_TEXTS.terms.en,
+    guide_bn: PAGE_TEXTS.guide.bn,
+    guide_en: PAGE_TEXTS.guide.en,
+    order_bn: PAGE_TEXTS.order.bn,
+    order_en: PAGE_TEXTS.order.en,
+    hotline_bn: PAGE_TEXTS.hotline.bn,
+    hotline_en: PAGE_TEXTS.hotline.en,
+  },
+  about: { bn: ABOUT_TEXT.bn, en: ABOUT_TEXT.en },
   analytics: { ga4: "", clarity: "", meta_pixel: "" },
   chatbot: { enabled: true, greeting_bn: "", greeting_en: "", faq_bn: "", faq_en: "" },
   shop: { enabled: true, url: "https://mawahbd.com", label_bn: "দোকান", label_en: "Shop" },
