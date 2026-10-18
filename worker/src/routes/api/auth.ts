@@ -2,21 +2,20 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { isNoEmail, parseLoginId } from "@mawah/shared";
 import type { AppEnv, Ctx } from "../../env";
-import { audit } from "../../lib/audit";
+import { audit, auditAs } from "../../lib/audit";
 import { randomToken, sha256Hex } from "../../lib/crypto";
 import { addSeconds, all, first, nowIso, run } from "../../lib/db";
 import { HttpError, ok, parseBody } from "../../lib/http";
 import { toMe } from "../../lib/me";
 import { passwordResetMail } from "../../lib/mailer";
-import { allowVisitorSms } from "../../lib/sms";
-import { resetSms } from "../../lib/smsText";
+import { resetCodeSms } from "../../lib/smsText";
 import { addressSchema, emailSchema, langSchema, nameSchema, optionalEmailSchema, passwordSchema, phoneSchema, turnstileField } from "../../lib/schemas";
 import { createSession, destroySession } from "../../lib/session";
 import { verifyTurnstile } from "../../lib/turnstile";
 import { hashPassword } from "../../lib/crypto";
 import { loadStudent, requireStudent } from "../../middleware/auth";
 import { checkRateLimit, rateLimit } from "../../middleware/ratelimit";
-import { authenticate, createPasswordResetLink, setPassword, studentLoginFor } from "../../services/auth";
+import { authenticate, createPasswordResetLink, createResetCode, setPassword, studentLoginFor, useResetCode } from "../../services/auth";
 import { notices, notifyOwner } from "../../services/notify";
 import { tellStudent } from "../../services/studentMessages";
 
@@ -150,22 +149,45 @@ authRoutes.post("/forgot", rateLimit("RL_AUTH"), async (c) => {
   await guardBots(c, body.turnstile);
 
   const student = await forgotTarget(c, typed);
-  if (student) {
+  // a 6-digit code to type on this page: by text message to the account's number (no link in it — texts with one did not arrive) and, with
+  // the old one-hour link as well, by e-mail. Several codes in a row are capped (createResetCode), and a text can cost the shop money, so
+  // only a few go to one number an hour (`capped`). The texts follow the owner's SMS settings, except that a number typed here is always texted.
+  const code = student ? await createResetCode(c.env, student.id) : null;
+  if (student && code) {
     const lang = student.locale ?? body.lang;
     const hasEmail = !isNoEmail(student.email);
-    // an e-mail typed (or an ID, for someone who has one): e-mail. A mobile number, or an account with no e-mail: a text message to the number
-    // — and a text can cost the shop money, so only a few per number per hour and per day for the whole site.
-    const bySms = !hasEmail || parseLoginId(typed)?.kind === "phone";
-    if (!bySms || (student.phone && (await allowVisitorSms(c.env, student.phone)))) {
-      const link = await createPasswordResetLink(c.env, student.id);
-      c.executionCtx.waitUntil(
-        tellStudent(c.env, bySms ? { email: null, phone: student.phone } : { email: student.email, phone: null }, bySms ? { sms: resetSms(lang, { link }) } : { mail: passwordResetMail(lang, link) }, { smsAlso: true }).then(() => undefined),
-      );
-      await audit(c, { action: "student.password_reset_requested", entity: "student", entityId: student.id, meta: { by: bySms ? "sms" : "email" } });
-    }
+    const link = hasEmail ? await createPasswordResetLink(c.env, student.id) : null;
+    const byNumber = parseLoginId(typed)?.kind === "phone";
+    const ip = c.get("ip");
+    c.executionCtx.waitUntil(
+      tellStudent(c.env, { email: student.email, phone: student.phone }, { mail: link ? passwordResetMail(lang, link, code) : undefined, sms: resetCodeSms(lang, { code }) }, { smsAlso: byNumber, capped: true }).then((told) =>
+        // how it went, for the owner (Admin → Activity): a text or e-mail that could not be sent is the usual reason "the code never came"
+        auditAs(c.env, { type: "system", id: null, name: "" }, { action: "student.password_code_sent", entity: "student", entityId: student.id, meta: { sms: told.sms ? (told.sms.ok ? "sent" : (told.sms.problem ?? "failed")) : "not_sent", email: told.mail ? (told.mail.ok ? "sent" : (told.mail.code ?? "failed")) : "not_sent" } }, ip),
+      ),
+    );
+    await audit(c, { action: "student.password_reset_requested", entity: "student", entityId: student.id, meta: { by: byNumber ? "number" : hasEmail ? "email" : "id" } });
   }
   // identical response whether or not the account exists
   return ok(c);
+});
+
+const resetCodeSchema = z.object({ identifier: whoSchema, code: z.string().trim().regex(/^\d{6}$/, "invalid_code"), password: passwordSchema });
+
+/**
+ * The code from the text message (or the e-mail), with the new password. Right: the password is changed, every other session ends, and this
+ * phone is signed in. Wrong, used up, expired, or no such account: one and the same answer, so nothing can be learnt from it.
+ */
+authRoutes.post("/reset-code", rateLimit("RL_AUTH"), async (c) => {
+  const body = await parseBody(c, resetCodeSchema);
+  const student = await forgotTarget(c, body.identifier);
+  if (!student || !(await useResetCode(c.env, student.id, body.code))) throw new HttpError(422, "validation", "validation", { code: "invalid_code" });
+  await setPassword(c.env, "students", student.id, body.password);
+  // the link e-mailed with the same code is not needed any more
+  await run(c.env.DB, "DELETE FROM auth_tokens WHERE subject_type = 'student' AND subject_id = ? AND kind = 'password_reset'", student.id);
+  await createSession(c, "student", student.id);
+  await audit(c, { action: "student.password_reset", entity: "student", entityId: student.id, meta: { by: "code" } });
+  const me = await first<{ id: number; name: string; email: string; phone: string | null; address: string; locale: "bn" | "en" }>(c.env.DB, "SELECT id, name, email, phone, address, locale FROM students WHERE id = ?", student.id);
+  return ok(c, { student: me ? toMe({ ...me, has_password: true }) : null });
 });
 
 const resetSchema = z.object({ token: z.string().min(20).max(100), password: passwordSchema });
