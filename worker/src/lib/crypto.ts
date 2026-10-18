@@ -53,6 +53,21 @@ export function randomString(length: number, alphabet: string = CROCKFORD): stri
   return out;
 }
 
+/** `length` random decimal digits, each uniform (rejection sampling: no modulo bias) — a one-time code a person types. */
+export function randomDigits(length: number): string {
+  let out = "";
+  while (out.length < length) {
+    for (const b of randomBytes(length * 2)) {
+      // 250 = 25 × 10: bytes from 250 up would make the low digits more likely
+      if (b < 250) {
+        out += String(b % 10);
+        if (out.length === length) break;
+      }
+    }
+  }
+  return out;
+}
+
 /** MWH-XXXX-XXXX-XXXX — 12 symbols x 5 bits = 60 bits of entropy (unguessable, rate-limited lookup). */
 export function generateCertificateCode(prefix: string): string {
   const body = randomString(12);

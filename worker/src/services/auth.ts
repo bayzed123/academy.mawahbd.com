@@ -1,6 +1,6 @@
 import type { LoginId } from "@mawah/shared";
 import type { Env } from "../env";
-import { DUMMY_HASH, needsRehash, hashPassword, randomToken, sha256Hex, verifyPassword } from "../lib/crypto";
+import { DUMMY_HASH, hmacHex, needsRehash, hashPassword, randomDigits, randomToken, sha256Hex, timingSafeEqual, verifyPassword } from "../lib/crypto";
 import { addSeconds, all, first, nowIso, run } from "../lib/db";
 
 export type AccountTable = "students" | "staff";
@@ -94,6 +94,55 @@ export async function setPassword(env: Env, table: AccountTable, id: number, new
     nowIso(),
     id,
   );
+}
+
+/**
+ * "Forgot password" by code: 6 digits that live 15 minutes and may be tried 5 times. A student is sent at most 3 codes an hour and 10 a day,
+ * so guessing stays hopeless (at most 15 tries an hour, 50 a day, against a million possible codes). Only a keyed hash of a code is stored.
+ */
+export const RESET_CODE_SECONDS = 15 * 60;
+export const RESET_CODE_TRIES = 5;
+const RESET_CODES_PER_HOUR = 3;
+const RESET_CODES_PER_DAY = 10;
+const resetCodeHash = (env: Env, studentId: number, code: string) => hmacHex(env.APP_SECRET, `reset-code:${studentId}:${code}`);
+
+/** A new code for the student (their earlier unused ones stop working) — or null when they have been sent enough codes for now. */
+export async function createResetCode(env: Env, studentId: number): Promise<string | null> {
+  const now = nowIso();
+  const sent = await first<{ hour: number | null; day: number }>(
+    env.DB,
+    "SELECT SUM(created_at > ?) AS hour, COUNT(*) AS day FROM reset_codes WHERE student_id = ? AND created_at > ?",
+    addSeconds(now, -3600),
+    studentId,
+    addSeconds(now, -86400),
+  );
+  if ((sent?.hour ?? 0) >= RESET_CODES_PER_HOUR || (sent?.day ?? 0) >= RESET_CODES_PER_DAY) return null;
+  const code = randomDigits(6);
+  await run(env.DB, "UPDATE reset_codes SET used_at = ? WHERE student_id = ? AND used_at IS NULL", now, studentId);
+  await run(env.DB, "INSERT INTO reset_codes (student_id, code_hash, expires_at) VALUES (?, ?, ?)", studentId, await resetCodeHash(env, studentId, code), addSeconds(now, RESET_CODE_SECONDS));
+  return code;
+}
+
+/**
+ * Try a code for a student: true uses it up. Each try is counted before the code is compared, in one step, so even many tries sent at
+ * the same moment get no more than 5 comparisons; the 5th wrong one ends the code.
+ */
+export async function useResetCode(env: Env, studentId: number, code: string): Promise<boolean> {
+  const now = nowIso();
+  const row = await first<{ id: number; code_hash: string; attempts: number }>(
+    env.DB,
+    "UPDATE reset_codes SET attempts = attempts + 1 WHERE id = (SELECT id FROM reset_codes WHERE student_id = ? AND used_at IS NULL AND expires_at > ? ORDER BY id DESC LIMIT 1) AND attempts < ? RETURNING id, code_hash, attempts",
+    studentId,
+    now,
+    RESET_CODE_TRIES,
+  );
+  if (!row) return false;
+  if (!timingSafeEqual(await resetCodeHash(env, studentId, code), row.code_hash)) {
+    if (row.attempts >= RESET_CODE_TRIES) await run(env.DB, "UPDATE reset_codes SET used_at = ? WHERE id = ?", now, row.id);
+    return false;
+  }
+  const done = await run(env.DB, "UPDATE reset_codes SET used_at = ? WHERE id = ? AND used_at IS NULL", now, row.id);
+  return (done.meta.changes ?? 0) === 1;
 }
 
 /** Single-use password-reset link for a student, one hour by default (previous links are voided). Only the token's SHA-256 is stored. */
