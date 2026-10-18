@@ -259,7 +259,7 @@ test.describe("the owner's lesson editor", () => {
 
     await url().fill(driveUrl("DEV_video_mov_0000000001"));
     await panel().getByRole("button", { name: "Check access" }).click();
-    await expect(panel().getByText("may not play on every phone")).toBeVisible();
+    await expect(panel().getByText("This kind of file may not play on every phone")).toBeVisible(); // the warning itself, not the format tip above it (which says the same words)
 
     // nothing secret on the screen, and the panel passes the accessibility scan
     await expect(admin.locator("body")).not.toContainText(/PRIVATE KEY/);
