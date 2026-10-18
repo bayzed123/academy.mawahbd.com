@@ -216,6 +216,21 @@ test.describe("the owner's lesson editor", () => {
     await expect(panel().getByText("video/webm")).toBeVisible();
     await expect(panel().getByRole("alert")).toHaveCount(0);
 
+    // "Play here": the video in the box, exactly as a student will get it — it really plays
+    const play = panel().getByRole("button", { name: "Play here" });
+    await play.click();
+    const preview = panel().locator(".drive-play video");
+    await expect(preview).toHaveAttribute("src", `/api/admin/drive/media?url=${encodeURIComponent(driveUrl(DRIVE_OK))}`);
+    await expect.poll(() => preview.evaluate((v: HTMLVideoElement) => v.readyState)).toBeGreaterThanOrEqual(2);
+    await preview.evaluate(async (v: HTMLVideoElement) => {
+      v.muted = true;
+      await v.play();
+    });
+    await expect.poll(() => preview.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0.2);
+    expect(await preview.evaluate((v: HTMLVideoElement) => v.error?.code ?? null)).toBeNull();
+    await panel().getByRole("button", { name: "Close the video" }).click();
+    await expect(preview).toHaveCount(0);
+
     // a link typed over it is a new question: the old answer goes
     await url().fill(driveUrl(DRIVE_PRIVATE));
     await expect(panel().getByText("will play inside the class page")).toHaveCount(0);
@@ -225,6 +240,10 @@ test.describe("the owner's lesson editor", () => {
     await expect(no).toContainText("share it with the address shown above");
     await expect(no).toContainText("What Google said");
     await expect(no).toContainText("notFound");
+    // and "Play here" on a video the website cannot read says so plainly in the box, pointing at "Check access"
+    await play.click();
+    await expect(panel().getByRole("alert").filter({ hasText: "could not be played here" })).toContainText("Check access");
+    await panel().getByRole("button", { name: "Close the video" }).click();
 
     await url().fill(driveUrl("DEV_google_doc_0000000001"));
     await panel().getByRole("button", { name: "Check access" }).click();
@@ -240,7 +259,7 @@ test.describe("the owner's lesson editor", () => {
 
     await url().fill(driveUrl("DEV_video_mov_0000000001"));
     await panel().getByRole("button", { name: "Check access" }).click();
-    await expect(panel().getByText("may not play on every phone")).toBeVisible();
+    await expect(panel().getByText("This kind of file may not play on every phone")).toBeVisible(); // the warning itself, not the format tip above it (which says the same words)
 
     // nothing secret on the screen, and the panel passes the accessibility scan
     await expect(admin.locator("body")).not.toContainText(/PRIVATE KEY/);
@@ -349,6 +368,32 @@ test.describe("a Drive video in the class's materials", () => {
     await expect(video).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
     await ctx.close();
+  });
+
+  test("a video already in Materials: open its row, “Check access” and “Play here” are right under its link, and it plays in the admin", async () => {
+    await admin.goto("/admin/materials");
+    await admin.getByRole("row").filter({ hasText: "Biryani part 1" }).click();
+    const drawer = admin.getByRole("dialog");
+    await expect(drawer.locator("#mat-url")).toHaveValue(driveUrl(DRIVE_OK));
+    const panel = drawer.getByRole("region", { name: "Google Drive video" });
+    await expect(panel).toBeVisible();
+    await panel.getByRole("button", { name: "Check access" }).click();
+    await expect(panel.getByText("Ready — “Class 1 — dough.webm” will play inside the class page.")).toBeVisible();
+    await panel.getByRole("button", { name: "Play here" }).click();
+    const preview = panel.locator(".drive-play video");
+    await expect.poll(() => preview.evaluate((v: HTMLVideoElement) => v.readyState)).toBeGreaterThanOrEqual(2);
+    await preview.evaluate(async (v: HTMLVideoElement) => {
+      v.muted = true;
+      await v.play();
+    });
+    await expect.poll(() => preview.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0.2);
+    // on a phone the video fits the drawer
+    await admin.setViewportSize({ width: 360, height: 800 });
+    expect(await admin.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    const box = (await preview.boundingBox())!;
+    expect(box.width).toBeLessThanOrEqual(360);
+    await admin.setViewportSize({ width: 1280, height: 800 });
+    await drawer.getByRole("button", { name: "Cancel" }).click();
   });
 
   test("the owner's material editor shows the address to share with and “Check access”, as the lesson editor does", async () => {
