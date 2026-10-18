@@ -95,7 +95,7 @@ describe("what tells the owner", () => {
     const to = await ownerBox();
     const course = await makeCourse(1500);
     const { client } = await registerStudent(new Client(), { name: "Rina Akter", phone: "01711223344" });
-    const res = await client.post("/api/checkout", { courses: [course.slug], channel: "mock" });
+    const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" });
     const publicId = (await json(res)).order.public_id as string;
     expect(await quiet(to, /payment/i, 100)).toBe(true); // nothing is paid yet
     const sig = await mockSignature(env, publicId, "paid");
@@ -120,7 +120,7 @@ describe("what tells the owner", () => {
     await setSetting(env, "payments", { sslcommerz: true, bkash_direct: false, manual: true, manual_numbers: { bkash: "01711111111", nagad: "", rocket: "" }, manual_note_bn: "", manual_note_en: "", manual_window_min: 20 }, null);
     const course = await makeCourse(900);
     const { client } = await registerStudent(new Client(), { name: "Karim Hossain" });
-    const started = await json(await client.post("/api/checkout", { courses: [course.slug], channel: "manual", manual: { method: "bkash", payer_number: "01766554433" } }));
+    const started = await json(await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual", manual: { method: "bkash", payer_number: "01766554433" } }));
     expect(await quiet(to, /payment/i, 100)).toBe(true); // started, nothing sent yet: the owner is not bothered
     await client.post(`/api/checkout/${started.order.public_id}/proof`, { trx_id: "NOTIFYTRX99" });
 

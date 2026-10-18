@@ -5,7 +5,9 @@ import { all, nowIso, run, safeJson } from "./db";
 
 /** Typed, defaulted view over the key/value `settings` table (everything is editable in Admin → Settings). */
 export interface Settings {
-  contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string };
+  /** how to reach the shop; and the registered address and trade licence number, as on the trade licence — every page's footer, the Contact and
+   * About pages show them (SSLCommerz asks for them) */
+  contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string; address_bn: string; address_en: string; trade_license: string };
   announcement: { bn: string; en: string };
   payments: {
     sslcommerz: boolean;
@@ -27,6 +29,8 @@ export interface Settings {
     privacy_en: string;
     terms_bn: string;
     terms_en: string;
+    delivery_bn: string;
+    delivery_en: string;
     guide_bn: string;
     guide_en: string;
     order_bn: string;
@@ -46,8 +50,15 @@ export interface Settings {
   onboarding: { dismissed: boolean };
 }
 
+/** The shop's e-Trade Licence (Chattogram City Corporation, valid until 30 June 2027): its number and the registered address written on it. */
+export const TRADE_LICENCE = {
+  trade_license: "TRADICHTG/010407/2022",
+  address_bn: "রোড নং-০৩, বাড়ী # ৪২, বি-ব্লক, চান্দগাঁও, চট্টগ্রাম",
+  address_en: "Road No. 03, House # 42, Block B, Chandgaon, Chattogram, Bangladesh",
+};
+
 export const SETTING_DEFAULTS: Settings = {
-  contact: { whatsapp: "", phone: "", email: "", facebook: "", youtube: "", instagram: "" },
+  contact: { whatsapp: "", phone: "", email: "", facebook: "", youtube: "", instagram: "", ...TRADE_LICENCE },
   announcement: { bn: "", en: "" },
   payments: {
     sslcommerz: true,
@@ -66,6 +77,8 @@ export const SETTING_DEFAULTS: Settings = {
     privacy_en: PAGE_TEXTS.privacy.en,
     terms_bn: PAGE_TEXTS.terms.bn,
     terms_en: PAGE_TEXTS.terms.en,
+    delivery_bn: PAGE_TEXTS.delivery.bn,
+    delivery_en: PAGE_TEXTS.delivery.en,
     guide_bn: PAGE_TEXTS.guide.bn,
     guide_en: PAGE_TEXTS.guide.en,
     order_bn: PAGE_TEXTS.order.bn,

@@ -50,6 +50,8 @@ export function Layout(props: LayoutProps) {
   const fb = httpUrl(settings.contact.facebook);
   const yt = httpUrl(settings.contact.youtube);
   const ig = httpUrl(settings.contact.instagram);
+  // the registered address and trade licence number (SSLCommerz asks for them on every page)
+  const regAddress = lang === "bn" ? settings.contact.address_bn || settings.contact.address_en : settings.contact.address_en || settings.contact.address_bn;
   // SSLCommerz's own logo, when the owner has pasted the link SSLCommerz gave (Settings → Payments): it takes the place of the five small marks
   const sslLogo = settings.payments.sslcommerz ? readSslLogo(settings.payments.ssl_logo) : null;
   const shop = shopOf(ctx);
@@ -262,6 +264,9 @@ export function Layout(props: LayoutProps) {
                     <li>
                       <a href={ctx.href("/policies/terms")}>{t("policy.terms")}</a>
                     </li>
+                    <li>
+                      <a href={ctx.href("/policies/delivery")}>{t("policy.delivery")}</a>
+                    </li>
                   </ul>
                   <p class="foot-h mt">{t("footer.help")}</p>
                   <ul>
@@ -297,6 +302,20 @@ export function Layout(props: LayoutProps) {
                       </li>
                     )}
                   </ul>
+                  {(regAddress || settings.contact.trade_license) && (
+                    <p class="foot-legal">
+                      {regAddress && (
+                        <span>
+                          {t("biz.address")}: {regAddress}
+                        </span>
+                      )}
+                      {settings.contact.trade_license && (
+                        <span>
+                          {t("biz.license")}: {settings.contact.trade_license}
+                        </span>
+                      )}
+                    </p>
+                  )}
                   <p class="foot-h mt" id="pay-h">
                     {t("footer.payments")}
                   </p>

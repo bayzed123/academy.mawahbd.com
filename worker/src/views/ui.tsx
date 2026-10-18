@@ -231,13 +231,17 @@ export const CourseCard = ({ course, ctx, eager = false, headingLevel = 3 }: { c
     <article class={`card a-${cat?.accent ?? "snack"}`} {...gaCardAttr(ctx, course)}>
       <Banner course={course} ctx={ctx} eager={eager} />
       {cat && <span class="chip-cat">{loc(cat, "name", ctx.lang)}</span>}
-      {soon && <span class="ribbon">{ctx.t("btn.comingSoon")}</span>}
+      {soon && <span class="ribbon">{ctx.t("stock.out")}</span>}
       <div class="card-body">
         <Heading class="card-title">
           <a href={detail}>{loc(course, "title", ctx.lang)}</a>
         </Heading>
         <p class="card-desc">{loc(course, "short", ctx.lang)}</p>
         <div class="card-meta">
+          <span class={soon ? "stock out" : "stock in"}>
+            <Icon name={soon ? "clock" : "check"} />
+            {ctx.t(soon ? "stock.out" : "stock.in")}
+          </span>
           {course.level && (
             <span>
               <Icon name="layers" />

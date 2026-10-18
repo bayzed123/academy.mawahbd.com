@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminLogin, apiGet, apiPost, apiSend, registerStudent, STAFF, TEST_ADDRESS, uniqueEmail, uniquePhone, useLang } from "./helpers";
+import { adminLogin, agree, apiGet, apiPost, apiSend, registerStudent, STAFF, TEST_ADDRESS, uniqueEmail, uniquePhone, useLang } from "./helpers";
 
 /*
  * Buying without an account. The owner's worry: a buyer sent to a log-in page first is a buyer lost. So a visitor gives a name, a mobile
@@ -53,11 +53,13 @@ test("a visitor buys with a name, a number, an address and an e-mail — no log-
 
   // nothing typed: the form says what is missing and nothing is created
   await page.getByText("Test payment").click();
+  await agree(page);
   await page.getByRole("button", { name: /Pay ৳400/ }).click();
   await expect(page.getByText("This field is required.")).toHaveCount(3);
   expect((await apiGet<{ student: unknown }>(page, "/auth/me")).student).toBeNull();
 
   await fillDetails(page, { name: "Nusrat Jahan", phone: "01712345678", email });
+  await agree(page);
   await page.getByRole("button", { name: /Pay ৳400/ }).click();
   await page.getByRole("button", { name: "Simulate successful payment" }).click();
   await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
@@ -121,6 +123,7 @@ test("an e-mail that already belongs to a student is not opened: the buyer signs
   await page.goto("/app/checkout?c=beginners-baking-class");
   await fillDetails(page, { name: "Someone Else", phone: "01812345678", email: made.email });
   await page.getByText("Test payment").click();
+  await agree(page);
   await page.getByRole("button", { name: /Pay ৳400/ }).click();
 
   const panel = page.getByRole("region", { name: "You already have an account" });
@@ -152,6 +155,7 @@ test("a visitor who started to buy and came back on another phone gets the same 
   await first.page.goto("/app/checkout?c=beginners-baking-class");
   await fillDetails(first.page, { name: "First Try", phone: "01911111111", email });
   await first.page.getByText("Test payment").click();
+  await agree(first.page);
   await first.page.getByRole("button", { name: /Pay ৳400/ }).click();
   await expect(first.page.getByRole("button", { name: "Simulate successful payment" })).toBeVisible(); // reached the payment page, did not pay
   expect(await adminStudents(email)).toHaveLength(0); // not a student yet: nothing paid
@@ -170,6 +174,7 @@ test("a visitor who started to buy and came back on another phone gets the same 
   await second.page.goto("/app/checkout?c=beginners-baking-class");
   await fillDetails(second.page, { name: "Second Try", phone: "01922222222", email });
   await second.page.getByText("Test payment").click();
+  await agree(second.page);
   await second.page.getByRole("button", { name: /Pay ৳400/ }).click();
   await expect(second.page.getByText("You already have an account")).toHaveCount(0);
   await second.page.getByRole("button", { name: "Simulate successful payment" }).click();
@@ -189,6 +194,7 @@ test("a free class: details, one button, enrolled — and the profile exists", a
   await page.goto("/app/checkout?c=free-taster-class");
   await expect(page.getByText("This class is free")).toBeVisible();
   await fillDetails(page, { name: "Free Learner", phone: "01612345678", email });
+  await agree(page);
   await page.getByRole("button", { name: "Enroll for free" }).click();
   await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
   await page.goto("/app/");
@@ -204,6 +210,7 @@ test("a send-money payment as a visitor: details first, then the open order with
   await fillDetails(page, { name: "Send Money", phone: "01712121212", email });
   await page.getByText("Send money manually").click();
   await page.getByLabel("Your number — the one you will send money from").fill("01712121212");
+  await agree(page);
   await page.getByRole("button", { name: "Continue — show payment details" }).click();
   await expect(page).toHaveURL(/\/app\/orders\/[a-z2-7]{20}/);
   await expect(page.getByRole("timer")).toContainText(/left to pay/);
@@ -250,6 +257,7 @@ test("no e-mail at all: a visitor gives a name, a number and an address, is text
 
   await fillDetails(page, { name: "Tania Rahman", phone });
   await page.getByText("Test payment").click();
+  await agree(page);
   await page.getByRole("button", { name: /Pay ৳400/ }).click();
   await page.getByRole("button", { name: "Simulate successful payment" }).click();
   await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
@@ -331,6 +339,7 @@ test("a number that already belongs to a student is not opened by typing it: the
   await page.goto("/app/checkout?c=beginners-baking-class");
   await fillDetails(page, { name: "Someone Else", phone }); // no e-mail: the number is who they are
   await page.getByText("Test payment").click();
+  await agree(page);
   await page.getByRole("button", { name: /Pay ৳400/ }).click();
   const panel = page.getByRole("region", { name: "You already have an account" });
   await expect(panel).toBeVisible();
@@ -348,9 +357,11 @@ test("a signed-in student with no address on file is asked for it — only for i
   await expect(page.getByLabel(/^E-mail/)).toHaveCount(0); // and an e-mail
   await expect(page.getByLabel(/^Mobile number/)).toHaveValue("01712345678"); // the number on their profile
   await page.getByText("Test payment").click();
+  await agree(page);
   await page.getByRole("button", { name: /Pay ৳400/ }).click();
   await expect(page.getByText("This field is required.")).toHaveCount(1);
   await page.getByLabel(/^Address/).fill("Flat 3, Road 1, Uttara, Dhaka");
+  await agree(page);
   await page.getByRole("button", { name: /Pay ৳400/ }).click();
   await page.getByRole("button", { name: "Simulate successful payment" }).click();
   await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
@@ -374,6 +385,7 @@ test("a returning student whose profile has no address signs in in the middle of
   await page.goto("/app/checkout?c=beginners-baking-class");
   await fillDetails(page, { name: "Someone Typed", phone: "01912345670", email: made.email, address: typedAddress });
   await page.getByText("Test payment").click();
+  await agree(page);
   await page.getByRole("button", { name: /Pay ৳400/ }).click();
 
   const panel = page.getByRole("region", { name: "You already have an account" });

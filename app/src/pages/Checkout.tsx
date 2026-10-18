@@ -295,6 +295,8 @@ export default function Checkout() {
   const [online, setOnline] = useState<{ methods: PayMethodDTO[]; all: string; total: number; missing?: PayVia } | null>(null);
   // the way of paying the buyer tapped last (kept for the payment that goes on after they sign in to an existing account)
   const [via, setVia] = useState<PayVia | null>(null);
+  // the box the buyer ticks to agree to the terms, the privacy policy and the refund & cancellation policy: blank until they tick it
+  const [agree, setAgree] = useState(false);
 
   const cart = { courses: slug ? [slug] : undefined, bundle_id: bundle ? Number(bundle) : undefined };
   const quote = useQuery({
@@ -351,7 +353,7 @@ export default function Checkout() {
           items: basket.items.map((i) => gaItem(i)),
         });
       }
-      const order = { ...cart, coupon, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined, via: channel === "sslcommerz" ? (v.via ?? undefined) : undefined };
+      const order = { ...cart, coupon, agree: true as const, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined, via: channel === "sslcommerz" ? (v.via ?? undefined) : undefined };
       if (v.as === "student") {
         // a signed-in student whose profile lacks a mobile number or an address gives them here (the form shows only then)
         const details = v.gaps ? { ...(v.gaps.phone ? { phone: phone.trim() } : {}), ...(v.gaps.address ? { address: address.trim() } : {}) } : needsDetails ? { phone: phone.trim(), address: address.trim() } : {};
@@ -428,9 +430,10 @@ export default function Checkout() {
     if (!student && !name.trim()) missing.name = t("err.required");
     if ((!student || needsDetails) && !phone.trim()) missing.phone = t("err.required");
     if ((!student || needsDetails) && address.trim().length < 5) missing.address = t("err.required");
+    if (!agree) missing.agree = t("app.checkout.agree.needed");
     if (Object.keys(missing).length) {
       setFields(missing);
-      document.getElementById(missing.name ? "g-name" : missing.phone ? "g-phone" : "g-address")?.focus();
+      document.getElementById(missing.name ? "g-name" : missing.phone ? "g-phone" : missing.address ? "g-address" : "co-agree")?.focus();
       return;
     }
     // a way-of-paying button sent the form (bKash, Nagad …) — or the main Pay button did, and SSLCommerz's list comes next
@@ -440,6 +443,19 @@ export default function Checkout() {
     pay.mutate({ as: student ? "student" : "guest", via: chosen });
   };
   const policy = lang === "en" ? "/en/policies" : "/policies";
+  // "I have read and agree to the {terms}, {privacy} and {refund}": each name a link to its page, in a new tab so the form stays as typed
+  const agreeText = t("app.checkout.agree")
+    .split(/(\{(?:terms|privacy|refund)\})/)
+    .map((part, i) => {
+      const k = /^\{(terms|privacy|refund)\}$/.exec(part)?.[1] as "terms" | "privacy" | "refund" | undefined;
+      return k ? (
+        <a key={i} className="link" href={`${policy}/${k}`} target="_blank" rel="noopener noreferrer">
+          {t(`app.checkout.agree.${k}`)}
+        </a>
+      ) : (
+        part
+      );
+    });
 
   return (
     <>
@@ -495,6 +511,27 @@ export default function Checkout() {
               )}
             </section>
           )}
+          <div className={fields.agree ? "agree-box err" : "agree-box"}>
+            <label className="agree" htmlFor="co-agree">
+              <input
+                id="co-agree"
+                type="checkbox"
+                checked={agree}
+                aria-invalid={fields.agree ? true : undefined}
+                aria-describedby={fields.agree ? "co-agree-err" : undefined}
+                onChange={(e) => {
+                  setAgree(e.target.checked);
+                  if (e.target.checked) setFields(({ agree: _done, ...rest }) => rest);
+                }}
+              />
+              <span>{agreeText}</span>
+            </label>
+            {fields.agree && (
+              <p className="err-text" id="co-agree-err">
+                {fields.agree}
+              </p>
+            )}
+          </div>
           <section className="panel">
             <h2>{t("app.checkout.pay")}</h2>
             {free ? (
@@ -647,16 +684,6 @@ export default function Checkout() {
             </div>
             <p className="hint tc">
               <Icon name="shield" className="inline-icon" /> {t("app.checkout.secure")}
-            </p>
-            <p className="hint tc">
-              {t("app.checkout.terms")}{" "}
-              <a className="link" href={`${policy}/terms`} target="_blank" rel="noopener noreferrer">
-                {t("app.checkout.termsLink")}
-              </a>{" "}
-              ·{" "}
-              <a className="link" href={`${policy}/refund`} target="_blank" rel="noopener noreferrer">
-                {t("app.checkout.refundLink")}
-              </a>
             </p>
           </section>
         </aside>

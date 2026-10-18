@@ -34,7 +34,7 @@ const setPayments = (extra: Record<string, unknown> = {}) =>
 async function startOrder(opts: { price?: number; method?: string; payer?: string } = {}) {
   const course = await makeCourse(opts.price);
   const { client, id: studentId, email } = await registerStudent();
-  const res = await client.post("/api/checkout", { courses: [course.slug], channel: "manual", manual: { method: opts.method ?? "bkash", payer_number: opts.payer ?? "01712345678" } });
+  const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual", manual: { method: opts.method ?? "bkash", payer_number: opts.payer ?? "01712345678" } });
   const body = await json(res);
   return { course, client, studentId, email, res, body, publicId: body.order?.public_id as string };
 }
@@ -79,16 +79,16 @@ describe("manual payment: starting", () => {
   it("asks for a valid number the student pays from", async () => {
     const course = await makeCourse();
     const { client } = await registerStudent();
-    const bad = await client.post("/api/checkout", { courses: [course.slug], channel: "manual", manual: { method: "bkash", payer_number: "12345" } });
+    const bad = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual", manual: { method: "bkash", payer_number: "12345" } });
     expect(bad.status).toBe(422);
     expect((await json(bad)).error.fields).toMatchObject({ "manual.payer_number": "invalid_phone" });
-    const missing = await client.post("/api/checkout", { courses: [course.slug], channel: "manual" });
+    const missing = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual" });
     expect(missing.status).toBe(422);
   });
 
   it("starting again replaces the student's own unpaid order for the same class", async () => {
     const { course, client, publicId: first } = await startOrder();
-    const again = await json(await client.post("/api/checkout", { courses: [course.slug], channel: "manual", manual: { method: "rocket", payer_number: "01812345678" } }));
+    const again = await json(await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual", manual: { method: "rocket", payer_number: "01812345678" } }));
     expect(await orderRow(first)).toMatchObject({ status: "cancelled", note: "replaced" });
     expect(await orderRow(again.order.public_id)).toMatchObject({ status: "pending", method: "rocket" });
   });
@@ -169,7 +169,7 @@ describe("manual payment: sending proof", () => {
     expect((await upload(stranger, publicId, PNG)).status).toBe(404);
 
     const course = await makeCourse();
-    const mock = await json(await client.post("/api/checkout", { courses: [course.slug], channel: "mock" }));
+    const mock = await json(await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" }));
     expect((await client.post(`/api/checkout/${mock.order.public_id}/proof`, { trx_id: "NOTMANUAL1" })).status).toBe(409);
 
     await env.DB.prepare("UPDATE orders SET status = 'cancelled' WHERE public_id = ?").bind(publicId).run();
@@ -279,7 +279,7 @@ describe("manual payment: staff", () => {
   it("an unpaid card/mock order cannot be approved by hand", async () => {
     const course = await makeCourse();
     const { client } = await registerStudent();
-    const mock = await json(await client.post("/api/checkout", { courses: [course.slug], channel: "mock" }));
+    const mock = await json(await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" }));
     const id = (await orderRow(mock.order.public_id)).id;
     expect(((await (await loginStaff("support")).client.post(`/api/admin/orders/${id}/approve`)).status)).toBe(409);
   });

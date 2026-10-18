@@ -47,6 +47,8 @@ const checkoutSchema = z.object({
   channel: z.enum(["sslcommerz", "bkash", "manual", "mock"]).optional(),
   // the online payment: the way of paying the buyer tapped on the checkout (bKash, Nagad … Visa) — they go straight to it at SSLCommerz
   via: z.enum(PAY_VIA).optional(),
+  // the buyer ticked the box: they agree to the terms, the privacy policy and the refund & cancellation policy (SSLCommerz asks for it)
+  agree: z.literal(true, { error: "required" }),
   // a signed-in student whose profile has no mobile number or address yet gives them here; they are kept on the profile
   details: z.object({ phone: requiredPhoneSchema.optional(), address: addressSchema.optional() }).optional(),
   manual: z

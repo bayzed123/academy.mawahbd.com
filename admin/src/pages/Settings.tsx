@@ -11,7 +11,7 @@ import { PaymentCheck } from "./PaymentCheck";
 import { SmsPanel } from "./SmsPanel";
 
 interface S {
-  contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string };
+  contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string; address_bn: string; address_en: string; trade_license: string };
   announcement: { bn: string; en: string };
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
   payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number; ssl_logo: string };
@@ -22,6 +22,8 @@ interface S {
     privacy_en: string;
     terms_bn: string;
     terms_en: string;
+    delivery_bn: string;
+    delivery_en: string;
     guide_bn: string;
     guide_en: string;
     order_bn: string;
@@ -157,6 +159,15 @@ export function Settings() {
                 <Field id="c-ig" label="Instagram" error={e.instagram}>
                   <TextInput id="c-ig" value={v.instagram} error={e.instagram} disabled={!canWrite} onChange={(x) => set({ instagram: x.target.value })} />
                 </Field>
+                <Field id="c-tl" label={t("adm.settings.tradeLicense")} hint={t("adm.settings.tradeLicenseHint")} error={e.trade_license}>
+                  <TextInput id="c-tl" value={v.trade_license} maxLength={60} error={e.trade_license} disabled={!canWrite} onChange={(x) => set({ trade_license: x.target.value })} />
+                </Field>
+                <Field id="c-ad-bn" label={`${t("adm.settings.address")} — বাংলা`} hint={t("adm.settings.addressHint")} error={e.address_bn}>
+                  <TextInput id="c-ad-bn" value={v.address_bn} maxLength={200} error={e.address_bn} disabled={!canWrite} onChange={(x) => set({ address_bn: x.target.value })} />
+                </Field>
+                <Field id="c-ad-en" label={`${t("adm.settings.address")} — English`} error={e.address_en}>
+                  <TextInput id="c-ad-en" value={v.address_en} maxLength={200} error={e.address_en} disabled={!canWrite} onChange={(x) => set({ address_en: x.target.value })} />
+                </Field>
               </div>
             )}
           </Group>
@@ -252,7 +263,7 @@ export function Settings() {
           <Group name="policies" data={s.policies} canWrite={canWrite}>
             {(v, set, e) => (
               <div className="form-grid">
-                {(["refund", "terms", "privacy", "guide", "order", "hotline"] as const).flatMap((k) =>
+                {(["refund", "terms", "privacy", "delivery", "guide", "order", "hotline"] as const).flatMap((k) =>
                   (["bn", "en"] as const).map((l) => {
                     const key = `${k}_${l}` as keyof S["policies"];
                     return (

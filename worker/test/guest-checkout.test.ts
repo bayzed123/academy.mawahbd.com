@@ -37,7 +37,7 @@ async function makeCourse(price = 1500, status = "published") {
 const ADDRESS = "House 12, Road 5, Dhanmondi, Dhaka";
 const DETAILS = { name: "Rina Akter", phone: "01711223344", address: ADDRESS, lang: "en" };
 const guestBody = (course: { slug: string }, over: Record<string, unknown> = {}) => ({ ...DETAILS, email: uniqueEmail("guest"), courses: [course.slug], channel: "mock", ...over });
-const buy = (client: Client, body: Record<string, unknown>) => client.post("/api/checkout/guest", body);
+const buy = (client: Client, body: Record<string, unknown>) => client.post("/api/checkout/guest", { agree: true, ...body });
 
 async function pay(publicId: string) {
   const sig = await mockSignature(env, publicId, "paid");

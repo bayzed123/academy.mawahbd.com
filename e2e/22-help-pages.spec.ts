@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { adminLogin, apiGet, apiSend, useLang } from "./helpers";
 
 /*
- * The policy and help pages a buyer (and SSLCommerz) looks for: refund, privacy, terms, how to order, the user guide and the hotline — in
+ * The policy and help pages a buyer (and SSLCommerz) looks for: refund & cancellation, delivery, privacy, terms, how to order, the user guide and the hotline — in
  * both languages, readable on a phone, linked from every page's footer, and each ending with how to reach the shop (Settings → Contact).
  * Runs after the admin spec (the owner exists).
  */
@@ -12,13 +12,15 @@ const PAGES: [string, string][] = [
   ["/how-to-order", "কীভাবে অর্ডার করবেন"],
   ["/guide", "ব্যবহার নির্দেশিকা"],
   ["/hotline", "হট লাইন"],
-  ["/policies/refund", "রিফান্ড নীতি"],
+  ["/policies/refund", "রিফান্ড ও বাতিল নীতি"],
+  ["/policies/delivery", "ডেলিভারি নীতি"],
   ["/policies/privacy", "গোপনীয়তা নীতি"],
   ["/policies/terms", "ব্যবহারের শর্তাবলি"],
   ["/en/how-to-order", "How to order"],
   ["/en/guide", "User guide"],
   ["/en/hotline", "Hotline"],
-  ["/en/policies/refund", "Refund policy"],
+  ["/en/policies/refund", "Refund & cancellation policy"],
+  ["/en/policies/delivery", "Delivery policy"],
   ["/en/policies/privacy", "Privacy policy"],
   ["/en/policies/terms", "Terms of use"],
 ];
@@ -65,7 +67,7 @@ test("each policy and help page reads in both languages with headings, passes th
     // every page's footer links them
     await page.goto("/en/courses");
     const footer = page.locator("footer");
-    for (const name of ["How to order", "User guide", "Hotline", "Refund policy", "Privacy policy", "Terms of use"]) await expect(footer.getByRole("link", { name, exact: true })).toBeVisible();
+    for (const name of ["How to order", "User guide", "Hotline", "Refund & cancellation policy", "Delivery policy", "Privacy policy", "Terms of use"]) await expect(footer.getByRole("link", { name, exact: true })).toBeVisible();
     await footer.getByRole("link", { name: "How to order", exact: true }).click();
     await expect(page).toHaveURL(/\/en\/how-to-order$/);
   } finally {

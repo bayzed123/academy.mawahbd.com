@@ -16,6 +16,7 @@ const PAGES: [string, PageKind][] = [
   ["/policies/refund", "refund"],
   ["/policies/privacy", "privacy"],
   ["/policies/terms", "terms"],
+  ["/policies/delivery", "delivery"],
   ["/how-to-order", "order"],
   ["/guide", "guide"],
   ["/hotline", "hotline"],
@@ -78,7 +79,7 @@ describe("the policy and help pages", () => {
 
   it("the footer links every page, and the sitemap lists them in both languages", async () => {
     const home = await text(await new Client().get("/en"));
-    for (const href of ["/en/how-to-order", "/en/guide", "/en/hotline", "/en/policies/refund", "/en/policies/privacy", "/en/policies/terms"]) expect(home).toContain(`href="${href}"`);
+    for (const href of ["/en/how-to-order", "/en/guide", "/en/hotline", "/en/policies/refund", "/en/policies/privacy", "/en/policies/terms", "/en/policies/delivery"]) expect(home).toContain(`href="${href}"`);
     const map = await text(await new Client().get("/sitemap.xml"));
     for (const path of ["/how-to-order", "/guide", "/hotline"]) {
       expect(map).toContain(`${path}</loc>`);

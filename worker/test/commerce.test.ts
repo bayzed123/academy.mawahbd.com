@@ -45,7 +45,7 @@ async function payMock(publicId: string, status: "paid" | "failed" = "paid", cli
 }
 
 async function buy(student: Client, slugs: string[], extra: Record<string, unknown> = {}) {
-  const res = await student.post("/api/checkout", { courses: slugs, channel: "mock", ...extra });
+  const res = await student.post("/api/checkout", { agree: true, courses: slugs, channel: "mock", ...extra });
   const body = await json(res);
   return { res, body, publicId: body.order?.public_id as string };
 }
@@ -187,7 +187,7 @@ describe("checkout & webhook-driven enrollment", () => {
   it("prices are computed on the server — a tampered client price is ignored", async () => {
     const course = await makeCourse({ price: 777 });
     const { client } = await registerStudent();
-    const res = await client.post("/api/checkout", { courses: [course.slug], channel: "mock", price: 1, total: 1, amount: 1 });
+    const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock", price: 1, total: 1, amount: 1 });
     expect(res.status).toBe(201);
     expect((await orderRow((await json(res)).order.public_id)).total).toBe(777);
   });
@@ -207,9 +207,9 @@ describe("checkout & webhook-driven enrollment", () => {
 
   it("requires login and an available payment channel", async () => {
     const course = await makeCourse();
-    expect((await new Client().post("/api/checkout", { courses: [course.slug], channel: "mock" })).status).toBe(401);
+    expect((await new Client().post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" })).status).toBe(401);
     const { client } = await registerStudent();
-    const bad = await client.post("/api/checkout", { courses: [course.slug], channel: "bkash" });
+    const bad = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "bkash" });
     expect(bad.status).toBe(400);
     expect((await json(bad)).error.code).toBe("payment_unavailable");
   });
@@ -217,7 +217,7 @@ describe("checkout & webhook-driven enrollment", () => {
   it("free classes enroll with a single click and still get an invoice", async () => {
     const free = await makeCourse({ price: 0 });
     const { client } = await registerStudent();
-    const res = await client.post("/api/checkout", { courses: [free.slug] });
+    const res = await client.post("/api/checkout", { agree: true, courses: [free.slug] });
     expect(res.status).toBe(201);
     const body = await json(res);
     expect(body.order.status).toBe("paid");
@@ -232,7 +232,7 @@ describe("checkout & webhook-driven enrollment", () => {
     const bundleId = bundle.meta.last_row_id as number;
     await env.DB.batch([a, b].map((c) => env.DB.prepare("INSERT INTO bundle_items (bundle_id, course_id) VALUES (?, ?)").bind(bundleId, c.id)));
     const { client } = await registerStudent();
-    const res = await client.post("/api/checkout", { bundle_id: bundleId, channel: "mock" });
+    const res = await client.post("/api/checkout", { agree: true, bundle_id: bundleId, channel: "mock" });
     expect(res.status).toBe(201);
     const publicId = (await json(res)).order.public_id;
     const items = await env.DB.prepare("SELECT course_id, price, list_price FROM order_items WHERE order_id = (SELECT id FROM orders WHERE public_id = ?) ORDER BY course_id").bind(publicId).all<any>();
@@ -280,7 +280,7 @@ describe("coupons", () => {
     const a = await makeCourse({ price: 400 });
     const b = await makeCourse({ price: 400 });
     const { client } = await registerStudent();
-    const first = await client.post("/api/checkout", { courses: [a.slug], coupon: "FREEALL" });
+    const first = await client.post("/api/checkout", { agree: true, courses: [a.slug], coupon: "FREEALL" });
     expect(first.status).toBe(201);
     expect((await json(first)).order.status).toBe("paid");
     const second = await client.post("/api/checkout/quote", { courses: [b.slug], coupon: "FREEALL" });
@@ -310,7 +310,7 @@ describe("manual send-money payments", () => {
     expect(await offered()).toContain("manual");
     await setSetting(env, "payments", payments({ bkash: "", nagad: "", rocket: "" }), null);
     expect(await offered()).not.toContain("manual");
-    const res = await client.post("/api/checkout", { courses: [course.slug], channel: "manual", manual: { method: "bkash", trx_id: "8n7a6d5e4c", payer_number: "01712345678" } });
+    const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual", manual: { method: "bkash", trx_id: "8n7a6d5e4c", payer_number: "01712345678" } });
     expect(res.status).toBe(400);
     expect((await json(res)).error.code).toBe("payment_unavailable");
   });
@@ -319,7 +319,7 @@ describe("manual send-money payments", () => {
     const course = await makeCourse({ price: 650 });
     const { client } = await registerStudent();
     const proof = { method: "bkash", trx_id: "8n7a6d5e4c", payer_number: "01712345678" };
-    const res = await client.post("/api/checkout", { courses: [course.slug], channel: "manual", manual: proof });
+    const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual", manual: proof });
     expect(res.status).toBe(201);
     const body = await json(res);
     expect(body.order.status).toBe("awaiting_verification");
@@ -329,7 +329,7 @@ describe("manual send-money payments", () => {
     expect((await json(await client.get("/api/student/courses"))).courses).toHaveLength(0);
 
     const { client: other } = await registerStudent();
-    const reuse = await other.post("/api/checkout", { courses: [course.slug], channel: "manual", manual: proof });
+    const reuse = await other.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual", manual: proof });
     expect(reuse.status).toBe(409);
     expect((await json(reuse)).error.code).toBe("trx_used");
   });
@@ -337,7 +337,7 @@ describe("manual send-money payments", () => {
   it("validates the proof fields", async () => {
     const course = await makeCourse();
     const { client } = await registerStudent();
-    const bad = await client.post("/api/checkout", { courses: [course.slug], channel: "manual", manual: { method: "bkash", trx_id: "x", payer_number: "123" } });
+    const bad = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual", manual: { method: "bkash", trx_id: "x", payer_number: "123" } });
     expect(bad.status).toBe(422);
     expect((await json(bad)).error.fields).toMatchObject({ "manual.trx_id": "invalid_trx", "manual.payer_number": "invalid_phone" });
   });
@@ -364,7 +364,7 @@ describe("SSLCommerz (gateway calls stubbed)", () => {
   async function start(price = 1850) {
     const course = await makeCourse({ price });
     const { client } = await registerStudent();
-    const res = await client.post("/api/checkout", { courses: [course.slug], channel: "sslcommerz" });
+    const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" });
     expect(res.status, await res.clone().text()).toBe(201);
     const body = await json(res);
     return { course, client, publicId: body.order.public_id as string, body };

@@ -63,7 +63,7 @@ test("manual payment on a phone: the pay screen and the waiting screen fit in bo
   await useLang(ctx, "en");
   const page = await ctx.newPage();
   await registerStudent(page);
-  const started = await apiPost(page, "/checkout", { courses: ["beginners-baking-class"], channel: "manual", manual: { method: "bkash", payer_number: "01712345678" } });
+  const started = await apiPost(page, "/checkout", { agree: true, courses: ["beginners-baking-class"], channel: "manual", manual: { method: "bkash", payer_number: "01712345678" } });
   expect(started.status).toBe(201);
   const id: string = started.body.order.public_id;
   for (const lang of ["en", "bn"]) {

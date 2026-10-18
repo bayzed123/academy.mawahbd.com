@@ -208,6 +208,15 @@ body.has-buybar{padding-bottom:78px}
 .ssl-logo{margin:.7rem 0 0}
 .ssl-logo a{display:inline-block}
 .ssl-logo img{display:block;max-width:100%;height:auto;max-height:140px;padding:6px 8px;border-radius:10px;background:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.16)}
+/* the registered address and trade licence number, as SSLCommerz asks: small, under the contact details */
+.site-footer .foot-legal{margin:.9rem 0 0;font-size:.86rem;line-height:1.6;color:#d8cbbf}
+.foot-legal span{display:block}
+/* the same on the About and Contact pages */
+.biz{display:grid;grid-template-columns:auto 1fr;gap:.4rem 1rem;margin:.6rem 0 0;max-width:760px}
+.biz dt{font-weight:700;color:var(--ink-2)}
+.biz dd{margin:0}
+@media (max-width:520px){.biz{grid-template-columns:1fr;gap:.15rem}.biz dd{margin-bottom:.55rem}}
+.buy .stock{margin:0 0 .7rem;line-height:1.45}
 .foot-bottom{border-top:1px solid rgba(255,255,255,.1);padding-block:18px;font-size:.88rem;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
 /* the developer credit: a plain, visible link (underlined, gold) so it reads as one */
 .foot-credit a{color:var(--g-300);text-decoration:underline;text-underline-offset:3px;font-weight:600}

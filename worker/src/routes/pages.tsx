@@ -190,7 +190,7 @@ export function pageRoutes(lang: Lang) {
     const kind = c.req.param("kind");
     return cachedPage(c, { ttl: 600 }, async () => {
       const ctx = await pageCtxFor(c, lang, `/policies/${kind}`);
-      if (kind !== "refund" && kind !== "privacy" && kind !== "terms") return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
+      if (kind !== "refund" && kind !== "privacy" && kind !== "terms" && kind !== "delivery") return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
       return renderHtml(c, ctx, <PolicyPage ctx={ctx} kind={kind} />);
     });
   });

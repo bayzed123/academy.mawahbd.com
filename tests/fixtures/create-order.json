@@ -1,8 +1,8 @@
 {
   "name": "Create order (start checkout)",
-  "description": "A logged-in student pays for one class. The order starts as 'pending' and the student is sent to the gateway; enrolment only happens when the gateway's signed webhook confirms the payment. ({{course_slug}} is filled in by the test; channel 'mock' is the local test gateway and only works outside production.)",
+  "description": "A logged-in student pays for one class. The order starts as 'pending' and the student is sent to the gateway; enrolment only happens when the gateway's signed webhook confirms the payment. ({{course_slug}} is filled in by the test; channel 'mock' is the local test gateway and only works outside production. `agree: true` is the box the buyer ticks to accept the terms, the privacy policy and the refund & cancellation policy; without it nothing is ordered.)",
   "setup": "student",
-  "request": { "method": "POST", "path": "/api/checkout", "json": { "courses": ["{{course_slug}}"], "channel": "mock" } },
+  "request": { "method": "POST", "path": "/api/checkout", "json": { "courses": ["{{course_slug}}"], "channel": "mock", "agree": true } },
   "response": {
     "status": 201,
     "forbidKeys": ["password_hash", "paid_claim", "gateway_ref"],

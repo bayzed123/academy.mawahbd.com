@@ -258,7 +258,7 @@ describe("certificate, verification & invoice documents", () => {
       .bind(courseId, mod.meta.last_row_id)
       .run();
     const { client, body } = await registerStudent(undefined, { name: "Fatema Khatun" });
-    const order = await client.post("/api/checkout", { courses: [slug], channel: "mock" });
+    const order = await client.post("/api/checkout", { agree: true, courses: [slug], channel: "mock" });
     const publicId = (await json(order)).order.public_id as string;
     await new Client().fetch("/api/payments/mock/webhook", { method: "POST", form: { order: publicId, status: "paid", sig: await mockSignature(env, publicId, "paid") } });
     const done = await json(await client.post(`/api/student/lessons/${lesson.meta.last_row_id}/complete`));

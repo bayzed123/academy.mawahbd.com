@@ -179,6 +179,30 @@ export function InstructorPage({ ctx, instructor, courses, reviews }: { ctx: Pag
 }
 
 /* ============================================================================ about / contact / policy */
+/** The registered address and trade licence number (Settings → Contact), on the About and Contact pages; nothing when both are empty. */
+function BusinessFacts({ ctx }: { ctx: PageCtx }) {
+  const { t, lang } = ctx;
+  const c = ctx.settings.contact;
+  const address = lang === "bn" ? c.address_bn || c.address_en : c.address_en || c.address_bn;
+  if (!address && !c.trade_license) return null;
+  return (
+    <dl class="biz">
+      {c.trade_license && (
+        <>
+          <dt>{t("biz.license")}</dt>
+          <dd>{c.trade_license}</dd>
+        </>
+      )}
+      {address && (
+        <>
+          <dt>{t("biz.address")}</dt>
+          <dd>{address}</dd>
+        </>
+      )}
+    </dl>
+  );
+}
+
 export function AboutPage({ ctx }: { ctx: PageCtx }) {
   const { t, lang } = ctx;
   const about = lang === "bn" ? ctx.settings.about.bn || ctx.settings.about.en : ctx.settings.about.en || ctx.settings.about.bn;
@@ -194,6 +218,12 @@ export function AboutPage({ ctx }: { ctx: PageCtx }) {
       <section class="section tight">
         <div class="wrap">
           <div class="prose">{raw(renderMarkdown(about))}</div>
+          {(ctx.settings.contact.trade_license || ctx.settings.contact.address_bn || ctx.settings.contact.address_en) && (
+            <>
+              <h2 class="mt">{t("biz.title")}</h2>
+              <BusinessFacts ctx={ctx} />
+            </>
+          )}
           <h2 class="mt">{t("about.expect")}</h2>
           <ul class="checks">
             {(["about.e1", "about.e2", "about.e3", "about.e4"] as const).map((k) => (
@@ -263,21 +293,29 @@ export function ContactPage({ ctx, flash }: { ctx: PageCtx; flash?: string }) {
               <p class="status-line" data-status role="status" />
             </form>
           </div>
-          {channels.length > 0 && (
-            <aside class="buy">
-              <h2>{t("contact.channels")}</h2>
-              <ul>
-                {channels.map((ch) => (
-                  <li>
-                    <Icon name={ch.icon} />
-                    <a href={ch.href} rel="noopener noreferrer" target={ch.href.startsWith("http") ? "_blank" : undefined}>
-                      {ch.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </aside>
-          )}
+          <aside class="buy">
+            {channels.length > 0 && (
+              <>
+                <h2>{t("contact.channels")}</h2>
+                <ul>
+                  {channels.map((ch) => (
+                    <li>
+                      <Icon name={ch.icon} />
+                      <a href={ch.href} rel="noopener noreferrer" target={ch.href.startsWith("http") ? "_blank" : undefined}>
+                        {ch.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {(c.trade_license || c.address_bn || c.address_en) && (
+              <>
+                <h2 class={channels.length > 0 ? "mt" : undefined}>{t("biz.title")}</h2>
+                <BusinessFacts ctx={ctx} />
+              </>
+            )}
+          </aside>
         </div>
       </section>
     </Layout>

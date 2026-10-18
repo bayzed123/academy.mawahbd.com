@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminLogin, apiGet, PDF, registerStudent, useLang } from "./helpers";
+import { adminLogin, agree, apiGet, PDF, registerStudent, useLang } from "./helpers";
 
 /*
  * Admin → Materials. The owner could not find where to upload things for a class (the only upload was hidden inside a lesson)
@@ -179,6 +179,7 @@ test("an enrolled student sees the materials with the notice, downloads the file
   const early = await student.request.get(`/api/student/courses/${CLASS_SLUG}/materials`);
   expect(early.status()).toBe(403);
   await student.goto(`/app/checkout?c=${CLASS_SLUG}`);
+  await agree(student);
   await student.getByRole("button", { name: "Enroll for free" }).click();
   await expect(student.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
 

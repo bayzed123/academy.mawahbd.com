@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { apiGet, apiPost, LOGIN_ID, registerStudent, uniqueEmail, useLang } from "./helpers";
+import { agree, apiGet, apiPost, LOGIN_ID, registerStudent, uniqueEmail, useLang } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -46,6 +46,7 @@ test("guests are sent to log in and brought back; registration, validation and l
 test("a free class enrolls instantly; finishing it issues a verifiable certificate", async () => {
   await page.goto("/app/checkout?c=free-taster-class");
   await expect(page.getByText("This class is free")).toBeVisible();
+  await agree(page);
   await page.getByRole("button", { name: "Enroll for free" }).click();
   await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
   await page.getByRole("link", { name: "Start learning" }).click();
@@ -93,6 +94,7 @@ test("a paid class: test gateway -> webhook-confirmed enrollment -> lessons, pro
   await expect(page.getByText("Coupon WELCOME10 applied.")).toBeVisible();
   await expect(page.locator(".sum-row.total")).toContainText("৳360"); // 10% off 400
   await page.getByText("Test payment").click();
+  await agree(page);
   await page.getByRole("button", { name: /Pay ৳360/ }).click();
   await page.getByRole("button", { name: "Simulate successful payment" }).click();
   await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
@@ -134,9 +136,11 @@ test("manual send-money: own number first, a countdown with our details, proof b
   await expect(page.getByText("You get our number and 20 minutes to send the money.")).toBeVisible();
   await expect(page.locator(".copy-row")).toHaveCount(0);
   await page.getByLabel("Your number — the one you will send money from").fill("123");
+  await agree(page);
   await page.getByRole("button", { name: "Continue — show payment details" }).click();
   await expect(page.getByText("Please enter a valid mobile number, for example 01712345678.")).toBeVisible();
   await page.getByLabel("Your number — the one you will send money from").fill("01712345678");
+  await agree(page);
   await page.getByRole("button", { name: "Continue — show payment details" }).click();
 
   // the open order: the amount, the countdown, the owner's number to copy, the reference code
@@ -179,7 +183,7 @@ test("manual send-money: after the 20 minutes the page says so, and proof is sti
   await useLang(ctx, "en");
   const p = await ctx.newPage();
   await registerStudent(p, { name: "Late Payer" });
-  const started = await apiPost(p, "/checkout", { courses: ["beginners-baking-class"], channel: "manual", manual: { method: "bkash", payer_number: "01812345678" } });
+  const started = await apiPost(p, "/checkout", { agree: true, courses: ["beginners-baking-class"], channel: "manual", manual: { method: "bkash", payer_number: "01812345678" } });
   expect(started.status).toBe(201);
   const id: string = started.body.order.public_id;
   await p.clock.install();
@@ -283,7 +287,7 @@ test("student app accessibility: no serious or critical axe violations", async (
   const email = uniqueEmail("a11y");
   await registerStudent(p, { email });
   // an open manual payment, so its screen (countdown, copy buttons, the file picker) is checked too
-  const started = await apiPost(p, "/checkout", { courses: ["beginners-baking-class"], channel: "manual", manual: { method: "bkash", payer_number: "01712345678" } });
+  const started = await apiPost(p, "/checkout", { agree: true, courses: ["beginners-baking-class"], channel: "manual", manual: { method: "bkash", payer_number: "01712345678" } });
   expect(started.status).toBe(201);
   for (const path of ["/app/", "/app/profile", "/app/orders", "/app/checkout?c=beginners-baking-class", `/app/orders/${started.body.order.public_id}`, "/app/login"]) {
     if (path === "/app/login") {
