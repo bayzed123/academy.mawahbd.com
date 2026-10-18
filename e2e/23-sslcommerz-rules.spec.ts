@@ -100,6 +100,7 @@ test("in Bangla on a 360 px phone: the address and licence, ভর্তি চ�
   const box = page.getByRole("checkbox", { name: AGREE });
   await expect(box).not.toBeChecked();
   await expect(page.locator(".agree").getByRole("link", { name: "রিফান্ড ও বাতিল নীতি" })).toHaveAttribute("href", "/policies/refund");
+  await page.getByText("টেস্ট পেমেন্ট").click();
   await page.getByRole("button", { name: /পেমেন্ট করুন$/ }).click();
   await expect(page.getByText("এগিয়ে যেতে ঘরে টিক দিয়ে সম্মতি দিন।")).toBeVisible();
   expect(await page.evaluate(noSideScroll)).toBe(true);
