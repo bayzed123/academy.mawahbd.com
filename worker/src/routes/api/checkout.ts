@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
-import { formatMoney, isNoEmail, MAX_PROOF_IMAGE_BYTES, readSslLogo, type Channel, type PayMethodDTO, type QuoteDTO } from "@mawah/shared";
+import { formatMoney, isNoEmail, MAX_PROOF_IMAGE_BYTES, PAY_VIA, readSslLogo, type Channel, type PayMethodDTO, type PayVia, type QuoteDTO } from "@mawah/shared";
 import type { AppEnv, Ctx, StudentCtx } from "../../env";
 import { audit } from "../../lib/audit";
 import { first, nowIso, run } from "../../lib/db";
@@ -21,7 +21,7 @@ import { tellStudent } from "../../services/studentMessages";
 import { notices, notifyOwner } from "../../services/notify";
 import { availableChannels, manualPayInfo } from "../../services/payments";
 import { bkashCreate } from "../../services/payments/bkash";
-import { rememberSsl, sslInit } from "../../services/payments/sslcommerz";
+import { offeredWays, rememberSsl, rememberWays, sslInit, type SslWays } from "../../services/payments/sslcommerz";
 
 /**
  * Checkout. Seeing the price (/quote) and buying as a visitor (/guest) need no account — that is the point: a buyer who is sent to a log-in
@@ -45,6 +45,8 @@ const checkoutSchema = z.object({
   bundle_id: z.coerce.number().int().positive().optional(),
   coupon: z.string().trim().max(40).optional(),
   channel: z.enum(["sslcommerz", "bkash", "manual", "mock"]).optional(),
+  // the online payment: the way of paying the buyer tapped on the checkout (bKash, Nagad … Visa) — they go straight to it at SSLCommerz
+  via: z.enum(PAY_VIA).optional(),
   // a signed-in student whose profile has no mobile number or address yet gives them here; they are kept on the profile
   details: z.object({ phone: requiredPhoneSchema.optional(), address: addressSchema.optional() }).optional(),
   manual: z
@@ -71,7 +73,7 @@ const proofSchema = z.object({ trx_id: TRX_ID.optional() });
 
 type Cart = z.output<typeof checkoutSchema>;
 
-function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<typeof getSettings>>): QuoteDTO {
+function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<typeof getSettings>>, ways: SslWays | null): QuoteDTO {
   return {
     items: q.items,
     subtotal: q.subtotal,
@@ -82,6 +84,7 @@ function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<
     channels: q.total === 0 ? [] : channels,
     manual: channels.includes("manual") ? manualPayInfo(settings) : null,
     ssl_logo: q.total > 0 && channels.includes("sslcommerz") ? (readSslLogo(settings.payments.ssl_logo)?.src ?? null) : null,
+    ssl_ways: q.total > 0 && channels.includes("sslcommerz") ? ways : null,
   };
 }
 
@@ -92,7 +95,9 @@ checkoutRoutes.post("/quote", loadStudent, async (c) => {
     buildQuote(c.env, { studentId: student?.id ?? null, courseSlugs: body.courses, bundleId: body.bundle_id, coupon: body.coupon }),
     getSettings(c.env),
   ]);
-  return ok(c, { quote: toQuoteDTO(quote, availableChannels(c.env, settings), settings) });
+  const channels = availableChannels(c.env, settings);
+  const ways = quote.total > 0 && channels.includes("sslcommerz") ? await offeredWays(c.env) : null;
+  return ok(c, { quote: toQuoteDTO(quote, channels, settings, ways) });
 });
 
 interface Prepared {
@@ -151,6 +156,8 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
     let redirectUrl: string;
     // SSLCommerz's ways of paying (bKash, Nagad, cards …): the buyer taps one on the website and goes straight to it; none = SSLCommerz's own page
     let payMethods: PayMethodDTO[] = [];
+    // the buyer tapped a way of paying that SSLCommerz does not offer the shop: they choose from what it does offer
+    let viaMissing: PayVia | null = null;
     if (channel === "sslcommerz") {
       // the gateway wants an e-mail address: a buyer who gave none is sent through with the shop's own
       const gatewayEmail = isNoEmail(student.email) ? c.env.NOTIFY_EMAIL?.trim() || "customer@mawahacademy.com" : student.email;
@@ -165,6 +172,13 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
       }
       redirectUrl = r.redirectUrl;
       payMethods = r.methods;
+      c.executionCtx.waitUntil(rememberWays(c.env, r.methods));
+      // a way of paying tapped on the checkout: straight to it (bKash's page for bKash), not SSLCommerz's list
+      const tapped = body.via ? r.methods.find((m) => m.via === body.via) : undefined;
+      if (tapped) {
+        redirectUrl = tapped.url;
+        payMethods = [];
+      } else if (body.via && r.methods.length) viaMissing = body.via;
       await run(c.env.DB, "UPDATE orders SET gateway_ref = ? WHERE id = ?", r.sessionKey, order.id);
     } else if (channel === "bkash") {
       const r = await bkashCreate(c.env, { public_id: order.public_id, total: quote.total }, isNoEmail(student.email) ? (student.phone ?? "student") : student.email);
@@ -173,8 +187,8 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
     } else {
       redirectUrl = `/api/payments/mock/pay/${order.public_id}`;
     }
-    await audit(c, { action: "checkout.started", entity: "order", entityId: order.id, summary: channel });
-    return ok(c, { order: { public_id: order.public_id, status: "pending", total: quote.total }, redirect_url: redirectUrl, pay_methods: payMethods, ...extra }, 201);
+    await audit(c, { action: "checkout.started", entity: "order", entityId: order.id, summary: channel, meta: channel === "sslcommerz" && body.via ? { via: body.via, offered: !viaMissing } : undefined });
+    return ok(c, { order: { public_id: order.public_id, status: "pending", total: quote.total }, redirect_url: redirectUrl, pay_methods: payMethods, ...(viaMissing ? { via_missing: viaMissing } : {}), ...extra }, 201);
   } catch (err) {
     await closeOrder(c.env, order.public_id, "failed", "gateway_init_failed");
     if (channel === "bkash" && err instanceof HttpError && err.code === "gateway_error") await audit(c, { action: "checkout.gateway_failed", entity: "order", entityId: order.id, summary: "bkash" });

@@ -1,4 +1,5 @@
 import type { Accent, CourseStatus, LessonType, OrderStatus, PaymentMethod, Role } from "./constants";
+import type { PayVia } from "./payLogos";
 
 /** Every JSON error from the API has this shape. `code` maps to a localized message on the client. */
 export interface ApiErrorBody {
@@ -183,6 +184,11 @@ export interface QuoteDTO {
   manual: ManualPayInfo | null;
   /** SSLCommerz's own logo (the picture's address), shown on the online-payment choice when the owner has pasted it; null = the small marks */
   ssl_logo: string | null;
+  /**
+   * The ways of paying SSLCommerz offered this shop the last time it was asked, with SSLCommerz's logo for each — the buttons the checkout
+   * shows under the online payment; null = SSLCommerz has not been asked yet (the checkout then shows all of PAY_VIA)
+   */
+  ssl_ways: { via: PayVia; logo: string | null }[] | null;
 }
 
 /**
@@ -192,6 +198,8 @@ export interface QuoteDTO {
  */
 export interface PayMethodDTO {
   name: string;
+  /** which of the checkout's own buttons this is (bKash, Nagad … Visa); null = a way the checkout has no button for (a bank, another wallet) */
+  via: PayVia | null;
   /** mobile wallets, cards, internet banking, anything else — the order they are shown in */
   group: "mobile" | "card" | "bank" | "other";
   /** SSLCommerz's picture of it (on sslcommerz.com); null = the name alone */

@@ -21,3 +21,32 @@ export const CHANNEL_LOGOS: Record<"sslcommerz" | "bkash" | "manual" | "mock", r
   manual: ["bkash", "nagad", "rocket"],
   mock: [],
 };
+
+/**
+ * The ways of paying a buyer can tap on the checkout as soon as they choose the online payment — before SSLCommerz is asked anything — in the
+ * order shown: mobile wallets first, then cards. A tap starts the payment and goes straight to that way of paying at SSLCommerz (its entry
+ * in SSLCommerz's own list, matched by `viaOf`); one SSLCommerz does not offer the shop brings SSLCommerz's list instead.
+ */
+export const PAY_VIA = ["bkash", "nagad", "rocket", "upay", "visa", "mastercard", "amex"] as const;
+export type PayVia = (typeof PAY_VIA)[number];
+export const PAY_VIA_GROUP: Record<PayVia, "mobile" | "card"> = { bkash: "mobile", nagad: "mobile", rocket: "mobile", upay: "mobile", visa: "card", mastercard: "card", amex: "card" };
+/** Brand names, the same in both languages */
+export const PAY_VIA_NAME: Record<PayVia, string> = { bkash: "bKash", nagad: "Nagad", rocket: "Rocket", upay: "Upay", visa: "Visa", mastercard: "Mastercard", amex: "American Express" };
+
+/**
+ * Which of these an entry of SSLCommerz's list is — from its gateway code (`gw`), its name and its kind — or null for anything else (a bank,
+ * another wallet, a local card scheme). Rocket is "DBBL Mobile Banking" there; a bank's own Visa or Mastercard gateway is still Visa or
+ * Mastercard.
+ */
+export function viaOf(entry: { gw?: unknown; name?: unknown; type?: unknown }): PayVia | null {
+  const text = `${typeof entry.gw === "string" ? entry.gw : ""} ${typeof entry.name === "string" ? entry.name : ""}`.toLowerCase();
+  const kind = typeof entry.type === "string" ? entry.type.toLowerCase() : "";
+  if (text.includes("bkash")) return "bkash";
+  if (text.includes("nagad")) return "nagad";
+  if (/rocket|dbbl\s*mobile|dbblmobile/.test(text)) return "rocket";
+  if (text.includes("upay")) return "upay";
+  if (kind === "amex" || /amex|american\s*express/.test(text)) return "amex";
+  if (kind === "master" || text.includes("master")) return "mastercard";
+  if (kind === "visa" || text.includes("visa")) return "visa";
+  return null;
+}

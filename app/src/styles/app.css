@@ -201,6 +201,14 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .pay-opt b{display:block}
 .pay-opt small{color:var(--ink-3)}
 /* after "Pay": SSLCommerz's ways of paying with their own logos, big enough to tap — mobile wallets first */
+/* the online payment's ways of paying, shown as soon as it is chosen: a tap pays with that one */
+.pay-tiles{margin-top:16px;padding:16px;border:1.5px solid var(--line-2);border-radius:16px;background:#fff}
+.pay-tiles h3{font-size:1.05rem;margin:0 0 4px}
+.pay-tiles .pay-group{margin-top:14px}
+.pay-tiles h4{font-size:.95rem;margin:0 0 8px;color:var(--ink-2)}
+button.pay-method{font:inherit;cursor:pointer;width:100%}
+button.pay-method:disabled{cursor:progress;opacity:.7}
+button.pay-method[aria-busy="true"]{opacity:1;border-color:var(--k-900)}
 .pay-group{margin-top:18px}
 .pay-group h2{font-size:1.02rem;margin:0 0 10px}
 .pay-grid{list-style:none;margin:0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,132px),1fr))}
