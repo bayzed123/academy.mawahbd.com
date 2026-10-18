@@ -39,6 +39,16 @@ export function rejectedSms(lang: Lang, d: { reason: string }): string {
     : `${brand(lang)}: we could not match your payment${why ? ` (${why})` : ""}. Please check the TrxID and send it again, or contact us.`;
 }
 
+/**
+ * "Forgot password": the code to type on the website. No web address in it: the reset texts that carried a link never reached the
+ * owner's phone, while the test text (which has none) did. The code is in plain digits so it reads the same in both languages.
+ */
+export function resetCodeSms(lang: Lang, d: { code: string }): string {
+  return lang === "bn"
+    ? `${brand(lang)}: পাসওয়ার্ড বদলানোর কোড ${d.code}। ১৫ মিনিট চলবে। কাউকে জানাবেন না।`
+    : `${brand(lang)}: your password code is ${d.code}. It works for 15 minutes. Do not share it with anyone.`;
+}
+
 /** "I forgot my password", asked by mobile number. */
 export function resetSms(lang: Lang, d: { link: string }): string {
   return lang === "bn" ? `${brand(lang)}: নতুন পাসওয়ার্ড দিতে এই লিংকে যান (১ ঘণ্টা চলবে): ${d.link}` : `${brand(lang)}: choose a new password here (works for 1 hour): ${d.link}`;

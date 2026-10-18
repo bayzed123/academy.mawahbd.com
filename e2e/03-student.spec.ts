@@ -245,22 +245,31 @@ test("profile: change password signs out other sessions; reset-by-email flow", a
   expect((await op.request.get("/api/student/courses")).status()).toBe(401);
   await other.close();
 
-  // forgot password: a link is emailed (dev outbox), it works once
+  // forgot password: a 6-digit code comes (here by e-mail, from the dev outbox; by text too when there is a number), typed with the new
+  // password on the same page it changes the password and signs this browser in; the link e-mailed with it then no longer works
   const ctx = await browser.newContext({ locale: "en-US" });
   await useLang(ctx, "en");
   const fp = await ctx.newPage();
   await fp.goto("/app/forgot");
   await fp.getByLabel(LOGIN_ID).fill(creds.email);
-  await fp.getByRole("button", { name: "Send reset link" }).click();
+  await fp.getByRole("button", { name: "Send code" }).click();
+  await expect(fp.getByRole("heading", { name: "Type the code" })).toBeVisible();
   await expect(fp.getByText("Check your messages")).toBeVisible();
   const mails = await (await fp.request.get(`/api/dev/outbox?to=${encodeURIComponent(creds.email)}`)).json();
-  const link = mails.messages.map((m: { text: string }) => m.text.match(/https?:\/\/\S+\/app\/reset\/\S+/)?.[0]).find(Boolean) as string;
-  expect(link).toBeTruthy();
-  await fp.goto(new URL(link).pathname);
+  const latest = mails.messages.filter((m: { text: string }) => /\/app\/reset\//.test(m.text)).at(-1) as { text: string };
+  const link = latest.text.match(/https?:\/\/\S+\/app\/reset\/\S+/)![0];
+  const code = latest.text.match(/: (\d{6}) \(/)![1];
+  // a wrong code is refused under the box, and nothing changes
+  await fp.getByLabel("6-digit code").fill(code === "000000" ? "111111" : "000000");
   await fp.getByLabel("New password").fill("after-reset-password-1");
-  await fp.getByRole("button", { name: "Save" }).click();
+  await fp.getByRole("button", { name: "Change password" }).click();
+  await expect(fp.getByText("That code is not right, or it has expired.")).toBeVisible();
+  await fp.getByLabel("6-digit code").fill(code);
+  await fp.getByRole("button", { name: "Change password" }).click();
+  await expect(fp.getByRole("heading", { name: "My Learning" })).toBeVisible();
   await expect(fp.getByText("Your password has been changed.")).toBeVisible();
-  await fp.goto(new URL(link).pathname); // the same link cannot be used twice
+  creds.password = "after-reset-password-1";
+  await fp.goto(new URL(link).pathname); // the link sent with the code is used up with it
   await fp.getByLabel("New password").fill("another-password-123");
   await fp.getByRole("button", { name: "Save" }).click();
   await expect(fp.getByRole("alert")).toBeVisible();

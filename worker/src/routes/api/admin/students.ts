@@ -7,10 +7,10 @@ import { csvResponse, toCsv } from "../../../lib/csv";
 import { all, first, likeEscape, nowIso, pageInfo, pageParams, run } from "../../../lib/db";
 import { conflict, HttpError, intParam, notFound, ok, parseBody } from "../../../lib/http";
 import { passwordResetMail } from "../../../lib/mailer";
-import { resetSms } from "../../../lib/smsText";
+import { resetCodeSms, resetSms } from "../../../lib/smsText";
 import { emailSchema, idSchema, langSchema, nameSchema, optionalEmailSchema, phoneSchema, textSchema } from "../../../lib/schemas";
 import { requirePerm } from "../../../middleware/auth";
-import { createPasswordResetLink } from "../../../services/auth";
+import { createPasswordResetLink, createResetCode } from "../../../services/auth";
 import { analyzeRows, commitRows, createStudent, grantAccess, inviteStudent, summarize } from "../../../services/students";
 import { REAL_STUDENT } from "../../../services/guests";
 import { tellStudent } from "../../../services/studentMessages";
@@ -166,8 +166,8 @@ students.post("/students/:id/unblock", requirePerm("students:write"), async (c) 
 });
 
 /**
- * Support tool: sends the student a fresh 1-hour reset link (the admin never sees or sets their password) — by e-mail, or by text message to
- * their mobile number when they gave no e-mail.
+ * Support tool: sends the student a fresh 1-hour reset link and a 15-minute code (the admin never sees or sets their password) — by e-mail,
+ * and the code by text message to their mobile number when they gave no e-mail (or texts go to everyone in Settings → SMS).
  */
 students.post("/students/:id/send-reset", requirePerm("students:write"), async (c) => {
   const id = intParam(c, "id");
@@ -175,7 +175,11 @@ students.post("/students/:id/send-reset", requirePerm("students:write"), async (
   if (!student) throw notFound();
   if (student.blocked) throw new HttpError(409, "account_blocked");
   const link = await createPasswordResetLink(c.env, id);
-  const told = await tellStudent(c.env, student, { mail: passwordResetMail(student.locale, link), sms: resetSms(student.locale, { link }) }, { smsAlso: isNoEmail(student.email) });
+  // the text carries the 6-digit code for the "Forgot password" page, not the link (texts with a link in them did not arrive); null = the
+  // student was sent several codes in the last hour already, and then the text carries the link as before
+  const code = await createResetCode(c.env, id);
+  const sms = code ? resetCodeSms(student.locale, { code }) : resetSms(student.locale, { link });
+  const told = await tellStudent(c.env, student, { mail: passwordResetMail(student.locale, link, code ?? undefined), sms }, { smsAlso: isNoEmail(student.email) });
   const sent = !!(told.mail?.ok || told.sms?.ok);
   await audit(c, { action: "student.reset_sent", entity: "student", entityId: id, meta: { ok: sent, by: told.mail ? "email" : told.sms ? "sms" : "none" } });
   return ok(c, { sent });

@@ -296,13 +296,25 @@ test("no e-mail at all: a visitor gives a name, a number and an address, is text
     await back.ctx.close();
   }
 
-  // a forgotten password: ask by number, and the link comes by text message
+  // a forgotten password: ask by number, a 6-digit code comes by text message (no link in it), and the code changes it on the same page
   const forgot = await visitor(browser);
   await forgot.page.goto("/app/forgot");
   await forgot.page.getByLabel("Mobile number, student ID or e-mail").fill(phone);
-  await forgot.page.getByRole("button", { name: "Send reset link" }).click();
+  await forgot.page.getByRole("button", { name: "Send code" }).click();
   await expect(forgot.page.getByText("Check your messages")).toBeVisible();
-  await expect.poll(async () => (await orderBox(phone)).some((m) => /choose a new password/.test(m.text))).toBe(true);
+  let text = "";
+  await expect
+    .poll(async () => {
+      text = (await orderBox(phone)).map((m) => m.text).filter((t) => /password code is \d{6}/.test(t)).at(-1) ?? "";
+      return text;
+    })
+    .toMatch(/password code is \d{6}/);
+  expect(text).not.toMatch(/https?:|\/app\//);
+  await forgot.page.getByLabel("6-digit code").fill(/(\d{6})/.exec(text)![1]);
+  await forgot.page.getByLabel("New password").fill("my-second-password-9");
+  await forgot.page.getByRole("button", { name: "Change password" }).click();
+  await expect(forgot.page.getByRole("heading", { name: "My Learning" })).toBeVisible();
+  await expect(forgot.page.getByText("Beginners Baking Class")).toBeVisible();
   await forgot.ctx.close();
   await ctx.close();
 });

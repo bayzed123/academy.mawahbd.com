@@ -5,7 +5,7 @@ import { api, ApiError, safeNext } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useSite } from "../lib/hooks";
 import { useI18n } from "../lib/i18n";
-import { Button, Field, Icon, TextInput, Turnstile, useFieldErrors } from "../components/ui";
+import { Button, Field, Icon, TextInput, Turnstile, useFieldErrors, useToast } from "../components/ui";
 
 function AuthCard({ title, sub, children, foot }: { title: string; sub?: string; children: React.ReactNode; foot?: React.ReactNode }) {
   return (
@@ -196,48 +196,119 @@ export function Register() {
 }
 
 /* -------------------------------------------------------------------------------------------- forgot */
+/**
+ * Two steps on one page: who you are (mobile number, student ID or e-mail) → a 6-digit code comes by text message (and by e-mail when the
+ * account has one) → the code and a new password, which also signs this phone in. "I already have a code" skips the first step (a code the
+ * shop sent from Admin, or one that came after the page was closed); "Send again" goes back to it with what was typed kept.
+ */
 export function Forgot() {
   const { t, lang } = useI18n();
   const site = useSite();
-  const [email, setEmail] = useState("");
+  const { setStudent } = useAuth();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [who, setWho] = useState("");
   const [token, setToken] = useState("");
-  const [sent, setSent] = useState(false);
+  const [bump, setBump] = useState(0);
+  const [step, setStep] = useState<"who" | "code">("who");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
   const { busy, error, fields, run } = useSubmit();
 
-  const onSubmit = (e: FormEvent) => {
+  const onWho = (e: FormEvent) => {
     e.preventDefault();
     void run(async () => {
-      await api("/auth/forgot", { json: { identifier: email.trim(), lang, turnstile: token || undefined } });
-      setSent(true);
+      try {
+        await api("/auth/forgot", { json: { identifier: who.trim(), lang, turnstile: token || undefined } });
+      } finally {
+        setBump((n) => n + 1); // a security-check answer works once
+      }
+      setCode("");
+      setStep("code");
     });
   };
 
-  return (
-    <AuthCard title={t("app.forgot.title")} sub={sent ? undefined : t("app.forgot.sub")} foot={<Link className="link" to="/login">{t("btn.back")}</Link>}>
-      {sent ? (
-        <div className="notice ok">
+  const onCode = (e: FormEvent) => {
+    e.preventDefault();
+    void run(async () => {
+      const res = await api<{ student: StudentMe | null }>("/auth/reset-code", { json: { identifier: who.trim(), code: code.trim(), password } });
+      if (res.student) setStudent(res.student);
+      toast(t("app.reset.done"));
+      navigate("/", { replace: true });
+    });
+  };
+
+  const back = (
+    <Link className="link" to="/login">
+      {t("btn.back")}
+    </Link>
+  );
+
+  if (step === "code") {
+    return (
+      <AuthCard title={t("app.forgot.codeTitle")} foot={back}>
+        <div className="notice ok" role="status">
           <Icon name="mail" />
           <div>
             <b>{t("app.forgot.sentTitle")}</b>
             <p>{t("app.forgot.sentBody")}</p>
           </div>
         </div>
-      ) : (
-        <form onSubmit={onSubmit} noValidate>
+        <form onSubmit={onCode} noValidate className="mt">
           {error && (
             <div className="flash err" role="alert">
               {error}
             </div>
           )}
-          <Field id="email" label={t("app.login.identifier")} error={fields.identifier ?? fields.email}>
-            <TextInput id="email" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} error={fields.identifier ?? fields.email} />
+          <Field id="code" label={t("app.forgot.code")} error={fields.code} hint={t("app.forgot.codeHint")}>
+            <TextInput
+              id="code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              required
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              error={fields.code}
+            />
           </Field>
-          {site.data?.turnstile_site_key && <Turnstile siteKey={site.data.turnstile_site_key} onToken={setToken} />}
+          <Field id="password" label={t("app.reset.newPassword")} error={fields.password} hint={t("app.register.passwordHint")}>
+            <TextInput id="password" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} error={fields.password} />
+          </Field>
           <Button className="btn-primary btn-block btn-lg" type="submit" busy={busy}>
-            {t("app.forgot.send")}
+            {t("app.forgot.change")}
           </Button>
         </form>
-      )}
+        <p className="small mt">
+          <button type="button" className="link" onClick={() => setStep("who")}>
+            {t("app.forgot.again")}
+          </button>
+        </p>
+      </AuthCard>
+    );
+  }
+
+  return (
+    <AuthCard title={t("app.forgot.title")} sub={t("app.forgot.sub")} foot={back}>
+      <form onSubmit={onWho} noValidate>
+        {error && (
+          <div className="flash err" role="alert">
+            {error}
+          </div>
+        )}
+        <Field id="who" label={t("app.login.identifier")} error={fields.identifier ?? fields.email}>
+          <TextInput id="who" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={who} onChange={(e) => setWho(e.target.value)} error={fields.identifier ?? fields.email} />
+        </Field>
+        {site.data?.turnstile_site_key && <Turnstile siteKey={site.data.turnstile_site_key} onToken={setToken} resetKey={bump} />}
+        <Button className="btn-primary btn-block btn-lg" type="submit" busy={busy}>
+          {t("app.forgot.send")}
+        </Button>
+      </form>
+      <p className="small mt">
+        <button type="button" className="link" disabled={!who.trim()} onClick={() => setStep("code")}>
+          {t("app.forgot.have")}
+        </button>
+      </p>
     </AuthCard>
   );
 }
