@@ -906,6 +906,51 @@ describe("Admin → the lesson editor: which address to share with, and “Check
     });
   });
 
+  it("“Play here”: the owner gets the video exactly as a student would — whole and in parts, from the website — for a Drive file only", async () => {
+    await connected(async () => {
+      const g = googleIsStoodIn();
+      const admin = await owner();
+      const url = `/api/admin/drive/media?url=${encodeURIComponent(viewUrl(OK))}`;
+      const whole = await admin.get(url);
+      expect(whole.status).toBe(200);
+      expect(whole.headers.get("content-type")).toBe("video/webm");
+      expect(whole.headers.get("cache-control")).toBe("private, no-store");
+      expect(whole.headers.get("content-disposition")).toBe("inline");
+      expect(sameBytes(await bytesOf(whole), DEV_WEBM)).toBe(true);
+      const part = await admin.fetch(url, { headers: { Range: "bytes=0-99" } });
+      expect(part.status).toBe(206);
+      expect(part.headers.get("content-range")).toBe(`bytes 0-99/${DEV_WEBM.length}`);
+      expect(sameBytes(await bytesOf(part), DEV_WEBM.slice(0, 100))).toBe(true);
+      expect(g.drive.filter((c) => c.url.includes("alt=media")).map((c) => [c.url.includes(`/files/${OK}?`), c.range])).toEqual([
+        [true, null],
+        [true, "bytes=0-99"],
+      ]);
+      // anything but a link to a file in Drive: nothing, and Google is not asked
+      const asked = g.drive.length;
+      for (const bad of ["https://youtu.be/dQw4w9WgXcQ", "https://drive.google.com/drive/folders/1AbCdEfGhIjKlMnOpQrStUvWxYz012345", "https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/edit", "not a link", ""]) {
+        expect((await admin.get(`/api/admin/drive/media?url=${encodeURIComponent(bad)}`)).status, bad).toBe(404);
+      }
+      expect((await admin.get("/api/admin/drive/media")).status).toBe(404);
+      expect(g.drive.length).toBe(asked);
+      // a file the website cannot read answers as it would for a student: 404, with none of Google's words
+      const unshared = await admin.get(`/api/admin/drive/media?url=${encodeURIComponent(viewUrl(id("not_shared")))}`);
+      expect(unshared.status).toBe(404);
+      expect(await unshared.text()).not.toContain("notFound");
+    });
+  });
+
+  it("“Play here” is for people who may edit classes: a content manager may, support and a read-only viewer may not, nor a stranger or a student", async () => {
+    await connected(async () => {
+      const g = googleIsStoodIn();
+      const url = `/api/admin/drive/media?url=${encodeURIComponent(viewUrl(OK))}`;
+      expect((await (await loginStaff("content_manager")).client.get(url)).status).toBe(200);
+      for (const role of ["support", "viewer"] as const) expect((await (await loginStaff(role)).client.get(url)).status, role).toBe(403);
+      expect((await new Client().get(url)).status).toBe(401);
+      expect((await (await registerStudent()).client.get(url)).status).toBe(401);
+      expect(g.drive.filter((c) => c.url.includes("alt=media"))).toHaveLength(1); // only the content manager's reached Google
+    });
+  });
+
   it("leaves a mark in the activity log that a check happened and how it ended — never the link", async () => {
     await connected(async () => {
       googleIsStoodIn();

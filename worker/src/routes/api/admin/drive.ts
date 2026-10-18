@@ -3,8 +3,8 @@ import { z } from "zod";
 import type { AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { underHourlyCap } from "../../../lib/cap";
-import { DRIVE_LAST_KEY, driveCheck, driveConfigured, driveRef, driveShareEmail, forgetReadable, type DriveLast } from "../../../lib/drive";
-import { ok, parseBody } from "../../../lib/http";
+import { DRIVE_LAST_KEY, driveCheck, driveConfigured, driveMedia, driveRef, driveShareEmail, forgetReadable, type DriveLast } from "../../../lib/drive";
+import { notFound, ok, parseBody } from "../../../lib/http";
 import { requirePerm } from "../../../middleware/auth";
 import { rateLimit } from "../../../middleware/ratelimit";
 
@@ -35,4 +35,16 @@ drive.post("/drive/check", requirePerm("courses:write"), rateLimit("RL_FORM"), a
   const email = driveShareEmail(c.env);
   // never `{ ok: false }`: the admin client reads that as a failed request, and the plain-words explanation would never be shown
   return ok(c, r.ok ? { ready: true, ...r.data, email } : { ready: false, problem: r.problem, detail: r.detail ?? null, status: r.status ?? null, email });
+});
+
+/**
+ * "Play here": the owner watches a Drive video inside the admin, exactly as a student will get it — the same Worker hands it on from Google with
+ * the website's account — so it is seen to work before any student tries. Only the file a Drive link points at, only video or audio (lib/drive.ts
+ * hands on nothing else), only for people who may edit classes, never kept by a cache, and with a limit of its own as for a student's video (a
+ * playing video asks many times: the start, then the parts skipped to).
+ */
+drive.get("/drive/media", requirePerm("courses:write"), rateLimit("RL_API", (c) => `admin-media:${c.get("staff")?.id}`), async (c) => {
+  const ref = driveRef(c.req.query("url") ?? "");
+  if (ref?.kind !== "file") throw notFound();
+  return driveMedia(c.env, ref.id, c.req.header("range") ?? null);
 });
