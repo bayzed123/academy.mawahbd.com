@@ -76,6 +76,8 @@ export interface OrderRow {
   pay_by: string | null;
   proof_at: string | null;
   has_proof_image: number;
+  /** paid on the shop's SSLCommerz payment link (a manual "card" order made at checkout — not a card sale recorded by hand) */
+  via_link: number;
 }
 
 /** One extra picture of a class (Admin → a class → Pictures). */

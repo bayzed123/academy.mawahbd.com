@@ -10,7 +10,8 @@ import { useI18n } from "../lib/i18n";
 import { Button, Empty, ErrorState, Field, Icon, Spinner, TextInput, Turnstile, useFieldErrors, useToast } from "../components/ui";
 
 const CHANNEL_ICON: Record<Channel, string> = { sslcommerz: "wallet", bkash: "wallet", manual: "phone", mock: "sparkle" };
-type Method = "bkash" | "nagad" | "rocket";
+/** a manual payment: one of the owner's numbers, or "card" = the shop's SSLCommerz payment link (card or mobile banking on SSLCommerz's page) */
+type Method = "bkash" | "nagad" | "rocket" | "card";
 type PayResult = { order: { public_id: string; status: string; total: number }; redirect_url?: string; pay_methods?: PayMethodDTO[]; via_missing?: PayVia; student?: StudentMe };
 
 /**
@@ -308,8 +309,8 @@ export default function Checkout() {
 
   // pick a sensible default payment channel as soon as the quote tells us what is available
   const channels = quote.data?.channels ?? [];
-  // only the services the owner has a number for can be chosen for a manual payment
-  const manualMethods = (["bkash", "nagad", "rocket"] as const).filter((m) => quote.data?.manual?.numbers[m]);
+  // only the services the owner has a number for can be chosen for a manual payment, and the SSLCommerz payment link once the owner set it
+  const manualMethods: Method[] = [...(["bkash", "nagad", "rocket"] as const).filter((m) => quote.data?.manual?.numbers[m]), ...(quote.data?.manual?.link ? (["card"] as const) : [])];
   const chosenMethod: Method = manualMethods.includes(method) ? method : (manualMethods[0] ?? method);
   useEffect(() => {
     if (channels.length && !channels.includes(channel as Channel)) setChannel(channels.includes("sslcommerz") ? "sslcommerz" : channels[0]);
@@ -560,7 +561,7 @@ export default function Checkout() {
                     </span>
                     <span>
                       <b>{t(`app.checkout.channel.${c}` as "app.checkout.channel.manual")}</b>
-                      <small>{t(`app.checkout.channel.${c}.sub` as "app.checkout.channel.manual.sub")}</small>
+                      <small>{c === "manual" && q.manual?.link ? t("app.checkout.channel.manual.subLink") : t(`app.checkout.channel.${c}.sub` as "app.checkout.channel.manual.sub")}</small>
                       <PayMarks channel={c} sslLogo={q.ssl_logo ?? null} />
                     </span>
                   </label>
@@ -576,19 +577,19 @@ export default function Checkout() {
               <div className="manual-box">
                 <ol className="how-list">
                   <li>{t("app.checkout.manual.how1")}</li>
-                  <li>{t("app.checkout.manual.how2", { min: lang === "bn" ? toBnDigits(q.manual.window_min) : q.manual.window_min })}</li>
+                  <li>{t(chosenMethod === "card" ? "app.checkout.manual.how2Link" : "app.checkout.manual.how2", { min: lang === "bn" ? toBnDigits(q.manual.window_min) : q.manual.window_min })}</li>
                   <li>{t("app.checkout.manual.how3")}</li>
                 </ol>
                 <Field id="m-method" label={t("app.checkout.manual.method")}>
                   <select id="m-method" className="input" value={chosenMethod} onChange={(e) => setMethod(e.target.value as Method)}>
                     {manualMethods.map((m) => (
                       <option key={m} value={m}>
-                        {t(`method.${m}` as "method.bkash")}
+                        {m === "card" ? t("app.checkout.manual.link") : t(`method.${m}` as "method.bkash")}
                       </option>
                     ))}
                   </select>
                 </Field>
-                <Field id="m-payer" label={t("app.checkout.manual.payer")} error={fields.payer_number} hint={t("app.checkout.manual.payerHint")}>
+                <Field id="m-payer" label={t(chosenMethod === "card" ? "app.checkout.manual.payerLink" : "app.checkout.manual.payer")} error={fields.payer_number} hint={t("app.checkout.manual.payerHint")}>
                   <TextInput id="m-payer" type="tel" inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" value={payer} onChange={(e) => setPayer(e.target.value)} error={fields.payer_number} />
                 </Field>
                 <p className="hint">{t("app.checkout.manual.note")}</p>

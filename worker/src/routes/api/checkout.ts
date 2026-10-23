@@ -38,7 +38,8 @@ const cartSchema = z
   })
   .refine((d) => !!d.bundle_id || !!d.courses?.length, { message: "required", path: ["courses"] });
 
-const TRX_ID = z.string().trim().toUpperCase().regex(/^[A-Z0-9]{6,24}$/, "invalid_trx");
+// bKash / Nagad / Rocket TrxIDs are 8–10 letters and digits; SSLCommerz's transaction IDs (the payment link) run longer and may hold - or _
+const TRX_ID = z.string().trim().toUpperCase().regex(/^[A-Z0-9][A-Z0-9_-]{4,38}[A-Z0-9]$/, "invalid_trx");
 
 const checkoutSchema = z.object({
   courses: z.array(z.string().trim().min(1).max(120)).max(12).optional(),
@@ -53,7 +54,8 @@ const checkoutSchema = z.object({
   details: z.object({ phone: requiredPhoneSchema.optional(), address: addressSchema.optional() }).optional(),
   manual: z
     .object({
-      method: z.enum(["bkash", "nagad", "rocket"], { error: "required" }),
+      // "card" = the shop's SSLCommerz payment link (card or mobile banking on SSLCommerz's own page), offered only when the owner set it
+      method: z.enum(["bkash", "nagad", "rocket", "card"], { error: "required" }),
       payer_number: z.string().trim().regex(/^(?:\+?88)?01[3-9]\d{8}$/, "invalid_phone"),
       // left out when the student is only starting: they pay first and send the TrxID / screenshot to the open order afterwards
       trx_id: TRX_ID.optional(),
@@ -119,6 +121,8 @@ async function prepare(c: Ctx, body: Cart, studentId: number | null): Promise<Pr
   if (!channel || !availableChannels(c.env, settings).includes(channel)) throw new HttpError(400, "payment_unavailable");
   // a send-money payment says which number it is paid from; the TrxID / screenshot come afterwards
   if (channel === "manual" && !body.manual) throw new HttpError(422, "validation", "validation", { payer_number: "required" });
+  // the SSLCommerz payment link only while the owner has one in Settings → Payments
+  if (channel === "manual" && body.manual!.method === "card" && !settings.payments.manual_link) throw new HttpError(422, "validation", "validation", { "manual.method": "invalid" });
   return { settings, quote, channel };
 }
 
