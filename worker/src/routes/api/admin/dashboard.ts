@@ -9,6 +9,7 @@ import { getSettings } from "../../../lib/settings";
 import { SMS_LAST_KEY, smsConfigured, type SmsLast } from "../../../lib/sms";
 import { requirePerm } from "../../../middleware/auth";
 import { REAL_STUDENT } from "../../../services/guests";
+import { manualReady } from "../../../services/payments";
 import { SSL_LAST_KEY, type SslLast } from "../../../services/payments/sslcommerz";
 import { can } from "@mawah/shared";
 
@@ -84,8 +85,7 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
     pay.push("bkash_keys_missing");
     flag("warn");
   }
-  const n = settings.payments.manual_numbers;
-  if (settings.payments.manual && !(n.bkash || n.nagad || n.rocket)) {
+  if (settings.payments.manual && !manualReady(settings)) {
     pay.push("manual_numbers_missing");
     flag("warn");
   }

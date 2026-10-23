@@ -11,13 +11,13 @@ import { rejectedSms } from "../../../lib/smsText";
 import { tellStudent } from "../../../services/studentMessages";
 import { textSchema } from "../../../lib/schemas";
 import { requirePerm } from "../../../middleware/auth";
-import { markOrderPaid, refundOrder, rejectManualOrder } from "../../../services/orders";
+import { markOrderPaid, PAY_LINK_REF, refundOrder, rejectManualOrder } from "../../../services/orders";
 
 export const orders = new Hono<AppEnv>();
 
 const COLS = `o.id, o.public_id, o.invoice_no, o.status, o.subtotal, o.discount, o.total, o.coupon_code, o.method, o.gateway, o.gateway_txn,
   o.payer_number, o.customer_name, o.customer_email, o.customer_phone, o.customer_address, o.note, o.created_at, o.paid_at, o.refunded_at, o.student_id,
-  o.pay_by, o.proof_at, (o.proof_key IS NOT NULL) AS has_proof_image,
+  o.pay_by, o.proof_at, (o.proof_key IS NOT NULL) AS has_proof_image, (o.gateway_ref IS '${PAY_LINK_REF}') AS via_link,
   (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.id) AS item_count,
   (SELECT group_concat(oi.title_en, ' · ') FROM order_items oi WHERE oi.order_id = o.id) AS items`;
 

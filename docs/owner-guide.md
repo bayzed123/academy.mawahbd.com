@@ -96,14 +96,22 @@
 |---|---|---|
 | **অনলাইন পেমেন্ট (SSLCommerz)** | SSLCommerz মার্চেন্ট অ্যাকাউন্ট ও তার Store ID/Password — **ডেভেলপার সিক্রেট হিসেবে বসাবেন** | বিকাশ, নগদ, রকেট বা কার্ড — পেমেন্ট শেষ হলে **নিজে নিজেই** ক্লাস খুলে যায় |
 | **সরাসরি বিকাশ** (ঐচ্ছিক) | বিকাশের টোকেনাইজড চেকআউট কী | বিকাশ পেজে পেমেন্ট |
-| **ম্যানুয়াল সেন্ড মানি** | শুধু আপনার বিকাশ/নগদ/রকেট নম্বর (**সেটিংস → পেমেন্ট**-এ বসান) — কোনো গেটওয়ে লাগে না | শিক্ষার্থী আগে **নিজের কোন নম্বর থেকে টাকা পাঠাবেন** সেটি লেখেন, তারপর আপনার নম্বর, টাকার অঙ্ক ও **২০ মিনিটের কাউন্টডাউন** দেখেন। টাকা পাঠিয়ে **TrxID এবং/অথবা স্ক্রিনশট** জমা দেন (চাইলে তৈরি করা **হোয়াটসঅ্যাপ মেসেজ** পাঠান)। **আপনি যাচাই করে অনুমোদন দিলে** ক্লাস খোলে এবং তাঁর খোলা পাতা নিজে থেকেই “সফল” দেখায় |
+| **ম্যানুয়াল সেন্ড মানি** | শুধু আপনার বিকাশ/নগদ/রকেট নম্বর, এবং/অথবা আপনার SSLCommerz পেমেন্ট লিংক (**সেটিংস → পেমেন্ট**-এ বসান) — কোনো গেটওয়ে লাগে না | শিক্ষার্থী আগে **নিজের কোন নম্বর থেকে টাকা পাঠাবেন** সেটি লেখেন, তারপর আপনার নম্বর, টাকার অঙ্ক ও **২০ মিনিটের কাউন্টডাউন** দেখেন। টাকা পাঠিয়ে **TrxID এবং/অথবা স্ক্রিনশট** জমা দেন (চাইলে তৈরি করা **হোয়াটসঅ্যাপ মেসেজ** পাঠান)। **আপনি যাচাই করে অনুমোদন দিলে** ক্লাস খোলে এবং তাঁর খোলা পাতা নিজে থেকেই “সফল” দেখায় |
 
 **ম্যানুয়াল পেমেন্ট যাচাই (প্রতিদিনের কাজ):**
 1. বাঁ মেনু → **অর্ডার** (পাশে লাল সংখ্যা মানে কতগুলো অপেক্ষায়)। অবস্থা “যাচাইয়ের অপেক্ষায়” বেছে নিন।
 2. অর্ডার খুলুন → আপনার ফোনের বিকাশ/নগদ/রকেট মেসেজের সাথে **TrxID, কোন নম্বর থেকে এসেছে ও টাকার অঙ্ক** মেলান। স্ক্রিনশট পাঠালে অর্ডারেই দেখা যাবে (শুধু আপনারা যাঁরা পেমেন্ট যাচাই করতে পারেন তাঁরাই দেখেন)।
 3. মিললে **পেমেন্ট অনুমোদন** — ক্লাস সাথে সাথে খুলবে, ইনভয়েস নম্বর তৈরি হবে। না মিললে **প্রত্যাখ্যান** — শিক্ষার্থীকে ইমেইলে জানানো হবে, তিনি আবার চেষ্টা করতে পারবেন।
 
-> ম্যানুয়াল অপশন সেটিংসে **আপনার নম্বর না বসানো পর্যন্ত শিক্ষার্থীদের কাছে আসে না**।
+> ম্যানুয়াল অপশন সেটিংসে **আপনার নম্বর বা SSLCommerz পেমেন্ট লিংক না বসানো পর্যন্ত শিক্ষার্থীদের কাছে আসে না**।
+
+**আপনার SSLCommerz পেমেন্ট লিংক** (ঐচ্ছিক) — SSLCommerz প্যানেলের পেমেন্ট লিংকটি (দেখতে `https://invoice.sslcommerz.com/invoice-form?refer=…`) আপনার স্টোরের জন্য SSLCommerz-এর নিজের পেমেন্ট পেজ খোলে, যেখানে কার্ড, বিকাশ, নগদ বা SSLCommerz-এর দেওয়া যেকোনো উপায়ে পেমেন্ট করা যায়। সেই পেমেন্টের খবর ওয়েবসাইট নিজে পায় না — তাই এটি সেন্ড মানির মতোই চলে: আপনি মিলিয়ে অনুমোদন দেন।
+1. *সেটিংস → পেমেন্ট*-এ **SSLCommerz পেমেন্ট লিংক (ঐচ্ছিক)** ঘরে লিংকটি বসিয়ে **সংরক্ষণ করুন**। শুধু `sslcommerz.com`-এর `https://` লিংক নেওয়া হয়; ভুল হলে সহজ ভাষায় কারণ দেখায়।
+2. চেকআউটে **ম্যানুয়ালি সেন্ড মানি**-র ভেতরে শিক্ষার্থী তখন **কার্ড বা মোবাইল ব্যাংকিং (SSLCommerz-এর পেমেন্ট পেজ)** বেছে নিতে পারেন। তিনি নিজের মোবাইল নম্বর লেখেন, তারপর টাকার অঙ্ক, অর্ডার কোড আর **পেমেন্ট পেজ খুলুন** বোতাম দেখেন (নতুন ট্যাবে খোলে)। সেখানে পেমেন্ট করে SSLCommerz-এর ট্রানজ্যাকশন আইডি আমাদের পেজে লেখেন (চাইলে রসিদের স্ক্রিনশটও)।
+3. যাচাই অন্য ম্যানুয়াল পেমেন্টের মতোই: *অর্ডার → যাচাইয়ের অপেক্ষায়*; অর্ডারে লেখা থাকে **SSLCommerz পেমেন্ট লিংক**। আপনার SSLCommerz প্যানেলে লেনদেনটি খুঁজুন (একই টাকা, শিক্ষার্থীর মোবাইল নম্বর, আর লিখে থাকলে অর্ডার কোড), তারপর **পেমেন্ট অনুমোদন**।
+* লিংকে নির্দিষ্ট টাকার অঙ্ক বাঁধা থাকলে সেটি শুধু সেই দামের ক্লাসেই চলে — SSLCommerz থেকে এমন লিংক নিন যেখানে শিক্ষার্থী নিজে টাকার অঙ্ক লেখেন।
+* কোনো নম্বর ছাড়া শুধু লিংক দিলেও চলে: তখন ম্যানুয়াল অপশনে শুধু এই উপায়টি থাকে। ঘর খালি করলে উপায়টি আর দেখায় না।
+* এটি সাময়িক ব্যবস্থা: SSLCommerz আপনার স্টোরের ওয়েবসাইট `https://mawahacademy.com` করে দিলে সাধারণ অনলাইন পেমেন্টেই ক্লাস নিজে নিজে খোলে — অনুমোদন লাগে না।
 
 **SSLCommerz-এর লোগো** — SSLCommerz প্রতিটি দোকানকে ওয়েবসাইটে তাদের লোগো (একটি ছবিতে সব পেমেন্ট মাধ্যমের লোগো) দেখাতে বলে, আর সেই ছবির লিংক তারাই দেয় — ওয়েবসাইট নিজে থেকে কোনো লিংক বানায় না।
 1. *সেটিংস → পেমেন্ট → “SSLCommerz-এর লোগো”* ঘরে SSLCommerz যে লিংক (বা পুরো কোড) দিয়েছে সেটি হুবহু বসান। ঠিক থাকলে ঘরের নিচেই ছবিটি দেখা যাবে; ভুল হলে সাথে সাথে লেখা আসবে কেন।
@@ -473,14 +481,22 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 |---|---|---|
 | **Online payment (SSLCommerz)** | An SSLCommerz merchant account and its Store ID/Password — **your developer sets them as secrets** | bKash, Nagad, Rocket or card — when payment completes the class opens **by itself** |
 | **Direct bKash** (optional) | bKash tokenized-checkout keys | Payment on bKash’s page |
-| **Manual send-money** | Just your bKash/Nagad/Rocket number (**enter it in Settings → Payments**) — no gateway needed | The student first types **the number they will pay from**, then sees your number, the amount and a **20-minute countdown**. They send the money and submit the **TrxID and/or a screenshot** (and can send you a ready-written **WhatsApp message**). **The class opens when you approve**, and their open page turns to “successful” by itself |
+| **Manual send-money** | Just your bKash/Nagad/Rocket number, and/or your SSLCommerz payment link (**enter them in Settings → Payments**) — no gateway needed | The student first types **the number they will pay from**, then sees your number, the amount and a **20-minute countdown**. They send the money and submit the **TrxID and/or a screenshot** (and can send you a ready-written **WhatsApp message**). **The class opens when you approve**, and their open page turns to “successful” by itself |
 
 **Checking manual payments (a daily job):**
 1. Left menu → **Orders** (a red number shows how many are waiting). Filter status **Awaiting verification**.
 2. Open an order and compare the **TrxID, the number it came from and the amount** with the SMS on your phone. A screenshot, if the student sent one, is shown on the order (only people who may verify payments can see it).
 3. If they match, **Approve payment** — the class opens immediately and the invoice number is created. If not, **Reject** — the student is e-mailed and can try again.
 
-> The manual option is **not shown to students until you enter your number**.
+> The manual option is **not shown to students until you enter your number or the SSLCommerz payment link**.
+
+**Your SSLCommerz payment link** (optional) — the payment link from your SSLCommerz panel (it looks like `https://invoice.sslcommerz.com/invoice-form?refer=…`) opens SSLCommerz’s own payment page for your store, where a buyer can pay by card, bKash, Nagad or any other way SSLCommerz offers. The website is not told about that payment — so it works like send-money: you check it and approve it.
+1. In *Settings → Payments* paste the link in **SSLCommerz payment link (optional)** and press **Save**. Only an `https://` address on `sslcommerz.com` is taken; a wrong one is explained in plain words.
+2. At checkout, inside **Send money manually**, the buyer can then choose **Card or mobile banking (SSLCommerz’s payment page)**. They type their mobile number, then see the amount, their order code and an **Open the payment page** button (it opens in a new tab). They pay there and type SSLCommerz’s transaction ID back on our page (and can add a screenshot of the receipt).
+3. You check it like any manual payment: *Orders → Awaiting verification*; the order says **SSLCommerz payment link**. Find the payment in your SSLCommerz panel (same amount, the buyer’s mobile number, and the order code if they wrote it), then **Approve payment**.
+* If your link has a fixed amount, it only suits a class at that price — ask SSLCommerz for a link where the buyer types the amount.
+* The link works on its own, without any of your numbers: the manual option then offers just this way. Empty the box and it is no longer offered.
+* This is a stop-gap: once SSLCommerz changes your store’s website to `https://mawahacademy.com`, the normal online payment opens the class by itself — no approval needed.
 
 **SSLCommerz’s logo** — SSLCommerz asks every shop to show its logo on the website (one picture with the logos of every way to pay), and SSLCommerz itself gives the link to that picture — the website never makes one up.
 1. In *Settings → Payments → “SSLCommerz logo”* paste exactly what SSLCommerz gave you (the link, or the whole code). If it is right, the picture shows under the box at once; if not, the box says why straight away.

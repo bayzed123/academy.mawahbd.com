@@ -155,6 +155,8 @@ export interface OrderDTO {
   pay_by: string | null;
   proof_at: string | null;
   has_proof_image: boolean;
+  /** paid (or to be paid) on the shop's SSLCommerz payment link — a manual order the student chose "card or mobile banking" for */
+  via_link: boolean;
   /** only while a manual order is still open: where to send the money */
   manual?: ManualPayInfo | null;
   items: OrderItemDTO[];
@@ -163,6 +165,8 @@ export interface OrderDTO {
 /** Where a manual (send-money) payment goes, and how long the student has. */
 export interface ManualPayInfo {
   numbers: { bkash: string; nagad: string; rocket: string };
+  /** the shop's SSLCommerz payment link (its own payment page): the student pays there and sends the transaction ID; "" = not offered */
+  link: string;
   note_bn: string;
   note_en: string;
   /** minutes the student is asked to pay within */
