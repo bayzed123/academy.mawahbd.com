@@ -37,6 +37,7 @@ const Staff = lazyPage(() => import("./pages/Staff"), "Staff");
 const Settings = lazyPage(() => import("./pages/Settings"), "Settings");
 const Activity = lazyPage(() => import("./pages/Activity"), "Activity");
 const Help = lazyPage(() => import("./pages/Help"), "Help");
+const Account = lazyPage(() => import("./pages/Account"), "Account");
 
 const guard = (perm: Parameters<typeof RequirePerm>[0]["perm"], el: React.ReactNode) => <RequirePerm perm={perm}>{el}</RequirePerm>;
 
@@ -80,6 +81,7 @@ export default function App() {
           <Route path="settings" element={guard("settings:read", <Settings />)} />
           <Route path="activity" element={guard("activity:read", <Activity />)} />
           <Route path="help" element={<Help />} />
+          <Route path="account" element={<Account />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

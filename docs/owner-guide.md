@@ -218,6 +218,8 @@
 
 কেউ চলে গেলে তার অ্যাকাউন্ট **নিষ্ক্রিয়** করুন — সাথে সাথে তার লগইন বন্ধ হয়ে যায়।
 
+**নিজের পাসওয়ার্ড বদলানো** (মালিকসহ সবাই): ডান পাশের প্যানেলে *আমার অ্যাকাউন্ট* → **পাসওয়ার্ড বদলান** (বা সরাসরি `/admin/account`)। আগে বর্তমান পাসওয়ার্ড, তারপর নতুনটি (কমপক্ষে ৮ অক্ষর, আগেরটি থেকে আলাদা)। বদলালে অন্য সব ফোন ও কম্পিউটার থেকে লগআউট হয়ে যায়, আর পুরোনো পাসওয়ার্ড আর চলে না। পাসওয়ার্ড কখনো চ্যাটে বা মেসেজে কাউকে দিলে সাথে সাথে বদলে নিন।
+
 ## ১৩. রিপোর্ট ও এক্সেল ফাইল
 
 * **রিপোর্ট → আয়**: তারিখ বেছে আয়, অর্ডার সংখ্যা, গড় অর্ডার, ছাড়, রিফান্ড, কোন ক্লাস কত বিক্রি। **শুধু আসল পরিশোধিত অর্ডার গোনা হয়** — ফ্রি ক্লাসে ভর্তি “বিক্রি” হিসেবে ধরা হয় না, আর রিফান্ড করা অর্ডার বাদ যায়।
@@ -606,6 +608,8 @@ The dashboard’s **Needs attention today** (and the right-hand rail) lists what
 | **Read-only Viewer** | Can see everything, change nothing |
 
 When someone leaves, **deactivate** their account — their access ends at once.
+
+**Changing your own password** (everyone, the owner too): in the right-hand panel, *My account* → **Change password** (or go straight to `/admin/account`). Type your current password, then the new one (at least 8 characters, different from the old one). Every other phone and computer is signed out, and the old password stops working at once. If you ever share your password in a chat or a message, change it straight away.
 
 ## 13. Reports and spreadsheets
 
