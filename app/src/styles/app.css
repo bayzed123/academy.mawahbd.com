@@ -221,6 +221,7 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .pay-foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:22px}
 .pay-secure{display:flex;gap:8px;align-items:flex-start;margin-top:14px}
 .pay-secure .icon{flex:none;width:18px;height:18px}
+.pay-policies{margin-top:8px}
 .pay-ico{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:var(--ivory-2);color:var(--k-800);flex:none}
 .pay-marks{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
 .pay-mark{display:inline-flex;align-items:center;height:26px;padding:0 7px;border-radius:8px;background:#fff;box-shadow:0 0 0 1px var(--line-2)}

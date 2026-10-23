@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { Client, env, json, loginStaff, registerStudent, uniqueEmail } from "./helpers";
+import { sslPayLinkFor } from "@mawah/shared";
 import { setSetting } from "../src/lib/settings";
 
 /*
@@ -95,6 +96,31 @@ describe("the SSLCommerz payment link at checkout", () => {
     expect((await quote(client, course.slug)).channels).not.toContain("manual");
     const warned = (await json(await owner.get("/api/admin/health"))).checks.find((h: any) => h.key === "payments");
     expect(warned.issues).toContain("manual_numbers_missing");
+  });
+
+  it("send-money is listed first and SSLCommerz's secure online payment second — the checkout chooses the first", async () => {
+    const course = await makeCourse();
+    const { client } = await registerStudent();
+    await setPayments({ manual_link: LINK, manual_numbers: NUMBERS, sslcommerz: true });
+    expect(((await quote(client, course.slug)).channels as string[]).slice(0, 2)).toEqual(["manual", "sslcommerz"]);
+    // without send-money the online payment is the first (and chosen)
+    await setPayments({ manual: false, sslcommerz: true });
+    expect(((await quote(client, course.slug)).channels as string[])[0]).toBe("sslcommerz");
+  });
+
+  it("the link opens with the amount, the order code and the buyer's name and number filled in, the owner's own code kept", () => {
+    const u = new URL(sslPayLinkFor(LINK, { amount: 1850, code: "ABCD2345", name: " Rina Akter ", phone: "01712345678" })!);
+    expect(u.origin + u.pathname).toBe("https://invoice.sslcommerz.com/invoice-form");
+    expect(Object.fromEntries(u.searchParams)).toEqual({ refer: "0TESTREF00000", amount: "1850", currency: "BDT", acct: "ABCD2345", cus_name: "Rina Akter", cus_phone: "01712345678" });
+    // nothing for what is not known; a value already in the owner's link is replaced, never doubled
+    const bare = new URL(sslPayLinkFor(`${LINK}&amount=5`, { amount: 900, code: "WXYZ6789", name: "", phone: null })!);
+    expect(bare.searchParams.getAll("amount")).toEqual(["900"]);
+    expect(bare.searchParams.has("cus_name")).toBe(false);
+    expect(bare.searchParams.has("cus_phone")).toBe(false);
+    // a name with spaces or Bangla letters travels safely in the address
+    expect(new URL(sslPayLinkFor(LINK, { amount: 900, code: "WXYZ6789", name: "রিনা & co" })!).searchParams.get("cus_name")).toBe("রিনা & co");
+    // only SSLCommerz's own address is ever built on
+    expect(sslPayLinkFor("https://example.com/pay?refer=1", { amount: 900, code: "WXYZ6789" })).toBeNull();
   });
 
   it("a student pays on the link: the order waits with the link, SSLCommerz's transaction ID is taken, staff approve and the class opens", async () => {
