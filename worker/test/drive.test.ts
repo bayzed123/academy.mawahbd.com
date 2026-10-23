@@ -1077,7 +1077,7 @@ describe("a Drive video in the class's materials", () => {
       }
       const list = (await materialsOf(student, cls.slug)).list;
       expect(list.find((x) => x.id === doc)).toMatchObject({ delivery: "link", media_url: null });
-      expect(list.find((x) => x.id === yt)).toMatchObject({ delivery: "link", media_url: null });
+      expect(list.find((x) => x.id === yt)).toMatchObject({ delivery: "embed", media_url: null }); // plays here, in YouTube's player
       expect((await json(await student.post(`/api/student/materials/${doc}/open`, {}))).url).toBe("https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/edit");
       expect((await json(await student.post(`/api/student/materials/${yt}/open`, {}))).url).toBe("https://youtu.be/dQw4w9WgXcQ");
     });
@@ -1128,6 +1128,99 @@ describe("a Drive video in the class's materials", () => {
       }
       expect(g.drive.filter((c) => c.url.includes("alt=media"))).toHaveLength(0);
     });
+  });
+});
+
+describe("a YouTube or Vimeo video in the class's materials", () => {
+  it("plays in its card: the list says so with no address in it; “open” gives the player's address (Vimeo's private hash kept) and records it", async () => {
+    const cls = await makeClass([]);
+    const yt = await material(cls.courseId, "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    const vimeo = await material(cls.courseId, "https://vimeo.com/123456789?share=copy");
+    const unlisted = await material(cls.courseId, "https://vimeo.com/123456789/0abc1234ef");
+    const asLink = await material(cls.courseId, "https://youtu.be/dQw4w9WgXcQ", { kind: "link" }); // the owner chose "Link": it opens as a link
+    const elsewhere = await material(cls.courseId, "https://example.com/class/biryani.mp4"); // a video somewhere else: a link, as before
+    const student = await enrolled(cls.courseId);
+    const { raw, list } = await materialsOf(student, cls.slug);
+    for (const m of [yt, vimeo, unlisted]) expect(list.find((x) => x.id === m), String(m)).toMatchObject({ delivery: "embed", media_url: null });
+    for (const m of [asLink, elsewhere]) expect(list.find((x) => x.id === m), String(m)).toMatchObject({ delivery: "link" });
+    for (const word of ["youtube", "youtu.be", "vimeo", "dQw4w9WgXcQ", "123456789"]) expect(raw).not.toContain(word);
+
+    const open = async (m: number) => json(await student.post(`/api/student/materials/${m}/open`, {}));
+    expect(await open(yt)).toEqual({ ok: true, url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", embed_url: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" });
+    expect((await open(vimeo)).embed_url).toBe("https://player.vimeo.com/video/123456789");
+    expect((await open(unlisted)).embed_url).toBe("https://player.vimeo.com/video/123456789?h=0abc1234ef");
+    expect((await open(asLink)).embed_url).toBeNull();
+    expect((await open(elsewhere)).embed_url).toBeNull();
+    const end = Date.now() + 1500;
+    while ((await opensOf(unlisted)).length === 0 && Date.now() < end) await new Promise((r) => setTimeout(r, 25));
+    expect(await opensOf(yt)).toEqual(["open"]);
+    expect(await opensOf(unlisted)).toEqual(["open"]);
+
+    // only for a student who owns the class
+    expect((await new Client().post(`/api/student/materials/${yt}/open`, {})).status).toBe(401);
+    const stranger = (await registerStudent()).client;
+    expect((await stranger.post(`/api/student/materials/${yt}/open`, {})).status).toBe(403);
+  });
+
+  it("reads every shape of a Vimeo link, and keeps only a hash that looks like one", async () => {
+    const { externalEmbed } = await import("@mawah/shared");
+    expect(externalEmbed("https://vimeo.com/123456789")).toBe("https://player.vimeo.com/video/123456789");
+    expect(externalEmbed("https://vimeo.com/123456789/")).toBe("https://player.vimeo.com/video/123456789");
+    expect(externalEmbed("https://vimeo.com/123456789?h=abc123def")).toBe("https://player.vimeo.com/video/123456789?h=abc123def");
+    expect(externalEmbed("https://vimeo.com/123456789/abc123def?share=copy")).toBe("https://player.vimeo.com/video/123456789?h=abc123def");
+    expect(externalEmbed("https://player.vimeo.com/video/123456789?h=deadbeef42")).toBe("https://player.vimeo.com/video/123456789?h=deadbeef42");
+    expect(externalEmbed("https://www.vimeo.com/123456789")).toBe("https://player.vimeo.com/video/123456789");
+    expect(externalEmbed("https://vimeo.com/123456789?h=<script>")).toBe("https://player.vimeo.com/video/123456789");
+    expect(externalEmbed("https://vimeo.com/123456789/not-a-hash")).toBe("https://player.vimeo.com/video/123456789"); // anything else after the id is left out
+    expect(externalEmbed("https://vimeo.com/channels/staffpicks")).toBeNull();
+    expect(externalEmbed("https://evilvimeo.com/123456789")).toBeNull();
+  });
+
+  it("a public Facebook video by its own address plays in Facebook's player; a share link or anything else stays a link, and the admin can tell", async () => {
+    const { externalEmbed, facebookNeedsOwnAddress, videoEmbed } = await import("@mawah/shared");
+    const player = (href: string) => `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(href)}&show_text=false`;
+    // a page's video, with or without a title in the address, on any of Facebook's hosts
+    expect(externalEmbed("https://www.facebook.com/mawahacademy/videos/1234567890123456/")).toBe(player("https://www.facebook.com/mawahacademy/videos/1234567890123456/"));
+    expect(externalEmbed("https://m.facebook.com/mawahacademy/videos/biryani-class/1234567890123456/?mibextid=abc")).toBe(player("https://www.facebook.com/mawahacademy/videos/1234567890123456/"));
+    expect(externalEmbed("https://web.facebook.com/100012345678901/videos/1234567890123456")).toBe(player("https://www.facebook.com/100012345678901/videos/1234567890123456/"));
+    // "watch" links, the old video.php, and reels
+    expect(externalEmbed("https://www.facebook.com/watch/?v=1234567890123456&ref=sharing")).toBe(player("https://www.facebook.com/watch/?v=1234567890123456"));
+    expect(externalEmbed("https://facebook.com/watch?v=1234567890123456")).toBe(player("https://www.facebook.com/watch/?v=1234567890123456"));
+    expect(externalEmbed("https://www.facebook.com/video.php?v=1234567890123456")).toBe(player("https://www.facebook.com/watch/?v=1234567890123456"));
+    expect(externalEmbed("https://www.facebook.com/reel/1234567890123456")).toBe(player("https://www.facebook.com/reel/1234567890123456"));
+    expect(videoEmbed("https://www.facebook.com/reel/1234567890123456")?.site).toBe("facebook");
+    // not a video's own address: a link, and the admin says what to paste instead
+    for (const raw of ["https://www.facebook.com/share/v/1AbCdEfGh2/", "https://fb.watch/aBcDeFgH12/", "https://www.facebook.com/groups/mawah.baking.circle/posts/123456789012", "https://www.facebook.com/mawahacademy"]) {
+      expect(externalEmbed(raw), raw).toBeNull();
+      expect(facebookNeedsOwnAddress(raw), raw).toBe(true);
+    }
+    // a look-alike host, an odd id or a script in the address is never taken
+    expect(externalEmbed("https://facebook.com.example.net/x/videos/1234567890123456")).toBeNull();
+    expect(externalEmbed("https://www.facebook.com/watch/?v=12345abc")).toBeNull();
+    expect(externalEmbed("https://www.facebook.com/x/videos/1234567890123456\"><script>")).toBeNull();
+    expect(externalEmbed("javascript:alert(1)//www.facebook.com/watch/?v=1234567890123456")).toBeNull();
+    expect(facebookNeedsOwnAddress("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toBe(false);
+    expect(facebookNeedsOwnAddress("https://www.facebook.com/watch/?v=1234567890123456")).toBe(false);
+    // the pages let Facebook's player in, with the other players
+    const { buildCsp } = await import("../src/middleware/security");
+    const frames = /frame-src ([^;]*)/.exec(buildCsp({ spa: true }))![1].split(" ");
+    expect(frames).toEqual(expect.arrayContaining(["https://www.facebook.com", "https://www.youtube-nocookie.com", "https://player.vimeo.com"]));
+  });
+
+  it("a Facebook video plays in the class page too — as a lesson and under Materials — and only for a student who owns the class", async () => {
+    const fbVideo = "https://www.facebook.com/mawahacademy/videos/1234567890123456/";
+    const embed = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(fbVideo)}&show_text=false`;
+    const cls = await makeClass([{ url: fbVideo }]);
+    const student = await enrolled(cls.courseId);
+    const lesson = (await json(await student.get(`/api/student/lessons/${cls.ids[0]}`))).lesson;
+    expect(lesson.external).toMatchObject({ embed_url: embed, media_url: null, pending: false });
+    const mat = await material(cls.courseId, fbVideo);
+    const { raw, list } = await materialsOf(student, cls.slug);
+    expect(list.find((x) => x.id === mat)).toMatchObject({ delivery: "embed", media_url: null });
+    expect(raw).not.toContain("1234567890123456");
+    expect((await json(await student.post(`/api/student/materials/${mat}/open`, {}))).embed_url).toBe(embed);
+    const stranger = (await registerStudent()).client;
+    expect((await stranger.post(`/api/student/materials/${mat}/open`, {})).status).toBe(403);
   });
 });
 

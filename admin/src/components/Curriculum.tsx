@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { Button, Chip, Empty, ErrorState, Field, Icon, IconButton, Progress, Select, Spinner, Switch, TextArea, TextInput, useConfirm, SlideOver, useFieldErrors, useToast } from "./ui";
 import { DriveHelp } from "./DriveHelp";
+import { VideoLinkHelp } from "./VideoLinkHelp";
 
 interface Resource {
   id: number;
@@ -278,6 +279,7 @@ function LessonDrawer({ courseId, modules, lessonId, moduleId, onClose, onSaved 
                 <TextInput id="l-url" inputMode="url" placeholder="https://youtu.be/…" value={v.external_url} error={errors.external_url} onChange={(e) => set("external_url", e.target.value)} />
               </Field>
               <DriveHelp url={v.external_url} />
+              <VideoLinkHelp url={v.external_url} />
             </>
           )}
 

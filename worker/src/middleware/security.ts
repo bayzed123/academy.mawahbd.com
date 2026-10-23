@@ -42,7 +42,9 @@ export function buildCsp(opts: CspOptions = {}): string {
   const connect = ["'self'"];
   // SSLCommerz's own logo (Admin → Settings → Payments) is shown from SSLCommerz's server, as SSLCommerz asks
   const img = ["'self'", "data:", STREAM, "https://sslcommerz.com", "https://*.sslcommerz.com"];
-  const frame = [STREAM, "https://www.youtube-nocookie.com", "https://player.vimeo.com"];
+  // the video players a lesson or a material may show: Cloudflare Stream, YouTube (privacy-enhanced), Vimeo — and, only in the student app
+  // and the admin where lessons and materials play, Facebook's video plugin (no public page, certificate or invoice ever names Facebook)
+  const frame = [STREAM, "https://www.youtube-nocookie.com", "https://player.vimeo.com", ...(opts.spa ? ["https://www.facebook.com"] : [])];
   const style = ["'self'", ...(opts.styleHashes ?? [])];
 
   if (opts.turnstile) {
