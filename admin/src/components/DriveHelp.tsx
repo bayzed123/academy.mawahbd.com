@@ -20,8 +20,9 @@ const size = (n: number) => (n >= 1073741824 ? `${(n / 1073741824).toFixed(1)} G
 
 /**
  * Under the link of a "link" lesson or of a class material, when the link is a Google Drive one: how to make the video play inside the class page
- * (share it with the website's own Google address) and a "Check access" button that says — in plain words — whether that worked. Without this the
- * owner could not tell: a video the website cannot read only tells the student it is being prepared (a student is never sent to Drive).
+ * (share it with the website's own Google address), a "Check access" button that says — in plain words — whether that worked, and "Play here",
+ * which plays the video in this box exactly as a student will get it. Without this the owner could not tell: a video the website cannot read only
+ * tells the student it is being prepared (a student is never sent to Drive).
  */
 export function DriveHelp({ url }: { url: string }) {
   const { t, lang } = useI18n();
@@ -31,10 +32,15 @@ export function DriveHelp({ url }: { url: string }) {
   const isDrive = LOOKS_LIKE_DRIVE.test(url);
   const status = useQuery({ queryKey: ["drive-status"], queryFn: () => adm<Status>("/drive"), enabled: isDrive });
   const [result, setResult] = useState<Check | null>(null);
+  // "Play here": the video in this box, as a student will get it (null = not playing; the link it was started for)
+  const [playing, setPlaying] = useState<string | null>(null);
+  const [playFailed, setPlayFailed] = useState(false);
 
-  // a different link is a different question: the answer to the last one no longer applies
+  // a different link is a different question: the answer to the last one no longer applies, and the video shown is no longer this one
   useEffect(() => {
     setResult(null);
+    setPlaying(null);
+    setPlayFailed(false);
   }, [url]);
 
   const check = useMutation({
@@ -91,6 +97,19 @@ export function DriveHelp({ url }: { url: string }) {
             <Button className="btn-primary" busy={check.isPending} disabled={!canCheck || !url.trim()} onClick={() => check.mutate()}>
               <Icon name="check" /> {t("adm.drive.check")}
             </Button>
+            {canCheck && s?.configured !== false && (
+              <Button
+                className="btn-outline"
+                disabled={!url.trim()}
+                aria-expanded={!!playing}
+                onClick={() => {
+                  setPlayFailed(false);
+                  setPlaying(playing ? null : url.trim());
+                }}
+              >
+                <Icon name="play" /> {playing ? t("adm.drive.playClose") : t("adm.drive.play")}
+              </Button>
+            )}
             {!canCheck && <span className="hint">{t("adm.drive.readonly")}</span>}
           </div>
           <div aria-live="polite">
@@ -120,6 +139,28 @@ export function DriveHelp({ url }: { url: string }) {
                 </div>
               ))}
           </div>
+          {playing && (
+            <div className="drive-play">
+              {playFailed ? (
+                <p className="err-text" role="alert">
+                  {t("adm.drive.playFailed")}
+                </p>
+              ) : (
+                <>
+                  <video
+                    src={`/api/admin/drive/media?url=${encodeURIComponent(playing)}`}
+                    aria-label={t("adm.drive.playLabel")}
+                    controls
+                    controlsList="nodownload"
+                    playsInline
+                    preload="metadata"
+                    onError={() => setPlayFailed(true)}
+                  />
+                  <p className="hint">{t("adm.drive.playHint")}</p>
+                </>
+              )}
+            </div>
+          )}
           {s?.last && (
             <p className="hint" style={{ marginTop: 10 }}>
               {t("adm.drive.last")}: {title(s.last.problem)} · {when(s.last.at)}
