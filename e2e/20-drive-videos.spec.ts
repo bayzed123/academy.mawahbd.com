@@ -53,7 +53,7 @@ async function student(browser: Browser, lang: "en" | "bn" = "en") {
   await useLang(ctx, "en");
   const page = await ctx.newPage();
   await registerStudent(page);
-  expect((await apiPost(page, "/checkout", { courses: [slug] })).status).toBe(201); // a free class: enrolled at once
+  expect((await apiPost(page, "/checkout", { agree: true, courses: [slug] })).status).toBe(201); // a free class: enrolled at once
   if (lang === "bn") await page.evaluate(() => localStorage.setItem("mawah_lang", "bn"));
   return { ctx, page };
 }

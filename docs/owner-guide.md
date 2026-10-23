@@ -29,7 +29,7 @@
 2. **পেমেন্ট সেটআপ করুন** — *সেটিংস → পেমেন্ট* (নিচে ৫ নম্বর অংশ দেখুন)।
 3. **প্রশিক্ষকের প্রোফাইল পূর্ণ করুন** — *প্রশিক্ষক* মেনুতে ছবি, পরিচিতি, যোগ্যতা। ছবি আপলোড করলে সিস্টেম নিজেই ছোট ও দ্রুত করে নেয়।
 4. **প্রথম ক্লাসে লেসন যোগ করুন** (৩ ও ৪ নম্বর অংশ)।
-5. **রিফান্ড নীতি লিখুন** — *সেটিংস → নীতিমালা*। রিফান্ড, গোপনীয়তা ও শর্তাবলী বাংলা ও ইংরেজিতে লিখুন।
+5. **নীতিমালা ও সহায়তার পাতাগুলো দেখে নিন** — *সেটিংস → নীতিমালা*। রিফান্ড ও বাতিল, **ডেলিভারি**, গোপনীয়তা, শর্তাবলী, **ব্যবহার নির্দেশিকা**, **কীভাবে অর্ডার করবেন** ও **হট লাইন** — বাংলা ও ইংরেজিতে আগে থেকেই লেখা আছে (আপনার MAWAH-এর নীতিমালা থেকে একাডেমির জন্য নতুন করে লেখা, কার্যকর ১৮ অক্টোবর ২০২৬)। যেকোনোটি বদলালে ওয়েবসাইটে সেটিই দেখায়। লেখায় কোনো নম্বর বা ইমেইল নেই: প্রতিটি পাতার নিচে যোগাযোগের বাক্সটি *সেটিংস → যোগাযোগ* থেকে আসে (হট লাইন পাতায় সবার আগে)। পাতাগুলো: `/policies/refund`, `/policies/delivery`, `/policies/privacy`, `/policies/terms`, `/guide`, `/how-to-order`, `/hotline` — সবগুলোর লিংক ফুটারে।
 6. **ইমেইল সংযুক্ত করুন** — ডেভেলপারের সাহায্যে (Resend কী)। এটি ছাড়া রসিদ ও পাসওয়ার্ড-রিসেট ইমেইল যাবে না।
 7. **এআই চ্যাটবট যাচাই করুন** (১১ নম্বর অংশ)।
 8. **টিমের একজনকে যুক্ত করুন** (১২ নম্বর অংশ) — আপনি একা থাকলে দ্বিতীয় একজন সুপার অ্যাডমিন রাখা ভালো, যাতে কখনো ঢুকতে না-পারার ঝুঁকি না থাকে।
@@ -111,7 +111,15 @@
 3. শুধু `https://` দিয়ে শুরু আর `sslcommerz.com`-এর লিংক নেওয়া হয় — ছবিটি SSLCommerz-এর নিজের সার্ভার থেকেই আসে। ঘর খালি করলে আবার ছোট লোগোগুলো ফিরে আসে।
 4. লোগো বসানোর পর SSLCommerz-কে ওয়েবসাইট আবার দেখে স্টোর চালু করতে বলুন। তারা সাধারণত রিফান্ড নীতি, গোপনীয়তা নীতি, ব্যবহারের শর্তাবলি আর যোগাযোগের তথ্যও দেখে — *সেটিংস → নীতিমালা* আর *যোগাযোগ* ভরা আছে কি না দেখে নিন।
 
-**লোগোতে চেপে পেমেন্ট** — শিক্ষার্থী অনলাইন পেমেন্ট বেছে **পেমেন্ট করুন** চাপলে ওয়েবসাইট নিজেই দেখায় SSLCommerz আপনার স্টোরে কোন কোন উপায় চালু রেখেছে — বিকাশ, নগদ, রকেট (DBBL), উপায়, ভিসা, মাস্টারকার্ড, ব্যাংক… — SSLCommerz-এর নিজের লোগোসহ, মোবাইল ব্যাংকিং আগে। বিকাশে চাপলে সরাসরি বিকাশের পেমেন্ট খোলে; পিন শুধু বিকাশের পেজেই লেখা হয়। **সব উপায় দেখুন** চাপলে SSLCommerz-এর সাধারণ পেজ খোলে।
+**SSLCommerz ওয়েবসাইটে যা দেখে** — সবগুলো ওয়েবসাইটে আগে থেকেই আছে:
+* **নিবন্ধিত ঠিকানা ও ট্রেড লাইসেন্স নম্বর** — প্রতিটি পেজের নিচে, আর যোগাযোগ ও “আমাদের কথা” পেজে। আপনার ট্রেড লাইসেন্স থেকে নেওয়া (TRADICHTG/010407/2022, চান্দগাঁও, চট্টগ্রাম); লাইসেন্স বদলালে *সেটিংস → যোগাযোগ*-এ বদলে দিন।
+* **ডেলিভারির সময়** — ডেলিভারি নীতি পাতা (`/policies/delivery`, ফুটারে লিংক): অনলাইন ক্লাস অ্যাকাউন্টেই চালু হয়; হাতে পাওয়ার মতো কিছু পাঠালে ঢাকার ভেতরে ৫ দিন, বাইরে ১০ দিন। *সেটিংস → নীতিমালা*-য় বদলানো যায়।
+* **ক্লাস পাওয়া যাচ্ছে কি না** — প্রতিটি ক্লাসে লেখা থাকে “ভর্তি চলছে”; “শীঘ্রই আসছে” ক্লাসের ছবিতে লেখা থাকে “এখনো ভর্তি শুরু হয়নি”।
+* **তৃতীয় পক্ষের বিজ্ঞাপন নেই** — শর্তাবলি ও গোপনীয়তা নীতিতে লেখা আছে।
+* **চেকআউটে টিক দেওয়ার ঘর** — শুরুতে খালি; শিক্ষার্থী নিজে টিক দিলে তবেই অর্ডার হয়। ঘরের লেখায় শর্তাবলি, গোপনীয়তা নীতি ও রিফান্ড ও বাতিল নীতির লিংক আছে।
+* **পেমেন্ট ব্যানার** — ওপরের ধাপ ১-এ বসানো SSLCommerz-এর লোগো প্রতিটি পেজের নিচে দেখা যায়।
+
+**লোগোতে চেপে পেমেন্ট** — শিক্ষার্থী চেকআউটে অনলাইন পেমেন্ট বেছে নিলেই তার নিচে লোগো-বোতাম দেখা যায়: বিকাশ, নগদ, রকেট, উপায়, তারপর ভিসা, মাস্টারকার্ড, আমেরিকান এক্সপ্রেস। যেটিতে চাপেন সেটি দিয়েই পেমেন্ট শুরু হয় — বিকাশে চাপলে সরাসরি বিকাশের পেমেন্ট পাতা (আগে নাম, মোবাইল ও ঠিকানা দেওয়া আছে কি না দেখে নেয়)। বোতামগুলো সেই উপায়গুলোই, যা SSLCommerz শেষবার আপনার স্টোরের জন্য দেখিয়েছিল; SSLCommerz-কে কখনো জিজ্ঞেস করা না হয়ে থাকলে সবগুলো। যেটি আপনার স্টোরে চালু নেই সেটিতে চাপলে নিচের তালিকাটি আসে, সাথে লেখা থাকে সেটি এখন চলছে না। আর মূল **পেমেন্ট করুন** বোতাম চাপলে ওয়েবসাইট নিজেই দেখায় SSLCommerz আপনার স্টোরে কোন কোন উপায় চালু রেখেছে — বিকাশ, নগদ, রকেট (DBBL), উপায়, ভিসা, মাস্টারকার্ড, ব্যাংক… — SSLCommerz-এর নিজের লোগোসহ, মোবাইল ব্যাংকিং আগে। বিকাশে চাপলে সরাসরি বিকাশের পেমেন্ট খোলে; পিন শুধু বিকাশের পেজেই লেখা হয়। **সব উপায় দেখুন** চাপলে SSLCommerz-এর সাধারণ পেজ খোলে।
 * তালিকাটি প্রতিবার SSLCommerz থেকেই আসে — আপনার স্টোরে যা চালু, ঠিক সেগুলোই দেখায়। **কোনো উপায় যোগ করতে (যেমন নগদ বা উপায়) SSLCommerz-কে আপনার স্টোরে সেটি চালু করতে বলুন** — তারপর নিজে থেকেই দেখা যাবে।
 * *সেটিংস → পেমেন্ট → সংযোগ পরীক্ষা করুন* — এই মুহূর্তে SSLCommerz কোন কোন উপায় দিচ্ছে তার নাম দেখায়।
 * SSLCommerz তালিকা না পাঠালে আগের মতোই সরাসরি SSLCommerz-এর পেজে যায়।
@@ -397,7 +405,7 @@ Below the health strip the dashboard shows **First steps**; it ticks itself off 
 2. **Set up payments** — *Settings → Payments* (section 5).
 3. **Complete the instructor profile** — *Instructors*: photo, bio, credentials. Photos are shrunk automatically so pages stay fast.
 4. **Add lessons to your first class** (sections 3 and 4).
-5. **Write your refund policy** — *Settings → Policies*. Refund, privacy and terms, in Bangla and English.
+5. **Check the policy and help pages** — *Settings → Policies*. Refund & cancellation, **Delivery**, privacy, terms, **User guide**, **How to order** and **Hotline** are already written in Bangla and English (rewritten for the academy from your MAWAH policies, effective 18 October 2026). Change any of them and the website shows yours. The texts hold no numbers or e-mail: the contact box under every page comes from *Settings → Contact* (first on the Hotline page). The pages: `/policies/refund`, `/policies/delivery`, `/policies/privacy`, `/policies/terms`, `/guide`, `/how-to-order`, `/hotline` — all linked in the footer.
 6. **Connect e-mail** — with your developer (a Resend key). Without it receipts and password resets are not sent.
 7. **Check the AI chatbot** (section 11).
 8. **Invite a team member** (section 12). If you are alone, add a second Super Admin so you can never be locked out.
@@ -479,7 +487,15 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 3. Only a link starting with `https://` on `sslcommerz.com` is taken — the picture comes from SSLCommerz’s own server. Empty the box and the small logos come back.
 4. Once the logo is up, ask SSLCommerz to look at the website again and switch the store on. They usually also check the refund policy, privacy policy, terms and contact details — make sure *Settings → Policies* and *Contact* are filled in.
 
-**Paying by tapping a logo** — when a buyer chooses online payment and presses **Pay**, the website itself shows the ways to pay SSLCommerz has switched on for your store — bKash, Nagad, Rocket (DBBL), Upay, Visa, Mastercard, banks … — with SSLCommerz’s own logos, mobile wallets first. Tapping bKash opens bKash’s payment straight away; the PIN is typed only on bKash’s page. **All ways to pay** opens SSLCommerz’s usual page.
+**What SSLCommerz checks on the website** — all of it is on the site already:
+* **Registered address and trade licence number** — at the bottom of every page, and on the Contact and About pages. They come from your trade licence (TRADICHTG/010407/2022, Chandgaon, Chattogram); if the licence changes, change them in *Settings → Contact*.
+* **Delivery time** — the Delivery policy page (`/policies/delivery`, linked in the footer): online classes open in the account; anything physical takes 5 days inside Dhaka, 10 days outside. Edit it in *Settings → Policies*.
+* **Availability** — every open class says “Available”; a class coming soon says “Not available yet” on its picture.
+* **No third-party advertisements** — said in the Terms and the Privacy policy.
+* **The tick box at checkout** — blank until the buyer ticks it; nothing is ordered without it. Its words link to the Terms, the Privacy policy and the Refund & cancellation policy.
+* **Payment banner** — the SSLCommerz logo you pasted in step 1 shows at the bottom of every page.
+
+**Paying by tapping a logo** — as soon as a buyer chooses the online payment at checkout, logo buttons show under it: bKash, Nagad, Rocket, Upay, then Visa, Mastercard, American Express. The one they tap is how they pay — bKash goes straight to bKash’s payment page (after the name, mobile number and address are checked). The buttons are the ways SSLCommerz offered your store the last time it was asked; before it was ever asked, all of them. One your store does not have brings the list below instead, with a line saying it cannot be used right now. And the main **Pay** button: the website itself shows the ways to pay SSLCommerz has switched on for your store — bKash, Nagad, Rocket (DBBL), Upay, Visa, Mastercard, banks … — with SSLCommerz’s own logos, mobile wallets first. Tapping bKash opens bKash’s payment straight away; the PIN is typed only on bKash’s page. **All ways to pay** opens SSLCommerz’s usual page.
 * The list comes from SSLCommerz every time — the website shows exactly what your store has. **To add a way to pay (for example Nagad or Upay), ask SSLCommerz to switch it on for your store**; it then appears by itself.
 * *Settings → Payments → Check the connection* names the ways SSLCommerz offers right now.
 * If SSLCommerz sends no list, Pay goes straight to SSLCommerz’s page as before.

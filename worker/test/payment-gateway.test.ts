@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { NOTIFY_KINDS } from "@mawah/shared";
+import { NOTIFY_KINDS, viaOf } from "@mawah/shared";
 import { setSetting } from "../src/lib/settings";
 import { notices } from "../src/services/notify";
-import { SSL_LAST_KEY, scrubSsl, sslCheck, sslHost, sslInit, sslMethods, sslProblem, type SslProblem } from "../src/services/payments/sslcommerz";
+import { SSL_LAST_KEY, SSL_WAYS_KEY, scrubSsl, sslCheck, sslHost, sslInit, sslMethods, sslProblem, type SslProblem } from "../src/services/payments/sslcommerz";
 import { Client, env, json, loginStaff, registerStudent, uniqueEmail } from "./helpers";
 
 /*
@@ -78,6 +78,7 @@ const WAYS = [
   ["City Touch", "bank", "city"],
 ].map(([name, group, gw]) => ({
   name,
+  via: ({ bkash: "bkash", nagad: "nagad", dbblmobilebanking: "rocket", upay: "upay", visacard: "visa", mastercard: "mastercard", amexcard: "amex" } as Record<string, string>)[gw] ?? null,
   group,
   logo: gw === "amexcard" ? null : `${GW}/image/gw/${gw}.png`,
   url: `${GW}/bankgw/indexhtmlotp.php?mamount=1850.00&ssl_id=x1&Q=REDIRECT&SESSIONKEY=abc&tran_type=success&cardname=${gw}`,
@@ -127,6 +128,7 @@ beforeEach(async () => {
   e.SSLCOMMERZ_STORE_ID = STORE_ID;
   e.SSLCOMMERZ_STORE_PASSWORD = STORE_PASSWORD;
   await env.KV.delete(SSL_LAST_KEY);
+  await env.KV.delete(SSL_WAYS_KEY);
   await setSetting(env, "notifications", { emails: [], off: [] }, null);
 });
 afterEach(() => {
@@ -241,7 +243,7 @@ describe("a student turned away at checkout", () => {
     gatewaySays(() => NO("Store Credential Error Or Store is De-active"));
     const course = await makeCourse(1850);
     const { client } = await registerStudent(new Client(), { name: "Rina Akter", phone: "01711223344" });
-    const res = await client.post("/api/checkout", { courses: [course.slug], channel: "sslcommerz" });
+    const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" });
     expect(res.status).toBe(502);
     const text = await res.text();
     expect(JSON.parse(text).error.code).toBe("gateway_error");
@@ -257,7 +259,7 @@ describe("a student turned away at checkout", () => {
     gatewaySays(() => NO("Store Credential Error Or Store is De-active"));
     const course = await makeCourse(1850);
     const { client } = await registerStudent(new Client(), { name: "Rina Akter", phone: "01711223344" });
-    expect((await client.post("/api/checkout", { courses: [course.slug], channel: "sslcommerz" })).status).toBe(502);
+    expect((await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" })).status).toBe(502);
 
     const [entry] = await audits("checkout.gateway_failed");
     expect(entry.summary).toBe("sslcommerz: credentials");
@@ -279,7 +281,7 @@ describe("a student turned away at checkout", () => {
     gatewaySays(GOOD_WITH_WAYS);
     const course = await makeCourse(500);
     const { client } = await registerStudent();
-    const res = await client.post("/api/checkout", { courses: [course.slug], channel: "sslcommerz" });
+    const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" });
     expect(res.status).toBe(201);
     const body = await json(res);
     expect(body.redirect_url).toBe("https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc");
@@ -292,18 +294,100 @@ describe("a student turned away at checkout", () => {
     // SSLCommerz sent no list: SSLCommerz's own page, as before
     vi.restoreAllMocks();
     gatewaySays(GOOD);
-    const plain = await json(await client.post("/api/checkout", { courses: [(await makeCourse(600)).slug], channel: "sslcommerz" }));
+    const plain = await json(await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(600)).slug], channel: "sslcommerz" }));
     expect(plain.redirect_url).toContain("sslcommerz.com");
     expect(plain.pay_methods).toEqual([]);
+  });
+
+  it("a way of paying tapped on the checkout goes straight to it at SSLCommerz — bKash to bKash, Rocket to DBBL's, a card to the card's", async () => {
+    const { client } = await registerStudent();
+    for (const [via, gw] of [["bkash", "bkash"], ["rocket", "dbblmobilebanking"], ["upay", "upay"], ["mastercard", "mastercard"], ["amex", "amexcard"]] as const) {
+      vi.restoreAllMocks();
+      const calls = gatewaySays(GOOD_WITH_WAYS);
+      const res = await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(700)).slug], channel: "sslcommerz", via });
+      expect(res.status, via).toBe(201);
+      const body = await json(res);
+      expect(body.redirect_url, via).toBe(`https://sandbox.sslcommerz.com/gwprocess/v4/bankgw/indexhtmlotp.php?mamount=1850.00&ssl_id=x1&Q=REDIRECT&SESSIONKEY=abc&tran_type=success&cardname=${gw}`);
+      expect(body.pay_methods).toEqual([]); // nothing to choose from: the buyer already chose
+      expect(body.via_missing).toBeUndefined();
+      expect(calls).toHaveLength(1); // one session, as for any purchase
+    }
+    expect((await audits("checkout.started"))[0].meta).toBe(JSON.stringify({ via: "amex", offered: true }));
+  });
+
+  it("a way SSLCommerz does not offer the shop brings SSLCommerz's list instead, saying so; an unknown way is refused", async () => {
+    const { client } = await registerStudent();
+    // this shop has only bKash and Visa switched on
+    gatewaySays(() => Response.json({ status: "SUCCESS", GatewayPageURL: "https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc", sessionkey: "abc", desc: DESC.filter((d) => d && typeof d === "object" && ["visacard", "bkash"].includes((d as { gw: string }).gw)) }));
+    const body = await json(await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(800)).slug], channel: "sslcommerz", via: "nagad" }));
+    expect(body.via_missing).toBe("nagad");
+    expect(body.pay_methods.map((m: { name: string }) => m.name)).toEqual(["bKash", "VISA"]); // wallets first
+    expect(body.redirect_url).toBe("https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc");
+    expect((await audits("checkout.started"))[0].meta).toBe(JSON.stringify({ via: "nagad", offered: false }));
+    // SSLCommerz sent no list at all: its own page, as before
+    vi.restoreAllMocks();
+    gatewaySays(GOOD);
+    const plain = await json(await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(900)).slug], channel: "sslcommerz", via: "bkash" }));
+    expect(plain.redirect_url).toBe("https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc");
+    expect(plain.pay_methods).toEqual([]);
+    expect(plain.via_missing).toBeUndefined();
+    // only the checkout's own buttons
+    const odd = await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(950)).slug], channel: "sslcommerz", via: "paypal" });
+    expect(odd.status).toBe(422);
+  });
+
+  it("the checkout's buttons follow what SSLCommerz offered last time — all of them before it was ever asked — with SSLCommerz's logos only", async () => {
+    const course = await makeCourse(1000);
+    const quote = async () => (await json(await new Client().post("/api/checkout/quote", { courses: [course.slug] }))).quote;
+    expect((await quote()).ssl_ways).toBeNull();
+    gatewaySays(GOOD_WITH_WAYS);
+    const { client } = await registerStudent();
+    expect((await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" })).status).toBe(201);
+    const ways = await until(async () => (await quote()).ssl_ways);
+    expect(ways).toEqual([
+      { via: "bkash", logo: `${GW}/image/gw/bkash.png` },
+      { via: "nagad", logo: `${GW}/image/gw/nagad.png` },
+      { via: "rocket", logo: `${GW}/image/gw/dbblmobilebanking.png` },
+      { via: "upay", logo: `${GW}/image/gw/upay.png` },
+      { via: "visa", logo: `${GW}/image/gw/visacard.png` },
+      { via: "mastercard", logo: `${GW}/image/gw/mastercard.png` },
+      { via: "amex", logo: null }, // its logo was on another site
+    ]);
+    // "Check the connection" in Settings → Payments updates them too
+    vi.restoreAllMocks();
+    gatewaySays(() => Response.json({ status: "SUCCESS", GatewayPageURL: "https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc", sessionkey: "abc", desc: DESC.filter((d) => d && typeof d === "object" && ["upay", "bkash"].includes((d as { gw: string }).gw)) }));
+    expect((await (await owner()).post("/api/admin/settings/payments/ssl/check")).status).toBe(200);
+    expect((await quote()).ssl_ways.map((w: { via: string }) => w.via)).toEqual(["bkash", "upay"]);
+    // a free class, or a shop without the online payment, shows none
+    const free = await makeCourse(0);
+    expect((await json(await new Client().post("/api/checkout/quote", { courses: [free.slug] }))).quote.ssl_ways).toBeNull();
+  });
+
+  it("knows each of SSLCommerz's entries by its gateway code, name and kind", () => {
+    const cases: [Record<string, string>, string | null][] = [
+      [{ gw: "bkash", name: "bKash", type: "mobilebanking" }, "bkash"],
+      [{ gw: "nagad", name: "Nagad", type: "mobilebanking" }, "nagad"],
+      [{ gw: "dbblmobilebanking", name: "DBBL Mobile Banking", type: "mobilebanking" }, "rocket"],
+      [{ gw: "rocket", name: "Rocket", type: "mobilebanking" }, "rocket"],
+      [{ gw: "upay", name: "Upay", type: "mobilebanking" }, "upay"],
+      [{ gw: "dbbl_visa", name: "DBBL VISA", type: "visa" }, "visa"],
+      [{ gw: "brac_master", name: "BRAC MASTER", type: "master" }, "mastercard"],
+      [{ gw: "city_amex", name: "City AMEX", type: "amex" }, "amex"],
+      [{ gw: "dbbl_nexus", name: "DBBL Nexus", type: "othercard" }, null],
+      [{ gw: "mcash", name: "mCash", type: "mobilebanking" }, null],
+      [{ gw: "city", name: "City Touch", type: "internetbanking" }, null],
+    ];
+    for (const [entry, via] of cases) expect(viaOf(entry), entry.gw).toBe(via);
+    expect(viaOf({})).toBeNull();
   });
 
   it("the next purchase that goes through clears the warning", async () => {
     const calls = gatewaySays((_, n) => (n === 1 ? NO("Store Credential Error Or Store is De-active") : GOOD()));
     const course = await makeCourse(500);
     const { client } = await registerStudent();
-    expect((await client.post("/api/checkout", { courses: [course.slug], channel: "sslcommerz" })).status).toBe(502);
+    expect((await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" })).status).toBe(502);
     expect(await env.KV.get(SSL_LAST_KEY, "json")).toMatchObject({ ok: false });
-    const again = await client.post("/api/checkout", { courses: [course.slug], channel: "sslcommerz" });
+    const again = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" });
     expect(again.status).toBe(201);
     expect((await json(again)).redirect_url).toContain("sslcommerz.com");
     expect(calls).toHaveLength(2);
@@ -315,7 +399,7 @@ describe("a student turned away at checkout", () => {
     gatewaySays(() => NO("Store Credential Error Or Store is De-active"));
     const course = await makeCourse(500);
     const { client } = await registerStudent();
-    for (let i = 0; i < 9; i++) expect((await client.post("/api/checkout", { courses: [course.slug], channel: "sslcommerz" })).status).toBe(502);
+    for (let i = 0; i < 9; i++) expect((await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" })).status).toBe(502);
     await until(async () => (await mailsTo(to)).filter((m) => /could not start the online payment/i.test(m.subject)).length >= 1);
     await new Promise((r) => setTimeout(r, 300));
     const sent = (await mailsTo(to)).filter((m) => /could not start the online payment/i.test(m.subject)).length;
@@ -324,7 +408,7 @@ describe("a student turned away at checkout", () => {
 
     const off = uniqueEmail("owner");
     await setSetting(env, "notifications", { emails: [off], off: ["payment_failed"] }, null);
-    expect((await client.post("/api/checkout", { courses: [course.slug], channel: "sslcommerz" })).status).toBe(502);
+    expect((await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" })).status).toBe(502);
     await new Promise((r) => setTimeout(r, 300));
     expect(await mailsTo(off)).toHaveLength(0);
   });

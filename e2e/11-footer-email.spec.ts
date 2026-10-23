@@ -67,6 +67,12 @@ test("the footer fits a phone and passes the accessibility scan", async ({ brows
     const box = await img.boundingBox();
     expect(box!.x + box!.width, "inside the screen").toBeLessThanOrEqual(360);
   }
+  // the sticky header covers the top of the screen; with the footer's top just under it, no footer link sits half under the
+  // header, whatever the footer's height
+  await page.evaluate(() => {
+    const header = document.querySelector(".site-header")!.getBoundingClientRect().height;
+    window.scrollTo(0, document.querySelector(".site-footer")!.getBoundingClientRect().top + window.scrollY - header);
+  });
   const axe = await new AxeBuilder({ page }).include(".site-footer").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id)).toEqual([]);
   await ctx.close();

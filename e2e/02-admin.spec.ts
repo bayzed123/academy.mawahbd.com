@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminLogin, adminSetup, apiGet, apiPost, PDF, PNG, randomPassword, registerStudent, STAFF, uniqueEmail, useLang } from "./helpers";
+import { adminLogin, adminSetup, agree, apiGet, apiPost, PDF, PNG, randomPassword, registerStudent, STAFF, uniqueEmail, useLang } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -158,6 +158,7 @@ test("manual payment: the student waits, support verifies, access opens exactly 
   await sp.goto("/app/checkout?c=pizza-masterclass-e2e");
   await sp.getByText("Send money manually").click();
   await sp.getByLabel("Your number — the one you will send money from").fill("01712345678");
+  await agree(sp);
   await sp.getByRole("button", { name: "Continue — show payment details" }).click();
   await expect(sp.locator(".copy-row code").first()).toHaveText("01799990000"); // the number the owner entered in Settings
   await sp.getByLabel("Transaction ID (TrxID)").fill("8N7A6D5E4C");
@@ -166,7 +167,7 @@ test("manual payment: the student waits, support verifies, access opens exactly 
   await expect(sp.getByRole("heading", { name: "We are verifying your payment" })).toBeVisible();
   await expect(sp.getByText("Screenshot attached")).toBeVisible();
   // a second order cannot reuse the same transaction id
-  const dup = await apiPost(sp, "/checkout", { courses: ["pizza-masterclass-e2e"], channel: "manual", manual: { method: "bkash", trx_id: "8N7A6D5E4C", payer_number: "01712345678" } });
+  const dup = await apiPost(sp, "/checkout", { agree: true, courses: ["pizza-masterclass-e2e"], channel: "manual", manual: { method: "bkash", trx_id: "8N7A6D5E4C", payer_number: "01712345678" } });
   expect([409, 400]).toContain(dup.status);
 
   // the dashboard counts it and the sidebar shows a badge

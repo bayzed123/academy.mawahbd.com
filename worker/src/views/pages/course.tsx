@@ -342,12 +342,17 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
                 <Icon name="clock" />
                 {t("btn.comingSoon")}
               </span>
+              <p class="stock out">{t("stock.out")}</p>
               <h3 class="mt">{t("course.notify_title")}</h3>
               <p class="muted">{t("course.notify_desc")}</p>
               <NotifyForm ctx={ctx} slug={course.slug} />
             </>
           ) : (
             <>
+              <p class="stock in">
+                <Icon name="check" />
+                {t("stock.inNote")}
+              </p>
               <div class="buy-price">{priceLabel(ctx, course.price)}</div>
               <a class="btn btn-primary btn-lg btn-block" href={checkout}>
                 {t("btn.enrollNow")}

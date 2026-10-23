@@ -491,7 +491,7 @@ describe("documents that carry a person's name, or whose address is the key to t
     // a class that the sales tables of the report do not look at (they use the first three)
     const course = (await env.DB.prepare("SELECT id, slug FROM courses WHERE status = 'published' ORDER BY id DESC LIMIT 1").first<{ id: number; slug: string }>())!;
     const { client, id: studentId } = await registerStudent(new Client(), { name: "Fatema Khatun" });
-    const publicId = (await json(await client.post("/api/checkout", { courses: [course.slug], channel: "mock" }))).order.public_id as string;
+    const publicId = (await json(await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" }))).order.public_id as string;
     await new Client().fetch("/api/payments/mock/webhook", { method: "POST", form: { order: publicId, status: "paid", sig: await mockSignature(env, publicId, "paid") } });
     const code = generateCertificateCode("MWH");
     await env.DB.prepare("INSERT INTO certificates (code, student_id, course_id, student_name, course_title_bn, course_title_en) SELECT ?, ?, id, ?, title_bn, title_en FROM courses WHERE slug = ?")

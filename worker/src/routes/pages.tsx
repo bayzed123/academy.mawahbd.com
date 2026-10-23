@@ -190,10 +190,20 @@ export function pageRoutes(lang: Lang) {
     const kind = c.req.param("kind");
     return cachedPage(c, { ttl: 600 }, async () => {
       const ctx = await pageCtxFor(c, lang, `/policies/${kind}`);
-      if (kind !== "refund" && kind !== "privacy" && kind !== "terms") return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
+      if (kind !== "refund" && kind !== "privacy" && kind !== "terms" && kind !== "delivery") return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
       return renderHtml(c, ctx, <PolicyPage ctx={ctx} kind={kind} />);
     });
   });
+
+  // the help pages: how to use the site, how to buy a class, and the numbers to call
+  for (const [path, kind] of [["/guide", "guide"], ["/how-to-order", "order"], ["/hotline", "hotline"]] as const) {
+    r.get(path, (c) =>
+      cachedPage(c, { ttl: 600 }, async () => {
+        const ctx = await pageCtxFor(c, lang, path);
+        return renderHtml(c, ctx, <PolicyPage ctx={ctx} kind={kind} />);
+      }),
+    );
+  }
 
   /* Certificate lookups are never cached and are rate-limited: the code (60 bits) is the credential. */
   const verify = async (c: C, rawCode: string | undefined) => {

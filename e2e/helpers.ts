@@ -83,6 +83,12 @@ export const PDF = Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\
 export const LOGIN_ID = /^Mobile number, student ID or e-mail|^মোবাইল নম্বর, স্টুডেন্ট আইডি বা ইমেইল/;
 
 /** The address the test students buy with (buying asks for one; registering does not). */
+/** The checkout's tick box (terms, privacy policy, refund & cancellation policy): blank until the buyer ticks it; every purchase ticks it first. */
+export const AGREE = /^I have read and agree to the|^আমি .*পড়েছি এবং এতে সম্মত/;
+export async function agree(page: Page) {
+  await page.getByRole("checkbox", { name: AGREE }).check();
+}
+
 export const TEST_ADDRESS = "House 12, Road 5, Dhanmondi, Dhaka";
 
 /**

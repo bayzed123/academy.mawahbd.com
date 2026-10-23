@@ -76,7 +76,7 @@ describe("API contract (tests/fixtures/*.json)", () => {
 
   it("create-order starts 'pending' — nobody is enrolled until the gateway confirms", async () => {
     const { client, vars } = await arrange(createOrder as Fixture);
-    const res = await client.post("/api/checkout", { courses: [vars.course_slug], channel: "mock" });
+    const res = await client.post("/api/checkout", { agree: true, courses: [vars.course_slug], channel: "mock" });
     const { order } = await json(res);
     expect(order.status).toBe("pending");
     expect((await json(await client.get("/api/student/courses"))).courses).toHaveLength(0);

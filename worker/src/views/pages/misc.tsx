@@ -3,6 +3,7 @@ import { formatDate, formatMoney, loc, type CourseCardDTO, type OrderDTO } from 
 import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
 import type { InstructorDTO, InstructorReview } from "../../services/catalog";
 import type { CertRow } from "../../services/learning";
+import type { PageKind } from "../../content/pageTexts";
 import type { PageCtx } from "../ctx";
 import { Layout } from "../layout";
 import { qrSvg } from "../qr";
@@ -178,6 +179,30 @@ export function InstructorPage({ ctx, instructor, courses, reviews }: { ctx: Pag
 }
 
 /* ============================================================================ about / contact / policy */
+/** The registered address and trade licence number (Settings → Contact), on the About and Contact pages; nothing when both are empty. */
+function BusinessFacts({ ctx }: { ctx: PageCtx }) {
+  const { t, lang } = ctx;
+  const c = ctx.settings.contact;
+  const address = lang === "bn" ? c.address_bn || c.address_en : c.address_en || c.address_bn;
+  if (!address && !c.trade_license) return null;
+  return (
+    <dl class="biz">
+      {c.trade_license && (
+        <>
+          <dt>{t("biz.license")}</dt>
+          <dd>{c.trade_license}</dd>
+        </>
+      )}
+      {address && (
+        <>
+          <dt>{t("biz.address")}</dt>
+          <dd>{address}</dd>
+        </>
+      )}
+    </dl>
+  );
+}
+
 export function AboutPage({ ctx }: { ctx: PageCtx }) {
   const { t, lang } = ctx;
   const about = lang === "bn" ? ctx.settings.about.bn || ctx.settings.about.en : ctx.settings.about.en || ctx.settings.about.bn;
@@ -193,6 +218,12 @@ export function AboutPage({ ctx }: { ctx: PageCtx }) {
       <section class="section tight">
         <div class="wrap">
           <div class="prose">{raw(renderMarkdown(about))}</div>
+          {(ctx.settings.contact.trade_license || ctx.settings.contact.address_bn || ctx.settings.contact.address_en) && (
+            <>
+              <h2 class="mt">{t("biz.title")}</h2>
+              <BusinessFacts ctx={ctx} />
+            </>
+          )}
           <h2 class="mt">{t("about.expect")}</h2>
           <ul class="checks">
             {(["about.e1", "about.e2", "about.e3", "about.e4"] as const).map((k) => (
@@ -262,28 +293,80 @@ export function ContactPage({ ctx, flash }: { ctx: PageCtx; flash?: string }) {
               <p class="status-line" data-status role="status" />
             </form>
           </div>
-          {channels.length > 0 && (
-            <aside class="buy">
-              <h2>{t("contact.channels")}</h2>
-              <ul>
-                {channels.map((ch) => (
-                  <li>
-                    <Icon name={ch.icon} />
-                    <a href={ch.href} rel="noopener noreferrer" target={ch.href.startsWith("http") ? "_blank" : undefined}>
-                      {ch.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </aside>
-          )}
+          <aside class="buy">
+            {channels.length > 0 && (
+              <>
+                <h2>{t("contact.channels")}</h2>
+                <ul>
+                  {channels.map((ch) => (
+                    <li>
+                      <Icon name={ch.icon} />
+                      <a href={ch.href} rel="noopener noreferrer" target={ch.href.startsWith("http") ? "_blank" : undefined}>
+                        {ch.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {(c.trade_license || c.address_bn || c.address_en) && (
+              <>
+                <h2 class={channels.length > 0 ? "mt" : undefined}>{t("biz.title")}</h2>
+                <BusinessFacts ctx={ctx} />
+              </>
+            )}
+          </aside>
         </div>
       </section>
     </Layout>
   );
 }
 
-export function PolicyPage({ ctx, kind }: { ctx: PageCtx; kind: "refund" | "privacy" | "terms" }) {
+/**
+ * How to reach the shop, from Settings → Contact — under every policy and help page, and first on the Hotline page (`big`). Nothing is
+ * written into the texts themselves, so a changed number shows everywhere at once.
+ */
+function ContactBox({ ctx, big }: { ctx: PageCtx; big?: boolean }) {
+  const { t } = ctx;
+  const c = ctx.settings.contact;
+  const tel = c.phone.replace(/[^\d+]/g, "");
+  const wa = c.whatsapp.replace(/\D/g, "");
+  if (!tel && !wa && !c.email) return null;
+  return (
+    <aside class={big ? "page-contact big" : "page-contact"} aria-labelledby="page-contact-h">
+      <h2 id="page-contact-h">{t("page.contactTitle")}</h2>
+      <ul>
+        {tel && (
+          <li>
+            <a class="btn btn-primary" href={`tel:${tel}`}>
+              <Icon name="phone" />
+              {t("page.call", { phone: c.phone })}
+            </a>
+          </li>
+        )}
+        {wa && (
+          <li>
+            <a class="btn btn-outline" href={`https://wa.me/${wa}?text=${encodeURIComponent(t("wa.prefill"))}`} rel="noopener noreferrer" target="_blank">
+              <Icon name="whatsapp" />
+              {t("page.whatsapp")}
+            </a>
+          </li>
+        )}
+        {c.email && (
+          <li>
+            <a class="btn btn-outline" href={`mailto:${c.email}`}>
+              <Icon name="mail" />
+              {t("page.email", { email: c.email })}
+            </a>
+          </li>
+        )}
+      </ul>
+    </aside>
+  );
+}
+
+/** The policy and help pages: the owner's text (Admin → Settings → Policies) — or the site's own until they write one — and how to reach us. */
+export function PolicyPage({ ctx, kind }: { ctx: PageCtx; kind: PageKind }) {
   const { t, lang } = ctx;
   const p = ctx.settings.policies;
   const body = lang === "bn" ? p[`${kind}_bn` as const] || p[`${kind}_en` as const] : p[`${kind}_en` as const] || p[`${kind}_bn` as const];
@@ -298,7 +381,9 @@ export function PolicyPage({ ctx, kind }: { ctx: PageCtx; kind: "refund" | "priv
       </section>
       <section class="section tight">
         <div class="wrap">
+          {kind === "hotline" && <ContactBox ctx={ctx} big />}
           <div class="prose">{raw(renderMarkdown(body))}</div>
+          {kind !== "hotline" && <ContactBox ctx={ctx} />}
         </div>
       </section>
     </Layout>

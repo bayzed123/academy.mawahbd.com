@@ -31,6 +31,10 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     facebook: urlOrEmpty,
     youtube: urlOrEmpty,
     instagram: urlOrEmpty,
+    // as written on the trade licence (every page's footer, the Contact and About pages); left out = the site's own (lib/settings.ts)
+    address_bn: textSchema(200).optional(),
+    address_en: textSchema(200).optional(),
+    trade_license: textSchema(60).optional(),
   }),
   announcement: z.object({ bn: textSchema(200), en: textSchema(200) }),
   payments: z.object({
@@ -49,7 +53,22 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
       .refine((v) => v === "" || readSslLogo(v) !== null, "ssl_logo_invalid")
       .default(""),
   }),
-  policies: z.object({ refund_bn: long(20000), refund_en: long(20000), privacy_bn: long(20000), privacy_en: long(20000), terms_bn: long(20000), terms_en: long(20000) }),
+  policies: z.object({
+    refund_bn: long(20000),
+    refund_en: long(20000),
+    privacy_bn: long(20000),
+    privacy_en: long(20000),
+    terms_bn: long(20000),
+    terms_en: long(20000),
+    delivery_bn: long(20000),
+    delivery_en: long(20000),
+    guide_bn: long(20000),
+    guide_en: long(20000),
+    order_bn: long(20000),
+    order_en: long(20000),
+    hotline_bn: long(20000),
+    hotline_en: long(20000),
+  }),
   about: z.object({ bn: long(20000), en: long(20000) }),
   // these IDs are injected into pages as script parameters, so they are validated strictly
   analytics: z.object({

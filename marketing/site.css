@@ -208,6 +208,15 @@ body.has-buybar{padding-bottom:78px}
 .ssl-logo{margin:.7rem 0 0}
 .ssl-logo a{display:inline-block}
 .ssl-logo img{display:block;max-width:100%;height:auto;max-height:140px;padding:6px 8px;border-radius:10px;background:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.16)}
+/* the registered address and trade licence number, as SSLCommerz asks: small, under the contact details */
+.site-footer .foot-legal{margin:.9rem 0 0;font-size:.86rem;line-height:1.6;color:#d8cbbf}
+.foot-legal span{display:block}
+/* the same on the About and Contact pages */
+.biz{display:grid;grid-template-columns:auto 1fr;gap:.4rem 1rem;margin:.6rem 0 0;max-width:760px}
+.biz dt{font-weight:700;color:var(--ink-2)}
+.biz dd{margin:0}
+@media (max-width:520px){.biz{grid-template-columns:1fr;gap:.15rem}.biz dd{margin-bottom:.55rem}}
+.buy .stock{margin:0 0 .7rem;line-height:1.45}
 .foot-bottom{border-top:1px solid rgba(255,255,255,.1);padding-block:18px;font-size:.88rem;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
 /* the developer credit: a plain, visible link (underlined, gold) so it reads as one */
 .foot-credit a{color:var(--g-300);text-decoration:underline;text-underline-offset:3px;font-weight:600}
@@ -483,3 +492,12 @@ main>section:nth-of-type(n+3){content-visibility:auto;contain-intrinsic-size:aut
 .inc-list li{display:flex;gap:.6rem;align-items:center;padding:.55rem .8rem;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
 .inc-list .icon{flex:none;width:1.15em;height:1.15em;color:var(--red-600)}
 .inc-note{margin:.8rem 0 0;font-size:.92rem}
+
+/* how to reach us, under the policy and help pages (first, and larger, on the Hotline page) */
+.page-contact{margin:28px 0 0;padding:18px;border:1.5px solid var(--line-2);border-radius:16px;background:var(--paper);max-width:760px}
+.page-contact h2{font-size:1.1rem;margin:0 0 12px}
+.page-contact ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px}
+.page-contact .btn{display:inline-flex;align-items:center;gap:8px;overflow-wrap:anywhere;text-align:left}
+.page-contact.big{margin:0 0 26px;padding:22px}
+.page-contact.big h2{font-size:1.25rem}
+.page-contact.big .btn{font-size:1.05rem;padding:14px 18px}

@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminLogin, apiGet, apiSend, STAFF, uniqueEmail, useLang } from "./helpers";
+import { adminLogin, agree, apiGet, apiSend, STAFF, uniqueEmail, useLang } from "./helpers";
 
 /*
  * Counting visits (Google Analytics 4) and the Admin → Analytics screen.
@@ -389,6 +389,7 @@ test("the student app carries the tag, the admin never does — and a purchase i
   await v.page.getByLabel(/^Address/).fill("House 12, Road 5, Dhanmondi, Dhaka");
   await v.page.getByLabel(/^E-mail/).fill(buyer.email);
   await v.page.getByText("Test payment").click();
+  await agree(v.page);
   await v.page.getByRole("button", { name: /Pay ৳400/ }).click();
   const payment = await waitLogged(v, "add_payment_info");
   expect(payment.params).toMatchObject({ currency: "BDT", value: 400 });

@@ -42,7 +42,7 @@ async function makeCourse(price = 1500) {
 
 /** what a buyer who gave no e-mail sends */
 const guestBody = (course: { slug: string }, over: Record<string, unknown> = {}): Record<string, unknown> => ({ name: "Rina Akter", phone: uniquePhone(), address: ADDRESS, lang: "en", courses: [course.slug], channel: "mock", ...over });
-const buy = (client: Client, body: Record<string, unknown>) => client.post("/api/checkout/guest", body);
+const buy = (client: Client, body: Record<string, unknown>) => client.post("/api/checkout/guest", { agree: true, ...body });
 
 async function pay(publicId: string) {
   const sig = await mockSignature(env, publicId, "paid");
@@ -335,25 +335,25 @@ describe("a signed-in student buys", () => {
     const course = await makeCourse();
     const other = await makeCourse(800);
     const { client, id } = await registerStudent(new Client(), { phone: "", address: "" });
-    const none = await client.post("/api/checkout", { courses: [course.slug], channel: "mock" });
+    const none = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" });
     expect(none.status).toBe(422);
     expect((await json(none)).error.fields).toMatchObject({ phone: "required", address: "required" });
 
     const phone = uniquePhone();
-    const res = await client.post("/api/checkout", { courses: [course.slug], channel: "mock", details: { phone, address: ADDRESS } });
+    const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock", details: { phone, address: ADDRESS } });
     expect(res.status).toBe(201);
     expect(await row(id)).toMatchObject({ phone, address: ADDRESS });
     const order = await env.DB.prepare("SELECT customer_phone, customer_address FROM orders WHERE public_id = ?").bind((await json(res)).order.public_id).first();
     expect(order).toMatchObject({ customer_phone: phone, customer_address: ADDRESS });
 
     // not asked again
-    expect((await client.post("/api/checkout", { courses: [other.slug], channel: "mock" })).status).toBe(201);
+    expect((await client.post("/api/checkout", { agree: true, courses: [other.slug], channel: "mock" })).status).toBe(201);
   });
 
   it("a short or invalid address, or number, typed at checkout is refused", async () => {
     const course = await makeCourse();
     const { client } = await registerStudent(new Client(), { phone: "", address: "" });
-    const res = await client.post("/api/checkout", { courses: [course.slug], channel: "mock", details: { phone: "123", address: "abc" } });
+    const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock", details: { phone: "123", address: "abc" } });
     expect(res.status).toBe(422);
     // the boxes are "details" of the order: the app takes that prefix off
     expect((await json(res)).error.fields).toMatchObject({ "details.phone": "invalid_phone", "details.address": "required" });

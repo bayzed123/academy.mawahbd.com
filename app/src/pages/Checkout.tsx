@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CHANNEL_LOGOS, PAY_LOGOS, toBnDigits, type Channel, type PayMethodDTO, type QuoteDTO, type StudentMe } from "@mawah/shared";
+import { CHANNEL_LOGOS, PAY_LOGOS, PAY_VIA, PAY_VIA_GROUP, PAY_VIA_NAME, toBnDigits, type Channel, type PayMethodDTO, type PayVia, type QuoteDTO, type StudentMe } from "@mawah/shared";
 import { CURRENCY, gaItem, track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -11,7 +11,7 @@ import { Button, Empty, ErrorState, Field, Icon, Spinner, TextInput, Turnstile, 
 
 const CHANNEL_ICON: Record<Channel, string> = { sslcommerz: "wallet", bkash: "wallet", manual: "phone", mock: "sparkle" };
 type Method = "bkash" | "nagad" | "rocket";
-type PayResult = { order: { public_id: string; status: string; total: number }; redirect_url?: string; pay_methods?: PayMethodDTO[]; student?: StudentMe };
+type PayResult = { order: { public_id: string; status: string; total: number }; redirect_url?: string; pay_methods?: PayMethodDTO[]; via_missing?: PayVia; student?: StudentMe };
 
 /**
  * Someone who typed the e-mail — or, with no e-mail, the mobile number — of a student account in "Your details". Nothing is opened for
@@ -139,6 +139,54 @@ function PayMarks({ channel, sslLogo }: { channel: Channel; sslLogo: string | nu
   );
 }
 
+/** Our own picture of each way of paying, where we have one (the footer's marks); the others use SSLCommerz's, or the name alone. */
+const OWN_LOGO: Partial<Record<PayVia, (typeof PAY_LOGOS)[number]>> = Object.fromEntries(PAY_LOGOS.map((l) => [l.key, l]));
+
+/**
+ * The online payment is chosen: its ways of paying, right here — bKash, Nagad, Rocket, Upay, then cards — and a tap pays with that one (the
+ * button sends the form, so the details above are checked first). `ways`: what SSLCommerz offered the shop last time; before it was ever
+ * asked, all of them (one it turns out not to offer brings its list instead).
+ */
+function PayTiles({ ways, busy, pending }: { ways: { via: PayVia; logo: string | null }[]; busy: PayVia | null; pending: boolean }) {
+  const { t } = useI18n();
+  const groups = (["mobile", "card"] as const).map((g) => ({ g, list: ways.filter((w) => PAY_VIA_GROUP[w.via] === g) })).filter((x) => x.list.length);
+  return (
+    <div className="pay-tiles" role="group" aria-labelledby="pt-h">
+      <h3 id="pt-h">{t("app.pay.tap")}</h3>
+      <p className="hint">{t("app.pay.tapHint")}</p>
+      {groups.map(({ g, list }) => (
+        <div className="pay-group" key={g}>
+          <h4>{t(`app.pay.g.${g}` as "app.pay.g.mobile")}</h4>
+          <ul className="pay-grid">
+            {list.map(({ via, logo }) => {
+              const own = OWN_LOGO[via];
+              const name = PAY_VIA_NAME[via];
+              return (
+                <li key={via}>
+                  <button type="submit" name="via" value={via} className="pay-method" aria-label={t("app.pay.withName", { name })} aria-busy={busy === via || undefined} disabled={pending}>
+                    <span className="pay-logo" aria-hidden="true">
+                      {busy === via ? (
+                        <span className="spinner sm" />
+                      ) : own ? (
+                        <img src={own.src} width={own.width} height={own.height} alt="" decoding="async" />
+                      ) : logo ? (
+                        <img src={logo} alt="" loading="lazy" decoding="async" />
+                      ) : (
+                        <Icon name="wallet" />
+                      )}
+                    </span>
+                    <span className="pay-name">{name}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const PAY_GROUPS = ["mobile", "card", "bank", "other"] as const;
 
 /**
@@ -146,7 +194,7 @@ const PAY_GROUPS = ["mobile", "card", "bank", "other"] as const;
  * here, on the website — SSLCommerz's own names and logos, mobile wallets first — and a tap goes straight to that one (bKash's page for bKash,
  * Nagad's for Nagad …) instead of SSLCommerz's list. "All ways to pay" is SSLCommerz's own page, as before; "Change how to pay" goes back.
  */
-function PayChooser({ methods, all, total, onBack }: { methods: PayMethodDTO[]; all: string; total: number; onBack: () => void }) {
+function PayChooser({ methods, all, total, missing, onBack }: { methods: PayMethodDTO[]; all: string; total: number; missing?: PayVia; onBack: () => void }) {
   const { t, money } = useI18n();
   const heading = useRef<HTMLHeadingElement>(null);
   // a new step: move the reader (and the screen reader) to its heading
@@ -165,6 +213,12 @@ function PayChooser({ methods, all, total, onBack }: { methods: PayMethodDTO[]; 
         <p id="pc-sub" className="muted">
           {t("app.pay.sub", { total: money(total) })}
         </p>
+        {missing && (
+          <p className="notice" role="status">
+            <Icon name="help" />
+            <span>{t("app.pay.missing", { name: PAY_VIA_NAME[missing] })}</span>
+          </p>
+        )}
         {groups.map(({ g, list }) => (
           <div className="pay-group" key={g}>
             <h2>{t(`app.pay.g.${g}` as "app.pay.g.mobile")}</h2>
@@ -238,7 +292,11 @@ export default function Checkout() {
   // the online gateway turned this purchase away: the error says so, and the other way of paying is offered right there
   const [gatewayDown, setGatewayDown] = useState(false);
   // the online payment is open and SSLCommerz listed the ways this store takes: the buyer taps one (null = still on the form)
-  const [online, setOnline] = useState<{ methods: PayMethodDTO[]; all: string; total: number } | null>(null);
+  const [online, setOnline] = useState<{ methods: PayMethodDTO[]; all: string; total: number; missing?: PayVia } | null>(null);
+  // the way of paying the buyer tapped last (kept for the payment that goes on after they sign in to an existing account)
+  const [via, setVia] = useState<PayVia | null>(null);
+  // the box the buyer ticks to agree to the terms, the privacy policy and the refund & cancellation policy: blank until they tick it
+  const [agree, setAgree] = useState(false);
 
   const cart = { courses: slug ? [slug] : undefined, bundle_id: bundle ? Number(bundle) : undefined };
   const quote = useQuery({
@@ -284,18 +342,18 @@ export default function Checkout() {
   const pay = useMutation({
     // "student": already signed in (or just signed in here — `gaps` then says what their profile lacks, which the details typed above fill);
     // "guest": a visitor, with the details typed above
-    mutationFn: async (v: { as: "student" | "guest"; gaps?: { phone: boolean; address: boolean } }) => {
+    mutationFn: async (v: { as: "student" | "guest"; gaps?: { phone: boolean; address: boolean }; via?: PayVia | null }) => {
       const basket = quote.data;
       if (basket) {
         track("add_payment_info", {
           currency: CURRENCY,
           value: basket.total,
           coupon: basket.coupon_code ?? undefined,
-          payment_type: basket.total === 0 ? "free" : channel === "manual" ? `manual_${chosenMethod}` : channel || "unknown",
+          payment_type: basket.total === 0 ? "free" : channel === "manual" ? `manual_${chosenMethod}` : channel === "sslcommerz" && v.via ? `sslcommerz_${v.via}` : channel || "unknown",
           items: basket.items.map((i) => gaItem(i)),
         });
       }
-      const order = { ...cart, coupon, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined };
+      const order = { ...cart, coupon, agree: true as const, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined, via: channel === "sslcommerz" ? (v.via ?? undefined) : undefined };
       if (v.as === "student") {
         // a signed-in student whose profile lacks a mobile number or an address gives them here (the form shows only then)
         const details = v.gaps ? { ...(v.gaps.phone ? { phone: phone.trim() } : {}), ...(v.gaps.address ? { address: address.trim() } : {}) } : needsDetails ? { phone: phone.trim(), address: address.trim() } : {};
@@ -309,7 +367,7 @@ export default function Checkout() {
       void qc.invalidateQueries({ queryKey: ["orders"] });
       void qc.invalidateQueries({ queryKey: ["my-courses"] });
       if (res.redirect_url && res.pay_methods?.length) {
-        setOnline({ methods: res.pay_methods, all: res.redirect_url, total: res.order.total });
+        setOnline({ methods: res.pay_methods, all: res.redirect_url, total: res.order.total, missing: res.via_missing });
         window.scrollTo({ top: 0 });
       } else if (res.redirect_url) {
         toast(t("app.checkout.redirecting"));
@@ -333,7 +391,7 @@ export default function Checkout() {
   });
 
   if (student === undefined) return <Spinner />;
-  if (online) return <PayChooser methods={online.methods} all={online.all} total={online.total} onBack={() => setOnline(null)} />;
+  if (online) return <PayChooser methods={online.methods} all={online.all} total={online.total} missing={online.missing} onBack={() => setOnline(null)} />;
   // someone signed in who has no mobile number or address on file yet: the same two boxes as a visitor sees
   const needsDetails = !!student && (!student.phone || !student.address);
   if (!slug && !bundle) {
@@ -372,14 +430,32 @@ export default function Checkout() {
     if (!student && !name.trim()) missing.name = t("err.required");
     if ((!student || needsDetails) && !phone.trim()) missing.phone = t("err.required");
     if ((!student || needsDetails) && address.trim().length < 5) missing.address = t("err.required");
+    if (!agree) missing.agree = t("app.checkout.agree.needed");
     if (Object.keys(missing).length) {
       setFields(missing);
-      document.getElementById(missing.name ? "g-name" : missing.phone ? "g-phone" : "g-address")?.focus();
+      document.getElementById(missing.name ? "g-name" : missing.phone ? "g-phone" : missing.address ? "g-address" : "co-agree")?.focus();
       return;
     }
-    pay.mutate({ as: student ? "student" : "guest" });
+    // a way-of-paying button sent the form (bKash, Nagad …) — or the main Pay button did, and SSLCommerz's list comes next
+    const tapped = (e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "via" ? ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") as PayVia) : null;
+    const chosen = tapped && (PAY_VIA as readonly string[]).includes(tapped) ? tapped : null;
+    setVia(chosen);
+    pay.mutate({ as: student ? "student" : "guest", via: chosen });
   };
   const policy = lang === "en" ? "/en/policies" : "/policies";
+  // "I have read and agree to the {terms}, {privacy} and {refund}": each name a link to its page, in a new tab so the form stays as typed
+  const agreeText = t("app.checkout.agree")
+    .split(/(\{(?:terms|privacy|refund)\})/)
+    .map((part, i) => {
+      const k = /^\{(terms|privacy|refund)\}$/.exec(part)?.[1] as "terms" | "privacy" | "refund" | undefined;
+      return k ? (
+        <a key={i} className="link" href={`${policy}/${k}`} target="_blank" rel="noopener noreferrer">
+          {t(`app.checkout.agree.${k}`)}
+        </a>
+      ) : (
+        part
+      );
+    });
 
   return (
     <>
@@ -423,7 +499,7 @@ export default function Checkout() {
                   passwordless={exists.passwordless}
                   onSignedIn={(s) => {
                     setExists(null);
-                    pay.mutate({ as: "student", gaps: { phone: !s.phone, address: !s.address } });
+                    pay.mutate({ as: "student", gaps: { phone: !s.phone, address: !s.address }, via });
                   }}
                   onOther={() => {
                     setExists(null);
@@ -435,6 +511,27 @@ export default function Checkout() {
               )}
             </section>
           )}
+          <div className={fields.agree ? "agree-box err" : "agree-box"}>
+            <label className="agree" htmlFor="co-agree">
+              <input
+                id="co-agree"
+                type="checkbox"
+                checked={agree}
+                aria-invalid={fields.agree ? true : undefined}
+                aria-describedby={fields.agree ? "co-agree-err" : undefined}
+                onChange={(e) => {
+                  setAgree(e.target.checked);
+                  if (e.target.checked) setFields(({ agree: _done, ...rest }) => rest);
+                }}
+              />
+              <span>{agreeText}</span>
+            </label>
+            {fields.agree && (
+              <p className="err-text" id="co-agree-err">
+                {fields.agree}
+              </p>
+            )}
+          </div>
           <section className="panel">
             <h2>{t("app.checkout.pay")}</h2>
             {free ? (
@@ -469,6 +566,10 @@ export default function Checkout() {
                   </label>
                 ))}
               </fieldset>
+            )}
+
+            {channel === "sslcommerz" && !free && (
+              <PayTiles ways={q.ssl_ways ?? PAY_VIA.map((v) => ({ via: v, logo: null }))} busy={pay.isPending ? (pay.variables?.via ?? null) : null} pending={pay.isPending} />
             )}
 
             {channel === "manual" && !free && q.manual && (
@@ -583,16 +684,6 @@ export default function Checkout() {
             </div>
             <p className="hint tc">
               <Icon name="shield" className="inline-icon" /> {t("app.checkout.secure")}
-            </p>
-            <p className="hint tc">
-              {t("app.checkout.terms")}{" "}
-              <a className="link" href={`${policy}/terms`} target="_blank" rel="noopener noreferrer">
-                {t("app.checkout.termsLink")}
-              </a>{" "}
-              ·{" "}
-              <a className="link" href={`${policy}/refund`} target="_blank" rel="noopener noreferrer">
-                {t("app.checkout.refundLink")}
-              </a>
             </p>
           </section>
         </aside>

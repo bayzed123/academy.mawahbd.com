@@ -137,7 +137,7 @@ describe("production mode", () => {
     await inProduction(async () => {
       const { client } = await registerStudent(); // signed in as production: it holds the __Host- cookie
       expect(await offered(client)).not.toContain("mock");
-      const res = await client.post("/api/checkout", { courses: [course.slug], channel: "mock" });
+      const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" });
       expect(res.status).toBe(400);
       expect((await json(res)).error.code).toBe("payment_unavailable");
       expect((await new Client().get("/api/payments/mock/pay/anything")).status).toBe(404);
@@ -145,7 +145,7 @@ describe("production mode", () => {
       expect((await new Client().get("/api/dev/outbox")).status).toBe(404);
     });
     // …and in development the same call works (that is what the E2E suite relies on)
-    expect((await dev.client.post("/api/checkout", { courses: [course.slug], channel: "mock" })).status).toBe(201);
+    expect((await dev.client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" })).status).toBe(201);
   });
 
   it("serves public pages from the edge cache and an admin edit shows up on the very next request", async () => {

@@ -19,7 +19,7 @@ async function makeCourse(opts: { price?: number; status?: string } = {}) {
 }
 
 async function buyManual(student: Client, slug: string, trx = `T${Date.now().toString(36)}${++seq}XYZ`) {
-  const res = await student.post("/api/checkout", { courses: [slug], channel: "manual", manual: { method: "bkash", trx_id: trx.slice(0, 14).padEnd(8, "X"), payer_number: "01712345678" } });
+  const res = await student.post("/api/checkout", { agree: true, courses: [slug], channel: "manual", manual: { method: "bkash", trx_id: trx.slice(0, 14).padEnd(8, "X"), payer_number: "01712345678" } });
   const body = await json(res);
   expect(res.status, JSON.stringify(body)).toBe(201);
   const row = await env.DB.prepare("SELECT * FROM orders WHERE public_id = ?").bind(body.order.public_id).first<any>();
@@ -418,7 +418,7 @@ describe("orders: manual verification, rejection and refunds", () => {
     const course = await makeCourse({ price: 700 });
     const student = await registerStudent();
     const { publicId } = await (async () => {
-      const res = await student.client.post("/api/checkout", { courses: [course.slug], channel: "mock" });
+      const res = await student.client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" });
       return { publicId: (await json(res)).order.public_id as string };
     })();
     expect((await payMock(publicId)).status).toBe(200);
@@ -822,7 +822,7 @@ describe("launch notifications, reports and dashboard", () => {
     const course = await makeCourse({ price: 2000 });
     const a = await registerStudent(), b = await registerStudent();
     const pay = async (s: typeof a) => {
-      const publicId = (await json(await s.client.post("/api/checkout", { courses: [course.slug], channel: "mock" }))).order.public_id;
+      const publicId = (await json(await s.client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" }))).order.public_id;
       expect((await payMock(publicId)).status).toBe(200);
       return (await env.DB.prepare("SELECT id FROM orders WHERE public_id = ?").bind(publicId).first<any>()).id as number;
     };
@@ -851,10 +851,10 @@ describe("launch notifications, reports and dashboard", () => {
     const paid = await makeCourse({ price: 800 });
     const free = await makeCourse({ price: 0 });
     const buyer = await registerStudent();
-    const publicId = (await json(await buyer.client.post("/api/checkout", { courses: [paid.slug], channel: "mock" }))).order.public_id;
+    const publicId = (await json(await buyer.client.post("/api/checkout", { agree: true, courses: [paid.slug], channel: "mock" }))).order.public_id;
     expect((await payMock(publicId)).status).toBe(200);
     const taker = await registerStudent();
-    expect((await taker.client.post("/api/checkout", { courses: [free.slug] })).status).toBe(201); // enrolled instantly, order total 0
+    expect((await taker.client.post("/api/checkout", { agree: true, courses: [free.slug] })).status).toBe(201); // enrolled instantly, order total 0
 
     const admin = (await loginStaff("super_admin")).client;
     const today = new Date(Date.now() + 6 * 3600e3).toISOString().slice(0, 10);
