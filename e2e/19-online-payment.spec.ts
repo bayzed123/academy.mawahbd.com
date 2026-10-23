@@ -51,7 +51,7 @@ async function chooseOnline(page: Page, lang: "bn" | "en") {
 test("the online option shows the real marks, spoken as one list, and the send-money option shows the three wallets", async ({ browser }) => {
   const { ctx, page } = await checkout(browser, "en");
   // send-money first (and chosen), then SSLCommerz's secure online payment
-  await expect(page.locator("label.pay-opt b")).toHaveText(["Send money manually", "Secure online payment"]);
+  await expect(page.locator("label.pay-opt b")).toHaveText(["Send money manually", "bKash, Nagad, Rocket or card"]);
   await expect(page.locator("label.pay-opt input:checked")).toHaveValue("manual");
   const online = page.locator("label.pay-opt", { hasText: "Secure online payment" });
   await expect(online).toBeVisible();
