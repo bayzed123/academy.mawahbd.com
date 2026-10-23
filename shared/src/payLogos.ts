@@ -14,6 +14,14 @@ export const PAY_LOGOS = [
 
 export type PayLogoKey = (typeof PAY_LOGOS)[number]["key"];
 
+/**
+ * SSLCommerz's own picture of the ways to pay ("Pay with … Verified by SSLCommerz"), as the owner sent it (brand/pay/payment.png, copied by
+ * scripts/gen-pay-logos.mjs). It takes the place of the small marks — at the bottom of every page and on the online choice at checkout —
+ * while SSLCommerz really takes payments here and the owner has not pasted SSLCommerz's own link to it (Settings → Payments, which wins).
+ * `width` and `height` are the file's own size; worker/test/ssl-logo.test.ts checks them against the file.
+ */
+export const SSL_BANNER = { src: "/pay/sslcommerz.png", width: 640, height: 75 } as const;
+
 /** Which marks go with each way of paying on the checkout page (the hosted page takes the wallets and cards; send-money is the three wallets). */
 export const CHANNEL_LOGOS: Record<"sslcommerz" | "bkash" | "manual" | "mock", readonly PayLogoKey[]> = {
   sslcommerz: ["bkash", "nagad", "rocket", "visa", "mastercard"],

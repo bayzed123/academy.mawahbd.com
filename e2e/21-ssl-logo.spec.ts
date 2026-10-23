@@ -8,7 +8,9 @@ import { adminLogin, useLang } from "./helpers";
  * the picture then takes the place of the small marks at the bottom of every page and on the online choice at checkout. The picture itself is
  * never fetched here (the address is a made-up file on SSLCommerz's server, and this machine cannot reach SSLCommerz): what is checked is that
  * the right address is on the page, where it should be, without breaking the layout on a phone. The Worker's side (what is accepted, the
- * price answer, the security policy) is in worker/test/ssl-logo.test.ts. Runs after the admin spec (the owner exists); puts things back after.
+ * price answer, the security policy) is in worker/test/ssl-logo.test.ts. With the box empty, the copy of SSLCommerz's picture the owner sent
+ * (served by the website) stands in once the store's keys are set — this copy of the site has none, so its pages keep the small marks, while
+ * the admin shows the owner that copy under the empty box. Runs after the admin spec (the owner exists); puts things back after.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -101,10 +103,13 @@ test("at checkout the online choice shows SSLCommerz's picture instead of the sm
   await ctx.close();
 });
 
-test("emptied again, nothing of SSLCommerz's is shown and the small marks come back", async ({ browser }) => {
+test("emptied again: the admin shows the copy the owner sent (really loaded), and without the store's keys the small marks come back", async ({ browser }) => {
   await admin.goto("/admin/settings?tab=payments");
   await box().fill("");
-  await expect(admin.locator(".ssl-preview")).toHaveCount(0);
+  const own = admin.locator(".ssl-preview img");
+  await expect(own).toHaveAttribute("src", "/pay/sslcommerz.png");
+  await expect(admin.locator(".ssl-preview")).toContainText("the site shows this copy of SSLCommerz’s picture");
+  await expect.poll(() => own.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth)).toBe(640);
   expect(await save()).toBe(200);
   const ctx = await browser.newContext({ locale: "en-US" });
   await useLang(ctx, "en");

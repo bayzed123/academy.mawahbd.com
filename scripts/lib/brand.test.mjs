@@ -112,6 +112,17 @@ test("the logo and icon files the pages point at exist and are the right kind of
   assert.ok(existsSync(join(root, "brand/mawah-logo.jpg")), "the original logo (source of the generated files) must stay in the repository");
 });
 
+test("the SSLCommerz picture the site serves is the one the owner sent, at exactly the size the pages keep room for", () => {
+  const sent = readFileSync(join(root, "brand/pay/payment.png"));
+  const served = readFileSync(join(root, "marketing/public/pay/sslcommerz.png"));
+  assert.ok(served.equals(sent), "marketing/public/pay/sslcommerz.png differs from brand/pay/payment.png: run node scripts/gen-pay-logos.mjs");
+  assert.equal(served.subarray(1, 4).toString("latin1"), "PNG");
+  const size = /SSL_BANNER = \{ src: "\/pay\/sslcommerz\.png", width: (\d+), height: (\d+) \}/.exec(read("shared/src/payLogos.ts"));
+  assert.ok(size, "SSL_BANNER in shared/src/payLogos.ts");
+  // a PNG's own width and height sit right after its signature and the IHDR header
+  assert.deepEqual([served.readUInt32BE(16), served.readUInt32BE(20)], [Number(size[1]), Number(size[2])]);
+});
+
 test("the share image shows the site's own address (SITE_URL), so a change of domain cannot leave the old one on it", () => {
   const site = readSiteUrl(read("worker/wrangler.toml"));
   const og = readFileSync(join(root, "marketing/public/og-default.jpg"));

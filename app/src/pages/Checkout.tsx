@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CHANNEL_LOGOS, PAY_LOGOS, PAY_VIA_NAME, toBnDigits, type Channel, type PayMethodDTO, type PayVia, type QuoteDTO, type StudentMe } from "@mawah/shared";
+import { CHANNEL_LOGOS, PAY_LOGOS, PAY_VIA_NAME, SSL_BANNER, toBnDigits, type Channel, type PayMethodDTO, type PayVia, type QuoteDTO, type StudentMe } from "@mawah/shared";
 import { CURRENCY, gaItem, track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -113,15 +113,15 @@ function ExistingAccount({ who, passwordless, onSignedIn, onOther }: { who: stri
 
 /**
  * The marks of the services a way of paying takes (the same pictures as the footer), so a buyer sees "bKash / Nagad / Rocket / cards" and not
- * just a word. For the online payment, SSLCommerz's own logo takes their place once the owner has pasted the link SSLCommerz gave (Settings →
- * Payments) — it is SSLCommerz's picture, from SSLCommerz's server.
+ * just a word. For the online payment, SSLCommerz's own picture of the ways to pay takes their place: the one the owner pasted (Settings →
+ * Payments), else the copy of it the owner sent, served by the website (SSL_BANNER, with its size so nothing jumps).
  */
 function PayMarks({ channel, sslLogo }: { channel: Channel; sslLogo: string | null }) {
   const { t } = useI18n();
   if (channel === "sslcommerz" && sslLogo) {
     return (
       <span className="pay-ssl">
-        <img src={sslLogo} alt={t("app.checkout.sslAlt")} decoding="async" />
+        <img src={sslLogo} {...(sslLogo === SSL_BANNER.src ? { width: SSL_BANNER.width, height: SSL_BANNER.height } : {})} alt={t("app.checkout.sslAlt")} decoding="async" />
       </span>
     );
   }

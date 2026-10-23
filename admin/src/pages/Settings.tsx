@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { readSslLogo, SSL_LOGO_MAX } from "@mawah/shared";
+import { readSslLogo, SSL_BANNER, SSL_LOGO_MAX } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -39,11 +39,19 @@ type Tab = "contact" | "payments" | "email" | "sms" | "policies" | "about" | "an
 
 /**
  * SSLCommerz's logo as it will look, from what is in the box: SSLCommerz's picture when the box holds the link (or code) SSLCommerz gave, or
- * plainly why it does not — before Save, so a wrong paste is seen at once.
+ * plainly why it does not — before Save, so a wrong paste is seen at once. With the box empty, the copy of SSLCommerz's picture the owner sent
+ * is what the site shows (once the store's keys are set).
  */
 function SslLogoPreview({ value, hasError }: { value: string; hasError: boolean }) {
   const { t } = useI18n();
-  if (!value.trim()) return null;
+  if (!value.trim()) {
+    return (
+      <div className="field wide ssl-preview">
+        <p className="hint">{t("adm.pay.sslLogoOwn")}</p>
+        <img src={SSL_BANNER.src} width={SSL_BANNER.width} height={SSL_BANNER.height} alt={t("adm.pay.sslLogoAlt")} />
+      </div>
+    );
+  }
   const logo = readSslLogo(value);
   // after Save the box itself says what is wrong; the same words twice would be noise
   if (!logo && hasError) return null;

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { readSslLogo, SSL_LOGO_MAX } from "@mawah/shared";
+import { readSslLogo, SSL_BANNER, SSL_LOGO_MAX } from "@mawah/shared";
 import { SETTING_DEFAULTS, setSetting } from "../src/lib/settings";
 import { buildCsp } from "../src/middleware/security";
 import { Client, env, freshState, json, loginStaff, registerStudent } from "./helpers";
@@ -11,6 +11,8 @@ import { Client, env, freshState, json, loginStaff, registerStudent } from "./he
  * choice at checkout. What these tests protect: every shape SSLCommerz hands out is read; nothing but an https picture on sslcommerz.com is
  * taken; nothing else that was pasted ever reaches a page; the page's security policy lets that one picture in; and only the owner (or anyone
  * allowed to change settings) can set it. The picture is never fetched here — the address below is a made-up file name on SSLCommerz's server.
+ * With nothing pasted, the copy of SSLCommerz's picture the owner sent (SSL_BANNER, served by the website) takes that place — but only while
+ * SSLCommerz really takes payments here (switched on, the store's keys set; this test runtime has stand-in keys).
  */
 
 const LOGO = "https://securepay.sslcommerz.com/public/image/test-pay-with-logos.png";
@@ -24,6 +26,20 @@ async function setPayments(over: Partial<typeof SETTING_DEFAULTS.payments>) {
 }
 const page = async (path: string) => (await new Client().get(path)).text();
 const logoBlock = (html: string) => html.match(/<p class="ssl-logo">(.*?)<\/p>/s)?.[1] ?? null;
+
+const e = env as unknown as Record<string, string | undefined>;
+/** The store's keys taken away for the length of `fn` (as on a site where SSLCommerz is not set up yet), then put back. */
+async function withoutStoreKeys<T>(fn: () => Promise<T>): Promise<T> {
+  const keys = { id: e.SSLCOMMERZ_STORE_ID, password: e.SSLCOMMERZ_STORE_PASSWORD };
+  delete e.SSLCOMMERZ_STORE_ID;
+  delete e.SSLCOMMERZ_STORE_PASSWORD;
+  try {
+    return await fn();
+  } finally {
+    e.SSLCOMMERZ_STORE_ID = keys.id;
+    e.SSLCOMMERZ_STORE_PASSWORD = keys.password;
+  }
+}
 
 afterEach(async () => setPayments({}));
 
@@ -120,21 +136,50 @@ describe("SSLCommerz's logo on the site", () => {
     }
   });
 
-  it("a bare link shows the picture with no link; nothing pasted, or online payment switched off, keeps the five marks", async () => {
+  it("a bare link shows the picture with no link; online payment switched off keeps the five marks", async () => {
     await setPayments({ ssl_logo: LOGO });
     const bare = logoBlock(await page("/en"));
     expect(bare).toContain(`src="${LOGO}"`);
     expect(bare).not.toContain("<a ");
 
-    await setPayments({ ssl_logo: "" });
-    let html = await page("/en");
-    expect(logoBlock(html)).toBeNull();
-    expect(html).toContain('class="pay-logos"');
-
     await setPayments({ ssl_logo: LOGO, sslcommerz: false });
-    html = await page("/en");
+    const html = await page("/en");
     expect(logoBlock(html), "no SSLCommerz logo while online payment is off").toBeNull();
     expect(html).toContain('class="pay-logos"');
+  });
+
+  it("nothing pasted: the copy the owner sent, with its size and no link, in both languages; the five marks while SSLCommerz is off or has no keys", async () => {
+    await setPayments({ ssl_logo: "" });
+    for (const [path, alt] of [
+      ["/", "SSLCommerz-এর মাধ্যমে পেমেন্ট"],
+      ["/en/courses", "Pay through SSLCommerz"],
+    ] as const) {
+      const html = await page(path);
+      const block = logoBlock(html);
+      expect(block, path).toMatch(new RegExp(`^\\s*<img src="${SSL_BANNER.src}" width="${SSL_BANNER.width}" height="${SSL_BANNER.height}" alt="${alt}" loading="lazy" decoding="async"\\s*/?>\\s*$`));
+      expect(html, "it replaces the small marks").not.toContain('class="pay-logos"');
+    }
+
+    await withoutStoreKeys(async () => {
+      const html = await page("/en");
+      expect(logoBlock(html), "SSLCommerz cannot take payments without its keys: nothing of SSLCommerz's").toBeNull();
+      expect(html).toContain('class="pay-logos"');
+    });
+
+    await setPayments({ ssl_logo: "", sslcommerz: false });
+    const html = await page("/en");
+    expect(logoBlock(html)).toBeNull();
+    expect(html).toContain('class="pay-logos"');
+  });
+
+  it("the copy is served: a small PNG of exactly the size the page keeps room for", async () => {
+    const res = await env.ASSETS.fetch(new Request(`${env.SITE_URL.replace(/\/$/, "")}${SSL_BANNER.src}`));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toMatch(/image\/png/);
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    expect(bytes.length).toBeLessThan(20 * 1024);
+    const view = new DataView(bytes.buffer);
+    expect([view.getUint32(16), view.getUint32(20)]).toEqual([SSL_BANNER.width, SSL_BANNER.height]);
   });
 
   it("nothing else from what was pasted ever reaches a page — only the two addresses", async () => {
@@ -169,7 +214,7 @@ describe("SSLCommerz's logo on the site", () => {
 });
 
 describe("SSLCommerz's logo at checkout", () => {
-  it("the price answer carries the picture for the online choice — not when online payment is off, nothing is pasted, or the class is free", async () => {
+  it("the price answer carries the picture for the online choice (the owner's copy when nothing is pasted) — not when online payment is off or the class is free", async () => {
     const buyer = await registerStudent();
     const quote = async () => (await json(await buyer.client.post("/api/checkout/quote", { courses: [COURSE] }))).quote;
 
@@ -184,7 +229,12 @@ describe("SSLCommerz's logo at checkout", () => {
     expect(q.ssl_logo).toBeNull();
 
     await setPayments({ ssl_logo: "" });
-    expect((await quote()).ssl_logo).toBeNull();
+    expect((await quote()).ssl_logo, "nothing pasted: the copy the owner sent").toBe(SSL_BANNER.src);
+    await withoutStoreKeys(async () => {
+      const k = await quote();
+      expect(k.channels, "no keys, no online payment").not.toContain("sslcommerz");
+      expect(k.ssl_logo).toBeNull();
+    });
 
     // a free class needs no payment at all
     await setPayments({ ssl_logo: LOGO });

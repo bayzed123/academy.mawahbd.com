@@ -1,12 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { SETTING_DEFAULTS, setSetting } from "../src/lib/settings";
 import { DEVELOPER, PAY_LOGOS } from "../src/views/footer-data";
-import { Client, env } from "./helpers";
+import { Client, env, freshState } from "./helpers";
 
 /*
  * The footer's "We accept" row (the owner's bKash, Nagad and Rocket pictures plus Visa and Mastercard) and the developer credit.
  * What the owner cannot see by eye: that every picture is really there and the page reserves exactly the room it needs (a
  * regenerated or swapped file must not drift from the numbers in the markup), that each one has a spoken name in both
- * languages, and that the credit is a safe, visible link with the "all rights reserved" line next to it.
+ * languages, and that the credit is a safe, visible link with the "all rights reserved" line next to it. While SSLCommerz takes payments,
+ * its own picture stands in for the row (worker/test/ssl-logo.test.ts); the row is checked here with SSLCommerz switched off.
  */
 const SITE = env.SITE_URL.replace(/\/$/, "");
 const html = async (path: string) => (await new Client().get(path)).text();
@@ -31,8 +33,15 @@ function webpSize(b: Uint8Array): { w: number; h: number } {
   throw new Error(`not a WebP file (${tag})`);
 }
 
+async function setPayments(over: Partial<typeof SETTING_DEFAULTS.payments>) {
+  await setSetting(env, "payments", { ...SETTING_DEFAULTS.payments, ...over }, null);
+  freshState();
+}
+afterEach(async () => setPayments({}));
+
 describe("the payment logos in the footer", () => {
   it("every public page shows the five marks in order, each with a spoken name in its own language", async () => {
+    await setPayments({ sslcommerz: false });
     const names = {
       en: ["bKash", "Nagad", "Rocket", "Visa", "Mastercard"],
       bn: ["বিকাশ", "নগদ", "রকেট", "ভিসা", "মাস্টারকার্ড"],

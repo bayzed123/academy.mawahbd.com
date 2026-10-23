@@ -186,7 +186,7 @@ export interface QuoteDTO {
   /** payment channels that can be used right now (empty when total is 0: enrolment is instant) */
   channels: Channel[];
   manual: ManualPayInfo | null;
-  /** SSLCommerz's own logo (the picture's address), shown on the online-payment choice when the owner has pasted it; null = the small marks */
+  /** SSLCommerz's picture of the ways to pay for the online-payment choice: the one the owner pasted, else the copy the owner sent (SSL_BANNER); null = the small marks */
   ssl_logo: string | null;
   /**
    * The ways of paying SSLCommerz offered this shop the last time it was asked, with SSLCommerz's logo for each — the buttons the checkout
