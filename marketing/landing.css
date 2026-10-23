@@ -1,0 +1,31 @@
+/*
+ * Landing pages (Admin → Landing pages; views/pages/landing.tsx): sent only with a landing page (a second inline <style>, allowed by its
+ * hash like the first), so every other page stays as light as before. It comes after the site's own CSS and uses its variables.
+ */
+.lp-narrow{max-width:52rem}
+.lp-hero{position:relative;overflow:hidden;background:linear-gradient(162deg,var(--k-950),var(--k-800));color:#fff}
+.lp-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.lp-hero.has-img::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(14,10,8,.86),rgba(14,10,8,.45) 60%,rgba(14,10,8,.2))}
+.lp-hero-body{position:relative;z-index:1;padding-block:clamp(56px,10vw,128px);max-width:var(--wrap)}
+.lp-hero h1,.lp-hero h2{color:#fff;max-width:40rem;margin-bottom:.35em}
+.lp-lead{color:#efe6db;font-size:clamp(1.05rem,2.2vw,1.25rem);max-width:38rem;margin:0 0 1.4em}
+.lp-text h1,.lp-text h2,.lp-pictures h2,.lp-video h2,.lp-faq h2,.lp-reviews h2,.lp-pictures h1,.lp-video h1,.lp-faq h1,.lp-reviews h1{margin-bottom:.8em}
+.lp-pic-grid{list-style:none;margin:0;padding:0;display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr))}
+.lp-pic-grid figure{margin:0;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.lp-pic-grid img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover}
+.lp-pic-grid figcaption{padding:.6rem .85rem;font-size:.95rem;color:var(--ink-2)}
+.lp-frame{position:relative;aspect-ratio:16/9;border-radius:var(--r);overflow:hidden;background:var(--k-950);box-shadow:var(--sh-1)}
+.lp-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.lp-class-grid{display:grid;gap:clamp(16px,3vw,32px);grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));align-items:start}
+.lp-card,.lp-offer-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh-1);padding:clamp(18px,3vw,28px);display:grid;gap:12px;justify-items:start}
+.lp-buy .btn-block{justify-self:stretch}
+.lp-buy-title{font-size:clamp(1.3rem,2.6vw,1.7rem);margin:0}
+.lp-offer-card{text-align:center;justify-items:center;border-color:var(--g-500)}
+.lp-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:.5rem .75rem;margin:0}
+.lp-price b{font-size:clamp(1.8rem,4vw,2.4rem);color:var(--ink);line-height:1.1}
+.lp-price s{color:var(--ink-3);font-size:1.1rem}
+.lp-off{display:inline-block;background:var(--red-600);color:#fff;font-weight:700;font-size:.95rem;border-radius:999px;padding:.15rem .65rem}
+.lp-wa-card{text-align:center;display:grid;justify-items:center;gap:14px}
+.lp-wa-btn{background:#1a7f43;border-color:#1a7f43;color:#fff;display:inline-flex;align-items:center;gap:10px}
+.lp-wa-btn:hover,.lp-wa-btn:focus-visible{background:#146536;border-color:#146536;color:#fff}
+.lp-wa-btn .icon{width:22px;height:22px}

@@ -3,7 +3,7 @@ import { loc, readSslLogo, SSL_BANNER } from "@mawah/shared";
 import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
-import { ANALYTICS_JS, BANNERS_JS, CSS, GALLERY_JS, OG_IMAGE, SITE_JS } from "../generated/assets";
+import { ANALYTICS_JS, BANNERS_JS, CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SITE_JS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
@@ -25,6 +25,8 @@ export interface LayoutProps {
   slider?: boolean;
   /** the page has pictures to look at large (a class with more than its main picture): load the viewer's script */
   gallery?: boolean;
+  /** a landing page: send the landing pages' own CSS */
+  landing?: boolean;
   /** shows/hides the site chrome (certificate & invoice documents print without it) */
   chrome?: boolean;
   /** what the analytics script needs to know about this page (the class on show …); written into the page only when measuring is on */
@@ -112,6 +114,7 @@ export function Layout(props: LayoutProps) {
           <link rel="preload" href={href} as="font" type="font/woff2" crossorigin="anonymous" />
         ))}
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        {props.landing && <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />}
         {(props.jsonLd ?? []).map((data) => (
           <script type="application/ld+json">{jsonLd(data)}</script>
         ))}

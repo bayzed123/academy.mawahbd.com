@@ -7,4 +7,5 @@ export * from "./analytics";
 export * from "./banner";
 export * from "./payLogos";
 export * from "./sslLogo";
+export * from "./landing";
 export * from "./videoEmbed";

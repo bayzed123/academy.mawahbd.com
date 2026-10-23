@@ -35,11 +35,12 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 seoRoutes.get("/sitemap.xml", (c) =>
   cachedPage(c, { ttl: 3600 }, async () => {
     const site = c.env.SITE_URL.replace(/\/$/, "");
-    const [courses, posts, instructors, cats] = await Promise.all([
+    const [courses, posts, instructors, cats, landing] = await Promise.all([
       all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM courses WHERE deleted_at IS NULL AND status IN ('published','coming_soon') ORDER BY sort, id"),
       all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM blog_posts WHERE status = 'published' AND deleted_at IS NULL"),
       all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM instructors WHERE active = 1 AND deleted_at IS NULL"),
       all<{ slug: string }>(c.env.DB, "SELECT slug FROM categories WHERE active = 1 ORDER BY sort"),
+      all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM landing_pages WHERE status = 'published' AND deleted_at IS NULL"),
     ]);
 
     const entries: { path: string; lastmod?: string; priority: string }[] = [
@@ -49,6 +50,7 @@ seoRoutes.get("/sitemap.xml", (c) =>
       ...courses.map((x) => ({ path: `/courses/${x.slug}`, lastmod: x.updated_at, priority: "0.9" })),
       { path: "/blog", priority: "0.6" },
       ...posts.map((x) => ({ path: `/blog/${x.slug}`, lastmod: x.updated_at, priority: "0.6" })),
+      ...landing.map((x) => ({ path: `/l/${x.slug}`, lastmod: x.updated_at, priority: "0.6" })),
       ...instructors.map((x) => ({ path: `/instructors/${x.slug}`, lastmod: x.updated_at, priority: "0.5" })),
       { path: "/about", priority: "0.5" },
       { path: "/faq", priority: "0.6" },

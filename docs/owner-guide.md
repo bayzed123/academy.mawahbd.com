@@ -400,6 +400,25 @@
 * **কিছু ঠিক না থাকলে** পাতাটি সহজ ভাষায় বলে কোন ধাপ বাকি: চাবি বসানো হয়নি · চাবি পড়া যায়নি · Google চাবি নেয়নি · Google-এর API বন্ধ · সার্ভিস অ্যাকাউন্ট প্রপার্টিতে যোগ হয়নি · প্রপার্টি নম্বর ভুল · ঘণ্টায় অনেক বেশি প্রশ্ন — আর পরের কাজ কী। Google যা বলেছে সেই লাইনও দেখায় (চাবির মতো কিছু থাকলে কেটে বাদ দিয়ে)।
 * **সতর্কতা:** (১) **JSON ফাইল বা তার কোনো অংশ কখনো চ্যাটে, স্ক্রিনশটে বা ইমেইলে দেবেন না।** দিয়ে ফেললে Google Cloud-এ সেই কী মুছে নতুন বানান, GitHub সিক্রেট বদলান, Deploy চালান। (২) সংখ্যা আনার কোড এখনো আসল Google-এর সাথে চালিয়ে দেখা যায়নি — আপনি চাবি বসিয়ে **সংযোগ পরীক্ষা করুন** চাপলেই বোঝা যাবে; কোনো একটি অংশ Google না বুঝলে শুধু সেই অংশ ফাঁকা থাকে ও কারণ লেখা থাকে, বাকিটা কাজ করে। (৩) গোপনীয়তা নীতিতে (*সেটিংস → নীতিমালা*) লিখে দিন যে সাইট Google Analytics ব্যবহার করে (ক্লাস তালিকায় যে শব্দ লিখে খোঁজা হয় সেটিও গোনা হয়), আর ফুটারের লিংক দিয়ে যে কেউ গোনা বন্ধ করতে পারেন। (৪) অ্যানালিটিক্সের **টাকার** কলাম শুধু মালিক ও ভিউয়ার দেখেন (রিপোর্ট → রাজস্বের মতোই); কনটেন্ট ম্যানেজার ক্লাসের পেজ ভিউ ও কয়টি বিক্রি দেখেন, কিন্তু টাকার অঙ্ক নয়।
 
+## ২৬. ল্যান্ডিং পেজ — অফার ও বিজ্ঞাপনের জন্য যত খুশি পাতা
+
+*অ্যাডমিন → ল্যান্ডিং পেজ*-এ নিজের পাতা বানান, প্রতিটি নিজের ঠিকানায়: **mawahacademy.com/l/<ঠিকানা>** (ইংরেজিতে **/en/l/<ঠিকানা>**)। Facebook বিজ্ঞাপন বা মেসেজে এই লিংক দিন।
+1. **+ যোগ করুন** → পাতার নাম (বাংলা ও ইংরেজি), চাইলে ঠিকানা (যেমন `eid-offer`; খালি রাখলে ইংরেজি নাম থেকে হয়), সার্চ ও শেয়ারের এক-দুই বাক্য → **সংরক্ষণ করুন**। নতুন পাতা **খসড়া** — ওয়েবসাইটে দেখা যায় না।
+2. সারির **ব্লক** বোতাম → ধরন বেছে **ব্লক যোগ করুন**:
+   * **ব্যানার** — বড় ছবি, শিরোনাম, লেখা ও একটি বোতাম (এই সাইটের পাতা, https:// ঠিকানা, ফোন বা ইমেইল);
+   * **লেখা** — শিরোনাম ও লেখা (**গাঢ়**, তালিকা, লিংক চলে);
+   * **ছবি** — ক্যাপশনসহ ১২টি পর্যন্ত;
+   * **ভিডিও** — YouTube বা Vimeo লিংক, পাতাতেই চলে;
+   * **ভর্তি বোতামসহ ক্লাস** — ক্লাসের নিজের ছবি, দাম ও রেটিং; চাইলে “স্বাভাবিক দাম” দিন, তাহলে কেটে দেখানো দাম আর “−২০%” দেখায়; **এখনই ভর্তি হন** সরাসরি চেকআউটে নেয়;
+   * **ছাড়সহ দাম** — দাম, স্বাভাবিক দাম, ছোট লেখা আর একটি বোতাম;
+   * **প্রশ্ন ও উত্তর** — Google-কেও প্রশ্নোত্তর হিসেবে জানানো হয়;
+   * **শিক্ষার্থীদের রিভিউ** — একটি বা সব ক্লাসের, শুধু অনুমোদিত রিভিউ;
+   * **হোয়াটসঅ্যাপ বোতাম** — সেটিংস → যোগাযোগের নম্বরে, আগে থেকে লেখা মেসেজসহ।
+3. তীর দিয়ে ব্লক ওপর-নিচ করুন, ময়লার ঝুড়ি দিয়ে সরান, তারপর **সংরক্ষণ করুন**। কোনো ভুল থাকলে (যেমন বোতামের ঠিকানা ঠিক নয়) লাল লেখায় বলে দেয়, কিছুই সংরক্ষিত হয় না।
+4. প্রস্তুত হলে সারির পেনসিল → অবস্থা **প্রকাশিত** → **সংরক্ষণ করুন**। সারির ↗ বোতাম পাতাটি খোলে।
+* প্রতিটি লেখা দুই ভাষায়; এক ভাষা খালি রাখলে সেই ব্লকে অন্য ভাষার লেখা দেখায়।
+* লুকানো বা “শীঘ্রই আসছে” ক্লাসের ব্লক, অনুমোদিত রিভিউ ছাড়া রিভিউ ব্লক, আর নম্বর ছাড়া হোয়াটসঅ্যাপ ব্লক পাতায় দেখায় না — ভুয়া কিছু দেখানো হয় না।
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -788,3 +807,22 @@ Whatever you give a class besides its lessons — a PDF of recipe cards, a ZIP, 
 * **Honest about the numbers:** Google’s figures can be hours (sometimes a day) behind; visitors who say no, and some ad blockers, are not counted, so the real number of visitors is a little higher. **Sales and money come from your own orders, so they are exact** (as in *Reports → Revenue*). “Bought (Google saw)” can be lower (a free enrolment counts there too).
 * **If something is missing** the screen tells you in plain words which step: key not added · key cannot be read · Google did not accept the key · the API is switched off · the account was not added to the property · wrong property number · too many questions in an hour — and what to do next. It also shows the line Google itself answered (with anything shaped like a key cut out).
 * **Please know:** (1) **Never show the JSON file, or any part of it, in a chat, a screenshot or an e-mail.** If it was shown, delete that key in Google Cloud, make a new one, change the GitHub secret and run Deploy. (2) The code that fetches the numbers has not yet been run against the real Google — pressing **Check the connection** once the key is in is the test; if Google does not understand one panel’s question, only that panel stays empty (with the reason) and the rest works. (3) Say in your privacy policy (*Settings → Policies*) that the site uses Google Analytics (the words typed into the class list’s search are counted too); anyone can stop being counted with the footer link. (4) The **Money** column of the Analytics screen is for the owner and the viewer only (like *Reports → Revenue*); a content manager sees the class page views and how many were sold, but not the amounts.
+
+## 26. Landing pages — as many pages as you want for offers and ads
+
+In *Admin → Landing pages* make your own pages, each at its own address: **mawahacademy.com/l/<address>** (in English **/en/l/<address>**). Use the link in a Facebook ad or a message.
+1. **+ Add** → the page's name (Bangla and English), an address if you want one (like `eid-offer`; left empty, it is made from the English name), and one or two sentences for search and sharing → **Save**. A new page is a **Draft** — not on the website.
+2. The **Blocks** button on its row → choose a kind and press **Add block**:
+   * **Banner** — a big picture, a heading, words and one button (a page of this site, an https:// address, a phone or an e-mail);
+   * **Words** — a heading and words (**bold**, lists and links work);
+   * **Pictures** — up to 12, with captions;
+   * **Video** — a YouTube or Vimeo link, played on the page;
+   * **Class with Enroll button** — the class's own picture, price and rating; give a "usual price" if you want, and the price shows struck through with "−20%"; **Enroll Now** goes straight to its checkout;
+   * **Price with saving** — a price, the usual price, small print and a button;
+   * **Questions and answers** — also given to Google as an FAQ;
+   * **Students' reviews** — of one class or all, approved reviews only;
+   * **WhatsApp button** — to the number in Settings → Contact, with a message already written.
+3. Move blocks up and down with the arrows, remove one with the bin, then **Save**. Anything wrong (a button's address that is not safe, for example) is said in red and nothing is stored.
+4. When it is ready: the pencil on its row → status **Published** → **Save**. The ↗ button on the row opens the page.
+* Every block's words are in both languages; if one language is empty, that block shows the other.
+* A block for a hidden or "coming soon" class, a reviews block with no approved review, and a WhatsApp block with no number are left out of the page — nothing made up is ever shown.
