@@ -168,8 +168,15 @@ async function applyCoupon(env: Env, studentId: number | null, code: string, cou
 /* =================================================================================================
  *  Orders
  * ============================================================================================== */
+/**
+ * `gateway_ref` of a manual order paid on the shop's SSLCommerz payment link (method "card"). A sale staff record by hand can also be a
+ * manual "card" order — paid by card somewhere else — so this mark, not the method, is what says "paid on the payment link".
+ */
+export const PAY_LINK_REF = "sslcommerz_link";
+
 export interface ManualProof {
-  method: "bkash" | "nagad" | "rocket";
+  /** "card" = paid on the shop's SSLCommerz payment link (card or mobile banking on SSLCommerz's own page) */
+  method: "bkash" | "nagad" | "rocket" | "card";
   /** the number the student pays FROM — it lets staff match the payment in their statement */
   payer_number: string;
   /** absent when the student is only starting: they pay first and send the TrxID (and/or a screenshot) afterwards */
@@ -194,9 +201,9 @@ export async function createOrder(
   const status: OrderStatus = withProof ? "awaiting_verification" : "pending";
   const payBy = isManual ? nowIso(new Date(created.getTime() + windowMin * 60_000)) : null;
   const insert = env.DB.prepare(
-    `INSERT INTO orders (public_id, student_id, status, subtotal, discount, total, coupon_id, coupon_code, bundle_id, method, gateway,
+    `INSERT INTO orders (public_id, student_id, status, subtotal, discount, total, coupon_id, coupon_code, bundle_id, method, gateway, gateway_ref,
                          gateway_txn, payer_number, customer_name, customer_email, customer_phone, customer_address, pay_by, proof_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(
     publicId,
     student.id,
@@ -209,6 +216,7 @@ export async function createOrder(
     quote.bundle_id,
     manual?.method ?? null,
     channel,
+    isManual && manual?.method === "card" ? PAY_LINK_REF : null,
     manual?.trx_id ?? null,
     manual?.payer_number ?? null,
     student.name,
@@ -402,6 +410,7 @@ async function orderForNotice(env: Env, orderId: number) {
       invoice_no: string | null;
       total: number;
       method: string | null;
+      via_link: number;
       customer_name: string;
       customer_email: string;
       customer_phone: string;
@@ -413,7 +422,7 @@ async function orderForNotice(env: Env, orderId: number) {
       made_at_checkout: number;
     }>(
       env.DB,
-      `SELECT o.public_id, o.invoice_no, o.total, o.method, o.customer_name, o.customer_email, o.customer_phone, o.customer_address, o.gateway_txn, o.payer_number,
+      `SELECT o.public_id, o.invoice_no, o.total, o.method, (o.gateway_ref IS '${PAY_LINK_REF}') AS via_link, o.customer_name, o.customer_email, o.customer_phone, o.customer_address, o.gateway_txn, o.payer_number,
               (o.proof_key IS NOT NULL) AS has_image, o.student_id,
               (s.source = 'checkout' AND NOT EXISTS (SELECT 1 FROM orders p WHERE p.student_id = o.student_id AND p.status IN ('paid','refunded') AND p.id <> o.id)) AS made_at_checkout
        FROM orders o JOIN students s ON s.id = o.student_id WHERE o.id = ?`,
@@ -432,7 +441,7 @@ export async function notifyPaid(env: Env, orderId: number): Promise<void> {
     const o = d.order;
     await notifyOwner(
       env,
-      notices.orderPaid({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, address: o.customer_address, items: d.items, total: o.total, method: o.method, invoiceNo: o.invoice_no ?? "", studentId: studentCode(o.student_id), newAccount: !!o.made_at_checkout }),
+      notices.orderPaid({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, address: o.customer_address, items: d.items, total: o.total, method: o.method, viaLink: !!o.via_link, invoiceNo: o.invoice_no ?? "", studentId: studentCode(o.student_id), newAccount: !!o.made_at_checkout }),
     );
   } catch (err) {
     console.error("notify_paid_failed", orderId, err instanceof Error ? err.message : err);
@@ -447,7 +456,7 @@ export async function notifyProof(env: Env, orderId: number): Promise<void> {
     const o = d.order;
     await notifyOwner(
       env,
-      notices.paymentWaiting({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, address: o.customer_address, items: d.items, total: o.total, method: o.method, trx: o.gateway_txn, payer: o.payer_number, hasImage: !!o.has_image, publicId: o.public_id }),
+      notices.paymentWaiting({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, address: o.customer_address, items: d.items, total: o.total, method: o.method, viaLink: !!o.via_link, trx: o.gateway_txn, payer: o.payer_number, hasImage: !!o.has_image, publicId: o.public_id }),
     );
   } catch (err) {
     console.error("notify_proof_failed", orderId, err instanceof Error ? err.message : err);
@@ -547,10 +556,11 @@ interface OrderRow {
   pay_by: string | null;
   proof_at: string | null;
   has_proof_image: number;
+  via_link: number;
 }
 
-const ORDER_COLS =
-  "id, public_id, invoice_no, status, subtotal, discount, total, coupon_code, method, gateway, gateway_txn, payer_number, created_at, paid_at, pay_by, proof_at, (proof_key IS NOT NULL) AS has_proof_image";
+const ORDER_COLS = `id, public_id, invoice_no, status, subtotal, discount, total, coupon_code, method, gateway, gateway_txn, payer_number, created_at, paid_at, pay_by,
+  proof_at, (proof_key IS NOT NULL) AS has_proof_image, (gateway_ref IS '${PAY_LINK_REF}') AS via_link`;
 
 async function withItems(env: Env, rows: OrderRow[]): Promise<OrderDTO[]> {
   if (rows.length === 0) return [];
@@ -563,6 +573,7 @@ async function withItems(env: Env, rows: OrderRow[]): Promise<OrderDTO[]> {
   return rows.map((r) => ({
     ...r,
     has_proof_image: !!r.has_proof_image,
+    via_link: !!r.via_link,
     items: items.filter((i) => i.order_id === r.id).map(({ order_id: _o, ...rest }) => rest),
   }));
 }

@@ -20,6 +20,12 @@ export interface Settings {
     manual_window_min: number;
     /** what SSLCommerz gave the shop to show its logo (a link, or its few lines of HTML) — read by readSslLogo; empty = not shown */
     ssl_logo: string;
+    /**
+     * the shop's payment link from the SSLCommerz panel (its own payment page, e.g. https://invoice.sslcommerz.com/invoice-form?refer=…):
+     * one more way under manual payment — the student pays there and sends the transaction ID, staff check it in the SSLCommerz panel.
+     * Only an https address on sslcommerz.com is stored (sslcommerzUrl); empty = not offered.
+     */
+    manual_link: string;
   };
   /** the policy and help pages (Markdown); until the owner writes their own, the site's texts (content/pageTexts.ts) */
   policies: {
@@ -69,6 +75,7 @@ export const SETTING_DEFAULTS: Settings = {
     manual_note_en: "",
     manual_window_min: MANUAL_WINDOW_DEFAULT_MIN,
     ssl_logo: "",
+    manual_link: "",
   },
   policies: {
     refund_bn: PAGE_TEXTS.refund.bn,

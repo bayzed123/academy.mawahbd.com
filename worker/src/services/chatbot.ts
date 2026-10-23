@@ -105,6 +105,7 @@ async function buildSystemPrompt(env: Env, lang: Lang, courseId?: number | null)
   if (s.payments.manual) {
     const n = s.payments.manual_numbers;
     pay.push(`manual send-money to bKash ${n.bkash || "-"} / Nagad ${n.nagad || "-"} / Rocket ${n.rocket || "-"}, then enter the transaction id at checkout; the team verifies it`);
+    if (s.payments.manual_link) pay.push("under manual payment at checkout, also card or mobile banking on SSLCommerz's payment page (the checkout gives the link), then the transaction id; the team verifies it");
   }
   const contact = [s.contact.whatsapp && `WhatsApp ${s.contact.whatsapp}`, s.contact.phone && `phone ${s.contact.phone}`, s.contact.email && `email ${s.contact.email}`].filter(Boolean).join(", ");
   const faq = loc({ faq_bn: s.chatbot.faq_bn, faq_en: s.chatbot.faq_en }, "faq", lang);

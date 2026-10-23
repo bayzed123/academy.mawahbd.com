@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS, readSslLogo, SSL_LOGO_MAX } from "@mawah/shared";
+import { MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS, readSslLogo, sslcommerzUrl, SSL_LOGO_MAX } from "@mawah/shared";
 import { isDev, type AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { underHourlyCap } from "../../../lib/cap";
@@ -51,6 +51,14 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
       .trim()
       .max(SSL_LOGO_MAX, "too_long")
       .refine((v) => v === "" || readSslLogo(v) !== null, "ssl_logo_invalid")
+      .default(""),
+    // the shop's payment link from the SSLCommerz panel: only an https address on sslcommerz.com, stored cleaned up
+    manual_link: z
+      .string()
+      .trim()
+      .max(500, "too_long")
+      .refine((v) => v === "" || sslcommerzUrl(v) !== null, "pay_link_invalid")
+      .transform((v) => (v ? sslcommerzUrl(v)! : ""))
       .default(""),
   }),
   policies: z.object({

@@ -14,7 +14,7 @@ interface S {
   contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string; address_bn: string; address_en: string; trade_license: string };
   announcement: { bn: string; en: string };
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
-  payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number; ssl_logo: string };
+  payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number; ssl_logo: string; manual_link: string };
   policies: {
     refund_bn: string;
     refund_en: string;
@@ -240,6 +240,9 @@ export function Settings() {
                       <TextInput id={`pn-${m}`} inputMode="tel" value={v.manual_numbers[m]} error={e[`manual_numbers.${m}`]} disabled={!canWrite} onChange={(x) => set({ manual_numbers: { ...v.manual_numbers, [m]: x.target.value } })} />
                     </Field>
                   ))}
+                  <Field id="pn-link" label={t("adm.pay.link")} hint={t("adm.pay.linkHint")} error={e.manual_link} wide>
+                    <TextInput id="pn-link" type="url" inputMode="url" className="mono" spellCheck={false} placeholder="https://invoice.sslcommerz.com/invoice-form?refer=…" value={v.manual_link} error={e.manual_link} disabled={!canWrite} onChange={(x) => set({ manual_link: x.target.value })} />
+                  </Field>
                   <Field id="pn-note-bn" label={t("adm.pay.noteBn")} error={e.manual_note_bn}>
                     <TextArea id="pn-note-bn" rows={3} maxLength={500} value={v.manual_note_bn} disabled={!canWrite} onChange={(x) => set({ manual_note_bn: x.target.value })} />
                   </Field>
