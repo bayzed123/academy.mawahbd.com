@@ -193,6 +193,11 @@ export interface QuoteDTO {
    * shows under the online payment; null = SSLCommerz has not been asked yet (the checkout then shows all of PAY_VIA)
    */
   ssl_ways: { via: PayVia; logo: string | null }[] | null;
+  /**
+   * SSLCommerz refused this much lately because of the store's limit per payment (only SSLCommerz can lift it): the online payment is shown as
+   * not open for this amount yet, and send-money is offered instead
+   */
+  ssl_limited: boolean;
 }
 
 /**

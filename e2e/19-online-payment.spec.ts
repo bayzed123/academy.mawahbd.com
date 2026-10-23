@@ -14,10 +14,10 @@ test.describe.configure({ mode: "serial" });
 
 const MANUAL = { window_min: 20, numbers: { bkash: "01711111111", nagad: "", rocket: "" }, note_bn: "", note_en: "" };
 
-type Quote = { channels: string[]; manual: unknown; ssl_ways: { via: string; logo: string | null }[] | null };
+type Quote = { channels: string[]; manual: unknown; ssl_limited: boolean };
 /**
  * The checkout page of a visitor, with the quote changed to offer the online payment as well (this site has no store keys, so it never would).
- * `patch` changes the quote further (what SSLCommerz offered last time).
+ * `patch` changes the quote further (SSLCommerz refused this amount lately, only the online payment …).
  */
 async function checkout(browser: Browser, lang: "bn" | "en", patch?: (q: Quote) => void) {
   const ctx = await browser.newContext({ locale: lang === "bn" ? "bn-BD" : "en-US" });
@@ -28,6 +28,7 @@ async function checkout(browser: Browser, lang: "bn" | "en", patch?: (q: Quote) 
     const body = (await res.json()) as { quote: Quote };
     body.quote.channels = ["sslcommerz", "manual"];
     body.quote.manual = MANUAL;
+    body.quote.ssl_limited = false;
     patch?.(body.quote);
     await route.fulfill({ response: res, json: body });
   });
@@ -108,7 +109,7 @@ test("the same, in Bangla", async ({ browser }) => {
   await ctx.close();
 });
 
-/* ---------------------------------------------------------------------------------------- paying by tapping a logo */
+/* ------------------------------------------------------------------------ after Pay: tapping one of SSLCommerz's logos */
 
 const GW = "https://sandbox.sslcommerz.com/gwprocess/v4";
 const ALL = `${GW}/gw.php?Q=PAY&SESSIONKEY=e2e`;
@@ -128,10 +129,11 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEklEQVR
  * The Worker's answer to "Pay" with SSLCommerz's list of ways to pay (this copy of the site has no store keys; the Worker's side is in
  * worker/test/payment-gateway.test.ts), and SSLCommerz's pictures and pages stood in for — the test never leaves this machine.
  */
-async function sslcommerzAnswers(ctx: import("@playwright/test").BrowserContext, page: Page) {
-  await page.route("**/api/checkout/guest", (route) =>
-    route.fulfill({ status: 201, contentType: "application/json", json: { ok: true, order: { public_id: "ORD-E2E-WAYS", status: "pending", total: 1850 }, redirect_url: ALL, pay_methods: WAYS } }),
-  );
+async function sslcommerzAnswers(ctx: import("@playwright/test").BrowserContext, page: Page, sent?: Record<string, unknown>[]) {
+  await page.route("**/api/checkout/guest", (route) => {
+    sent?.push(route.request().postDataJSON() as Record<string, unknown>);
+    return route.fulfill({ status: 201, contentType: "application/json", json: { ok: true, order: { public_id: "ORD-E2E-WAYS", status: "pending", total: 1850 }, redirect_url: ALL, pay_methods: WAYS } });
+  });
   await ctx.route("https://sandbox.sslcommerz.com/**", (route) => {
     const u = new URL(route.request().url());
     if (u.pathname.endsWith(".png")) return route.fulfill({ status: 200, contentType: "image/png", body: PNG });
@@ -199,98 +201,86 @@ test("the same choice, in Bangla", async ({ browser }) => {
   await ctx.close();
 });
 
-/* ------------------------------------------------------------------- the ways of paying, as soon as the online payment is chosen */
+/* ------------------------------------------------------------------------------- one choice, then Pay: the logos come after */
 
-const TILES = ["Pay with bKash", "Pay with Nagad", "Pay with Rocket", "Pay with Upay", "Pay with Visa", "Pay with Mastercard", "Pay with American Express"];
-
-test("as soon as the online payment is chosen its ways of paying show as logo buttons — wallets first — and tapping bKash pays with bKash", async ({ browser }) => {
+test("before Pay there is one list to choose from and one Pay button — no payment logos to tap — and nothing names a way of paying yet", async ({ browser }) => {
   const { ctx, page } = await checkout(browser, "en");
   const sent: Record<string, unknown>[] = [];
-  await page.route("**/api/checkout/guest", (route) => {
-    sent.push(route.request().postDataJSON() as Record<string, unknown>);
-    return route.fulfill({ status: 201, contentType: "application/json", json: { ok: true, order: { public_id: "ORD-E2E-TAP", status: "pending", total: 1850 }, redirect_url: `${GW}/bankgw/indexhtmlotp.php?SESSIONKEY=e2e&cardname=bkash`, pay_methods: [] } });
+  await sslcommerzAnswers(ctx, page, sent);
+  await expect(page.locator("label.pay-opt input:checked")).toHaveValue("sslcommerz");
+  // the logos SSLCommerz shows are not buttons on the form: only after Pay, on the next step
+  await expect(page.locator(".pay-method")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^Pay with / })).toHaveCount(0);
+  await expect(page.locator("form.checkout button[type=submit]")).toHaveCount(1);
+  await fillDetails(page, "en");
+  await agree(page);
+  await page.getByRole("button", { name: /^Pay ৳/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Choose your payment method" })).toBeVisible();
+  await expect(page.locator(".pay-method")).toHaveCount(WAYS.length);
+  expect(sent).toHaveLength(1);
+  expect(sent[0]).toMatchObject({ channel: "sslcommerz", name: "Rina Akter" });
+  expect(sent[0]).not.toHaveProperty("via"); // SSLCommerz's list decides, not a guess made before it was asked
+  await ctx.close();
+});
+
+/* --------------------------------------------------------------------- SSLCommerz's own limit on how much one payment may be */
+
+test("when SSLCommerz refuses the amount the buyer is told what it is and can pay by sending money instead", async ({ browser }) => {
+  const { ctx, page } = await checkout(browser, "en");
+  await page.route("**/api/checkout/guest", (route) => route.fulfill({ status: 502, contentType: "application/json", json: { ok: false, error: { code: "gateway_amount_limit" } } }));
+  await fillDetails(page, "en");
+  await agree(page);
+  await page.getByRole("button", { name: /^Pay ৳/ }).click();
+  const alert = page.getByRole("alert").filter({ hasText: "Online payment does not take this amount yet" });
+  await expect(alert).toBeVisible();
+  await expect(alert).toContainText("Nothing was charged");
+  await expect(alert).toContainText("You can also pay right now by sending money");
+  await alert.getByRole("button", { name: "Pay by sending money instead" }).click();
+  await expect(page.locator("label.pay-opt input:checked")).toHaveValue("manual");
+  await expect(page.locator("#m-payer")).toBeVisible();
+  await ctx.close();
+});
+
+test("once the limit is known, the next buyer is told on the option itself and send-money is chosen for them", async ({ browser }) => {
+  const { ctx, page } = await checkout(browser, "en", (q) => {
+    q.ssl_limited = true;
   });
-  await ctx.route("https://sandbox.sslcommerz.com/**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: `<title>SSLCommerz ${new URL(route.request().url()).searchParams.get("cardname") ?? "all"}</title>` }));
-
-  // shown right away, before anything is pressed: SSLCommerz has never been asked here, so all of them
-  const tiles = page.getByRole("group", { name: "Tap how you will pay" });
-  await expect(tiles).toBeVisible();
-  await expect(tiles.getByText("Your PIN or card number is typed only there")).toBeVisible();
-  await expect(tiles.locator("h4")).toHaveText(["Mobile banking", "Cards"]);
-  await expect(tiles.getByRole("button")).toHaveCount(TILES.length);
-  for (const [i, name] of TILES.entries()) await expect(tiles.getByRole("button").nth(i)).toHaveAccessibleName(name);
-  // our own pictures for the five we have them for, and they really arrive
-  const pics = tiles.locator(".pay-logo img");
-  expect(await pics.evaluateAll((imgs) => imgs.map((i) => new URL((i as HTMLImageElement).src).pathname))).toEqual(["/pay/bkash.webp", "/pay/nagad.webp", "/pay/rocket.webp", "/pay/visa.svg", "/pay/mastercard.svg"]);
-  await expect.poll(() => pics.evaluateAll((imgs) => imgs.every((i) => (i as HTMLImageElement).complete && (i as HTMLImageElement).naturalWidth > 0))).toBe(true);
-
-  // only for the online payment
-  await page.locator("label.pay-opt", { hasText: "Send money manually" }).click();
-  await expect(tiles).toHaveCount(0);
-  await page.locator("label.pay-opt", { hasText: "Secure online payment" }).click();
-  await expect(tiles).toBeVisible();
-
+  await expect(page.locator("label.pay-opt input:checked")).toHaveValue("manual");
+  const online = page.locator("label.pay-opt", { hasText: "Secure online payment" });
+  await expect(online.getByText("Not open for this amount yet — please pay by sending money")).toBeVisible();
+  await expect(page.locator("#m-payer")).toBeVisible();
+  // they may still choose it (SSLCommerz may have lifted the limit since)
+  await online.click();
+  await expect(page.locator("label.pay-opt input:checked")).toHaveValue("sslcommerz");
   const axe = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
-  // a phone: two or more to a row, nothing wider than the screen
   await page.setViewportSize({ width: 360, height: 800 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-  const [one, two] = await Promise.all([tiles.getByRole("button").nth(0).boundingBox(), tiles.getByRole("button").nth(1).boundingBox()]);
-  expect(Math.abs(one!.y - two!.y)).toBeLessThan(2);
-  await page.setViewportSize({ width: 1280, height: 900 });
-
-  // the details are checked first: nothing is sent without them
-  await agree(page);
-  await tiles.getByRole("button", { name: "Pay with bKash" }).click();
-  await expect(page.getByLabel(/^Full name/)).toBeFocused();
-  expect(sent).toHaveLength(0);
-
-  await fillDetails(page, "en");
-  await agree(page);
-  await tiles.getByRole("button", { name: "Pay with bKash" }).click();
-  await page.waitForURL(/cardname=bkash$/);
-  await expect(page).toHaveTitle("SSLCommerz bkash");
-  expect(sent).toHaveLength(1);
-  expect(sent[0]).toMatchObject({ channel: "sslcommerz", via: "bkash", name: "Rina Akter" });
   await ctx.close();
 });
 
-test("a way SSLCommerz does not offer the shop brings its list, saying so", async ({ browser }) => {
-  const { ctx, page } = await checkout(browser, "en");
-  await page.route("**/api/checkout/guest", (route) =>
-    route.fulfill({ status: 201, contentType: "application/json", json: { ok: true, order: { public_id: "ORD-E2E-MISS", status: "pending", total: 1850 }, redirect_url: ALL, pay_methods: WAYS.filter((w) => w.name !== "Nagad"), via_missing: "nagad" } }),
-  );
-  await ctx.route("https://sandbox.sslcommerz.com/**", (route) => route.fulfill({ status: 200, contentType: "image/png", body: PNG }));
-  await fillDetails(page, "en");
-  await agree(page);
-  await page.getByRole("button", { name: "Pay with Nagad" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Choose your payment method" })).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: "Nagad cannot be used for this payment right now" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "bKash", exact: true })).toBeVisible();
-  await ctx.close();
-});
-
-test("the buttons are what SSLCommerz offered the shop last time, with SSLCommerz's picture where we have none — and they read in Bangla", async ({ browser }) => {
-  const upay = `${GW}/image/gw/upay.png`;
-  const { ctx, page } = await checkout(browser, "bn", (q) => {
-    q.ssl_ways = [
-      { via: "bkash", logo: null },
-      { via: "upay", logo: upay },
-      { via: "visa", logo: null },
-    ];
+test("the same, in Bangla — and with no send-money to offer, the online option stays and says so", async ({ browser }) => {
+  const one = await checkout(browser, "bn", (q) => {
+    q.ssl_limited = true;
   });
-  await ctx.route("https://sandbox.sslcommerz.com/**", (route) => route.fulfill({ status: 200, contentType: "image/png", body: PNG }));
-  const tiles = page.getByRole("group", { name: "যে মাধ্যমে পেমেন্ট করবেন, সেটিতে চাপুন" });
-  await expect(tiles).toBeVisible();
-  await expect(tiles.locator("h4")).toHaveText(["মোবাইল ব্যাংকিং", "কার্ড"]);
-  await expect(tiles.getByRole("button")).toHaveCount(3);
-  await expect(tiles.getByRole("button").nth(0)).toHaveAccessibleName("bKash দিয়ে পেমেন্ট");
-  await expect(tiles.getByRole("button").nth(1)).toHaveAccessibleName("Upay দিয়ে পেমেন্ট");
-  await expect(tiles.getByRole("button").nth(2)).toHaveAccessibleName("Visa দিয়ে পেমেন্ট");
-  const upayPic = tiles.getByRole("button").nth(1).locator("img");
-  await expect(upayPic).toHaveAttribute("src", upay);
-  await expect.poll(() => upayPic.evaluate((i) => (i as HTMLImageElement).complete && (i as HTMLImageElement).naturalWidth > 0)).toBe(true); // the page's security policy lets it in
-  await ctx.close();
+  await expect(one.page.getByText("এই পরিমাণের জন্য এখনো চালু হয়নি — অনুগ্রহ করে সেন্ড মানি করে পেমেন্ট করুন")).toBeVisible();
+  await expect(one.page.locator("label.pay-opt input:checked")).toHaveValue("manual");
+  await one.page.route("**/api/checkout/guest", (route) => route.fulfill({ status: 502, contentType: "application/json", json: { ok: false, error: { code: "gateway_amount_limit" } } }));
+  await one.page.locator("label.pay-opt", { hasText: "নিরাপদ অনলাইন পেমেন্ট" }).click();
+  await fillDetails(one.page, "bn");
+  await agree(one.page);
+  await one.page.getByRole("button", { name: /পেমেন্ট করুন$/ }).click();
+  await expect(one.page.getByRole("alert").filter({ hasText: "অনলাইন পেমেন্টে এখনো এই পরিমাণ টাকা নেওয়া যাচ্ছে না" })).toBeVisible();
+  await one.ctx.close();
+
+  const only = await checkout(browser, "en", (q) => {
+    q.channels = ["sslcommerz"];
+    q.manual = null;
+    q.ssl_limited = true;
+  });
+  await expect(only.page.locator("label.pay-opt input:checked")).toHaveValue("sslcommerz");
+  await expect(only.page.getByText("May not take this amount yet — if it says no, please contact us")).toBeVisible();
+  await only.ctx.close();
 });
 
 test("when SSLCommerz sends no list, Pay goes to SSLCommerz's own page as before", async ({ browser }) => {
@@ -367,5 +357,38 @@ test.describe("Settings → Payments → Check the connection", () => {
     await admin.evaluate(() => localStorage.setItem("mawah_admin_lang", "en"));
     await admin.reload();
     await expect(admin.getByText("a student cannot start the online payment")).toBeVisible();
+  });
+
+  test("a limit SSLCommerz showed (a buyer's try) is explained in plain words, with a message for SSLCommerz to copy — in both languages", async () => {
+    // this copy of the site has no store keys, so SSLCommerz never refuses anything here: what the Worker remembers is stood in for
+    const said = "Transaction amount is not allowed as per admin configuration!";
+    await admin.route("**/api/admin/settings/payments/ssl", async (route) => {
+      const res = await route.fetch();
+      const body = (await res.json()) as Record<string, unknown>;
+      body.cap = { from: 350, at: new Date().toISOString(), detail: said };
+      body.dearest = 2550;
+      await route.fulfill({ response: res, json: body });
+    });
+    await admin.goto("/admin/settings?tab=payments");
+    const section = admin.getByRole("region", { name: "Online payment connection (SSLCommerz)" });
+    await expect(section.getByText(/^SSLCommerz refused payments of ৳350 or more/)).toBeVisible();
+    await expect(section).toContainText("only SSLCommerz can change it");
+    await expect(section).toContainText(said);
+    const message = section.locator(".copy-row code");
+    await expect(message).toContainText("every payment of 350 taka or more is refused");
+    await expect(message).toContainText("raise it to at least 2,550 taka");
+    await expect(section.getByRole("button", { name: "Copy the message" })).toBeVisible();
+    const axe = await new AxeBuilder({ page: admin }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
+
+    // in Bangla the explanation is Bangla; the message stays in English, for SSLCommerz's support
+    await admin.evaluate(() => localStorage.setItem("mawah_admin_lang", "bn"));
+    await admin.reload();
+    const bn = admin.getByRole("region", { name: "অনলাইন পেমেন্টের সংযোগ (SSLCommerz)" });
+    await expect(bn.getByText("SSLCommerz-কে পাঠানোর মতো একটি বার্তা (ইংরেজিতে)")).toBeVisible();
+    await expect(bn).toContainText("শুধু SSLCommerz-ই বদলাতে পারে");
+    await expect(bn.locator(".copy-row code")).toContainText("every payment of 350 taka or more is refused");
+    await admin.evaluate(() => localStorage.setItem("mawah_admin_lang", "en"));
+    await admin.unroute("**/api/admin/settings/payments/ssl");
   });
 });
