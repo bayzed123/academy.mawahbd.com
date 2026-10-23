@@ -142,6 +142,26 @@ function PayMarks({ channel, sslLogo }: { channel: Channel; sslLogo: string | nu
 
 const PAY_GROUPS = ["mobile", "card", "bank", "other"] as const;
 
+/** A sentence naming {terms}, {privacy} and {refund}: each name a link to its page, in a new tab so the checkout stays as it is. */
+function PolicyText({ text }: { text: string }) {
+  const { t, lang } = useI18n();
+  const policy = lang === "en" ? "/en/policies" : "/policies";
+  return (
+    <>
+      {text.split(/(\{(?:terms|privacy|refund)\})/).map((part, i) => {
+        const k = /^\{(terms|privacy|refund)\}$/.exec(part)?.[1] as "terms" | "privacy" | "refund" | undefined;
+        return k ? (
+          <a key={i} className="link" href={`${policy}/${k}`} target="_blank" rel="noopener noreferrer">
+            {t(`app.checkout.agree.${k}`)}
+          </a>
+        ) : (
+          part
+        );
+      })}
+    </>
+  );
+}
+
 /**
  * The buyer chose the online payment and pressed Pay: SSLCommerz opened the payment and said which ways of paying this store takes. They are shown
  * here, on the website — SSLCommerz's own names and logos, mobile wallets first — and a tap goes straight to that one (bKash's page for bKash,
@@ -199,6 +219,9 @@ function PayChooser({ methods, all, total, missing, onBack }: { methods: PayMeth
         </div>
         <p className="hint pay-secure">
           <Icon name="lock" /> {t("app.pay.secure")}
+        </p>
+        <p className="hint pay-policies">
+          <PolicyText text={t("app.pay.policies")} />
         </p>
       </section>
     </>
@@ -262,11 +285,10 @@ export default function Checkout() {
   // only the services the owner has a number for can be chosen for a manual payment, and the SSLCommerz payment link once the owner set it
   const manualMethods: Method[] = [...(["bkash", "nagad", "rocket"] as const).filter((m) => quote.data?.manual?.numbers[m]), ...(quote.data?.manual?.link ? (["card"] as const) : [])];
   const chosenMethod: Method = manualMethods.includes(method) ? method : (manualMethods[0] ?? method);
-  // the online payment first — unless SSLCommerz is known to refuse this amount (Admin → Payments → Check the connection, or a buyer's try), then send-money
-  const sslLimited = !!quote.data?.ssl_limited;
+  // the first way listed is the one chosen: send-money first, then SSLCommerz's online payment (the order is the server's)
   useEffect(() => {
-    if (channels.length && !channels.includes(channel as Channel)) setChannel(channels.includes("sslcommerz") && !(sslLimited && channels.includes("manual")) ? "sslcommerz" : channels.includes("manual") ? "manual" : channels[0]);
-  }, [channels, channel, sslLimited]);
+    if (channels.length && !channels.includes(channel as Channel)) setChannel(channels[0]);
+  }, [channels, channel]);
 
   // the basket is on screen: one "begin_checkout" per basket (docs/analytics.md)
   const began = useRef("");
@@ -395,21 +417,6 @@ export default function Checkout() {
     // the online payment: SSLCommerz's ways of paying (bKash, Nagad, cards …) are shown after this, once SSLCommerz has opened the payment
     pay.mutate({ as: student ? "student" : "guest" });
   };
-  const policy = lang === "en" ? "/en/policies" : "/policies";
-  // "I have read and agree to the {terms}, {privacy} and {refund}": each name a link to its page, in a new tab so the form stays as typed
-  const agreeText = t("app.checkout.agree")
-    .split(/(\{(?:terms|privacy|refund)\})/)
-    .map((part, i) => {
-      const k = /^\{(terms|privacy|refund)\}$/.exec(part)?.[1] as "terms" | "privacy" | "refund" | undefined;
-      return k ? (
-        <a key={i} className="link" href={`${policy}/${k}`} target="_blank" rel="noopener noreferrer">
-          {t(`app.checkout.agree.${k}`)}
-        </a>
-      ) : (
-        part
-      );
-    });
-
   return (
     <>
       <div className="page-head">
@@ -464,27 +471,6 @@ export default function Checkout() {
               )}
             </section>
           )}
-          <div className={fields.agree ? "agree-box err" : "agree-box"}>
-            <label className="agree" htmlFor="co-agree">
-              <input
-                id="co-agree"
-                type="checkbox"
-                checked={agree}
-                aria-invalid={fields.agree ? true : undefined}
-                aria-describedby={fields.agree ? "co-agree-err" : undefined}
-                onChange={(e) => {
-                  setAgree(e.target.checked);
-                  if (e.target.checked) setFields(({ agree: _done, ...rest }) => rest);
-                }}
-              />
-              <span>{agreeText}</span>
-            </label>
-            {fields.agree && (
-              <p className="err-text" id="co-agree-err">
-                {fields.agree}
-              </p>
-            )}
-          </div>
           <section className="panel">
             <h2>{t("app.checkout.pay")}</h2>
             {free ? (
@@ -569,6 +555,29 @@ export default function Checkout() {
               </div>
             )}
           </section>
+          <div className={fields.agree ? "agree-box err" : "agree-box"}>
+            <label className="agree" htmlFor="co-agree">
+              <input
+                id="co-agree"
+                type="checkbox"
+                checked={agree}
+                aria-invalid={fields.agree ? true : undefined}
+                aria-describedby={fields.agree ? "co-agree-err" : undefined}
+                onChange={(e) => {
+                  setAgree(e.target.checked);
+                  if (e.target.checked) setFields(({ agree: _done, ...rest }) => rest);
+                }}
+              />
+              <span>
+                <PolicyText text={t("app.checkout.agree")} />
+              </span>
+            </label>
+            {fields.agree && (
+              <p className="err-text" id="co-agree-err">
+                {fields.agree}
+              </p>
+            )}
+          </div>
         </div>
 
         <aside className="sticky">

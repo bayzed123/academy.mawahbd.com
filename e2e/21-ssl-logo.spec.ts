@@ -85,7 +85,7 @@ test("at checkout the online choice shows SSLCommerz's picture instead of the sm
   await page.route("**/api/checkout/quote", async (route) => {
     const res = await route.fetch();
     const body = (await res.json()) as { quote: { channels: string[]; manual: unknown; ssl_logo: string | null } };
-    body.quote.channels = ["sslcommerz", "manual"];
+    body.quote.channels = ["manual", "sslcommerz"];
     body.quote.manual = { window_min: 20, numbers: { bkash: "01711111111", nagad: "", rocket: "" }, note_bn: "", note_en: "" };
     body.quote.ssl_logo = LOGO;
     await route.fulfill({ response: res, json: body });

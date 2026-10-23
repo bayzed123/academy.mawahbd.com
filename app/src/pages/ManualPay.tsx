@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { orderCode, toBnDigits, waNumber, type OrderDTO } from "@mawah/shared";
+import { orderCode, sslPayLinkFor, toBnDigits, waNumber, type OrderDTO } from "@mawah/shared";
 import { track } from "../lib/analytics";
 import { api, ApiError, apiUpload } from "../lib/api";
+import { useAuth } from "../lib/auth";
 import { useSite } from "../lib/hooks";
 import { shrinkImage } from "../lib/image";
 import { useI18n } from "../lib/i18n";
@@ -130,6 +131,9 @@ export function ManualPay({ order, skewMs }: { order: OrderDTO; skewMs: number }
   const to = (method !== "card" && info.numbers[method]) || info.numbers.bkash || info.numbers.nagad || info.numbers.rocket;
   const methodName = viaLink ? t("app.manual.linkName") : t(`method.${method}` as "method.bkash");
   const code = orderCode(order.public_id);
+  const { student } = useAuth();
+  // SSLCommerz's page opens with the amount, the order code and the buyer's name and number already in its form
+  const payLink = viaLink ? (sslPayLinkFor(info.link, { amount: order.total, code, name: student?.name, phone: order.payer_number }) ?? info.link) : "";
   const left = useSecondsLeft(order.pay_by, skewMs);
   const over = left !== null && left <= 0;
 
@@ -201,7 +205,7 @@ export function ManualPay({ order, skewMs }: { order: OrderDTO; skewMs: number }
           <li>
             {t("app.manual.step.link")}
             <span className="copy-row">
-              <a className="btn btn-primary" href={info.link} target="_blank" rel="noopener noreferrer">
+              <a className="btn btn-primary" href={payLink} target="_blank" rel="noopener noreferrer">
                 <Icon name="wallet" /> {t("app.manual.openLink")}
                 <span className="vh"> ({t("app.nav.opensNew")})</span>
               </a>

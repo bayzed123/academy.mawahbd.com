@@ -35,6 +35,23 @@ export function sslcommerzUrl(raw: string): string | null {
   return u.href;
 }
 
+/**
+ * The shop's SSLCommerz payment link (Admin → Settings → Payments) for one order, with what SSLCommerz's form can take from the address filled
+ * in: the amount in taka, the order code (`acct`, the "Order Id" box of an Invoice-type link), and the buyer's name and mobile number when
+ * known. The owner's own part of the link (its `refer` code) is kept as it is; null when the link is not an SSLCommerz address.
+ */
+export function sslPayLinkFor(link: string, o: { amount: number; code: string; name?: string | null; phone?: string | null }): string | null {
+  const clean = sslcommerzUrl(link);
+  if (!clean) return null;
+  const u = new URL(clean);
+  u.searchParams.set("amount", String(o.amount));
+  u.searchParams.set("currency", "BDT");
+  u.searchParams.set("acct", o.code);
+  if (o.name?.trim()) u.searchParams.set("cus_name", o.name.trim());
+  if (o.phone?.trim()) u.searchParams.set("cus_phone", o.phone.trim());
+  return u.href;
+}
+
 /** The value of attribute `name` on the first `<tag …>` in some HTML (quoted with " or ', or not quoted). */
 function attr(html: string, tag: string, name: string): string | null {
   const m = new RegExp(`<${tag}\\b[^>]*?\\s${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'>]+))`, "i").exec(html);

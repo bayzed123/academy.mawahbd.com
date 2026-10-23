@@ -13,10 +13,11 @@ export function mockEnabled(env: Env): boolean {
 /** Channels the student can pick right now = enabled in Admin -> Settings AND actually connected (secrets present). */
 export function availableChannels(env: Env, settings: Settings): Channel[] {
   const out: Channel[] = [];
+  // the order the checkout lists them in (and the first is the one chosen): send-money first, then SSLCommerz's secure online payment.
+  // Manual payment is only offered once the owner has entered somewhere to pay: a number to send money to, or the SSLCommerz payment link
+  if (settings.payments.manual && manualReady(settings)) out.push("manual");
   if (settings.payments.sslcommerz && sslConfigured(env)) out.push("sslcommerz");
   if (settings.payments.bkash_direct && bkashConfigured(env)) out.push("bkash");
-  // manual payment is only offered once the owner has entered somewhere to pay: a number to send money to, or the SSLCommerz payment link
-  if (settings.payments.manual && manualReady(settings)) out.push("manual");
   if (mockEnabled(env)) out.push("mock");
   return out;
 }
