@@ -14,7 +14,7 @@ export function slugify(input: string, max = 80): string {
     .replace(/-+$/g, "");
 }
 
-const TABLES = new Set(["courses", "instructors", "bundles", "blog_posts", "categories", "shop_products", "shop_categories"]);
+const TABLES = new Set(["courses", "instructors", "bundles", "blog_posts", "categories", "shop_products", "shop_categories", "landing_pages"]);
 
 /** First free slug for `base` in `table` (appends -2, -3 … ; random when the base is empty). */
 export async function uniqueSlug(db: D1Database, table: string, base: string, excludeId?: number): Promise<string> {

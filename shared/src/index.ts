@@ -8,4 +8,5 @@ export * from "./banner";
 export * from "./payLogos";
 export * from "./sslLogo";
 export * from "./shop";
+export * from "./landing";
 export * from "./videoEmbed";

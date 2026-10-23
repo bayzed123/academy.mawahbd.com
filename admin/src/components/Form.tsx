@@ -25,7 +25,7 @@ export type FieldDef =
 export type Values = Record<string, unknown>;
 
 /* ------------------------------------------------------------------------------------------- image upload */
-function ImageField({ value, onChange, folder, maxWidth, id, error, wide }: { value: string | null; onChange: (v: string | null) => void; folder: string; maxWidth: number; id: string; error?: string; wide?: boolean }) {
+export function ImageField({ value, onChange, folder, maxWidth, id, error, wide }: { value: string | null; onChange: (v: string | null) => void; folder: string; maxWidth: number; id: string; error?: string; wide?: boolean }) {
   const { t, err } = useI18n();
   const toast = useToast();
   const [busy, setBusy] = useState(false);

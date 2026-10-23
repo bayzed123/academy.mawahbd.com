@@ -27,12 +27,14 @@ import { faqsForClass, siteFaqs } from "../services/faqs";
 import { galleryFor } from "../services/gallery";
 import { includedIn } from "../services/materials";
 import { certificateByCode } from "../services/learning";
+import { landingBySlug, landingData, readBlocks } from "../services/landing";
 import { CoursesPage } from "../views/pages/courses";
 import { ProductPage, ShopPage } from "../views/pages/shop";
 import { productReviews, relatedProducts, shopCategories, shopProduct, shopProducts, type ShopSort } from "../services/shop";
 import { CoursePage, RelatedFragment, ReviewList } from "../views/pages/course";
 import { FaqPage } from "../views/pages/faq";
 import { HomePage } from "../views/pages/home";
+import { LandingPage } from "../views/pages/landing";
 import {
   AboutPage,
   BlogListPage,
@@ -200,6 +202,18 @@ export function pageRoutes(lang: Lang) {
       return renderHtml(c, ctx, <BlogPostPage ctx={ctx} post={post} />);
     }),
   );
+
+  /* a landing page the owner built from blocks (Admin → Landing pages); a draft or a deleted page is not there */
+  r.get("/l/:slug", async (c) => {
+    const slug = c.req.param("slug");
+    return cachedPage(c, { ttl: 300 }, async () => {
+      const ctx = await pageCtxFor(c, lang, `/l/${slug}`);
+      const page = /^[a-z0-9-]{1,120}$/.test(slug) ? await landingBySlug(c.env, slug) : null;
+      if (!page) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
+      const blocks = readBlocks(page.blocks);
+      return renderHtml(c, ctx, <LandingPage ctx={ctx} page={page} blocks={blocks} data={await landingData(c.env, blocks)} />);
+    });
+  });
 
   r.get("/about", (c) =>
     cachedPage(c, { ttl: 600 }, async () => {

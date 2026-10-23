@@ -543,3 +543,14 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
 .thumb-sm img{width:100%;height:100%;object-fit:cover}
 .plain-fieldset{border:0;margin:0;padding:0}
 .plain-fieldset>legend{font-weight:700;margin-bottom:.4rem}
+
+/* Landing pages: one block's editor (pages/Landing.tsx) */
+.lp-editor{gap:18px}
+.lp-block-edit{border:1px solid var(--line);border-radius:14px;padding:14px 16px 16px;margin:0;position:relative;display:grid;gap:12px;background:var(--paper)}
+.lp-block-edit>legend{font-weight:700;padding:0 6px}
+.lp-block-tools{position:absolute;top:-4px;right:10px;gap:4px;background:var(--paper)}
+.lp-field{display:grid;gap:6px}
+.lp-field>span,.lp-field>label,.lp-sub>label{font-weight:600;font-size:.92rem}
+.lp-sub{border-left:3px solid var(--line);padding-left:12px;display:grid;gap:10px}
+.lp-add{gap:10px;align-items:center}
+.lp-add select{max-width:22rem}
