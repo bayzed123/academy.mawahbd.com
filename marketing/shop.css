@@ -1,0 +1,100 @@
+/*
+ * The tools shop (/shop, /shop/p/…): sent only with the shop's own pages (a second inline <style>, allowed by its hash like the first),
+ * so every other page stays as light as before. It comes after the site's own CSS and uses its variables.
+ */
+.shop-layout{display:grid;gap:28px}
+@media (min-width:900px){.shop-layout{grid-template-columns:230px minmax(0,1fr)}}
+.shop-side{align-self:start}
+.side-title{font-size:1.15rem;margin-bottom:.6rem}
+.cat-list{list-style:none;margin:0 0 1rem;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+@media (min-width:900px){.cat-list{display:grid;gap:2px}}
+.cat-list a{display:block;padding:.55rem .9rem;border-radius:12px;border:1.5px solid var(--line-2);background:var(--paper);color:var(--ink-2);text-decoration:none;font-weight:600;font-size:.94rem;min-height:44px}
+@media (min-width:900px){.cat-list a{border-color:transparent;background:none}}
+.cat-list a:hover{border-color:var(--g-500);color:var(--k-900)}
+.cat-list a[aria-current=page]{background:var(--k-900);border-color:var(--k-900);color:#fff}
+.cat-list a[aria-current=page] .muted{color:var(--g-300)}
+.shop-tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+/* the breadcrumb sits on the light page here, not on a dark hero */
+.shop-tools .crumbs{margin:0;color:var(--ink-3)}
+.shop-tools .crumbs a{color:var(--ink-2)}
+.shop-tools .searchbar{flex:1 1 420px;margin:0}
+.shop-bar{display:flex;gap:8px;flex-wrap:wrap}
+.count-badge{display:inline-grid;place-items:center;min-width:1.5em;height:1.5em;padding:0 .35em;border-radius:999px;background:var(--red-600);color:#fff;font-size:.78rem;font-weight:700;margin-left:.15rem}
+.shop-count{margin:.2rem 0 1rem}
+.pgrid{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:700px){.pgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:1180px){.shop-main .pgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.section>.wrap>.pgrid,.product-related .pgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pcard{position:relative;display:flex;flex-direction:column;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;transition:box-shadow .2s,transform .2s}
+.pcard:hover{box-shadow:var(--sh-1)}
+.pcard-img{display:grid;place-items:center;aspect-ratio:1;background:var(--ivory-2);color:var(--g-600)}
+.pcard-img img{width:100%;height:100%;object-fit:cover}
+.pcard-img .icon{width:42%;height:42%;opacity:.5}
+.pcard-body{display:flex;flex-direction:column;gap:.35rem;padding:12px 12px 14px;flex:1}
+.pcard-title{font-size:1rem;line-height:1.35;margin:0}
+.pcard-title a{color:var(--ink);text-decoration:none}
+.pcard-title a::after{content:"";position:absolute;inset:0;z-index:0}
+.pcard-title a:hover{color:var(--red-700)}
+.pcard-rating{display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem;color:var(--ink-3)}
+.pcard-price{margin:auto 0 .4rem;display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .5rem}
+.pcard-price b{font-size:1.12rem;color:var(--red-700)}
+.pcard-price s,.product-price s{color:var(--ink-3);font-size:.92rem}
+.pcard-price .from{font-size:.85rem;color:var(--ink-3)}
+.pcard .btn{position:relative;z-index:1;width:100%;justify-content:center}
+.pcard .is-disabled{opacity:.6;cursor:not-allowed}
+.off-badge{position:absolute;top:10px;left:10px;z-index:1;background:var(--red-600);color:#fff;font-weight:700;font-size:.82rem;padding:.2rem .55rem;border-radius:999px}
+.wish{position:absolute;top:8px;right:8px;z-index:2;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--ink-2);cursor:pointer}
+.wish[aria-pressed=true]{color:var(--red-600);border-color:var(--red-300)}
+.wish[aria-pressed=true] .icon{fill:currentColor}
+.wish-big{position:static;width:auto;height:auto;display:inline-flex;gap:.45rem;padding:.55rem 1rem;border-radius:999px;font-weight:600;margin:.6rem 0}
+.shop-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 32px);padding:.75rem 1rem;border-radius:16px;background:var(--k-900);color:#fff;box-shadow:var(--sh-2);font-weight:600}
+.shop-policies{margin-top:1.2rem;color:var(--ink-3)}
+.shop-policies a{color:var(--ink-2)}
+/* a product */
+.product{display:grid;gap:28px;margin-top:.8rem}
+@media (min-width:900px){.product{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}}
+.product-main{position:relative;display:grid;place-items:center;aspect-ratio:1;border-radius:22px;overflow:hidden;border:1px solid var(--line);background:var(--ivory-2);color:var(--g-600)}
+.product-main img{width:100%;height:100%;object-fit:cover}
+.product-main>.icon{width:40%;height:40%;opacity:.45}
+.product-thumbs{list-style:none;display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0;padding:0}
+.product-thumbs a{display:block;width:72px;height:72px;border-radius:12px;overflow:hidden;border:2px solid transparent}
+.product-thumbs a[aria-current=true]{border-color:var(--g-500)}
+.product-thumbs img{width:100%;height:100%;object-fit:cover}
+.product-info h1{font-size:clamp(1.5rem,3.4vw,2.2rem);margin:.4rem 0}
+.product-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:.3rem .7rem;margin:.6rem 0}
+.product-price b{font-family:var(--font-display);font-size:2rem;color:var(--red-700);line-height:1.1}
+.off-inline{background:var(--red-50);color:var(--red-700);border:1px solid var(--red-100);font-weight:700;font-size:.85rem;padding:.15rem .55rem;border-radius:999px}
+.product-short{color:var(--ink-2);font-size:1.02rem}
+.buy-form{display:grid;gap:12px;margin-top:.8rem}
+.variants{border:0;margin:0;padding:0}
+.variants legend{font-weight:700;margin-bottom:.45rem}
+.variant-list{display:flex;flex-wrap:wrap;gap:8px}
+.variant{position:relative}
+.variant input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.variant span{display:inline-flex;align-items:center;min-height:44px;padding:.4rem 1rem;border-radius:12px;border:1.5px solid var(--line-2);background:var(--paper);font-weight:600}
+.variant input:checked+span{border-color:var(--k-900);background:var(--k-900);color:#fff}
+.variant input:focus-visible+span{outline:3px solid var(--focus,var(--g-500));outline-offset:2px}
+.variant.is-out span{opacity:.5;text-decoration:line-through}
+.stock-line{margin:0;font-weight:600;color:var(--ok-700)}
+.buy-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.qty{display:inline-flex;align-items:center;border:1.5px solid var(--line-2);border-radius:12px;overflow:hidden;background:var(--paper)}
+.qty input{width:3.4em;text-align:center;border:0;border-radius:0;min-height:44px;-moz-appearance:textfield}
+.qty input::-webkit-inner-spin-button{-webkit-appearance:none}
+.qty-btn{width:44px;height:44px;border:0;background:none;font-size:1.25rem;cursor:pointer;color:var(--k-900)}
+.product-facts{list-style:none;margin:.8rem 0 0;padding:14px 16px;display:grid;gap:.55rem;border:1px solid var(--line);border-radius:var(--r);background:var(--paper)}
+.product-facts li{display:flex;gap:.6rem;align-items:flex-start;font-size:.95rem}
+.product-facts .icon{color:var(--g-600);flex:none;margin-top:.15em}
+.product-tabs{display:grid;gap:28px;margin-top:36px}
+@media (min-width:900px){.product-tabs{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}}
+.review-list{list-style:none;margin:0 0 1rem;padding:0;display:grid;gap:12px}
+.review-head{display:flex;flex-wrap:wrap;gap:.4rem .7rem;align-items:center;margin-bottom:.35rem}
+.review-write{margin-top:.6rem}
+.review-write>summary{list-style:none;display:inline-flex}
+.review-write>summary::-webkit-details-marker{display:none}
+.review-write .form-grid{display:grid;gap:.45rem;margin-top:.8rem;max-width:520px}
+.stars-pick{border:0;margin:0 0 .3rem;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.stars-pick legend{font-weight:700;margin-bottom:.35rem}
+.stars-pick label{position:relative}
+.stars-pick input{position:absolute;opacity:0;inset:0}
+.stars-pick span[aria-hidden],.stars-pick label>span:first-of-type{display:inline-block;padding:.3rem .6rem;border-radius:10px;border:1.5px solid var(--line-2);color:var(--g-600);letter-spacing:.05em}
+.stars-pick input:checked+span{border-color:var(--k-900);background:var(--k-900);color:var(--g-300)}
+.stars-pick input:focus-visible+span{outline:3px solid var(--g-500);outline-offset:2px}

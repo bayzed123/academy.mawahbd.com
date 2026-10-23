@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { CSS } from "../generated/assets";
+import { CSS, SHOP_CSS } from "../generated/assets";
 import { isProd, type AppEnv, type Ctx } from "../env";
 import type { PageCtx } from "../views/ctx";
 import { buildCsp, styleHash } from "../middleware/security";
@@ -10,7 +10,7 @@ type Node = { toString(): string | Promise<string> };
 
 /**
  * Turn a JSX tree into a full HTML response with a strict, hash-based CSP:
- * the single inline <style> block is allowed by its SHA-256, nothing else inline is (no 'unsafe-inline').
+ * the inline <style> blocks (the site's, and the tools shop's on its own pages) are allowed by their SHA-256, nothing else inline is (no 'unsafe-inline').
  */
 export async function renderHtml(
   c: Context<AppEnv>,
@@ -21,7 +21,7 @@ export async function renderHtml(
   const body = `<!doctype html>${await node.toString()}`;
   const ids = ctx.track;
   const csp = buildCsp({
-    styleHashes: [await styleHash(CSS)],
+    styleHashes: [await styleHash(CSS), await styleHash(SHOP_CSS)],
     turnstile: turnstileEnabled(c.env),
     analytics: { ga4: !!ids.ga4, clarity: !!ids.clarity, pixel: !!ids.pixel },
   });

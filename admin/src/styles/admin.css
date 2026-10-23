@@ -528,3 +528,18 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
 .drive-play{margin-top:12px}
 .drive-play video,.drive-play iframe{display:block;width:100%;max-width:640px;aspect-ratio:16/9;border-radius:12px;background:#000}
 .drive-play iframe{border:0}
+
+/* Admin → Shop */
+.variants-editor{display:grid;gap:12px}
+.variant-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-items:end;margin:0;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.variant-row legend{font-weight:700;padding:0 .3rem}
+.variant-row label{display:grid;gap:4px;font-size:.88rem;font-weight:600;color:var(--ink-2)}
+.variant-row .icon-btn{justify-self:start}
+/* a product's pictures (its own class: .pic-list is the class editor's picture rows) */
+.shop-pics{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.shop-pics li{display:grid;gap:6px;justify-items:start}
+.shop-pics img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
+.thumb-sm{display:inline-block;width:40px;height:40px;border-radius:8px;overflow:hidden;background:var(--ivory-2);border:1px solid var(--line);flex:none}
+.thumb-sm img{width:100%;height:100%;object-fit:cover}
+.plain-fieldset{border:0;margin:0;padding:0}
+.plain-fieldset>legend{font-weight:700;margin-bottom:.4rem}

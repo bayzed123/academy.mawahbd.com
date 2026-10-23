@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CHANNEL_LOGOS, PAY_LOGOS, PAY_VIA_NAME, SSL_BANNER, toBnDigits, type Channel, type PayMethodDTO, type PayVia, type QuoteDTO, type StudentMe } from "@mawah/shared";
@@ -167,7 +167,22 @@ function PolicyText({ text }: { text: string }) {
  * here, on the website — SSLCommerz's own names and logos, mobile wallets first — and a tap goes straight to that one (bKash's page for bKash,
  * Nagad's for Nagad …) instead of SSLCommerz's list. "All ways to pay" is SSLCommerz's own page, as before; "Change how to pay" goes back.
  */
-function PayChooser({ methods, all, total, missing, onBack }: { methods: PayMethodDTO[]; all: string; total: number; missing?: PayVia; onBack: () => void }) {
+export function PayChooser({
+  methods,
+  all,
+  total,
+  missing,
+  policies,
+  onBack,
+}: {
+  methods: PayMethodDTO[];
+  all: string;
+  total: number;
+  missing?: PayVia;
+  /** The sentence naming the policies the buyer agreed to (the shop names its own); the classes' three by default. */
+  policies?: ReactNode;
+  onBack: () => void;
+}) {
   const { t, money } = useI18n();
   const heading = useRef<HTMLHeadingElement>(null);
   // a new step: move the reader (and the screen reader) to its heading
@@ -220,9 +235,7 @@ function PayChooser({ methods, all, total, missing, onBack }: { methods: PayMeth
         <p className="hint pay-secure">
           <Icon name="lock" /> {t("app.pay.secure")}
         </p>
-        <p className="hint pay-policies">
-          <PolicyText text={t("app.pay.policies")} />
-        </p>
+        <p className="hint pay-policies">{policies ?? <PolicyText text={t("app.pay.policies")} />}</p>
       </section>
     </>
   );

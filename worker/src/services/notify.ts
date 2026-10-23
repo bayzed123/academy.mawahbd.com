@@ -31,6 +31,8 @@ const TITLE: Record<NotifyKind, { en: string; bn: string }> = {
   group_request: { en: "Someone asked to join a private group", bn: "কেউ প্রাইভেট গ্রুপে যোগ দিতে চেয়েছেন" },
   notify_me: { en: "Someone is waiting for a class to open", bn: "কেউ একটি ক্লাস চালুর অপেক্ষায় আছেন" },
   newsletter: { en: "A new newsletter subscriber", bn: "নিউজলেটারে নতুন সাবস্ক্রাইবার" },
+  shop_order: { en: "New order in the tools shop", bn: "টুলস শপে নতুন অর্ডার" },
+  shop_review: { en: "A product review is waiting for your approval", bn: "একটি পণ্যের রিভিউ আপনার অনুমোদনের অপেক্ষায়" },
 };
 
 /** The admin page each note links to. */
@@ -46,6 +48,8 @@ const OPEN: Record<NotifyKind, { path: string; en: string; bn: string }> = {
   group_request: { path: "/admin/materials/requests", en: "Open Group requests", bn: "অনুরোধ খুলুন" },
   notify_me: { path: "/admin/signups", en: "Open the waiting list", bn: "তালিকা খুলুন" },
   newsletter: { path: "/admin/signups", en: "Open Sign-ups", bn: "সাইন-আপ খুলুন" },
+  shop_order: { path: "/admin/shop/orders", en: "Open Shop → Orders", bn: "শপ → অর্ডার খুলুন" },
+  shop_review: { path: "/admin/shop/reviews", en: "Open Shop → Reviews", bn: "শপ → রিভিউ খুলুন" },
 };
 
 /** At most this many notes of one kind per hour — a burst (or someone hammering a form) cannot fill the inbox; the admin pages still show everything. */
@@ -62,6 +66,8 @@ const HOURLY_CAP: Record<NotifyKind, number> = {
   group_request: 40,
   notify_me: 30,
   newsletter: 30,
+  shop_order: 200,
+  shop_review: 40,
 };
 
 /** The short, plain version of each way the online gateway can say no (the long one, with the steps, is in Settings → Payments). */
@@ -189,6 +195,25 @@ export const notices = {
   },
   notifyMe(d: { email: string; phone: string | null; course: string }): Notice {
     return { kind: "notify_me", headline: `${d.email} → ${d.course}`, facts: [fact("E-mail", "ইমেইল", d.email), fact("Phone", "ফোন", d.phone), fact("Class", "ক্লাস", d.course)] };
+  },
+  /** A tools-shop order to pack: placed with cash on delivery, or paid online. */
+  shopOrder(d: { code: string; name: string; phone: string; total: number; payment: "cod" | "sslcommerz"; place: string; items: { name: string; qty: number }[] }): Notice {
+    return {
+      kind: "shop_order",
+      headline: `${formatMoney(d.total, "en")} · ${d.name} · ${d.code}`,
+      facts: [
+        fact("Order", "অর্ডার", d.code),
+        fact("Customer", "ক্রেতা", d.name),
+        fact("Mobile", "মোবাইল", d.phone),
+        fact("Deliver to", "ঠিকানা", d.place),
+        fact("Items", "পণ্য", d.items.map((i) => `${i.name} × ${i.qty}`).join(", ")),
+        fact("Total", "মোট", formatMoney(d.total, "en")),
+        fact("Payment", "পেমেন্ট", d.payment === "cod" ? "Cash on delivery · ক্যাশ অন ডেলিভারি" : "Paid online (SSLCommerz) · অনলাইনে পরিশোধিত"),
+      ],
+    };
+  },
+  shopReview(d: { product: string; name: string; rating: number; body: string }): Notice {
+    return { kind: "shop_review", headline: `${"★".repeat(d.rating)} · ${d.product}`, facts: [fact("Product", "পণ্য", d.product), fact("From", "যিনি লিখেছেন", d.name), fact("Rating", "রেটিং", `${d.rating}/5`)], note: d.body };
   },
   newsletter(d: { email: string; lang: string }): Notice {
     return { kind: "newsletter", headline: d.email, facts: [fact("E-mail", "ইমেইল", d.email), fact("Language", "ভাষা", d.lang === "bn" ? "বাংলা" : "English")] };

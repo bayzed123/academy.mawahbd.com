@@ -37,6 +37,7 @@ const Staff = lazyPage(() => import("./pages/Staff"), "Staff");
 const Settings = lazyPage(() => import("./pages/Settings"), "Settings");
 const Activity = lazyPage(() => import("./pages/Activity"), "Activity");
 const Help = lazyPage(() => import("./pages/Help"), "Help");
+const Shop = lazyPage(() => import("./pages/Shop"), "Shop");
 const Account = lazyPage(() => import("./pages/Account"), "Account");
 
 const guard = (perm: Parameters<typeof RequirePerm>[0]["perm"], el: React.ReactNode) => <RequirePerm perm={perm}>{el}</RequirePerm>;
@@ -71,6 +72,10 @@ export default function App() {
           <Route path="bundles" element={guard("bundles:read", <Bundles />)} />
           <Route path="banners" element={guard("banners:read", <Banners />)} />
           <Route path="faqs" element={guard("faqs:read", <Faqs />)} />
+          <Route path="shop" element={guard("shop:read", <Shop />)} />
+          {/* the owner's e-mails link to these */}
+          <Route path="shop/orders" element={<Navigate to="/shop?tab=orders" replace />} />
+          <Route path="shop/reviews" element={<Navigate to="/shop?tab=reviews" replace />} />
           <Route path="certificates" element={guard("certificates:read", <Certificates />)} />
           <Route path="signups" element={guard("signups:read", <Signups />)} />
           <Route path="messages" element={guard("messages:read", <Messages />)} />
