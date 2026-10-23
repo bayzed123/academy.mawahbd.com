@@ -72,15 +72,19 @@ test("a student pays on the link: the page to pay on, the order code, SSLCommerz
   await agree(sp);
   await sp.getByRole("button", { name: "Continue — show payment details" }).click();
 
-  // the open order: SSLCommerz's page to pay on (a new tab, nothing sent along), the amount, the order code to write in the form
+  // the open order: SSLCommerz's page to pay on (a new tab), the amount, the order code to write in the form
   await expect(sp).toHaveURL(/\/app\/orders\/[a-z2-7]{20}/);
   await expect(sp.getByText("Open SSLCommerz's payment page:")).toBeVisible();
   const pay = sp.getByRole("link", { name: /Open the payment page/ });
-  await expect(pay).toHaveAttribute("href", LINK);
   await expect(pay).toHaveAttribute("target", "_blank");
   await expect(pay).toHaveAttribute("rel", /noopener/);
   await expect(sp.getByText(/^Pay exactly ৳[\d,]+ there — by card, bKash, Nagad or any way the page offers\.$/)).toBeVisible();
   await expect(sp.locator(".copy-row code")).toHaveText(/^[A-Z2-7]{8}$/); // the order code, and no number to send money to
+  // the owner's link, opening with the amount, the order code and the buyer's name and number already in SSLCommerz's form
+  const amount = ((await sp.getByText(/^Pay exactly ৳[\d,]+ there/).textContent()) ?? "").match(/৳([\d,]+)/)![1].replace(/,/g, "");
+  const href = new URL((await pay.getAttribute("href"))!);
+  expect(href.origin + href.pathname).toBe(LINK.split("?")[0]);
+  expect(Object.fromEntries(href.searchParams)).toEqual({ refer: "0TESTREF00000", amount, currency: "BDT", acct: await sp.locator(".copy-row code").textContent(), cus_name: "Link Payer", cus_phone: "01712345678" });
   await expect(sp.getByText("Your mobile number: 01712345678")).toBeVisible();
   await expect(sp.getByText("It is on SSLCommerz's receipt")).toBeVisible();
   expect(tabs).toEqual([]); // nothing opened by itself: SSLCommerz's page opens only when the student taps the button
@@ -127,7 +131,7 @@ test("in Bangla on a 360 px phone: the choice, the page to pay on and the steps 
   await sp.getByLabel("আপনার মোবাইল নম্বর — SSLCommerz-এর পেজেও এই নম্বরটিই দিন").fill("01712345678");
   await agree(sp);
   await sp.getByRole("button", { name: /^এগিয়ে যান/ }).click();
-  await expect(sp.getByRole("link", { name: /পেমেন্ট পেজ খুলুন/ })).toHaveAttribute("href", LINK);
+  await expect(sp.getByRole("link", { name: /পেমেন্ট পেজ খুলুন/ })).toHaveAttribute("href", new RegExp(`^${LINK.replace(/[?.]/g, "\\$&")}&amount=\\d+&currency=BDT&acct=[A-Z2-7]{8}&cus_name=.+&cus_phone=01712345678$`));
   await expect(sp.getByText("SSLCommerz-এর পেমেন্ট পেজ খুলুন:")).toBeVisible();
   expect(await sp.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   await ctx.close();
