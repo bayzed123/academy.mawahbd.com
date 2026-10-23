@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NOTIFY_KINDS, viaOf } from "@mawah/shared";
 import { setSetting } from "../src/lib/settings";
 import { notices } from "../src/services/notify";
-import { SSL_CAP_KEY, SSL_LAST_KEY, SSL_WAYS_KEY, scrubSsl, sslCheck, sslHost, sslInit, sslMethods, sslProblem, type SslProblem } from "../src/services/payments/sslcommerz";
+import { SSL_CAP_KEY, SSL_LAST_KEY, scrubSsl, sslCheck, sslHost, sslInit, sslMethods, sslProblem, type SslProblem } from "../src/services/payments/sslcommerz";
 import { Client, env, json, loginStaff, registerStudent, uniqueEmail } from "./helpers";
 
 /*
@@ -131,7 +131,6 @@ beforeEach(async () => {
   e.SSLCOMMERZ_STORE_ID = STORE_ID;
   e.SSLCOMMERZ_STORE_PASSWORD = STORE_PASSWORD;
   await env.KV.delete(SSL_LAST_KEY);
-  await env.KV.delete(SSL_WAYS_KEY);
   await env.KV.delete(SSL_CAP_KEY);
   await setSetting(env, "notifications", { emails: [], off: [] }, null);
 });
@@ -287,90 +286,35 @@ describe("a student turned away at checkout", () => {
     expect(note.html).toContain("কোনো টাকা কাটা হয়নি"); // in Bangla as well
   });
 
-  it("a purchase that goes through hands the buyer SSLCommerz's ways of paying to tap — each opening that way at once — and SSLCommerz's own page", async () => {
-    gatewaySays(GOOD_WITH_WAYS);
+  it("a purchase that goes through sends the buyer to SSLCommerz's own page (its GatewayPageURL) and nowhere else, as SSLCommerz's own libraries do", async () => {
+    const calls = gatewaySays(GOOD_WITH_WAYS);
     const course = await makeCourse(500);
     const { client } = await registerStudent();
     const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" });
     expect(res.status).toBe(201);
     const body = await json(res);
+    // the buyer chooses bKash, Nagad, Rocket or a card there, on SSLCommerz's page: SSLCommerz's list is not drawn on this website
     expect(body.redirect_url).toBe("https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc");
-    expect(body.pay_methods).toEqual(WAYS);
-    // only what the buyer needs: never another site's address, never the store's keys
+    expect(body).not.toHaveProperty("pay_methods");
+    expect(calls).toHaveLength(1);
+    // only what the buyer needs: never another site's address, never the store's keys, never one way of paying picked for them
     const text = JSON.stringify(body);
     expect(text).not.toContain("evil.example");
     expect(text).not.toContain("http://");
     expect(text).not.toContain(STORE_PASSWORD);
-    // SSLCommerz sent no list: SSLCommerz's own page, as before
+    expect(text).not.toContain("cardname=");
+    // an older checkout that still names a way of paying changes nothing: SSLCommerz's own page all the same
     vi.restoreAllMocks();
-    gatewaySays(GOOD);
-    const plain = await json(await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(600)).slug], channel: "sslcommerz" }));
-    expect(plain.redirect_url).toContain("sslcommerz.com");
-    expect(plain.pay_methods).toEqual([]);
-  });
-
-  it("a way of paying tapped on the checkout goes straight to it at SSLCommerz — bKash to bKash, Rocket to DBBL's, a card to the card's", async () => {
-    const { client } = await registerStudent();
-    for (const [via, gw] of [["bkash", "bkash"], ["rocket", "dbblmobilebanking"], ["upay", "upay"], ["mastercard", "mastercard"], ["amex", "amexcard"]] as const) {
-      vi.restoreAllMocks();
-      const calls = gatewaySays(GOOD_WITH_WAYS);
-      const res = await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(700)).slug], channel: "sslcommerz", via });
-      expect(res.status, via).toBe(201);
-      const body = await json(res);
-      expect(body.redirect_url, via).toBe(`https://sandbox.sslcommerz.com/gwprocess/v4/bankgw/indexhtmlotp.php?mamount=1850.00&ssl_id=x1&Q=REDIRECT&SESSIONKEY=abc&tran_type=success&cardname=${gw}`);
-      expect(body.pay_methods).toEqual([]); // nothing to choose from: the buyer already chose
-      expect(body.via_missing).toBeUndefined();
-      expect(calls).toHaveLength(1); // one session, as for any purchase
-    }
-    expect((await audits("checkout.started"))[0].meta).toBe(JSON.stringify({ via: "amex", offered: true }));
-  });
-
-  it("a way SSLCommerz does not offer the shop brings SSLCommerz's list instead, saying so; an unknown way is refused", async () => {
-    const { client } = await registerStudent();
-    // this shop has only bKash and Visa switched on
-    gatewaySays(() => Response.json({ status: "SUCCESS", GatewayPageURL: "https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc", sessionkey: "abc", desc: DESC.filter((d) => d && typeof d === "object" && ["visacard", "bkash"].includes((d as { gw: string }).gw)) }));
-    const body = await json(await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(800)).slug], channel: "sslcommerz", via: "nagad" }));
-    expect(body.via_missing).toBe("nagad");
-    expect(body.pay_methods.map((m: { name: string }) => m.name)).toEqual(["bKash", "VISA"]); // wallets first
-    expect(body.redirect_url).toBe("https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc");
-    expect((await audits("checkout.started"))[0].meta).toBe(JSON.stringify({ via: "nagad", offered: false }));
-    // SSLCommerz sent no list at all: its own page, as before
-    vi.restoreAllMocks();
-    gatewaySays(GOOD);
-    const plain = await json(await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(900)).slug], channel: "sslcommerz", via: "bkash" }));
-    expect(plain.redirect_url).toBe("https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc");
-    expect(plain.pay_methods).toEqual([]);
-    expect(plain.via_missing).toBeUndefined();
-    // only the checkout's own buttons
-    const odd = await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(950)).slug], channel: "sslcommerz", via: "paypal" });
-    expect(odd.status).toBe(422);
-  });
-
-  it("the checkout's buttons follow what SSLCommerz offered last time — all of them before it was ever asked — with SSLCommerz's logos only", async () => {
-    const course = await makeCourse(1000);
-    const quote = async () => (await json(await new Client().post("/api/checkout/quote", { courses: [course.slug] }))).quote;
-    expect((await quote()).ssl_ways).toBeNull();
     gatewaySays(GOOD_WITH_WAYS);
-    const { client } = await registerStudent();
-    expect((await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" })).status).toBe(201);
-    const ways = await until(async () => (await quote()).ssl_ways);
-    expect(ways).toEqual([
-      { via: "bkash", logo: `${GW}/image/gw/bkash.png` },
-      { via: "nagad", logo: `${GW}/image/gw/nagad.png` },
-      { via: "rocket", logo: `${GW}/image/gw/dbblmobilebanking.png` },
-      { via: "upay", logo: `${GW}/image/gw/upay.png` },
-      { via: "visa", logo: `${GW}/image/gw/visacard.png` },
-      { via: "mastercard", logo: `${GW}/image/gw/mastercard.png` },
-      { via: "amex", logo: null }, // its logo was on another site
-    ]);
-    // "Check the connection" in Settings → Payments updates them too
+    const named = await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(600)).slug], channel: "sslcommerz", via: "bkash" });
+    expect(named.status).toBe(201);
+    expect((await json(named)).redirect_url).toBe("https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc");
+    // SSLCommerz sent no list: the same page
     vi.restoreAllMocks();
-    gatewaySays(() => Response.json({ status: "SUCCESS", GatewayPageURL: "https://sandbox.sslcommerz.com/gw/pay?SESSIONKEY=abc", sessionkey: "abc", desc: DESC.filter((d) => d && typeof d === "object" && ["upay", "bkash"].includes((d as { gw: string }).gw)) }));
-    expect((await (await owner()).post("/api/admin/settings/payments/ssl/check")).status).toBe(200);
-    expect((await quote()).ssl_ways.map((w: { via: string }) => w.via)).toEqual(["bkash", "upay"]);
-    // a free class, or a shop without the online payment, shows none
-    const free = await makeCourse(0);
-    expect((await json(await new Client().post("/api/checkout/quote", { courses: [free.slug] }))).quote.ssl_ways).toBeNull();
+    gatewaySays(GOOD);
+    expect((await json(await client.post("/api/checkout", { agree: true, courses: [(await makeCourse(700)).slug], channel: "sslcommerz" }))).redirect_url).toContain("sslcommerz.com");
+    // and the price answer lists no ways of paying
+    expect((await json(await new Client().post("/api/checkout/quote", { courses: [course.slug] }))).quote).not.toHaveProperty("ssl_ways");
   });
 
   it("knows each of SSLCommerz's entries by its gateway code, name and kind", () => {

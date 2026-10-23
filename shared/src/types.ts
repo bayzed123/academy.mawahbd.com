@@ -189,11 +189,6 @@ export interface QuoteDTO {
   /** SSLCommerz's picture of the ways to pay for the online-payment choice: the one the owner pasted, else the copy the owner sent (SSL_BANNER); null = the small marks */
   ssl_logo: string | null;
   /**
-   * The ways of paying SSLCommerz offered this shop the last time it was asked, with SSLCommerz's logo for each — the buttons the checkout
-   * shows under the online payment; null = SSLCommerz has not been asked yet (the checkout then shows all of PAY_VIA)
-   */
-  ssl_ways: { via: PayVia; logo: string | null }[] | null;
-  /**
    * SSLCommerz refused this much lately because of the store's limit per payment (only SSLCommerz can lift it): the online payment is shown as
    * not open for this amount yet, and send-money is offered instead
    */
@@ -201,9 +196,9 @@ export interface QuoteDTO {
 }
 
 /**
- * One way of paying that SSLCommerz offers this store (bKash, Nagad, Rocket, Upay, a card, a bank …), as SSLCommerz described it when the
- * payment was opened: its own name and logo, and the address that opens that way of paying at once. Shown on the website after "Pay" so the
- * buyer taps the one they want; only SSLCommerz's https addresses ever get here.
+ * One way of paying that SSLCommerz offers this store (bKash, Nagad, Rocket, Upay, a card, a bank …), as SSLCommerz described it when a
+ * payment was opened: its own name and logo, and its address there. "Check the connection" names them for the owner; the buyer chooses among
+ * them on SSLCommerz's own page. Only SSLCommerz's https addresses ever get here.
  */
 export interface PayMethodDTO {
   name: string;

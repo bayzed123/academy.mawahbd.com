@@ -98,7 +98,7 @@
 | **সরাসরি বিকাশ** (ঐচ্ছিক) | বিকাশের টোকেনাইজড চেকআউট কী | বিকাশ পেজে পেমেন্ট |
 | **ম্যানুয়াল সেন্ড মানি** | শুধু আপনার বিকাশ/নগদ/রকেট নম্বর, এবং/অথবা আপনার SSLCommerz পেমেন্ট লিংক (**সেটিংস → পেমেন্ট**-এ বসান) — কোনো গেটওয়ে লাগে না | শিক্ষার্থী আগে **নিজের কোন নম্বর থেকে টাকা পাঠাবেন** সেটি লেখেন, তারপর আপনার নম্বর, টাকার অঙ্ক ও **২০ মিনিটের কাউন্টডাউন** দেখেন। টাকা পাঠিয়ে **TrxID এবং/অথবা স্ক্রিনশট** জমা দেন (চাইলে তৈরি করা **হোয়াটসঅ্যাপ মেসেজ** পাঠান)। **আপনি যাচাই করে অনুমোদন দিলে** ক্লাস খোলে এবং তাঁর খোলা পাতা নিজে থেকেই “সফল” দেখায় |
 
-**চেকআউটে উপায়গুলো এই ক্রমে থাকে: আগে ম্যানুয়ালি সেন্ড মানি (পেজ খুললে এটিই বেছে রাখা থাকে), তারপর নিরাপদ অনলাইন পেমেন্ট — “বিকাশ, নগদ, রকেট বা কার্ড” (SSLCommerz)।** অনলাইন পেমেন্ট বেছে নিয়ে শিক্ষার্থী **পেমেন্ট করুন** চাপলে SSLCommerz-এর পেমেন্টের উপায়গুলো (বিকাশ, নগদ, রকেট, কার্ড …) দেখেন, একটিতে চাপেন এবং সেই সার্ভিসের নিজস্ব সুরক্ষিত পেজে পিন বা কার্ড নম্বর লেখেন — এই ওয়েবসাইটে কখনো নয়। **শর্তাবলি**, **গোপনীয়তা নীতি** ও **রিফান্ড ও বাতিল নীতি**-র লিংক থাকে পেমেন্টের আগে টিক দেওয়ার ঘরে, আর আবার পেমেন্টের উপায়ের পাতায়।
+**চেকআউটে উপায়গুলো এই ক্রমে থাকে: আগে ম্যানুয়ালি সেন্ড মানি (পেজ খুললে এটিই বেছে রাখা থাকে), তারপর নিরাপদ অনলাইন পেমেন্ট — “বিকাশ, নগদ, রকেট বা কার্ড” (SSLCommerz)।** অনলাইন পেমেন্ট বেছে নিয়ে শিক্ষার্থী **পেমেন্ট করুন** চাপলে সরাসরি SSLCommerz-এর নিজস্ব সুরক্ষিত পেজ খোলে; সেখানে বিকাশ, নগদ, রকেট বা কার্ড বেছে নিয়ে পিন বা কার্ড নম্বর লেখেন — এই ওয়েবসাইটে কখনো নয়। **শর্তাবলি**, **গোপনীয়তা নীতি** ও **রিফান্ড ও বাতিল নীতি**-র লিংক থাকে পেমেন্টের আগে টিক দেওয়ার ঘরে।
 
 **ম্যানুয়াল পেমেন্ট যাচাই (প্রতিদিনের কাজ):**
 1. বাঁ মেনু → **অর্ডার** (পাশে লাল সংখ্যা মানে কতগুলো অপেক্ষায়)। অবস্থা “যাচাইয়ের অপেক্ষায়” বেছে নিন।
@@ -130,10 +130,9 @@
 * **চেকআউটে টিক দেওয়ার ঘর** — শুরুতে খালি; শিক্ষার্থী নিজে টিক দিলে তবেই অর্ডার হয়। ঘরের লেখায় শর্তাবলি, গোপনীয়তা নীতি ও রিফান্ড ও বাতিল নীতির লিংক আছে।
 * **পেমেন্ট ব্যানার** — SSLCommerz-এর লোগো (ধাপ ১-এ বসানো লিংকের ছবি, না থাকলে আপনার পাঠানো ছবিটি) প্রতিটি পেজের নিচে দেখা যায়।
 
-**পেমেন্টের ধাপ** — চেকআউটে শিক্ষার্থী একটি তালিকা থেকে **একটি** উপায় বেছে নেন (অনলাইন পেমেন্ট, অথবা ম্যানুয়ালি সেন্ড মানি), তারপর একটিই **পেমেন্ট করুন** বোতাম। তার আগে কোনো লোগো-বোতাম থাকে না। পেমেন্ট করুন চাপার পর ওয়েবসাইট নিজেই দেখায় SSLCommerz আপনার স্টোরে কোন কোন উপায় চালু রেখেছে — বিকাশ, নগদ, রকেট (DBBL), উপায়, ভিসা, মাস্টারকার্ড, ব্যাংক… — SSLCommerz-এর নিজের লোগোসহ, মোবাইল ব্যাংকিং আগে। বিকাশে চাপলে সরাসরি বিকাশের পেমেন্ট খোলে; পিন শুধু বিকাশের পেজেই লেখা হয়। **সব উপায় দেখুন** চাপলে SSLCommerz-এর সাধারণ পেজ খোলে।
-* তালিকাটি প্রতিবার SSLCommerz থেকেই আসে — আপনার স্টোরে যা চালু, ঠিক সেগুলোই দেখায়। **কোনো উপায় যোগ করতে (যেমন নগদ বা উপায়) SSLCommerz-কে আপনার স্টোরে সেটি চালু করতে বলুন** — তারপর নিজে থেকেই দেখা যাবে।
+**পেমেন্টের ধাপ** — চেকআউটে শিক্ষার্থী একটি তালিকা থেকে **একটি** উপায় বেছে নেন (ম্যানুয়ালি সেন্ড মানি, অথবা অনলাইন পেমেন্ট), তারপর একটিই **পেমেন্ট করুন** বোতাম। অনলাইন পেমেন্টে **পেমেন্ট করুন** চাপলেই এই অর্ডারের জন্য SSLCommerz-এর নিজের পেমেন্ট পেজ খোলে — SSLCommerz-এর ডকুমেন্টেশন ও তাদের নিজেদের লাইব্রেরি যেভাবে করে। সেখানে শিক্ষার্থী বিকাশ, নগদ, রকেট, উপায়, কার্ড বা ব্যাংক বেছে নেন; পিন বা কার্ড নম্বর শুধু সেই পেজেই লেখা হয়, এই ওয়েবসাইটে কখনো নয়।
+* ওই পেজে কোন কোন উপায় থাকবে তা SSLCommerz ঠিক করে — আপনার স্টোরে যেগুলো চালু। **কোনো উপায় যোগ করতে (যেমন নগদ বা উপায়) SSLCommerz-কে আপনার স্টোরে সেটি চালু করতে বলুন।**
 * *সেটিংস → পেমেন্ট → সংযোগ পরীক্ষা করুন* — এই মুহূর্তে SSLCommerz কোন কোন উপায় দিচ্ছে তার নাম দেখায়।
-* SSLCommerz তালিকা না পাঠালে আগের মতোই সরাসরি SSLCommerz-এর পেজে যায়।
 
 **অনলাইন পেমেন্টে শিক্ষার্থী ভুল বার্তা দেখলে (SSLCommerz)** — *সেটিংস → পেমেন্ট* খুলে নিচে নামুন, **“অনলাইন পেমেন্টের সংযোগ”** অংশে:
 1. দেখুন ওয়েবসাইট **লাইভ** না **টেস্ট** মোডে আছে, স্টোর আইডি/পাসওয়ার্ড **দেওয়া আছে** কি না, আর SSLCommerz-কে কোন ওয়েবসাইট ও ফেরার ঠিকানা দেওয়া হচ্ছে।
@@ -522,7 +521,7 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 | **Direct bKash** (optional) | bKash tokenized-checkout keys | Payment on bKash’s page |
 | **Manual send-money** | Just your bKash/Nagad/Rocket number, and/or your SSLCommerz payment link (**enter them in Settings → Payments**) — no gateway needed | The student first types **the number they will pay from**, then sees your number, the amount and a **20-minute countdown**. They send the money and submit the **TrxID and/or a screenshot** (and can send you a ready-written **WhatsApp message**). **The class opens when you approve**, and their open page turns to “successful” by itself |
 
-**At checkout the ways are listed in this order: Send money manually first (it is the one chosen when the page opens), then the secure online payment — “bKash, Nagad, Rocket or card” (SSLCommerz).** A buyer who chooses the online payment presses **Pay**, then sees SSLCommerz’s ways to pay (bKash, Nagad, Rocket, cards …), taps one and types their PIN or card number on that service’s own secure page — never on this website. The **Terms & Conditions**, **Privacy Policy** and **Refund & Cancellation Policy** are linked in the box the buyer ticks before paying, and again on the page with the ways to pay.
+**At checkout the ways are listed in this order: Send money manually first (it is the one chosen when the page opens), then the secure online payment — “bKash, Nagad, Rocket or card” (SSLCommerz).** A buyer who chooses the online payment presses **Pay** and goes straight to SSLCommerz’s own secure page, chooses bKash, Nagad, Rocket or a card there and types their PIN or card number on it — never on this website. The **Terms & Conditions**, **Privacy Policy** and **Refund & Cancellation Policy** are linked in the box the buyer ticks before paying.
 
 **Checking manual payments (a daily job):**
 1. Left menu → **Orders** (a red number shows how many are waiting). Filter status **Awaiting verification**.
@@ -554,10 +553,9 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 * **The tick box at checkout** — blank until the buyer ticks it; nothing is ordered without it. Its words link to the Terms, the Privacy policy and the Refund & cancellation policy.
 * **Payment banner** — SSLCommerz’s logo (the picture of the link from step 1, or else the one you sent) shows at the bottom of every page.
 
-**The payment step** — at checkout the buyer chooses **one** way from a list (the online payment, or sending money by hand), then presses the one **Pay** button. There are no logo buttons before that. After **Pay**, the website itself shows the ways to pay SSLCommerz has switched on for your store — bKash, Nagad, Rocket (DBBL), Upay, Visa, Mastercard, banks … — with SSLCommerz’s own logos, mobile wallets first. Tapping bKash opens bKash’s payment straight away; the PIN is typed only on bKash’s page. **All ways to pay** opens SSLCommerz’s usual page.
-* The list comes from SSLCommerz every time — the website shows exactly what your store has. **To add a way to pay (for example Nagad or Upay), ask SSLCommerz to switch it on for your store**; it then appears by itself.
+**The payment step** — at checkout the buyer chooses **one** way from a list (sending money by hand, or the online payment), then presses the one **Pay** button. With the online payment, **Pay** opens SSLCommerz’s own payment page for this order straight away — as SSLCommerz’s documentation and its own libraries do. There the buyer chooses bKash, Nagad, Rocket, Upay, a card or a bank; the PIN or card number is typed only on that page, never on this website.
+* SSLCommerz decides which ways that page offers: the ones switched on for your store. **To add a way to pay (for example Nagad or Upay), ask SSLCommerz to switch it on for your store.**
 * *Settings → Payments → Check the connection* names the ways SSLCommerz offers right now.
-* If SSLCommerz sends no list, Pay goes straight to SSLCommerz’s page as before.
 
 **When students see an error after choosing online payment (SSLCommerz)** — open *Settings → Payments* and scroll down to **Online payment connection**:
 1. See whether the website is in **live** or **test** mode, whether the Store ID and password are **set**, and which website and return addresses SSLCommerz is given.

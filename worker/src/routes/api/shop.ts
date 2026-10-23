@@ -189,7 +189,8 @@ shopRoutes.post("/orders", rateLimit("RL_FORM"), async (c) => {
     throw new HttpError(502, "gateway_error");
   }
   c.executionCtx.waitUntil(clearCap(c.env, total));
-  return ok(c, { order: { public_id: order.public_id, total, status: "pending" }, link, redirect_url: r.redirectUrl, pay_methods: r.methods }, 201);
+  // SSLCommerz's own payment page (GatewayPageURL): the buyer chooses bKash, Nagad, Rocket, a card … there
+  return ok(c, { order: { public_id: order.public_id, total, status: "pending" }, link, redirect_url: r.redirectUrl }, 201);
 });
 
 /** The buyer's own order, opened with the key in their link. */

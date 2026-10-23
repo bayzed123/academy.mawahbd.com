@@ -1,4 +1,4 @@
-import { PAY_VIA, sslcommerzUrl, viaOf, type PayMethodDTO, type PaymentMethod, type PayVia } from "@mawah/shared";
+import { sslcommerzUrl, viaOf, type PayMethodDTO, type PaymentMethod } from "@mawah/shared";
 import type { Env } from "../../env";
 
 /**
@@ -54,11 +54,11 @@ function methodGroup(type: string): PayMethodDTO["group"] {
 }
 
 /**
- * The ways of paying SSLCommerz offers this store, from its answer to a new session (`desc`: name, type, logo, gw, redirectGatewayURL): what the
- * buyer chooses from on the website after "Pay" — tapping bKash opens bKash's payment at once, without SSLCommerz's own list. Taken as SSLCommerz
- * sends it, so only what the store really has switched on is offered; an entry without an https address on sslcommerz.com is left out (and a
- * logo from anywhere else is not shown). Mobile wallets first — what most buyers here use — then cards, banks and the rest, each in SSLCommerz's
- * own order. (Exported for the tests.)
+ * The ways of paying SSLCommerz offers this store, from its answer to a new session (`desc`: name, type, logo, gw, redirectGatewayURL): what
+ * "Check the connection" names for the owner (the buyer chooses among them on SSLCommerz's own page, never on this website). Taken as SSLCommerz
+ * sends it, so only what the store really has switched on is named; an entry without an https address on sslcommerz.com is left out (and a
+ * logo from anywhere else is not kept). Mobile wallets first, then cards, banks and the rest, each in SSLCommerz's own order. (Exported for the
+ * tests.)
  */
 export function sslMethods(desc: unknown): PayMethodDTO[] {
   if (!Array.isArray(desc)) return [];
@@ -74,32 +74,6 @@ export function sslMethods(desc: unknown): PayMethodDTO[] {
     found.push({ name, via: viaOf(d), group: methodGroup(typeof d.type === "string" ? d.type : ""), logo: typeof d.logo === "string" ? sslcommerzUrl(d.logo) : null, url });
   }
   return GROUPS.flatMap((g) => found.filter((m) => m.group === g));
-}
-
-/** What SSLCommerz offered the shop last time (KV): the checkout's buttons under the online payment. Never an address to pay at — those are per payment. */
-export const SSL_WAYS_KEY = "ssl:ways";
-export type SslWays = { via: PayVia; logo: string | null }[];
-
-/** Which of the checkout's buttons (PAY_VIA, in that order) SSLCommerz's list has, each with SSLCommerz's logo for it when it sent one. */
-export function sslWays(methods: PayMethodDTO[]): SslWays {
-  return PAY_VIA.filter((v) => methods.some((m) => m.via === v)).map((via) => ({ via, logo: methods.find((m) => m.via === via && m.logo)?.logo ?? null }));
-}
-
-/**
- * Keep what SSLCommerz just offered, for the next buyer's checkout. A session that came without a list says nothing about what is offered,
- * so it changes nothing; the same list as before is not written again.
- */
-export async function rememberWays(env: Env, methods: PayMethodDTO[]): Promise<void> {
-  if (!methods.length) return;
-  const ways = JSON.stringify(sslWays(methods));
-  if ((await env.KV.get(SSL_WAYS_KEY).catch(() => null)) === ways) return;
-  await env.KV.put(SSL_WAYS_KEY, ways).catch(() => undefined);
-}
-
-/** The buttons for the checkout: what SSLCommerz offered last time, or null when it has not been asked yet. */
-export async function offeredWays(env: Env): Promise<SslWays | null> {
-  const ways = await env.KV.get<SslWays>(SSL_WAYS_KEY, "json").catch(() => null);
-  return Array.isArray(ways) ? ways.filter((w) => w && (PAY_VIA as readonly string[]).includes(w.via)).map((w) => ({ via: w.via, logo: typeof w.logo === "string" ? sslcommerzUrl(w.logo) : null })) : null;
 }
 
 /** Where the outcome of the last attempt is kept (KV): Settings → Payments and the dashboard's health strip read it. */
@@ -306,7 +280,6 @@ export async function sslCheck(env: Env): Promise<SslCheck> {
     await rememberSsl(env, r, "check");
     return failed(r);
   }
-  await rememberWays(env, r.methods);
   const methods = r.methods.map((m) => m.name).slice(0, 60);
   const top = await dearestPrice(env);
   if (top > 10) {
