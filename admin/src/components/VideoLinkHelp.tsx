@@ -15,7 +15,9 @@ export function VideoLinkHelp({ url, asLink = false }: { url: string; asLink?: b
   const { t } = useI18n();
   const [playing, setPlaying] = useState(false);
   // a different link is a different video: the one shown is no longer this one
-  useEffect(() => setPlaying(false), [url]);
+  useEffect(() => {
+    setPlaying(false);
+  }, [url]);
 
   const v = videoEmbed(url);
   if (!v) {
