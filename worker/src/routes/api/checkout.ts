@@ -21,7 +21,7 @@ import { tellStudent } from "../../services/studentMessages";
 import { notices, notifyOwner } from "../../services/notify";
 import { availableChannels, manualPayInfo } from "../../services/payments";
 import { bkashCreate } from "../../services/payments/bkash";
-import { offeredWays, rememberSsl, rememberWays, sslInit, type SslWays } from "../../services/payments/sslcommerz";
+import { amountCap, clearCap, offeredWays, rememberCap, rememberSsl, rememberWays, sslInit, type SslCap, type SslWays } from "../../services/payments/sslcommerz";
 
 /**
  * Checkout. Seeing the price (/quote) and buying as a visitor (/guest) need no account — that is the point: a buyer who is sent to a log-in
@@ -77,7 +77,7 @@ const proofSchema = z.object({ trx_id: TRX_ID.optional() });
 
 type Cart = z.output<typeof checkoutSchema>;
 
-function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<typeof getSettings>>, ways: SslWays | null): QuoteDTO {
+function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<typeof getSettings>>, ways: SslWays | null, cap: SslCap | null): QuoteDTO {
   return {
     items: q.items,
     subtotal: q.subtotal,
@@ -89,6 +89,8 @@ function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<
     manual: channels.includes("manual") ? manualPayInfo(settings) : null,
     ssl_logo: q.total > 0 && channels.includes("sslcommerz") ? (readSslLogo(settings.payments.ssl_logo)?.src ?? null) : null,
     ssl_ways: q.total > 0 && channels.includes("sslcommerz") ? ways : null,
+    // SSLCommerz lately refused this much because of the store's limit per payment: the checkout says so instead of letting the buyer run into it
+    ssl_limited: q.total > 0 && channels.includes("sslcommerz") && !!cap && q.total >= cap.from,
   };
 }
 
@@ -100,8 +102,9 @@ checkoutRoutes.post("/quote", loadStudent, async (c) => {
     getSettings(c.env),
   ]);
   const channels = availableChannels(c.env, settings);
-  const ways = quote.total > 0 && channels.includes("sslcommerz") ? await offeredWays(c.env) : null;
-  return ok(c, { quote: toQuoteDTO(quote, channels, settings, ways) });
+  const online = quote.total > 0 && channels.includes("sslcommerz");
+  const [ways, cap] = online ? await Promise.all([offeredWays(c.env), amountCap(c.env)]) : [null, null];
+  return ok(c, { quote: toQuoteDTO(quote, channels, settings, ways, cap) });
 });
 
 interface Prepared {
@@ -174,8 +177,14 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
         // activity log, by e-mail and in Settings → Payments — because that sentence is what tells "wrong keys" from "wrong website address"
         await audit(c, { action: "checkout.gateway_failed", entity: "order", entityId: order.id, summary: `sslcommerz: ${r.problem}`, meta: { problem: r.problem, status: r.status ?? null, said: r.detail } });
         c.executionCtx.waitUntil(notifyOwner(c.env, notices.paymentFailed({ student: student.name, phone: student.phone ?? null, items: quote.items.map((i) => i.title_en), total: quote.total, problem: r.problem, said: r.detail })));
+        // the store's limit per payment: remembered, so the next buyers of this much are told before they press Pay; this one is told what it is
+        if (r.problem === "amount_limit") {
+          await rememberCap(c.env, quote.total, r.detail);
+          throw new HttpError(502, "gateway_amount_limit");
+        }
         throw new HttpError(502, "gateway_error");
       }
+      c.executionCtx.waitUntil(clearCap(c.env, quote.total));
       redirectUrl = r.redirectUrl;
       payMethods = r.methods;
       c.executionCtx.waitUntil(rememberWays(c.env, r.methods));
