@@ -69,7 +69,11 @@ test("a team member changes their own password: the current one first, then a di
 
   // this device stays signed in; the other one is signed out
   expect(((await apiGet<{ staff: { email: string } | null }>(page, "/admin/auth/me")).staff ?? { email: "" }).email).toBe(email);
-  expect((await phone.request.get("/api/admin/auth/me")).status()).toBe(401);
+  // ("me" answers a signed-out caller with no one, not an error; a page that needs a sign-in refuses it)
+  expect(((await (await phone.request.get("/api/admin/auth/me")).json()) as { staff: unknown }).staff).toBeNull();
+  expect((await phone.request.get("/api/admin/dashboard")).status()).toBe(401);
+  await phone.reload();
+  await expect(phone.getByRole("navigation", { name: "Admin" })).toHaveCount(0);
   await other.close();
 
   // the old password no longer works; the new one does

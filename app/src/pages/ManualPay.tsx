@@ -14,7 +14,8 @@ import { Button, Field, Icon, TextInput, useFieldErrors, useToast } from "../com
  *    ManualPay      — "pending": where to send the money, a countdown, and the form for the TrxID and/or a screenshot
  *    ManualWaiting  — "awaiting_verification": what was sent, a WhatsApp message to the team, and a place to add a screenshot
  * ========================================================================================================================== */
-type Method = "bkash" | "nagad" | "rocket";
+/** "card" = the shop's SSLCommerz payment link: paid on SSLCommerz's own page, by card or mobile banking */
+type Method = "bkash" | "nagad" | "rocket" | "card";
 
 /** Seconds left until `payBy` (zero or below once it has passed), ticking every second. `skewMs` = the server's clock minus this device's. */
 export function useSecondsLeft(payBy: string | null, skewMs: number): number | null {
@@ -50,7 +51,7 @@ function useWhatsAppHref(order: OrderDTO, trx: string, withShot: boolean): strin
   const site = useSite();
   const number = site.data?.contact.whatsapp ? waNumber(site.data.contact.whatsapp) : "";
   if (!number) return "";
-  const method = order.method ? t(`method.${order.method}` as "method.bkash") : "";
+  const method = order.via_link && order.manual?.link ? t("app.manual.linkName") : order.method ? t(`method.${order.method}` as "method.bkash") : "";
   const lines = [
     t("app.manual.wa.hello"),
     t("app.manual.wa.order", { code: orderCode(order.public_id) }),
@@ -124,8 +125,10 @@ export function ManualPay({ order, skewMs }: { order: OrderDTO; skewMs: number }
   const fieldErrors = useFieldErrors();
   const info = order.manual!;
   const method = (order.method ?? "bkash") as Method;
-  const to = info.numbers[method] || info.numbers.bkash || info.numbers.nagad || info.numbers.rocket;
-  const methodName = t(`method.${method}` as "method.bkash");
+  // paid on the shop's SSLCommerz payment link (while the owner still has one) — otherwise sent to one of the numbers
+  const viaLink = order.via_link && !!info.link;
+  const to = (method !== "card" && info.numbers[method]) || info.numbers.bkash || info.numbers.nagad || info.numbers.rocket;
+  const methodName = viaLink ? t("app.manual.linkName") : t(`method.${method}` as "method.bkash");
   const code = orderCode(order.public_id);
   const left = useSecondsLeft(order.pay_by, skewMs);
   const over = left !== null && left <= 0;
@@ -193,29 +196,52 @@ export function ManualPay({ order, skewMs }: { order: OrderDTO; skewMs: number }
         </div>
       )}
 
-      <ol className="pay-steps">
-        <li>{t("app.manual.step.open", { method: methodName })}</li>
-        <li>
-          {t("app.manual.step.send", { amount: money(order.total) })}
-          <span className="copy-row">
-            <code>{to}</code>
-            <CopyButton value={to} what={methodName} />
-          </span>
-        </li>
-        <li>
-          {t("app.manual.step.ref", { code })}
-          <span className="copy-row">
-            <code>{code}</code>
-            <CopyButton value={code} what={code} />
-          </span>
-        </li>
-        <li>{t("app.manual.step.proof")}</li>
-      </ol>
-      {order.payer_number && <p className="hint">{t("app.manual.payFrom", { num: order.payer_number })}</p>}
+      {viaLink ? (
+        <ol className="pay-steps">
+          <li>
+            {t("app.manual.step.link")}
+            <span className="copy-row">
+              <a className="btn btn-primary" href={info.link} target="_blank" rel="noopener noreferrer">
+                <Icon name="wallet" /> {t("app.manual.openLink")}
+                <span className="vh"> ({t("app.nav.opensNew")})</span>
+              </a>
+            </span>
+          </li>
+          <li>{t("app.manual.step.linkPay", { amount: money(order.total) })}</li>
+          <li>
+            {t("app.manual.step.linkRef")}
+            <span className="copy-row">
+              <code>{code}</code>
+              <CopyButton value={code} what={code} />
+            </span>
+          </li>
+          <li>{t("app.manual.step.linkProof")}</li>
+        </ol>
+      ) : (
+        <ol className="pay-steps">
+          <li>{t("app.manual.step.open", { method: methodName })}</li>
+          <li>
+            {t("app.manual.step.send", { amount: money(order.total) })}
+            <span className="copy-row">
+              <code>{to}</code>
+              <CopyButton value={to} what={methodName} />
+            </span>
+          </li>
+          <li>
+            {t("app.manual.step.ref", { code })}
+            <span className="copy-row">
+              <code>{code}</code>
+              <CopyButton value={code} what={code} />
+            </span>
+          </li>
+          <li>{t("app.manual.step.proof")}</li>
+        </ol>
+      )}
+      {order.payer_number && <p className="hint">{t(viaLink ? "app.manual.payFromLink" : "app.manual.payFrom", { num: order.payer_number })}</p>}
       {(pick(info, "note") as string) && <p className="small">{pick(info, "note")}</p>}
 
       <form className="proof-form" onSubmit={submit} noValidate>
-        <Field id="p-trx" label={t("app.manual.trx")} error={fields.trx_id} hint={t("app.manual.trxHint", { method: methodName })}>
+        <Field id="p-trx" label={t("app.manual.trx")} error={fields.trx_id} hint={viaLink ? t("app.manual.trxHintLink") : t("app.manual.trxHint", { method: methodName })}>
           <TextInput id="p-trx" autoCapitalize="characters" autoComplete="off" value={trx} onChange={(e) => setTrx(e.target.value)} error={fields.trx_id} />
         </Field>
         <ShotPicker id="p-shot" file={shot} onPick={setShot} />

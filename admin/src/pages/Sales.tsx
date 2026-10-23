@@ -40,9 +40,11 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
 
   const o = q.data?.order;
   const approve = async () => {
+    // paid on the shop's SSLCommerz payment link: the payment is in the SSLCommerz panel, not a wallet statement
+    const link = !!o?.via_link;
     const body = o?.gateway_txn
-      ? t("adm.order.approveBody", { trx: o.gateway_txn, amount: money(o.total) })
-      : t("adm.order.approveBodyNoTrx", { amount: money(o?.total ?? 0), num: o?.payer_number ?? "—" });
+      ? t(link ? "adm.order.approveBodyLink" : "adm.order.approveBody", { trx: o.gateway_txn, amount: money(o.total) })
+      : t(link ? "adm.order.approveBodyNoTrxLink" : "adm.order.approveBodyNoTrx", { amount: money(o?.total ?? 0), num: o?.payer_number ?? "—" });
     const r = await confirm({ title: t("adm.order.approveTitle"), body, confirmLabel: t("adm.order.approve") });
     if (r.ok) act.mutate({ path: "approve" });
   };
@@ -92,7 +94,7 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
               <Icon name="clock" />
               <div>
                 <b>{t("adm.order.checkTitle")}</b>
-                <p>{t("adm.order.checkBody", { trx: o.gateway_txn ?? "—", amount: money(o.total), num: o.payer_number ?? "—" })}</p>
+                <p>{t(o.via_link ? "adm.order.checkBodyLink" : "adm.order.checkBody", { trx: o.gateway_txn ?? "—", amount: money(o.total), num: o.payer_number ?? "—" })}</p>
               </div>
             </div>
           )}
@@ -111,7 +113,8 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
               { label: t("adm.order.ref"), value: <code className="code">{o.public_id}</code> },
               { label: t("label.date"), value: dateTime(o.created_at) },
               { label: t("adm.order.paidAt"), value: o.paid_at ? dateTime(o.paid_at) : "—" },
-              { label: t("adm.order.method"), value: o.method ? t(`method.${o.method}` as "method.bkash") : o.gateway },
+              // a manual payment marked "card" was paid on the shop's SSLCommerz payment link
+              { label: t("adm.order.method"), value: o.via_link ? t("adm.order.viaLink") : o.method ? t(`method.${o.method}` as "method.bkash") : o.gateway },
               { label: t("adm.order.gateway"), value: o.gateway },
               { label: t("adm.order.txn"), value: o.gateway_txn ? <code className="code">{o.gateway_txn}</code> : "—" },
               { label: t("adm.order.payer"), value: o.payer_number },
@@ -234,7 +237,7 @@ export function Orders() {
           { key: "customer", label: t("adm.nav.students"), render: (r) => (<span className="cell-title"><b>{r.customer_name}</b><small>{r.customer_email || r.customer_phone}</small></span>) },
           { key: "items", label: t("adm.nav.courses"), desktopOnly: true, render: (r) => <span className="clip">{r.items ?? ""}</span> },
           { key: "total", label: t("label.total"), sort: "total", className: "num", render: (r) => money(r.total) },
-          { key: "method", label: t("adm.order.method"), desktopOnly: true, render: (r) => (r.method ? t(`method.${r.method}` as "method.bkash") : (r.gateway ?? "—")) },
+          { key: "method", label: t("adm.order.method"), desktopOnly: true, render: (r) => (r.via_link ? t("adm.order.viaLink") : r.method ? t(`method.${r.method}` as "method.bkash") : (r.gateway ?? "—")) },
           { key: "status", label: t("label.status"), render: (r) => <StatusChip status={r.status} /> },
           { key: "created", label: t("label.date"), sort: "created", desktopOnly: true, className: "nowrap", render: (r) => dateTime(r.created_at) },
         ]}

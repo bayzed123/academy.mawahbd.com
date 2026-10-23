@@ -563,7 +563,7 @@ export function InvoicePage({ ctx, order, customer }: { ctx: PageCtx; order: Ord
             <br />
             <small class="muted">{lang === "bn" ? "পেমেন্ট" : "Payment"}</small>
             <br />
-            <b>{order.method ? t(`method.${order.method}` as never) : "—"}</b>
+            <b>{order.via_link ? (lang === "bn" ? "SSLCommerz পেমেন্ট লিংক" : "SSLCommerz payment link") : order.method ? t(`method.${order.method}` as never) : "—"}</b>
             {order.gateway_txn && <><br /><small class="cert-code">{order.gateway_txn}</small></>}
           </div>
           <div>{order.status === "paid" && <span class="paid-stamp">{lang === "bn" ? "পরিশোধিত" : "PAID"}</span>}</div>
