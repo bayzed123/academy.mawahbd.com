@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NOTIFY_KINDS, viaOf } from "@mawah/shared";
 import { setSetting } from "../src/lib/settings";
 import { notices } from "../src/services/notify";
-import { SSL_LAST_KEY, SSL_WAYS_KEY, scrubSsl, sslCheck, sslHost, sslInit, sslMethods, sslProblem, type SslProblem } from "../src/services/payments/sslcommerz";
+import { SSL_CAP_KEY, SSL_LAST_KEY, SSL_WAYS_KEY, scrubSsl, sslCheck, sslHost, sslInit, sslMethods, sslProblem, type SslProblem } from "../src/services/payments/sslcommerz";
 import { Client, env, json, loginStaff, registerStudent, uniqueEmail } from "./helpers";
 
 /*
@@ -121,6 +121,9 @@ async function ownerBox() {
   await setSetting(env, "notifications", { emails: [to], off: [] }, null);
   return to;
 }
+/** The dearest published class or bundle: the second amount "Check the connection" asks SSLCommerz for. */
+const dearest = async () =>
+  (await env.DB.prepare("SELECT MAX(p) AS top FROM (SELECT MAX(price) AS p FROM courses WHERE status = 'published' UNION ALL SELECT MAX(price) FROM bundles WHERE status = 'published')").first<{ top: number }>())!.top;
 const audits = async (action: string) =>
   (await env.DB.prepare("SELECT summary, meta, entity_id FROM activity_log WHERE action = ? ORDER BY id DESC").bind(action).all<{ summary: string; meta: string; entity_id: string }>()).results;
 
@@ -129,11 +132,15 @@ beforeEach(async () => {
   e.SSLCOMMERZ_STORE_PASSWORD = STORE_PASSWORD;
   await env.KV.delete(SSL_LAST_KEY);
   await env.KV.delete(SSL_WAYS_KEY);
+  await env.KV.delete(SSL_CAP_KEY);
   await setSetting(env, "notifications", { emails: [], off: [] }, null);
 });
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+/** SSLCommerz's words when the store's own settings limit how much one payment may be (seen on the live store, October 2026). */
+const LIMIT_WORDS = "Transaction amount is not allowed as per admin configuration!";
 
 describe("what a refusal means", () => {
   const cases: [number | undefined, string, SslProblem][] = [
@@ -149,6 +156,9 @@ describe("what a refusal means", () => {
     [200, "Your IP address has been blocked by the firewall", "blocked"],
     [403, "Access Denied", "blocked"],
     [429, "Too Many Requests", "blocked"],
+    [200, LIMIT_WORDS, "amount_limit"],
+    [200, "Amount exceeds the transaction limit", "amount_limit"],
+    [200, "Maximum transaction amount exceeded", "amount_limit"],
     [200, "Invalid Information", "bad_details"],
     [200, "Duplicate Transaction ID", "bad_details"],
     [200, "total_amount is required", "bad_details"],
@@ -422,6 +432,110 @@ describe("a student turned away at checkout", () => {
   });
 });
 
+describe("SSLCommerz's own limit on how much one payment may be", () => {
+  /*
+   * Seen on the live store: SSLCommerz took a 10-taka check ("Connected") and refused every real price with "Transaction amount is not allowed as
+   * per admin configuration!". Only SSLCommerz can lift that limit, so the website names it, tells the next buyers before they press Pay, offers
+   * send-money, gives the owner a message to send SSLCommerz — and forgets it the moment SSLCommerz takes such an amount again.
+   */
+  const quote = async (slug: string) => (await json(await new Client().post("/api/checkout/quote", { courses: [slug] }))).quote;
+
+  it("a buyer turned away for the amount is told what it is (and nothing of the gateway's words); the owner gets the reason", async () => {
+    const to = await ownerBox();
+    // the tests above used up this hour's few notes of this kind
+    await env.KV.delete(`notify:payment_failed:${Math.floor(Date.now() / 3_600_000)}`);
+    gatewaySays(() => NO(LIMIT_WORDS));
+    const course = await makeCourse(1850);
+    const { client } = await registerStudent(new Client(), { name: "Rina Akter", phone: "01711223355" });
+    const res = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" });
+    expect(res.status).toBe(502);
+    const text = await res.text();
+    expect(JSON.parse(text).error.code).toBe("gateway_amount_limit");
+    expect(text).not.toMatch(/admin configuration|sslcommerz/i);
+    expect(await env.DB.prepare("SELECT status, note FROM orders ORDER BY id DESC LIMIT 1").first()).toMatchObject({ status: "failed", note: "gateway_init_failed" });
+
+    expect((await audits("checkout.gateway_failed"))[0].summary).toBe("sslcommerz: amount_limit");
+    expect(await env.KV.get(SSL_LAST_KEY, "json")).toMatchObject({ ok: false, problem: "amount_limit", detail: LIMIT_WORDS, by: "checkout" });
+    const note = await until(async () => (await mailsTo(to)).find((m) => /could not start the online payment/i.test(m.subject)) ?? false);
+    expect(note.text).toContain("does not allow a payment this large");
+    expect(note.text).toContain(LIMIT_WORDS);
+  });
+
+  it("the next buyers of that much are told before they press Pay; cheaper classes are not", async () => {
+    gatewaySays(() => NO(LIMIT_WORDS));
+    const [cheap, mid, dear] = [await makeCourse(300), await makeCourse(1000), await makeCourse(2500)];
+    expect((await quote(mid.slug)).ssl_limited).toBe(false); // nothing is known yet
+    const { client } = await registerStudent();
+    expect((await client.post("/api/checkout", { agree: true, courses: [mid.slug], channel: "sslcommerz" })).status).toBe(502);
+    expect((await quote(mid.slug)).ssl_limited).toBe(true);
+    expect((await quote(dear.slug)).ssl_limited).toBe(true);
+    expect((await quote(cheap.slug)).ssl_limited).toBe(false);
+    // the smallest amount refused is the one kept
+    expect((await client.post("/api/checkout", { agree: true, courses: [dear.slug], channel: "sslcommerz" })).status).toBe(502);
+    expect(await env.KV.get(SSL_CAP_KEY, "json")).toMatchObject({ from: 1000, detail: LIMIT_WORDS });
+    expect((await quote(mid.slug)).ssl_limited).toBe(true);
+    // the buyer can still try: SSLCommerz may have lifted it since
+    expect((await quote(mid.slug)).channels).toContain("sslcommerz");
+    // a free class never shows it
+    expect((await quote((await makeCourse(0)).slug)).ssl_limited).toBe(false);
+  });
+
+  it("is forgotten as soon as SSLCommerz takes that much again, and after a few hours anyway", async () => {
+    const course = await makeCourse(1200);
+    const { client } = await registerStudent();
+    gatewaySays(() => NO(LIMIT_WORDS));
+    expect((await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" })).status).toBe(502);
+    expect((await quote(course.slug)).ssl_limited).toBe(true);
+    // SSLCommerz lifted it: the next purchase goes through and nobody is warned any more
+    vi.restoreAllMocks();
+    gatewaySays(GOOD);
+    expect((await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "sslcommerz" })).status).toBe(201);
+    await until(async () => !(await env.KV.get(SSL_CAP_KEY)));
+    expect((await quote(course.slug)).ssl_limited).toBe(false);
+    // a note older than six hours is not trusted
+    await env.KV.put(SSL_CAP_KEY, JSON.stringify({ from: 100, at: new Date(Date.now() - 7 * 3600_000).toISOString(), detail: LIMIT_WORDS }));
+    expect((await quote(course.slug)).ssl_limited).toBe(false);
+  });
+
+  it("“Check the connection” tries the dearest price as well, and says the store is connected but limited", async () => {
+    const top = await dearest();
+    expect(top).toBeGreaterThan(10);
+    const calls = gatewaySays((call) => (call.form.get("total_amount") === "10.00" ? GOOD_WITH_WAYS() : NO(LIMIT_WORDS)));
+    const admin = await owner();
+    const body = await json(await admin.post("/api/admin/settings/payments/ssl/check"));
+    expect(body).toEqual({ ok: true, connected: true, mode: "sandbox", host: sslHost(env), methods: WAYS.map((w) => w.name), limited: { amount: top, detail: LIMIT_WORDS } });
+    expect(calls.map((c) => c.form.get("total_amount"))).toEqual(["10.00", `${top}.00`]);
+    // not "connected": the last result, the dashboard and the audit trail say what is wrong
+    expect(await env.KV.get(SSL_LAST_KEY, "json")).toMatchObject({ ok: false, problem: "amount_limit", by: "check" });
+    expect((await audits("payments.ssl_checked"))[0].meta).toBe(JSON.stringify({ connected: true, problem: "amount_limit", mode: "sandbox" }));
+    const health = (await json(await admin.get("/api/admin/health"))).checks as { key: string; issues: string[] }[];
+    expect(health.find((c) => c.key === "payments")?.issues).toContain("sslcommerz_failing");
+    // Settings → Payments shows the limit (and the amount to ask SSLCommerz for) without pressing the button again
+    expect(await json(await admin.get("/api/admin/settings/payments/ssl"))).toMatchObject({ cap: { from: top, detail: LIMIT_WORDS }, dearest: top });
+
+    // SSLCommerz lifted it: the next check says so and the warnings go away
+    vi.restoreAllMocks();
+    gatewaySays(GOOD);
+    expect(await json(await admin.post("/api/admin/settings/payments/ssl/check"))).toEqual({ ok: true, connected: true, mode: "sandbox", host: sslHost(env), methods: [] });
+    expect(await json(await admin.get("/api/admin/settings/payments/ssl"))).toMatchObject({ cap: null, last: { ok: true } });
+    const healed = (await json(await admin.get("/api/admin/health"))).checks as { key: string; issues: string[] }[];
+    expect(healed.find((c) => c.key === "payments")?.issues).not.toContain("sslcommerz_failing");
+  });
+
+  it("another refusal of the dearest price is reported as what it is", async () => {
+    gatewaySays((call) => (call.form.get("total_amount") === "10.00" ? GOOD() : NO("Invalid Information")));
+    expect(await json(await (await owner()).post("/api/admin/settings/payments/ssl/check"))).toEqual({ ok: true, connected: false, mode: "sandbox", host: sslHost(env), problem: "bad_details", detail: "Invalid Information", status: 200 });
+    expect(await env.KV.get(SSL_CAP_KEY)).toBeNull();
+  });
+
+  it("has words for the owner's e-mail in both languages", () => {
+    const n = notices.paymentFailed({ student: "A", phone: null, items: ["C"], total: 1850, problem: "amount_limit", said: LIMIT_WORDS });
+    const words = n.facts.find((f) => f.en === "What went wrong")?.value ?? "";
+    expect(words).toContain("does not allow a payment this large");
+    expect(words).toContain("এত টাকার পেমেন্ট");
+  });
+});
+
 describe("Settings → Payments → Check the connection", () => {
   it("shows how things stand without ever showing a key", async () => {
     const admin = await owner();
@@ -457,8 +571,11 @@ describe("Settings → Payments → Check the connection", () => {
     expect(body).toEqual({ ok: true, connected: true, mode: "sandbox", host: sslHost(env), methods: [] });
     // the page the gateway handed back is thrown away: nobody can be sent to pay a test order
     expect(JSON.stringify(body)).not.toContain("SESSIONKEY");
-    expect(calls).toHaveLength(1);
+    // 10 taka, then the dearest price a buyer can be asked for: a store can be connected and still refuse every real price
+    expect(calls).toHaveLength(2);
     expect(calls[0].form.get("total_amount")).toBe("10.00");
+    expect(calls[1].form.get("total_amount")).toBe(`${await dearest()}.00`);
+    expect(calls[1].form.get("tran_id")).not.toBe(calls[0].form.get("tran_id"));
     expect(calls[0].form.get("tran_id")).toMatch(/^CHECK[A-Z0-9]{5,25}$/);
     expect(calls[0].form.get("tran_id")!.length).toBeLessThanOrEqual(30);
     expect(calls[0].form.get("product_name")).toBe("Connection check");
@@ -524,7 +641,7 @@ describe("Settings → Payments → Check the connection", () => {
     const refused = await client.post("/api/admin/settings/payments/ssl/check");
     expect(refused.status).toBe(429);
     expect((await json(refused)).error.code).toBe("rate_limited");
-    expect(calls).toHaveLength(1); // the refused one never reached the gateway
+    expect(calls).toHaveLength(2); // the twentieth asked for its two amounts; the refused one never reached the gateway
   });
 
   it("the check itself never throws, whatever the gateway does", async () => {

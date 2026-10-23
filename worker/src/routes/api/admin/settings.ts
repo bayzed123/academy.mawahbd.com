@@ -14,7 +14,7 @@ import { getSettings, SETTING_KEYS, setSetting, type SettingKey } from "../../..
 import { requirePerm } from "../../../middleware/auth";
 import { rateLimit } from "../../../middleware/ratelimit";
 import { notices, notificationRecipients, sendNotice } from "../../../services/notify";
-import { SSL_LAST_KEY, sslCheck, sslConfigured, sslHost, sslMode, sslReturnUrls, type SslLast } from "../../../services/payments/sslcommerz";
+import { SSL_LAST_KEY, amountCap, dearestPrice, sslCheck, sslConfigured, sslHost, sslMode, sslReturnUrls, type SslLast } from "../../../services/payments/sslcommerz";
 
 /** Every business setting (contacts, payment options, policies, analytics …) is edited here — nothing needs a redeploy. */
 export const settings = new Hono<AppEnv>();
@@ -210,7 +210,7 @@ settings.get("/settings/sms", requirePerm("settings:read"), async (c) => {
  * ---------------------------------------------------------------------------------------------- */
 
 settings.get("/settings/payments/ssl", requirePerm("settings:read"), async (c) => {
-  const [last, s] = await Promise.all([c.env.KV.get<SslLast>(SSL_LAST_KEY, "json"), getSettings(c.env, { fresh: true })]);
+  const [last, s, cap, dearest] = await Promise.all([c.env.KV.get<SslLast>(SSL_LAST_KEY, "json"), getSettings(c.env, { fresh: true }), amountCap(c.env), dearestPrice(c.env)]);
   return ok(c, {
     enabled: s.payments.sslcommerz,
     configured: sslConfigured(c.env),
@@ -223,6 +223,10 @@ settings.get("/settings/payments/ssl", requirePerm("settings:read"), async (c) =
     site: new URL(c.env.SITE_URL).host,
     return_urls: sslReturnUrls(c.env),
     last,
+    // SSLCommerz lately refused payments from this amount up because of the store's limit per payment, and the dearest price a buyer can be asked
+    // for: what the owner asks SSLCommerz to allow
+    cap: cap ? { from: cap.from, at: cap.at, detail: cap.detail } : null,
+    dearest,
   });
 });
 
@@ -230,7 +234,7 @@ settings.post("/settings/payments/ssl/check", requirePerm("settings:write"), rat
   await underHourlyCap(c, "sslcheck", 20);
   const r = await sslCheck(c.env);
   // the audit trail records that a check happened and how it ended — the gateway's words are in the answer, not in the trail
-  await audit(c, { action: "payments.ssl_checked", entity: "settings", entityId: "payments", meta: { connected: r.connected, problem: r.connected ? null : r.problem, mode: r.mode } });
+  await audit(c, { action: "payments.ssl_checked", entity: "settings", entityId: "payments", meta: { connected: r.connected, problem: r.connected ? (r.limited ? "amount_limit" : null) : r.problem, mode: r.mode } });
   // never `{ ok: false }`: the admin client reads that as a failed request, and the plain-words explanation would never be shown
   return ok(c, { ...r });
 });

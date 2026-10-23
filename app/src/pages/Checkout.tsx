@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CHANNEL_LOGOS, PAY_LOGOS, PAY_VIA, PAY_VIA_GROUP, PAY_VIA_NAME, toBnDigits, type Channel, type PayMethodDTO, type PayVia, type QuoteDTO, type StudentMe } from "@mawah/shared";
+import { CHANNEL_LOGOS, PAY_LOGOS, PAY_VIA_NAME, toBnDigits, type Channel, type PayMethodDTO, type PayVia, type QuoteDTO, type StudentMe } from "@mawah/shared";
 import { CURRENCY, gaItem, track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -140,54 +140,6 @@ function PayMarks({ channel, sslLogo }: { channel: Channel; sslLogo: string | nu
   );
 }
 
-/** Our own picture of each way of paying, where we have one (the footer's marks); the others use SSLCommerz's, or the name alone. */
-const OWN_LOGO: Partial<Record<PayVia, (typeof PAY_LOGOS)[number]>> = Object.fromEntries(PAY_LOGOS.map((l) => [l.key, l]));
-
-/**
- * The online payment is chosen: its ways of paying, right here — bKash, Nagad, Rocket, Upay, then cards — and a tap pays with that one (the
- * button sends the form, so the details above are checked first). `ways`: what SSLCommerz offered the shop last time; before it was ever
- * asked, all of them (one it turns out not to offer brings its list instead).
- */
-function PayTiles({ ways, busy, pending }: { ways: { via: PayVia; logo: string | null }[]; busy: PayVia | null; pending: boolean }) {
-  const { t } = useI18n();
-  const groups = (["mobile", "card"] as const).map((g) => ({ g, list: ways.filter((w) => PAY_VIA_GROUP[w.via] === g) })).filter((x) => x.list.length);
-  return (
-    <div className="pay-tiles" role="group" aria-labelledby="pt-h">
-      <h3 id="pt-h">{t("app.pay.tap")}</h3>
-      <p className="hint">{t("app.pay.tapHint")}</p>
-      {groups.map(({ g, list }) => (
-        <div className="pay-group" key={g}>
-          <h4>{t(`app.pay.g.${g}` as "app.pay.g.mobile")}</h4>
-          <ul className="pay-grid">
-            {list.map(({ via, logo }) => {
-              const own = OWN_LOGO[via];
-              const name = PAY_VIA_NAME[via];
-              return (
-                <li key={via}>
-                  <button type="submit" name="via" value={via} className="pay-method" aria-label={t("app.pay.withName", { name })} aria-busy={busy === via || undefined} disabled={pending}>
-                    <span className="pay-logo" aria-hidden="true">
-                      {busy === via ? (
-                        <span className="spinner sm" />
-                      ) : own ? (
-                        <img src={own.src} width={own.width} height={own.height} alt="" decoding="async" />
-                      ) : logo ? (
-                        <img src={logo} alt="" loading="lazy" decoding="async" />
-                      ) : (
-                        <Icon name="wallet" />
-                      )}
-                    </span>
-                    <span className="pay-name">{name}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 const PAY_GROUPS = ["mobile", "card", "bank", "other"] as const;
 
 /**
@@ -294,8 +246,6 @@ export default function Checkout() {
   const [gatewayDown, setGatewayDown] = useState(false);
   // the online payment is open and SSLCommerz listed the ways this store takes: the buyer taps one (null = still on the form)
   const [online, setOnline] = useState<{ methods: PayMethodDTO[]; all: string; total: number; missing?: PayVia } | null>(null);
-  // the way of paying the buyer tapped last (kept for the payment that goes on after they sign in to an existing account)
-  const [via, setVia] = useState<PayVia | null>(null);
   // the box the buyer ticks to agree to the terms, the privacy policy and the refund & cancellation policy: blank until they tick it
   const [agree, setAgree] = useState(false);
 
@@ -312,9 +262,11 @@ export default function Checkout() {
   // only the services the owner has a number for can be chosen for a manual payment, and the SSLCommerz payment link once the owner set it
   const manualMethods: Method[] = [...(["bkash", "nagad", "rocket"] as const).filter((m) => quote.data?.manual?.numbers[m]), ...(quote.data?.manual?.link ? (["card"] as const) : [])];
   const chosenMethod: Method = manualMethods.includes(method) ? method : (manualMethods[0] ?? method);
+  // the online payment first — unless SSLCommerz is known to refuse this amount (Admin → Payments → Check the connection, or a buyer's try), then send-money
+  const sslLimited = !!quote.data?.ssl_limited;
   useEffect(() => {
-    if (channels.length && !channels.includes(channel as Channel)) setChannel(channels.includes("sslcommerz") ? "sslcommerz" : channels[0]);
-  }, [channels, channel]);
+    if (channels.length && !channels.includes(channel as Channel)) setChannel(channels.includes("sslcommerz") && !(sslLimited && channels.includes("manual")) ? "sslcommerz" : channels.includes("manual") ? "manual" : channels[0]);
+  }, [channels, channel, sslLimited]);
 
   // the basket is on screen: one "begin_checkout" per basket (docs/analytics.md)
   const began = useRef("");
@@ -343,18 +295,18 @@ export default function Checkout() {
   const pay = useMutation({
     // "student": already signed in (or just signed in here — `gaps` then says what their profile lacks, which the details typed above fill);
     // "guest": a visitor, with the details typed above
-    mutationFn: async (v: { as: "student" | "guest"; gaps?: { phone: boolean; address: boolean }; via?: PayVia | null }) => {
+    mutationFn: async (v: { as: "student" | "guest"; gaps?: { phone: boolean; address: boolean } }) => {
       const basket = quote.data;
       if (basket) {
         track("add_payment_info", {
           currency: CURRENCY,
           value: basket.total,
           coupon: basket.coupon_code ?? undefined,
-          payment_type: basket.total === 0 ? "free" : channel === "manual" ? `manual_${chosenMethod}` : channel === "sslcommerz" && v.via ? `sslcommerz_${v.via}` : channel || "unknown",
+          payment_type: basket.total === 0 ? "free" : channel === "manual" ? `manual_${chosenMethod}` : channel || "unknown",
           items: basket.items.map((i) => gaItem(i)),
         });
       }
-      const order = { ...cart, coupon, agree: true as const, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined, via: channel === "sslcommerz" ? (v.via ?? undefined) : undefined };
+      const order = { ...cart, coupon, agree: true as const, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined };
       if (v.as === "student") {
         // a signed-in student whose profile lacks a mobile number or an address gives them here (the form shows only then)
         const details = v.gaps ? { ...(v.gaps.phone ? { phone: phone.trim() } : {}), ...(v.gaps.address ? { address: address.trim() } : {}) } : needsDetails ? { phone: phone.trim(), address: address.trim() } : {};
@@ -387,7 +339,10 @@ export default function Checkout() {
       track("checkout_error", { code: e instanceof ApiError ? e.code : "generic" });
       setFields(fieldErrors(e));
       setFormError(e instanceof ApiError && e.code !== "validation" ? err(e.code) : "");
-      setGatewayDown(e instanceof ApiError && e.code === "gateway_error");
+      // SSLCommerz turned this purchase away (its service, or an amount its settings for the shop do not allow): send-money is offered right there
+      setGatewayDown(e instanceof ApiError && (e.code === "gateway_error" || e.code === "gateway_amount_limit"));
+      // the quote now knows SSLCommerz's limit for this amount, so the online option says so
+      if (e instanceof ApiError && e.code === "gateway_amount_limit") void qc.invalidateQueries({ queryKey: ["quote"] });
     },
   });
 
@@ -437,11 +392,8 @@ export default function Checkout() {
       document.getElementById(missing.name ? "g-name" : missing.phone ? "g-phone" : missing.address ? "g-address" : "co-agree")?.focus();
       return;
     }
-    // a way-of-paying button sent the form (bKash, Nagad …) — or the main Pay button did, and SSLCommerz's list comes next
-    const tapped = (e.nativeEvent as SubmitEvent).submitter?.getAttribute("name") === "via" ? ((e.nativeEvent as SubmitEvent).submitter?.getAttribute("value") as PayVia) : null;
-    const chosen = tapped && (PAY_VIA as readonly string[]).includes(tapped) ? tapped : null;
-    setVia(chosen);
-    pay.mutate({ as: student ? "student" : "guest", via: chosen });
+    // the online payment: SSLCommerz's ways of paying (bKash, Nagad, cards …) are shown after this, once SSLCommerz has opened the payment
+    pay.mutate({ as: student ? "student" : "guest" });
   };
   const policy = lang === "en" ? "/en/policies" : "/policies";
   // "I have read and agree to the {terms}, {privacy} and {refund}": each name a link to its page, in a new tab so the form stays as typed
@@ -500,7 +452,7 @@ export default function Checkout() {
                   passwordless={exists.passwordless}
                   onSignedIn={(s) => {
                     setExists(null);
-                    pay.mutate({ as: "student", gaps: { phone: !s.phone, address: !s.address }, via });
+                    pay.mutate({ as: "student", gaps: { phone: !s.phone, address: !s.address } });
                   }}
                   onOther={() => {
                     setExists(null);
@@ -562,15 +514,12 @@ export default function Checkout() {
                     <span>
                       <b>{t(`app.checkout.channel.${c}` as "app.checkout.channel.manual")}</b>
                       <small>{c === "manual" && q.manual?.link ? t("app.checkout.channel.manual.subLink") : t(`app.checkout.channel.${c}.sub` as "app.checkout.channel.manual.sub")}</small>
+                      {c === "sslcommerz" && q.ssl_limited && <small className="pay-limited">{t(channels.includes("manual") ? "app.checkout.channel.sslcommerz.limited" : "app.checkout.channel.sslcommerz.limitedOnly")}</small>}
                       <PayMarks channel={c} sslLogo={q.ssl_logo ?? null} />
                     </span>
                   </label>
                 ))}
               </fieldset>
-            )}
-
-            {channel === "sslcommerz" && !free && (
-              <PayTiles ways={q.ssl_ways ?? PAY_VIA.map((v) => ({ via: v, logo: null }))} busy={pay.isPending ? (pay.variables?.via ?? null) : null} pending={pay.isPending} />
             )}
 
             {channel === "manual" && !free && q.manual && (

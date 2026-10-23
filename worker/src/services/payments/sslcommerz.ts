@@ -35,6 +35,7 @@ export type SslProblem =
   | "credentials" // SSLCommerz does not accept them: wrong, test keys on the live gateway (or the other way round), or the store is not active yet
   | "domain" // the store is registered for another website, or this address is not allowed
   | "blocked" // the gateway's firewall turned the request away (an address list, or a plain 403)
+  | "amount_limit" // the store may not take this amount: SSLCommerz's own admin set a limit on how much one payment may be (only SSLCommerz can lift it)
   | "bad_details" // it refused the order's details (an amount, a name, a number …)
   | "network" // it could not be reached
   | "gateway_down" // it had an error of its own (5xx)
@@ -118,6 +119,39 @@ export async function rememberSsl(env: Env, r: SslSession, by: SslLast["by"]): P
   await env.KV.put(SSL_LAST_KEY, JSON.stringify(last)).catch(() => undefined);
 }
 
+/**
+ * SSLCommerz refused a payment because of the store's limit per payment (KV). From that amount up the checkout says plainly that online payment
+ * is not open for it yet and offers send-money instead, so buyers stop running into the refusal. The note is forgotten after a few hours (a
+ * buyer then tries again, and a refusal sets it again), at once when a payment of that size or more is accepted, and by "Check the connection".
+ */
+export const SSL_CAP_KEY = "ssl:amount_cap";
+export interface SslCap {
+  /** the smallest amount SSLCommerz refused */
+  from: number;
+  at: string;
+  detail: string;
+}
+const CAP_HOURS = 6;
+
+export async function rememberCap(env: Env, total: number, detail: string): Promise<void> {
+  const now = await amountCap(env);
+  const cap: SslCap = { from: now ? Math.min(now.from, total) : total, at: new Date().toISOString(), detail };
+  await env.KV.put(SSL_CAP_KEY, JSON.stringify(cap), { expirationTtl: CAP_HOURS * 3600 }).catch(() => undefined);
+}
+
+/** SSLCommerz accepted a payment of `total`: a limit noted at that amount or below no longer holds. */
+export async function clearCap(env: Env, total: number): Promise<void> {
+  const now = await amountCap(env);
+  if (now && total >= now.from) await env.KV.delete(SSL_CAP_KEY).catch(() => undefined);
+}
+
+/** The limit SSLCommerz showed lately, or null. */
+export async function amountCap(env: Env): Promise<SslCap | null> {
+  const cap = await env.KV.get<SslCap>(SSL_CAP_KEY, "json").catch(() => null);
+  if (!cap || typeof cap.from !== "number" || typeof cap.at !== "string") return null;
+  return Date.now() - Date.parse(cap.at) < CAP_HOURS * 3600_000 ? cap : null;
+}
+
 /** What SSLCommerz (or the network) said, shortened: no markup, the store's keys cut out, and anything shaped like a token or a key too. */
 export function scrubSsl(env: Env, s: string): string {
   let out = s.replace(/<[^>]*>/g, " ");
@@ -140,6 +174,8 @@ export function sslProblem(status: number | undefined, said: string): SslProblem
   if (status === undefined) return "network";
   const s = said.toLowerCase();
   if (/\bip\b.{0,40}(not|block|whitelist|allow|restrict|denied)|(not|block|whitelist|restrict|denied).{0,40}\bip\b|firewall/.test(s)) return "blocked";
+  // "Transaction amount is not allowed as per admin configuration!": the store's own limit per payment, set at SSLCommerz — not the order's fault
+  if (/admin configuration|amount.{0,40}(not allowed|not permitted|exceed|limit)|(exceed|above|over).{0,30}(limit|maximum)|transaction limit/.test(s)) return "amount_limit";
   if (/domain|web ?site|host ?name|referr?er|origin|(url|link).{0,30}(not|mismatch|differ|register|allow)|not (registered|whitelisted|allowed) for/.test(s)) return "domain";
   if (/credential|de-?activ|in-?activ|not active|suspend|store.{0,15}(id|passw)|invalid store|authenticat|unauthori[sz]ed/.test(s)) return "credentials";
   if (status >= 500) return "gateway_down";
@@ -229,26 +265,64 @@ export function sslInit(env: Env, order: { public_id: string; total: number }, c
 }
 
 export type SslCheck =
-  | { connected: true; mode: "live" | "sandbox"; host: string; methods: string[] }
+  | {
+      connected: true;
+      mode: "live" | "sandbox";
+      host: string;
+      methods: string[];
+      /** the connection works, but SSLCommerz refuses a payment as large as the shop's dearest class: what it said, and for which amount */
+      limited?: { amount: number; detail: string };
+    }
   | { connected: false; mode: "live" | "sandbox"; host: string; problem: SslProblem; detail?: string; status?: number };
 
 /**
  * "Check the connection": open a session for a made-up 10-taka order, exactly as a purchase would, and read what SSLCommerz says. Nothing is
  * charged and nobody is sent to the gateway page (its address is thrown away); SSLCommerz only lists one unpaid test entry. When it works, the
  * names of the ways of paying SSLCommerz offers the store are kept (what buyers will choose from) — never their addresses.
+ * Then the same for the shop's dearest class or bundle: a store can be connected and still have every real payment refused because SSLCommerz
+ * limits how much one payment may be — a check of 10 taka alone said "Connected" while every sale was turned away.
  */
 export async function sslCheck(env: Env): Promise<SslCheck> {
   const mode = sslMode(env);
   const host = sslHost(env);
   if (!sslConfigured(env)) return { connected: false, mode, host, problem: "not_configured" };
-  const tran = `CHECK${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.toUpperCase().slice(0, 30);
   const mail = (env.NOTIFY_EMAIL ?? "").trim() || "customer@mawahacademy.com";
-  const r = await openSession(env, sessionForm(env, { public_id: tran, total: 10 }, { name: "Connection check", email: mail, phone: "01700000000", address: "Dhaka" }, "Connection check"));
+  const ask = (total: number) => {
+    const tran = `CHECK${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`.toUpperCase().slice(0, 30);
+    return openSession(env, sessionForm(env, { public_id: tran, total }, { name: "Connection check", email: mail, phone: "01700000000", address: "Dhaka" }, "Connection check"));
+  };
+  const failed = (r: Extract<SslSession, { ok: false }>): SslCheck => ({ connected: false, mode, host, problem: r.problem, detail: r.detail, ...(r.status ? { status: r.status } : {}) });
+
+  const r = await ask(10);
+  if (!r.ok) {
+    await rememberSsl(env, r, "check");
+    return failed(r);
+  }
+  await rememberWays(env, r.methods);
+  const methods = r.methods.map((m) => m.name).slice(0, 60);
+  const top = await dearestPrice(env);
+  if (top > 10) {
+    const big = await ask(top);
+    if (!big.ok) {
+      await rememberSsl(env, big, "check");
+      if (big.problem !== "amount_limit") return failed(big);
+      await rememberCap(env, top, big.detail);
+      return { connected: true, mode, host, methods, limited: { amount: top, detail: big.detail } };
+    }
+    await clearCap(env, top);
+  }
   await rememberSsl(env, r, "check");
-  if (r.ok) await rememberWays(env, r.methods);
-  return r.ok
-    ? { connected: true, mode, host, methods: r.methods.map((m) => m.name).slice(0, 60) }
-    : { connected: false, mode, host, problem: r.problem, detail: r.detail, ...(r.status ? { status: r.status } : {}) };
+  return { connected: true, mode, host, methods };
+}
+
+/** The highest price a buyer can be asked for: the dearest published class or bundle (SSLCommerz takes at most 500,000 taka in one payment). */
+export async function dearestPrice(env: Env): Promise<number> {
+  const row = await env.DB.prepare(
+    "SELECT MAX(p) AS top FROM (SELECT MAX(price) AS p FROM courses WHERE status = 'published' UNION ALL SELECT MAX(price) FROM bundles WHERE status = 'published')",
+  )
+    .first<{ top: number | null }>()
+    .catch(() => null);
+  return Math.min(Math.max(0, Math.round(row?.top ?? 0)), 500_000);
 }
 
 /** Ask SSLCommerz whether `valId` is a genuine, completed payment. Returns null on any transport problem. */

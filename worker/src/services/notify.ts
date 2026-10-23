@@ -70,6 +70,7 @@ const PAYMENT_FAILED_WORDS: Record<string, string> = {
   credentials: "SSLCommerz does not accept the store keys · SSLCommerz স্টোরের কী মানছে না",
   domain: "SSLCommerz does not allow this website address · SSLCommerz এই ওয়েবসাইটের ঠিকানা অনুমোদন করছে না",
   blocked: "SSLCommerz turned the website’s server away · SSLCommerz ওয়েবসাইটের সার্ভারকে ফিরিয়ে দিয়েছে",
+  amount_limit: "SSLCommerz does not allow a payment this large for the store (only SSLCommerz can change it) · SSLCommerz স্টোরের জন্য এত টাকার পেমেন্ট অনুমোদন করে না (শুধু SSLCommerz বদলাতে পারে)",
   bad_details: "SSLCommerz refused the order’s details · SSLCommerz অর্ডারের তথ্য মানেনি",
   network: "SSLCommerz could not be reached · SSLCommerz-এর সাথে যোগাযোগ করা যায়নি",
   gateway_down: "SSLCommerz had an error of its own · SSLCommerz-এর নিজেরই সমস্যা হয়েছে",
