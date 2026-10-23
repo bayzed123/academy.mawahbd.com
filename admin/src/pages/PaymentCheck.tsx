@@ -5,7 +5,7 @@ import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { Button, Chip, ErrorState, Icon, KV, Spinner, useToast } from "../components/ui";
 
-type Problem = "not_configured" | "credentials" | "domain" | "blocked" | "bad_details" | "network" | "gateway_down" | "other";
+type Problem = "not_configured" | "credentials" | "domain" | "blocked" | "amount_limit" | "bad_details" | "network" | "gateway_down" | "other";
 interface Last {
   at: string;
   ok: boolean;
@@ -24,8 +24,61 @@ interface Status {
   site: string;
   return_urls: { success: string; fail: string; cancel: string; ipn: string };
   last: Last | null;
+  /** SSLCommerz lately refused payments from this amount up (the store's limit per payment) */
+  cap: { from: number; at: string; detail: string } | null;
+  /** the dearest published class or bundle */
+  dearest: number;
 }
-type Check = { connected: true; mode: "live" | "sandbox"; host: string; methods?: string[] } | { connected: false; mode: "live" | "sandbox"; host: string; problem: Problem; detail?: string; status?: number };
+type Check = { connected: true; mode: "live" | "sandbox"; host: string; methods?: string[]; limited?: { amount: number; detail: string } } | { connected: false; mode: "live" | "sandbox"; host: string; problem: Problem; detail?: string; status?: number };
+
+/** In the English SSLCommerz support reads, whatever the screen's language: "2,550 taka". */
+const taka = (n: number) => `${n.toLocaleString("en-US")} taka`;
+
+/**
+ * SSLCommerz takes the store's connection but refuses real prices: its own limit on how much one payment may be. Only SSLCommerz can lift it,
+ * so the owner gets the reason in plain words and a ready message to send them, with the amounts filled in.
+ */
+function AmountLimit({ amount, top, site, detail, at }: { amount: number; top: number; site: string; detail: string; at: string | null }) {
+  const { t, lang, money } = useI18n();
+  const toast = useToast();
+  const message = t("adm.pay.chk.msgText", { site, amount: taka(amount), top: taka(Math.max(top, amount)) });
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(message);
+      toast(t("adm.pay.chk.copied"));
+    } catch {
+      /* the message is on the screen to select by hand */
+    }
+  };
+  const when = at ? new Date(at).toLocaleString(lang === "bn" ? "bn-BD" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Dhaka" }) : null;
+  return (
+    <div className="notice bad-note" style={{ marginTop: 12 }}>
+      <Icon name="x" />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <b>{when ? t("adm.pay.chk.capNow", { amount: money(amount), when }) : t("adm.pay.chk.limited", { amount: money(amount) })}</b>
+        <p>{t("adm.pay.p.amount_limit.title")}.</p>
+        <p>{t("adm.pay.p.amount_limit.body")}</p>
+        {detail && (
+          <p className="said">
+            {t("adm.pay.chk.said")}: <q>{detail}</q>
+          </p>
+        )}
+        <p className="label" id="ssl-msg" style={{ marginTop: 10 }}>
+          <b>{t("adm.pay.chk.msg")}</b>
+        </p>
+        <div className="copy-row">
+          {/* a letter, not code: the box's look (easy to select) in the ordinary font */}
+          <code aria-labelledby="ssl-msg" lang="en" style={{ fontFamily: "inherit", lineHeight: 1.5 }}>
+            {message}
+          </code>
+          <Button className="btn-outline btn-sm" onClick={() => void copy()}>
+            {t("adm.pay.chk.copy")}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Settings → Payments, below the switches: is the online payment (SSLCommerz) really working? From the outside there is no way to tell: a student
@@ -109,8 +162,12 @@ export function PaymentCheck() {
       </div>
       <p className="hint">{t("adm.pay.chk.note")}</p>
       <div aria-live="polite">
+        {/* a limit SSLCommerz showed lately (a buyer's try or an earlier check): until a check is run here, it is what the owner sees */}
+        {!result && s.cap && <AmountLimit amount={s.cap.from} top={s.dearest} site={s.site} detail={s.cap.detail} at={s.cap.at} />}
         {result &&
-          (result.connected ? (
+          (result.connected && result.limited ? (
+            <AmountLimit amount={result.limited.amount} top={s.dearest} site={s.site} detail={result.limited.detail} at={null} />
+          ) : result.connected ? (
             <div className="notice ok-note" style={{ marginTop: 12 }}>
               <Icon name="check" />
               <div>

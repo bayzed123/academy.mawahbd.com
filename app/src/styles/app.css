@@ -205,18 +205,9 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .pay-opt input{width:22px;height:22px;accent-color:var(--red-600);flex:none}
 .pay-opt b{display:block}
 .pay-opt small{color:var(--ink-3)}
+/* SSLCommerz refuses this amount lately (the store's limit per payment): said on the option itself, before anyone presses Pay */
+.pay-opt small.pay-limited{display:block;margin-top:2px;color:var(--red-700);font-weight:600}
 /* after "Pay": SSLCommerz's ways of paying with their own logos, big enough to tap — mobile wallets first */
-/* the online payment's ways of paying, shown as soon as it is chosen: a tap pays with that one */
-.pay-tiles{margin-top:16px;padding:16px;border:1.5px solid var(--line-2);border-radius:16px;background:#fff}
-.pay-tiles h3{font-size:1.05rem;margin:0 0 4px}
-.pay-tiles .pay-group{margin-top:14px}
-.pay-tiles h4{font-size:.95rem;margin:0 0 8px;color:var(--ink-2)}
-/* two to a row on a 360 px phone (the box sits inside the checkout card, so the shared 132 px minimum would leave one per row) */
-.pay-tiles .pay-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,108px),1fr))}
-@media (max-width:420px){.pay-tiles{padding:12px}}
-button.pay-method{font:inherit;cursor:pointer;width:100%}
-button.pay-method:disabled{cursor:progress;opacity:.7}
-button.pay-method[aria-busy="true"]{opacity:1;border-color:var(--k-900)}
 .pay-group{margin-top:18px}
 .pay-group h2{font-size:1.02rem;margin:0 0 10px}
 .pay-grid{list-style:none;margin:0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,132px),1fr))}
