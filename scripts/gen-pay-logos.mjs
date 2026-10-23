@@ -6,6 +6,10 @@
  *
  * Visa and Mastercard are drawn as vector files (marketing/public/pay/visa.svg, mastercard.svg) and need no build.
  *
+ * SSLCommerz's own picture of the ways to pay ("Pay with … Verified by SSLCommerz"), as the owner sent it, is served unchanged:
+ *
+ *   brand/pay/payment.png   ->   marketing/public/pay/sslcommerz.png      (its size is SSL_BANNER in shared/src/payLogos.ts)
+ *
  * The owner's pictures have white margins of different sizes (and the JPEG has faint noise in its white). For each one this
  * script trims the margin, turns the near-white background into pure white (so it melts into the white badge the footer puts
  * every logo on), and scales it to HEIGHT_PX — three times the 24px height it is shown at, so it stays sharp on phones.
@@ -15,7 +19,7 @@
  * (CHROMIUM_PATH=/path/to/chrome if Playwright's browser is not installed)
  */
 import { chromium } from "@playwright/test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -88,3 +92,7 @@ for (const logo of LOGOS) {
   console.log(`${logo.out}: ${r.width}x${r.height}  (from ${r.source.w}x${r.source.h}, artwork ${r.source.box.join(",")})  ${(Buffer.from(r.webp, "base64").length / 1024).toFixed(1)} KB`);
 }
 await browser.close();
+
+// SSLCommerz's picture, byte for byte (scripts/lib/brand.test.mjs checks the copy and its size)
+copyFileSync(resolve(SRC, "payment.png"), resolve(OUT, "sslcommerz.png"));
+console.log("sslcommerz.png: copied from payment.png");

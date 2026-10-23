@@ -116,10 +116,10 @@
 * কোনো নম্বর ছাড়া শুধু লিংক দিলেও চলে: তখন ম্যানুয়াল অপশনে শুধু এই উপায়টি থাকে। ঘর খালি করলে উপায়টি আর দেখায় না।
 * এটি সাময়িক ব্যবস্থা: SSLCommerz আপনার স্টোরের ওয়েবসাইট `https://mawahacademy.com` করে দিলে সাধারণ অনলাইন পেমেন্টেই ক্লাস নিজে নিজে খোলে — অনুমোদন লাগে না।
 
-**SSLCommerz-এর লোগো** — SSLCommerz প্রতিটি দোকানকে ওয়েবসাইটে তাদের লোগো (একটি ছবিতে সব পেমেন্ট মাধ্যমের লোগো) দেখাতে বলে, আর সেই ছবির লিংক তারাই দেয় — ওয়েবসাইট নিজে থেকে কোনো লিংক বানায় না।
+**SSLCommerz-এর লোগো** — SSLCommerz প্রতিটি দোকানকে ওয়েবসাইটে তাদের লোগো (একটি ছবিতে সব পেমেন্ট মাধ্যমের লোগো) দেখাতে বলে, আর সেই ছবির লিংক তারাই দেয় — ওয়েবসাইট নিজে থেকে কোনো লিংক বানায় না। আপনার পাঠানো ছবিটি (“Pay With … Verified by SSLCommerz”) ওয়েবসাইটে রাখা আছে: অনলাইন পেমেন্ট চালু আর স্টোরের কী বসানো থাকলে, ঘর খালি থাকলেও এটিই প্রতিটি পাতার নিচে আর চেকআউটে অনলাইন পেমেন্টের অপশনে দেখায়। SSLCommerz-এর নিজের লিংক বসালে সেটিই দেখায়।
 1. *সেটিংস → পেমেন্ট → “SSLCommerz-এর লোগো”* ঘরে SSLCommerz যে লিংক (বা পুরো কোড) দিয়েছে সেটি হুবহু বসান। ঠিক থাকলে ঘরের নিচেই ছবিটি দেখা যাবে; ভুল হলে সাথে সাথে লেখা আসবে কেন।
 2. **সংরক্ষণ করুন** চাপুন। ছবিটি তখন প্রতিটি পাতার একদম নিচে (“আমরা গ্রহণ করি”) আর চেকআউটে অনলাইন পেমেন্টের অপশনে দেখাবে — ওয়েবসাইটের নিজের ছোট লোগোগুলোর জায়গায়। (সেন্ড মানির অপশনে বিকাশ/নগদ/রকেটের লোগো থাকে, কারণ সেটি আপনার নিজের নম্বর।)
-3. শুধু `https://` দিয়ে শুরু আর `sslcommerz.com`-এর লিংক নেওয়া হয় — ছবিটি SSLCommerz-এর নিজের সার্ভার থেকেই আসে। ঘর খালি করলে আবার ছোট লোগোগুলো ফিরে আসে।
+3. শুধু `https://` দিয়ে শুরু আর `sslcommerz.com`-এর লিংক নেওয়া হয় — ছবিটি SSLCommerz-এর নিজের সার্ভার থেকেই আসে। ঘর খালি করলে আবার আপনার পাঠানো ছবিটি দেখায়; অনলাইন পেমেন্ট বন্ধ থাকলে (বা স্টোরের কী না থাকলে) ছোট লোগোগুলো।
 4. লোগো বসানোর পর SSLCommerz-কে ওয়েবসাইট আবার দেখে স্টোর চালু করতে বলুন। তারা সাধারণত রিফান্ড নীতি, গোপনীয়তা নীতি, ব্যবহারের শর্তাবলি আর যোগাযোগের তথ্যও দেখে — *সেটিংস → নীতিমালা* আর *যোগাযোগ* ভরা আছে কি না দেখে নিন।
 
 **SSLCommerz ওয়েবসাইটে যা দেখে** — সবগুলো ওয়েবসাইটে আগে থেকেই আছে:
@@ -128,7 +128,7 @@
 * **ক্লাস পাওয়া যাচ্ছে কি না** — প্রতিটি ক্লাসে লেখা থাকে “ভর্তি চলছে”; “শীঘ্রই আসছে” ক্লাসের ছবিতে লেখা থাকে “এখনো ভর্তি শুরু হয়নি”।
 * **তৃতীয় পক্ষের বিজ্ঞাপন নেই** — শর্তাবলি ও গোপনীয়তা নীতিতে লেখা আছে।
 * **চেকআউটে টিক দেওয়ার ঘর** — শুরুতে খালি; শিক্ষার্থী নিজে টিক দিলে তবেই অর্ডার হয়। ঘরের লেখায় শর্তাবলি, গোপনীয়তা নীতি ও রিফান্ড ও বাতিল নীতির লিংক আছে।
-* **পেমেন্ট ব্যানার** — ওপরের ধাপ ১-এ বসানো SSLCommerz-এর লোগো প্রতিটি পেজের নিচে দেখা যায়।
+* **পেমেন্ট ব্যানার** — SSLCommerz-এর লোগো (ধাপ ১-এ বসানো লিংকের ছবি, না থাকলে আপনার পাঠানো ছবিটি) প্রতিটি পেজের নিচে দেখা যায়।
 
 **পেমেন্টের ধাপ** — চেকআউটে শিক্ষার্থী একটি তালিকা থেকে **একটি** উপায় বেছে নেন (অনলাইন পেমেন্ট, অথবা ম্যানুয়ালি সেন্ড মানি), তারপর একটিই **পেমেন্ট করুন** বোতাম। তার আগে কোনো লোগো-বোতাম থাকে না। পেমেন্ট করুন চাপার পর ওয়েবসাইট নিজেই দেখায় SSLCommerz আপনার স্টোরে কোন কোন উপায় চালু রেখেছে — বিকাশ, নগদ, রকেট (DBBL), উপায়, ভিসা, মাস্টারকার্ড, ব্যাংক… — SSLCommerz-এর নিজের লোগোসহ, মোবাইল ব্যাংকিং আগে। বিকাশে চাপলে সরাসরি বিকাশের পেমেন্ট খোলে; পিন শুধু বিকাশের পেজেই লেখা হয়। **সব উপায় দেখুন** চাপলে SSLCommerz-এর সাধারণ পেজ খোলে।
 * তালিকাটি প্রতিবার SSLCommerz থেকেই আসে — আপনার স্টোরে যা চালু, ঠিক সেগুলোই দেখায়। **কোনো উপায় যোগ করতে (যেমন নগদ বা উপায়) SSLCommerz-কে আপনার স্টোরে সেটি চালু করতে বলুন** — তারপর নিজে থেকেই দেখা যাবে।
@@ -507,10 +507,10 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 * The link works on its own, without any of your numbers: the manual option then offers just this way. Empty the box and it is no longer offered.
 * This is a stop-gap: once SSLCommerz changes your store’s website to `https://mawahacademy.com`, the normal online payment opens the class by itself — no approval needed.
 
-**SSLCommerz’s logo** — SSLCommerz asks every shop to show its logo on the website (one picture with the logos of every way to pay), and SSLCommerz itself gives the link to that picture — the website never makes one up.
+**SSLCommerz’s logo** — SSLCommerz asks every shop to show its logo on the website (one picture with the logos of every way to pay), and SSLCommerz itself gives the link to that picture — the website never makes one up. The picture you sent (“Pay With … Verified by SSLCommerz”) is kept on the website: while online payment is on and the store’s keys are set, it shows at the bottom of every page and on the online-payment choice at checkout even with the box empty. A link from SSLCommerz pasted in the box takes its place.
 1. In *Settings → Payments → “SSLCommerz logo”* paste exactly what SSLCommerz gave you (the link, or the whole code). If it is right, the picture shows under the box at once; if not, the box says why straight away.
 2. Press **Save**. The picture then shows at the bottom of every page (“We accept”) and on the online-payment choice at checkout — in place of the website’s own small logos. (The send-money choice keeps the bKash/Nagad/Rocket logos: that is your own number.)
-3. Only a link starting with `https://` on `sslcommerz.com` is taken — the picture comes from SSLCommerz’s own server. Empty the box and the small logos come back.
+3. Only a link starting with `https://` on `sslcommerz.com` is taken — the picture comes from SSLCommerz’s own server. Empty the box and the picture you sent shows again; with online payment off (or no store keys) the small logos show.
 4. Once the logo is up, ask SSLCommerz to look at the website again and switch the store on. They usually also check the refund policy, privacy policy, terms and contact details — make sure *Settings → Policies* and *Contact* are filled in.
 
 **What SSLCommerz checks on the website** — all of it is on the site already:
@@ -519,7 +519,7 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 * **Availability** — every open class says “Available”; a class coming soon says “Not available yet” on its picture.
 * **No third-party advertisements** — said in the Terms and the Privacy policy.
 * **The tick box at checkout** — blank until the buyer ticks it; nothing is ordered without it. Its words link to the Terms, the Privacy policy and the Refund & cancellation policy.
-* **Payment banner** — the SSLCommerz logo you pasted in step 1 shows at the bottom of every page.
+* **Payment banner** — SSLCommerz’s logo (the picture of the link from step 1, or else the one you sent) shows at the bottom of every page.
 
 **The payment step** — at checkout the buyer chooses **one** way from a list (the online payment, or sending money by hand), then presses the one **Pay** button. There are no logo buttons before that. After **Pay**, the website itself shows the ways to pay SSLCommerz has switched on for your store — bKash, Nagad, Rocket (DBBL), Upay, Visa, Mastercard, banks … — with SSLCommerz’s own logos, mobile wallets first. Tapping bKash opens bKash’s payment straight away; the PIN is typed only on bKash’s page. **All ways to pay** opens SSLCommerz’s usual page.
 * The list comes from SSLCommerz every time — the website shows exactly what your store has. **To add a way to pay (for example Nagad or Upay), ask SSLCommerz to switch it on for your store**; it then appears by itself.

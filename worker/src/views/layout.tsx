@@ -1,5 +1,6 @@
 import { raw } from "hono/html";
-import { loc, readSslLogo } from "@mawah/shared";
+import { loc, readSslLogo, SSL_BANNER } from "@mawah/shared";
+import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
 import { ANALYTICS_JS, BANNERS_JS, CSS, GALLERY_JS, OG_IMAGE, SITE_JS } from "../generated/assets";
@@ -52,8 +53,11 @@ export function Layout(props: LayoutProps) {
   const ig = httpUrl(settings.contact.instagram);
   // the registered address and trade licence number (SSLCommerz asks for them on every page)
   const regAddress = lang === "bn" ? settings.contact.address_bn || settings.contact.address_en : settings.contact.address_en || settings.contact.address_bn;
-  // SSLCommerz's own logo, when the owner has pasted the link SSLCommerz gave (Settings → Payments): it takes the place of the five small marks
-  const sslLogo = settings.payments.sslcommerz ? readSslLogo(settings.payments.ssl_logo) : null;
+  // SSLCommerz's picture of the ways to pay takes the place of the five small marks while SSLCommerz is switched on: the one the owner pasted
+  // (Settings → Payments), else — once the store's keys are set, so SSLCommerz really takes payments — the copy of it the owner sent
+  const pasted = settings.payments.sslcommerz ? readSslLogo(settings.payments.ssl_logo) : null;
+  const sslLogo = pasted ?? (settings.payments.sslcommerz && sslConfigured(env) ? { src: SSL_BANNER.src, href: null } : null);
+  const sslSize = pasted ? {} : { width: SSL_BANNER.width, height: SSL_BANNER.height };
   const shop = shopOf(ctx);
   const shopAttrs = { target: "_blank", rel: "noopener noreferrer", "data-shop": "" } as const;
 
@@ -327,7 +331,7 @@ export function Layout(props: LayoutProps) {
                           <span class="vh"> ({t("shop.opens")})</span>
                         </a>
                       ) : (
-                        <img src={sslLogo.src} alt={t("footer.sslAlt")} loading="lazy" decoding="async" />
+                        <img src={sslLogo.src} {...sslSize} alt={t("footer.sslAlt")} loading="lazy" decoding="async" />
                       )}
                     </p>
                   ) : (

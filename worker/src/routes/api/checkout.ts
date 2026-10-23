@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
-import { formatMoney, isNoEmail, MAX_PROOF_IMAGE_BYTES, PAY_VIA, readSslLogo, type Channel, type PayMethodDTO, type PayVia, type QuoteDTO } from "@mawah/shared";
+import { formatMoney, isNoEmail, MAX_PROOF_IMAGE_BYTES, PAY_VIA, readSslLogo, SSL_BANNER, type Channel, type PayMethodDTO, type PayVia, type QuoteDTO } from "@mawah/shared";
 import type { AppEnv, Ctx, StudentCtx } from "../../env";
 import { audit } from "../../lib/audit";
 import { first, nowIso, run } from "../../lib/db";
@@ -87,7 +87,8 @@ function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<
     bundle_id: q.bundle_id,
     channels: q.total === 0 ? [] : channels,
     manual: channels.includes("manual") ? manualPayInfo(settings) : null,
-    ssl_logo: q.total > 0 && channels.includes("sslcommerz") ? (readSslLogo(settings.payments.ssl_logo)?.src ?? null) : null,
+    // SSLCommerz's picture for the online choice: the one the owner pasted, else the copy the owner sent (channels holds SSLCommerz only once its keys are set)
+    ssl_logo: q.total > 0 && channels.includes("sslcommerz") ? (readSslLogo(settings.payments.ssl_logo)?.src ?? SSL_BANNER.src) : null,
     ssl_ways: q.total > 0 && channels.includes("sslcommerz") ? ways : null,
     // SSLCommerz lately refused this much because of the store's limit per payment: the checkout says so instead of letting the buyer run into it
     ssl_limited: q.total > 0 && channels.includes("sslcommerz") && !!cap && q.total >= cap.from,
