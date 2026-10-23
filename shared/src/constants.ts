@@ -18,7 +18,7 @@ export const PAYMENT_METHODS = ["bkash", "nagad", "rocket", "card", "manual", "f
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 /** Everything the owner can be told about by e-mail the moment it happens (Admin → Settings → E-mail → Notifications). */
-export const NOTIFY_KINDS = ["order_paid", "payment_waiting", "payment_failed", "contact_message", "new_student", "course_question", "review_pending", "chat_handoff", "group_request", "notify_me", "newsletter"] as const;
+export const NOTIFY_KINDS = ["order_paid", "payment_waiting", "payment_failed", "contact_message", "new_student", "course_question", "review_pending", "chat_handoff", "group_request", "notify_me", "newsletter", "shop_order", "shop_review"] as const;
 export type NotifyKind = (typeof NOTIFY_KINDS)[number];
 
 /** Where a student account came from: they registered, they were made at checkout for a buyer who did not register, staff added them, or an old list was imported. */
@@ -68,6 +68,12 @@ export const PERMISSIONS = {
   "materials:write": SA_CM,
   "coupons:read": ALL,
   "coupons:write": SA_CM,
+  // the tools shop: products and categories like the class catalogue; orders and reviews like class orders and reviews
+  "shop:read": ALL,
+  "shop:write": SA_CM,
+  "shop:orders": SA_SP_VW,
+  "shop:orders_write": SA_SP,
+  "shop:reviews": SA_SP,
   "media:write": SA_CM,
   "orders:read": SA_SP_VW,
   "orders:verify": SA_SP,
@@ -117,6 +123,7 @@ export const ADMIN_NAV = [
   { key: "blog", path: "blog", perm: "blog:read" },
   { key: "coupons", path: "coupons", perm: "coupons:read" },
   { key: "bundles", path: "bundles", perm: "bundles:read" },
+  { key: "shop", path: "shop", perm: "shop:read" },
   { key: "banners", path: "banners", perm: "banners:read" },
   { key: "landing", path: "landing", perm: "landing:read" },
   { key: "faqs", path: "faqs", perm: "faqs:read" },

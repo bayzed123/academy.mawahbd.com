@@ -8,6 +8,8 @@ import { closeOrder, markOrderPaid, orderByPublicId } from "../../services/order
 import { mockEnabled, mockSignature, mockVerify } from "../../services/payments";
 import { bkashAcceptable, bkashExecute, bkashQuery } from "../../services/payments/bkash";
 import { sslAcceptable, sslConfigured, sslMethod, sslValidate } from "../../services/payments/sslcommerz";
+import { notices, notifyOwner } from "../../services/notify";
+import { closeShopOrder, holdShopPayment, isShopOrderId, lateShopPayment, markShopPaid, shopOrderRow } from "../../services/shop";
 
 /**
  * Payment gateway callbacks. These are NOT cookie-authenticated (they arrive cross-site, often as POST from
@@ -73,11 +75,66 @@ async function confirmSsl(c: Ctx, tranId: string, valId: string): Promise<"paid"
   return "failed";
 }
 
+/*
+ * A tools-shop order (its code starts "SH"): the same rules — SSLCommerz's own validation API, the order's code, the currency and the exact
+ * amount, risky payments held for a person — but it marks the shop order paid instead of opening a class.
+ */
+async function confirmShopSsl(c: Ctx, tranId: string, valId: string): Promise<"paid" | "pending" | "failed"> {
+  const order = await shopOrderRow(c.env, tranId);
+  if (!order || order.payment !== "sslcommerz") return "failed";
+  const closed = order.status === "failed" || order.status === "cancelled";
+  if (order.status !== "pending" && !closed) return "paid";
+  if (!valId || !sslConfigured(c.env)) return closed ? "failed" : "pending";
+  const v = await sslValidate(c.env, valId);
+  await logEvent(c, null, "sslcommerz", `shop_validate:${order.public_id}`, !!v, v ?? { error: "no_response" });
+  if (!v) return "pending";
+  const verdict = sslAcceptable(v, order.public_id, order.total);
+  const txn = v.bank_tran_id || v.val_id;
+  if (verdict === "reject") {
+    if (!closed) await closeShopOrder(c.env, order.id, "failed");
+    return "failed";
+  }
+  // paid after the order was closed (the buyer took very long): staff check it rather than the money being lost
+  const changed = closed ? await lateShopPayment(c.env, order.id, txn) : verdict === "ok" ? await markShopPaid(c.env, order.id, txn) : await holdShopPayment(c.env, order.id, txn);
+  // the owner hears of an online order once it is paid (a cash-on-delivery order is told at once)
+  if (changed) {
+    const items = await c.env.DB.prepare("SELECT name_en, label_en, qty FROM shop_order_items WHERE order_id = ? ORDER BY id").bind(order.id).all<{ name_en: string; label_en: string; qty: number }>();
+    c.executionCtx.waitUntil(
+      notifyOwner(
+        c.env,
+        notices.shopOrder({
+          code: order.public_id,
+          name: order.name,
+          phone: order.phone,
+          total: order.total,
+          payment: "sslcommerz",
+          place: `${order.address}, ${order.place}`,
+          items: (items.results ?? []).map((i) => ({ name: `${i.name_en}${i.label_en ? ` (${i.label_en})` : ""}`, qty: i.qty })),
+        }),
+      ),
+    );
+  }
+  return verdict === "ok" && !closed ? "paid" : "pending";
+}
+
+/**
+ * Where the buyer lands after SSLCommerz's page: their shop order, or their class order. The shop order's key is never put in this address
+ * (anyone who knows an order's code can call these addresses): the buyer's browser kept it when the order was placed.
+ */
+async function backTo(c: Ctx, tranId: string | undefined): Promise<string> {
+  if (!tranId) return `${c.env.SITE_URL}/app/`;
+  if (isShopOrderId(tranId)) {
+    const order = await shopOrderRow(c.env, tranId);
+    return order ? `${c.env.SITE_URL}/app/shop/orders/${order.public_id}` : `${c.env.SITE_URL}/shop`;
+  }
+  return orderUrl(c, tranId);
+}
+
 // Server-to-server notification (the authoritative signal)
 paymentRoutes.post("/sslcommerz/ipn", async (c) => {
   const f = await formOrQuery(c);
   if (!f.tran_id || !f.val_id) throw new HttpError(400, "bad_request");
-  const result = await confirmSsl(c, f.tran_id, f.val_id);
+  const result = isShopOrderId(f.tran_id) ? await confirmShopSsl(c, f.tran_id, f.val_id) : await confirmSsl(c, f.tran_id, f.val_id);
   return c.json({ ok: result !== "failed", status: result });
 });
 
@@ -85,18 +142,25 @@ paymentRoutes.post("/sslcommerz/ipn", async (c) => {
 paymentRoutes.on(["GET", "POST"], "/sslcommerz/success", async (c) => {
   const f = await formOrQuery(c);
   if (!f.tran_id) return c.redirect(`${c.env.SITE_URL}/app/`, 303);
-  await confirmSsl(c, f.tran_id, f.val_id ?? "");
-  return c.redirect(orderUrl(c, f.tran_id), 303);
+  if (isShopOrderId(f.tran_id)) await confirmShopSsl(c, f.tran_id, f.val_id ?? "");
+  else await confirmSsl(c, f.tran_id, f.val_id ?? "");
+  return c.redirect(await backTo(c, f.tran_id), 303);
 });
 paymentRoutes.on(["GET", "POST"], "/sslcommerz/fail", async (c) => {
   const f = await formOrQuery(c);
-  if (f.tran_id) await closeOrder(c.env, f.tran_id, "failed", "gateway_failed");
-  return c.redirect(f.tran_id ? orderUrl(c, f.tran_id) : `${c.env.SITE_URL}/app/`, 303);
+  if (f.tran_id && isShopOrderId(f.tran_id)) {
+    const order = await shopOrderRow(c.env, f.tran_id);
+    if (order) await closeShopOrder(c.env, order.id, "failed");
+  } else if (f.tran_id) await closeOrder(c.env, f.tran_id, "failed", "gateway_failed");
+  return c.redirect(await backTo(c, f.tran_id), 303);
 });
 paymentRoutes.on(["GET", "POST"], "/sslcommerz/cancel", async (c) => {
   const f = await formOrQuery(c);
-  if (f.tran_id) await closeOrder(c.env, f.tran_id, "cancelled", "customer_cancelled");
-  return c.redirect(f.tran_id ? orderUrl(c, f.tran_id) : `${c.env.SITE_URL}/app/`, 303);
+  if (f.tran_id && isShopOrderId(f.tran_id)) {
+    const order = await shopOrderRow(c.env, f.tran_id);
+    if (order) await closeShopOrder(c.env, order.id, "cancelled");
+  } else if (f.tran_id) await closeOrder(c.env, f.tran_id, "cancelled", "customer_cancelled");
+  return c.redirect(await backTo(c, f.tran_id), 303);
 });
 
 /* --------------------------------------------------------- bKash ---------------------------------------------------------- */

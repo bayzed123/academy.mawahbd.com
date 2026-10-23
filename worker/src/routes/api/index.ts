@@ -14,6 +14,7 @@ import { checkoutRoutes } from "./checkout";
 import { devGoogle } from "./dev-google";
 import { paymentRoutes } from "./payments";
 import { publicRoutes } from "./public";
+import { shopRoutes } from "./shop";
 import { studentRoutes } from "./student";
 
 export const api = new Hono<AppEnv>();
@@ -51,6 +52,7 @@ api.route("/student", studentRoutes);
 api.route("/checkout", checkoutRoutes);
 api.route("/payments", paymentRoutes);
 api.route("/chat", chatRoutes);
+api.route("/shop", shopRoutes);
 api.route("/", publicRoutes);
 
 // development and tests only: a stand-in for Google, so Admin → Analytics can be exercised without a Google account

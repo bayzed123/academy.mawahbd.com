@@ -30,6 +30,10 @@ interface S {
     order_en: string;
     hotline_bn: string;
     hotline_en: string;
+    shop_terms_bn: string;
+    shop_terms_en: string;
+    shop_returns_bn: string;
+    shop_returns_en: string;
   };
   about: { bn: string; en: string };
   analytics: { ga4: string; clarity: string; meta_pixel: string };
@@ -274,7 +278,7 @@ export function Settings() {
           <Group name="policies" data={s.policies} canWrite={canWrite}>
             {(v, set, e) => (
               <div className="form-grid">
-                {(["refund", "terms", "privacy", "delivery", "guide", "order", "hotline"] as const).flatMap((k) =>
+                {(["refund", "terms", "privacy", "delivery", "guide", "order", "hotline", "shop_terms", "shop_returns"] as const).flatMap((k) =>
                   (["bn", "en"] as const).map((l) => {
                     const key = `${k}_${l}` as keyof S["policies"];
                     return (

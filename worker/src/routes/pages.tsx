@@ -29,6 +29,8 @@ import { includedIn } from "../services/materials";
 import { certificateByCode } from "../services/learning";
 import { landingBySlug, landingData, readBlocks } from "../services/landing";
 import { CoursesPage } from "../views/pages/courses";
+import { ProductPage, ShopPage } from "../views/pages/shop";
+import { productReviews, relatedProducts, shopCategories, shopProduct, shopProducts, type ShopSort } from "../services/shop";
 import { CoursePage, RelatedFragment, ReviewList } from "../views/pages/course";
 import { FaqPage } from "../views/pages/faq";
 import { HomePage } from "../views/pages/home";
@@ -118,6 +120,41 @@ export function pageRoutes(lang: Lang) {
     });
   });
 
+  /* the tools shop: only while the owner has it open (Admin → Shop → Settings) */
+  const SHOP_SORTS: ShopSort[] = ["featured", "new", "price_asc", "price_desc"];
+  const shopList = (c: C, categorySlug: string | null) => {
+    const q = c.req.query();
+    const page = Math.min(500, Math.max(1, Math.floor(Number(q.page) || 1)));
+    const sort = (SHOP_SORTS as string[]).includes(q.sort ?? "") ? (q.sort as ShopSort) : "featured";
+    const search = q.q?.trim().slice(0, 80) || undefined;
+    const path = categorySlug ? `/shop/category/${categorySlug}` : "/shop";
+    return cachedPage(c, { ttl: 120, keep: ["sort", "page"], bypass: !!search }, async () => {
+      const ctx = await pageCtxFor(c, lang, path);
+      if (!ctx.settings.store.enabled) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
+      const categories = await shopCategories(c.env);
+      const category = categorySlug ? (categories.find((x) => x.slug === categorySlug) ?? null) : null;
+      if (categorySlug && !category) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
+      const list = await shopProducts(c.env, { category: categorySlug, sort, page, q: search });
+      return renderHtml(c, ctx, <ShopPage ctx={ctx} data={{ ...list, categories, category, sort, q: search }} />);
+    });
+  };
+  r.get("/shop", (c) => shopList(c, null));
+  r.get("/shop/category/:slug", (c) => {
+    const slug = c.req.param("slug");
+    return /^[a-z0-9-]{1,80}$/.test(slug) ? shopList(c, slug) : shopList(c, "-");
+  });
+  r.get("/shop/p/:slug", (c) => {
+    const slug = c.req.param("slug");
+    return cachedPage(c, { ttl: 180 }, async () => {
+      const ctx = await pageCtxFor(c, lang, `/shop/p/${slug}`);
+      const product = ctx.settings.store.enabled ? await shopProduct(c.env, slug) : null;
+      if (!product) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
+      const [reviews, related] = await Promise.all([productReviews(c.env, product.id), relatedProducts(c.env, product)]);
+      const s = ctx.settings.store;
+      return renderHtml(c, ctx, <ProductPage ctx={ctx} product={product} reviews={reviews} related={related} delivery={lang === "bn" ? s.delivery_bn || s.delivery_en : s.delivery_en || s.delivery_bn} />);
+    });
+  });
+
   r.get("/search", (c) => c.redirect(`${lang === "en" ? "/en" : ""}/courses?q=${encodeURIComponent((c.req.query("q") ?? "").slice(0, 80))}`, 302));
 
   r.get("/courses/:slug", async (c) => {
@@ -204,8 +241,10 @@ export function pageRoutes(lang: Lang) {
     const kind = c.req.param("kind");
     return cachedPage(c, { ttl: 600 }, async () => {
       const ctx = await pageCtxFor(c, lang, `/policies/${kind}`);
-      if (kind !== "refund" && kind !== "privacy" && kind !== "terms" && kind !== "delivery") return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
-      return renderHtml(c, ctx, <PolicyPage ctx={ctx} kind={kind} />);
+      // the tools shop's two pages have a dash in their address (shop-terms, shop-returns)
+      const page = kind === "shop-terms" ? "shop_terms" : kind === "shop-returns" ? "shop_returns" : kind;
+      if (page !== "refund" && page !== "privacy" && page !== "terms" && page !== "delivery" && page !== "shop_terms" && page !== "shop_returns") return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
+      return renderHtml(c, ctx, <PolicyPage ctx={ctx} kind={page} />);
     });
   });
 

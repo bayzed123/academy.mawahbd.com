@@ -16,6 +16,11 @@ const Orders = lazy(() => import("./pages/Orders").then((m) => ({ default: m.Ord
 const OrderDetail = lazy(() => import("./pages/Orders").then((m) => ({ default: m.OrderDetail })));
 const Certificates = lazy(() => import("./pages/Account").then((m) => ({ default: m.Certificates })));
 const Profile = lazy(() => import("./pages/Account").then((m) => ({ default: m.Profile })));
+// the tools shop: no account needed (an order is opened by the link the buyer gets)
+const ShopCart = lazy(() => import("./pages/Shop").then((m) => ({ default: m.ShopCart })));
+const ShopCheckout = lazy(() => import("./pages/Shop").then((m) => ({ default: m.ShopCheckout })));
+const ShopOrder = lazy(() => import("./pages/Shop").then((m) => ({ default: m.ShopOrder })));
+const ShopWishlist = lazy(() => import("./pages/Shop").then((m) => ({ default: m.ShopWishlist })));
 
 const guard = (el: React.ReactNode) => <RequireAuth>{el}</RequireAuth>;
 
@@ -38,6 +43,10 @@ export default function App() {
           <Route path="orders/:publicId" element={guard(<OrderDetail />)} />
           <Route path="certificates" element={guard(<Certificates />)} />
           <Route path="profile" element={guard(<Profile />)} />
+          <Route path="shop/cart" element={<ShopCart />} />
+          <Route path="shop/checkout" element={<ShopCheckout />} />
+          <Route path="shop/orders/:publicId" element={<ShopOrder />} />
+          <Route path="shop/wishlist" element={<ShopWishlist />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

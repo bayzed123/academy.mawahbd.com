@@ -204,7 +204,14 @@ interface Buyer {
   address?: string;
 }
 
-function sessionForm(env: Env, order: { public_id: string; total: number }, customer: Buyer, productName: string): URLSearchParams {
+/** A tools-shop order: things sent by courier, not a class (SSLCommerz asks for the kind of goods and how many). */
+export interface SslGoods {
+  items: number;
+  /** the delivery district, in English */
+  city: string;
+}
+
+function sessionForm(env: Env, order: { public_id: string; total: number }, customer: Buyer, productName: string, goods?: SslGoods): URLSearchParams {
   const back = sslReturnUrls(env);
   return new URLSearchParams({
     store_id: env.SSLCOMMERZ_STORE_ID as string,
@@ -221,15 +228,16 @@ function sessionForm(env: Env, order: { public_id: string; total: number }, cust
     cus_name: customer.name.slice(0, 50),
     cus_email: customer.email,
     cus_add1: (customer.address || "Dhaka").replace(/\s+/g, " ").slice(0, 50),
-    cus_city: "Dhaka",
+    cus_city: goods?.city.slice(0, 50) || "Dhaka",
     cus_postcode: "1000",
     cus_country: "Bangladesh",
     cus_phone: customer.phone || "01700000000",
+    // the shop sends its own parcels by courier: SSLCommerz handles no shipping either way
     shipping_method: "NO",
-    num_of_item: "1",
+    num_of_item: String(goods ? Math.max(1, goods.items) : 1),
     product_name: productName.slice(0, 200),
-    product_category: "Online Course",
-    product_profile: "non-physical-goods",
+    product_category: goods ? "Baking tools" : "Online Course",
+    product_profile: goods ? "physical-goods" : "non-physical-goods",
   });
 }
 
@@ -260,8 +268,8 @@ async function openSession(env: Env, form: URLSearchParams): Promise<SslSession>
   return { ok: false, problem: sslProblem(res.status, said), detail: said, status: res.status };
 }
 
-export function sslInit(env: Env, order: { public_id: string; total: number }, customer: Buyer, productName: string): Promise<SslSession> {
-  return openSession(env, sessionForm(env, order, customer, productName));
+export function sslInit(env: Env, order: { public_id: string; total: number }, customer: Buyer, productName: string, goods?: SslGoods): Promise<SslSession> {
+  return openSession(env, sessionForm(env, order, customer, productName, goods));
 }
 
 export type SslCheck =

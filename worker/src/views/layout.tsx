@@ -3,7 +3,7 @@ import { loc, readSslLogo, SSL_BANNER } from "@mawah/shared";
 import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
-import { ANALYTICS_JS, BANNERS_JS, CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SITE_JS } from "../generated/assets";
+import { ANALYTICS_JS, BANNERS_JS, CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
@@ -25,6 +25,8 @@ export interface LayoutProps {
   slider?: boolean;
   /** the page has pictures to look at large (a class with more than its main picture): load the viewer's script */
   gallery?: boolean;
+  /** a tools-shop page: load the cart and wishlist script */
+  shop?: boolean;
   /** a landing page: send the landing pages' own CSS */
   landing?: boolean;
   /** shows/hides the site chrome (certificate & invoice documents print without it) */
@@ -61,7 +63,14 @@ export function Layout(props: LayoutProps) {
   const sslLogo = pasted ?? (settings.payments.sslcommerz && sslConfigured(env) ? { src: SSL_BANNER.src, href: null } : null);
   const sslSize = pasted ? {} : { width: SSL_BANNER.width, height: SSL_BANNER.height };
   const shop = shopOf(ctx);
-  const shopAttrs = { target: "_blank", rel: "noopener noreferrer", "data-shop": "" } as const;
+  // the owner's other shop leaves the site (a new tab, said for screen readers); the tools shop here is an ordinary link
+  const shopAttrs = shop?.internal ? { "aria-current": ctx.path.startsWith("/shop") ? ("page" as const) : undefined } : ({ target: "_blank", rel: "noopener noreferrer", "data-shop": "" } as const);
+  const opens = shop?.internal ? null : (
+    <>
+      <Icon name="external" />
+      <span class="vh"> ({t("shop.opens")})</span>
+    </>
+  );
 
   const nav = [
     { href: ctx.href("/courses"), label: t("nav.classes"), match: "/courses" },
@@ -114,6 +123,7 @@ export function Layout(props: LayoutProps) {
           <link rel="preload" href={href} as="font" type="font/woff2" crossorigin="anonymous" />
         ))}
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
+        {props.shop && <style dangerouslySetInnerHTML={{ __html: SHOP_CSS }} />}
         {props.landing && <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />}
         {(props.jsonLd ?? []).map((data) => (
           <script type="application/ld+json">{jsonLd(data)}</script>
@@ -142,8 +152,7 @@ export function Layout(props: LayoutProps) {
                       <a href={shop.href} {...shopAttrs}>
                         <Icon name="shop" />
                         {shop.label}
-                        <Icon name="external" />
-                        <span class="vh"> ({t("shop.opens")})</span>
+                        {opens}
                       </a>
                     </li>
                   )}
@@ -171,8 +180,7 @@ export function Layout(props: LayoutProps) {
                         <a class="menu-shop" href={shop.href} {...shopAttrs}>
                           <Icon name="shop" />
                           {shop.label}
-                          <Icon name="external" />
-                          <span class="vh"> ({t("shop.opens")})</span>
+                          {opens}
                         </a>
                       )}
                       <a href={ctx.href("/verify")}>
@@ -255,7 +263,7 @@ export function Layout(props: LayoutProps) {
                     {shop && (
                       <li>
                         <a href={shop.href} {...shopAttrs}>
-                          {shop.label} ↗<span class="vh"> ({t("shop.opens")})</span>
+                          {shop.internal ? shop.label : <>{shop.label} ↗<span class="vh"> ({t("shop.opens")})</span></>}
                         </a>
                       </li>
                     )}
@@ -274,6 +282,16 @@ export function Layout(props: LayoutProps) {
                     <li>
                       <a href={ctx.href("/policies/delivery")}>{t("policy.delivery")}</a>
                     </li>
+                    {shop?.internal && (
+                      <>
+                        <li>
+                          <a href={ctx.href("/policies/shop-terms")}>{t("policy.shop_terms")}</a>
+                        </li>
+                        <li>
+                          <a href={ctx.href("/policies/shop-returns")}>{t("policy.shop_returns")}</a>
+                        </li>
+                      </>
+                    )}
                   </ul>
                   <p class="foot-h mt">{t("footer.help")}</p>
                   <ul>
@@ -388,6 +406,7 @@ export function Layout(props: LayoutProps) {
         {((chrome && ctx.popup) || props.slider) && <script src={BANNERS_JS} defer />}
         {measuring && <script src={ANALYTICS_JS} defer />}
         {props.gallery && <script src={GALLERY_JS} defer />}
+        {props.shop && <script src={SHOP_JS} defer />}
       </body>
     </html>
   );

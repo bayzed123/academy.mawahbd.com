@@ -5,6 +5,7 @@ import { all, nowIso, run } from "./lib/db";
 import { retryPendingLaunches } from "./services/launch";
 import { purgeAbandonedGuests } from "./services/guests";
 import { cleanupOrphanUploads } from "./services/materials";
+import { expireShopOrders } from "./services/shop";
 
 /**
  * Housekeeping on the 6-hourly cron trigger. Every step is independent and idempotent, so a failed run is simply repeated.
@@ -14,6 +15,7 @@ import { cleanupOrphanUploads } from "./services/materials";
  *  - launch announcements that were interrupted are finished
  *  - class-material uploads that were never saved into a material are removed after two days
  *  - a visitor who started to buy without an account and never paid loses the hidden account and the unpaid attempts after 30 days
+ *  - a tools-shop order whose online payment never came back is closed after 24 h, and its stock goes back on the shelf
  */
 export async function runScheduled(env: Env, _cron: string): Promise<void> {
   const now = new Date();
@@ -26,6 +28,7 @@ export async function runScheduled(env: Env, _cron: string): Promise<void> {
     ["launch_retry", () => retryPendingLaunches(env)],
     ["orphan_uploads", () => cleanupOrphanUploads(env)],
     ["abandoned_guests", () => purgeAbandonedGuests(env, now)],
+    ["shop_unpaid", () => expireShopOrders(env, new Date(now.getTime() - 24 * 3600 * 1000))],
   ];
   const failed: string[] = [];
   for (const [name, fn] of steps) {

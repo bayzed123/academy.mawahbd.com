@@ -6,6 +6,7 @@ import { compressImage } from "../lib/image";
 import { useI18n } from "../lib/i18n";
 import type { CourseRow, ListResponse } from "../lib/types";
 import { Button, Field, Icon, Select, Switch, TextArea, TextInput, useToast } from "./ui";
+import { fromDrafts, toDrafts, VariantsEditor, type VariantDraft } from "./ShopVariants";
 
 type Common = { key: string; label: string; half?: boolean; hint?: string; required?: boolean; /** show this field only while the form is in a state it applies to (e.g. pop-up settings) */ showIf?: (values: Values) => boolean };
 export type FieldDef =
@@ -18,6 +19,7 @@ export type FieldDef =
   | (Common & { type: "courses" })
   | (Common & { type: "links" })
   | (Common & { type: "icon" })
+  | (Common & { type: "variants" })
   | { type: "section"; key: string; label: string; half?: boolean; hint?: string; required?: boolean; showIf?: (values: Values) => boolean };
 
 export type Values = Record<string, unknown>;
@@ -202,6 +204,9 @@ export function FormFields({ fields, values, onChange, errors = {}, idPrefix = "
           case "links":
             control = <LinksField value={(v as { label: string; url: string }[]) ?? []} onChange={(x) => onChange(f.key, x)} />;
             break;
+          case "variants":
+            control = <VariantsEditor value={(v as VariantDraft[]) ?? []} onChange={(x) => onChange(f.key, x)} errors={errors} />;
+            break;
           case "icon":
             control = (
               <div className="icon-grid" role="radiogroup" aria-label={f.label}>
@@ -231,7 +236,7 @@ export function initialValues(fields: FieldDef[], row: Values | null, defaults: 
     for (const f of fields) {
       if (f.type === "section") continue;
       const raw = row[f.key];
-      out[f.key] = f.type === "switch" ? !!raw : f.type === "links" ? parseLinks(raw) : (raw ?? (f.type === "courses" ? [] : ""));
+      out[f.key] = f.type === "switch" ? !!raw : f.type === "links" ? parseLinks(raw) : f.type === "variants" ? toDrafts(raw) : (raw ?? (f.type === "courses" ? [] : ""));
       if (f.type === "date" && typeof raw === "string") out[f.key] = raw.slice(0, 10);
       if (f.type === "select" && (f as { numeric?: boolean }).numeric && raw === null) out[f.key] = null;
     }
@@ -249,7 +254,7 @@ export function toPayload(fields: FieldDef[], values: Values): Values {
     if (f.type === "section") continue;
     const v = values[f.key];
     const optional = f.type === "image" || f.type === "icon" || f.type === "date" || ("nullable" in f && !!f.nullable);
-    body[f.key] = optional && (v === "" || v === undefined) ? null : v;
+    body[f.key] = f.type === "variants" ? fromDrafts((v as VariantDraft[]) ?? []) : optional && (v === "" || v === undefined) ? null : v;
   }
   return body;
 }
