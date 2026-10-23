@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SHOP_MAX_QTY, percentOff, type GeoPlaceDTO, type PayMethodDTO, type ShopCardDTO, type ShopOrderDTO, type ShopPayment, type ShopQuoteDTO } from "@mawah/shared";
+import { SHOP_MAX_QTY, percentOff, type GeoPlaceDTO, type ShopCardDTO, type ShopOrderDTO, type ShopPayment, type ShopQuoteDTO } from "@mawah/shared";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useSite } from "../lib/hooks";
 import { useI18n } from "../lib/i18n";
 import { addToCart, markPlaced, orderKey, placedDone, readCart, readWish, rememberOrderKey, writeCart, writeWish } from "../lib/shopCart";
 import { Button, Empty, ErrorState, Field, Icon, Spinner, TextInput, Turnstile, useFieldErrors, useToast } from "../components/ui";
-import { PayChooser } from "./Checkout";
 
 /*
  * The tools shop in the app: the cart, the checkout (a Bangladesh address picked level by level: division, district, upazila or town
@@ -235,7 +234,6 @@ export function ShopCheckout() {
   const [bump, setBump] = useState(0);
   const [fields, setFields] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState("");
-  const [online, setOnline] = useState<{ methods: PayMethodDTO[]; all: string; total: number } | null>(null);
 
   const divisions = useQuery({ queryKey: ["geo", "divisions"], queryFn: () => geo("divisions"), staleTime: Infinity });
   const districts = useQuery({ queryKey: ["geo", "districts", division], queryFn: () => geo("districts", "division", division), enabled: division > 0, staleTime: Infinity });
@@ -254,7 +252,7 @@ export function ShopCheckout() {
 
   const place = useMutation({
     mutationFn: () =>
-      api<{ order: { public_id: string; total: number; status: string }; link: string; redirect_url?: string; pay_methods?: PayMethodDTO[] }>("/shop/orders", {
+      api<{ order: { public_id: string; total: number; status: string }; link: string; redirect_url?: string }>("/shop/orders", {
         json: {
           items: lines,
           name: name.trim(),
@@ -275,10 +273,8 @@ export function ShopCheckout() {
       markPlaced(res.order.public_id);
       rememberOrderKey(res.order.public_id, new URL(res.link, window.location.origin).searchParams.get("k") ?? "");
       const to = res.link.replace(/^\/app/, "");
-      if (res.redirect_url && res.pay_methods?.length) {
-        setOnline({ methods: res.pay_methods, all: res.redirect_url, total: res.order.total });
-        window.scrollTo({ top: 0 });
-      } else if (res.redirect_url) {
+      // the online payment: straight to SSLCommerz's own page, where the buyer chooses bKash, Nagad, Rocket, a card …
+      if (res.redirect_url) {
         toast(t("app.checkout.redirecting"));
         window.location.assign(res.redirect_url);
       } else {
@@ -299,17 +295,6 @@ export function ShopCheckout() {
     },
   });
 
-  if (online) {
-    return (
-      <PayChooser
-        methods={online.methods}
-        all={online.all}
-        total={online.total}
-        policies={<ShopPolicyText text={t("app.shop.payPolicies")} />}
-        onBack={() => setOnline(null)}
-      />
-    );
-  }
   if (config.isPending || (lines.length && quote.isPending)) return <Spinner />;
   if (config.data && !config.data.open) return <Empty icon="shop" title={t("app.shop.closed")} />;
   if (!lines.length) {

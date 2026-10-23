@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
-import { formatMoney, isNoEmail, MAX_PROOF_IMAGE_BYTES, PAY_VIA, readSslLogo, SSL_BANNER, type Channel, type PayMethodDTO, type PayVia, type QuoteDTO } from "@mawah/shared";
+import { formatMoney, isNoEmail, MAX_PROOF_IMAGE_BYTES, readSslLogo, SSL_BANNER, type Channel, type QuoteDTO } from "@mawah/shared";
 import type { AppEnv, Ctx, StudentCtx } from "../../env";
 import { audit } from "../../lib/audit";
 import { first, nowIso, run } from "../../lib/db";
@@ -21,7 +21,7 @@ import { tellStudent } from "../../services/studentMessages";
 import { notices, notifyOwner } from "../../services/notify";
 import { availableChannels, manualPayInfo } from "../../services/payments";
 import { bkashCreate } from "../../services/payments/bkash";
-import { amountCap, clearCap, offeredWays, rememberCap, rememberSsl, rememberWays, sslInit, type SslCap, type SslWays } from "../../services/payments/sslcommerz";
+import { amountCap, clearCap, rememberCap, rememberSsl, sslInit, type SslCap } from "../../services/payments/sslcommerz";
 
 /**
  * Checkout. Seeing the price (/quote) and buying as a visitor (/guest) need no account — that is the point: a buyer who is sent to a log-in
@@ -46,8 +46,6 @@ const checkoutSchema = z.object({
   bundle_id: z.coerce.number().int().positive().optional(),
   coupon: z.string().trim().max(40).optional(),
   channel: z.enum(["sslcommerz", "bkash", "manual", "mock"]).optional(),
-  // the online payment: the way of paying the buyer tapped on the checkout (bKash, Nagad … Visa) — they go straight to it at SSLCommerz
-  via: z.enum(PAY_VIA).optional(),
   // the buyer ticked the box: they agree to the terms, the privacy policy and the refund & cancellation policy (SSLCommerz asks for it)
   agree: z.literal(true, { error: "required" }),
   // a signed-in student whose profile has no mobile number or address yet gives them here; they are kept on the profile
@@ -77,7 +75,7 @@ const proofSchema = z.object({ trx_id: TRX_ID.optional() });
 
 type Cart = z.output<typeof checkoutSchema>;
 
-function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<typeof getSettings>>, ways: SslWays | null, cap: SslCap | null): QuoteDTO {
+function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<typeof getSettings>>, cap: SslCap | null): QuoteDTO {
   return {
     items: q.items,
     subtotal: q.subtotal,
@@ -89,7 +87,6 @@ function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<
     manual: channels.includes("manual") ? manualPayInfo(settings) : null,
     // SSLCommerz's picture for the online choice: the one the owner pasted, else the copy the owner sent (channels holds SSLCommerz only once its keys are set)
     ssl_logo: q.total > 0 && channels.includes("sslcommerz") ? (readSslLogo(settings.payments.ssl_logo)?.src ?? SSL_BANNER.src) : null,
-    ssl_ways: q.total > 0 && channels.includes("sslcommerz") ? ways : null,
     // SSLCommerz lately refused this much because of the store's limit per payment: the checkout says so instead of letting the buyer run into it
     ssl_limited: q.total > 0 && channels.includes("sslcommerz") && !!cap && q.total >= cap.from,
   };
@@ -104,8 +101,8 @@ checkoutRoutes.post("/quote", loadStudent, async (c) => {
   ]);
   const channels = availableChannels(c.env, settings);
   const online = quote.total > 0 && channels.includes("sslcommerz");
-  const [ways, cap] = online ? await Promise.all([offeredWays(c.env), amountCap(c.env)]) : [null, null];
-  return ok(c, { quote: toQuoteDTO(quote, channels, settings, ways, cap) });
+  const cap = online ? await amountCap(c.env) : null;
+  return ok(c, { quote: toQuoteDTO(quote, channels, settings, cap) });
 });
 
 interface Prepared {
@@ -164,10 +161,6 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
   const summary = quote.items.map((i) => i.title_en).join(", ");
   try {
     let redirectUrl: string;
-    // SSLCommerz's ways of paying (bKash, Nagad, cards …): the buyer taps one on the website and goes straight to it; none = SSLCommerz's own page
-    let payMethods: PayMethodDTO[] = [];
-    // the buyer tapped a way of paying that SSLCommerz does not offer the shop: they choose from what it does offer
-    let viaMissing: PayVia | null = null;
     if (channel === "sslcommerz") {
       // the gateway wants an e-mail address: a buyer who gave none is sent through with the shop's own
       const gatewayEmail = isNoEmail(student.email) ? c.env.NOTIFY_EMAIL?.trim() || "customer@mawahacademy.com" : student.email;
@@ -186,15 +179,9 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
         throw new HttpError(502, "gateway_error");
       }
       c.executionCtx.waitUntil(clearCap(c.env, quote.total));
+      // SSLCommerz's own payment page (GatewayPageURL), as SSLCommerz's documentation and its official libraries do: the buyer chooses bKash,
+      // Nagad, Rocket, a card … there, on SSLCommerz's page, and SSLCommerz sends them back to the success / fail / cancel address
       redirectUrl = r.redirectUrl;
-      payMethods = r.methods;
-      c.executionCtx.waitUntil(rememberWays(c.env, r.methods));
-      // a way of paying tapped on the checkout: straight to it (bKash's page for bKash), not SSLCommerz's list
-      const tapped = body.via ? r.methods.find((m) => m.via === body.via) : undefined;
-      if (tapped) {
-        redirectUrl = tapped.url;
-        payMethods = [];
-      } else if (body.via && r.methods.length) viaMissing = body.via;
       await run(c.env.DB, "UPDATE orders SET gateway_ref = ? WHERE id = ?", r.sessionKey, order.id);
     } else if (channel === "bkash") {
       const r = await bkashCreate(c.env, { public_id: order.public_id, total: quote.total }, isNoEmail(student.email) ? (student.phone ?? "student") : student.email);
@@ -203,8 +190,8 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
     } else {
       redirectUrl = `/api/payments/mock/pay/${order.public_id}`;
     }
-    await audit(c, { action: "checkout.started", entity: "order", entityId: order.id, summary: channel, meta: channel === "sslcommerz" && body.via ? { via: body.via, offered: !viaMissing } : undefined });
-    return ok(c, { order: { public_id: order.public_id, status: "pending", total: quote.total }, redirect_url: redirectUrl, pay_methods: payMethods, ...(viaMissing ? { via_missing: viaMissing } : {}), ...extra }, 201);
+    await audit(c, { action: "checkout.started", entity: "order", entityId: order.id, summary: channel });
+    return ok(c, { order: { public_id: order.public_id, status: "pending", total: quote.total }, redirect_url: redirectUrl, ...extra }, 201);
   } catch (err) {
     await closeOrder(c.env, order.public_id, "failed", "gateway_init_failed");
     if (channel === "bkash" && err instanceof HttpError && err.code === "gateway_error") await audit(c, { action: "checkout.gateway_failed", entity: "order", entityId: order.id, summary: "bkash" });
