@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { shownEmail } from "@mawah/shared";
+import { externalEmbed, shownEmail } from "@mawah/shared";
 import type { AppEnv } from "../../env";
 import { audit } from "../../lib/audit";
 import { all, first, nowIso, run } from "../../lib/db";
@@ -24,7 +24,6 @@ import {
   resourceForDownload,
   setLessonComplete,
 } from "../../services/learning";
-import { externalEmbed } from "../../lib/stream";
 import { facebookUrl, materialDrive, materialsForStudent, recordUse, usableMaterial } from "../../services/materials";
 import { notices, notifyOwner } from "../../services/notify";
 import { orderForStudent, ordersForStudent } from "../../services/orders";

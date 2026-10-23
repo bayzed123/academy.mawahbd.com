@@ -116,12 +116,13 @@ function MaterialCard({ slug, m }: { slug: string; m: StudentMaterial }) {
     onError: (e) => toast(e instanceof ApiError ? err(e.code) : t("err.generic"), true),
   });
 
-  /** A YouTube or Vimeo video plays here, in that site's own player: "open" gives its address (and records it), and no tab is opened. */
+  /** A YouTube, Vimeo or Facebook video plays here, in that site's own player: "open" gives its address (and records it), and no tab is opened. */
   const watch = useMutation({
     mutationFn: () => api<{ url: string; embed_url: string | null }>(`/student/materials/${m.id}/open`, { method: "POST", json: {} }),
     onSuccess: (r) => {
       track("material_open", { material_id: m.id, material_type: m.kind });
-      if (r.embed_url) setEmbed(`${r.embed_url}${r.embed_url.includes("?") ? "&" : "?"}autoplay=1`);
+      // started at once, as it was pressed (Facebook's player takes autoplay=true, the others autoplay=1)
+      if (r.embed_url) setEmbed(`${r.embed_url}${r.embed_url.includes("?") ? "&" : "?"}autoplay=${r.embed_url.startsWith("https://www.facebook.com/") ? "true" : "1"}`);
       else setFallback(r.url); // cannot be played here after all: the link, to open by hand
     },
     onError: (e) => toast(e instanceof ApiError ? err(e.code) : t("err.generic"), true),

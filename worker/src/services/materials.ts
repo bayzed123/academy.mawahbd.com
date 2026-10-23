@@ -1,8 +1,7 @@
-import { MATERIAL_KINDS, type MaterialKind } from "@mawah/shared";
+import { externalEmbed, MATERIAL_KINDS, type MaterialKind } from "@mawah/shared";
 import type { Env } from "../env";
 import { all, first, run } from "../lib/db";
 import { driveReadable, driveRef, type DriveRef } from "../lib/drive";
-import { externalEmbed } from "../lib/stream";
 
 /**
  * Class materials (Admin → Materials): files to download, links, live classes and private groups.

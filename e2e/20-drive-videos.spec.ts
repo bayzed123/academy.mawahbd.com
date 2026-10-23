@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Browser, type ConsoleMessage, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { adminLogin, apiGet, apiPost, registerStudent, useLang } from "./helpers";
 
@@ -370,19 +370,21 @@ test.describe("a Drive video in the class's materials", () => {
     await ctx.close();
   });
 
-  test("a Vimeo or YouTube video plays in its card too, in that site's own player — no new tab — after “Watch video”", async ({ browser }) => {
+  test("a Vimeo, YouTube or Facebook video plays in its card too, in that site's own player — no new tab — after “Watch video”", async ({ browser }) => {
     const vimeo = await material("Biryani on Vimeo", "https://vimeo.com/123456789?share=copy");
     const youtube = await material("Biryani on YouTube", "https://youtu.be/dQw4w9WgXcQ");
+    const facebook = await material("Biryani on Facebook", "https://www.facebook.com/mawahacademy/videos/1234567890123456/");
     const { ctx, page } = await student(browser);
     const tabs: string[] = [];
     ctx.on("page", (p) => tabs.push(p.url()));
     // the players' own sites are not reached from the test machine: only the address the frame is given matters here
-    await page.route(/player\.vimeo\.com|youtube-nocookie\.com/, (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>player</title>" }));
+    await page.route(/player\.vimeo\.com|youtube-nocookie\.com|www\.facebook\.com\/plugins/, (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>player</title>" }));
     await page.goto(`/app/learn/${slug}`);
     const section = page.locator("#materials");
     for (const [title, id, src] of [
       ["Biryani on Vimeo", vimeo, "https://player.vimeo.com/video/123456789?autoplay=1"],
       ["Biryani on YouTube", youtube, "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1"],
+      ["Biryani on Facebook", facebook, `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent("https://www.facebook.com/mawahacademy/videos/1234567890123456/")}&show_text=false&autoplay=true`],
     ] as const) {
       const card = section.locator(".mat-card", { hasText: title });
       await expect(card.locator("iframe")).toHaveCount(0); // nothing loads until it is pressed
@@ -447,5 +449,49 @@ test.describe("a Drive video in the class's materials", () => {
     await expect(panel).toHaveCount(0);
     const axe = await new AxeBuilder({ page: admin }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
     expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
+  });
+
+  test("before saving, the owner is told whether a video link plays in the class page: a Facebook video's own address does (and plays here), a share link or a “Link” does not", async () => {
+    const blocked: string[] = [];
+    const onConsole = (m: ConsoleMessage) => {
+      if (/Content Security Policy/i.test(m.text())) blocked.push(m.text());
+    };
+    admin.on("console", onConsole);
+    // the players' own sites are not reached from the test machine: only the address the frame is given, and that the page lets it in, matter
+    await admin.route(/www\.facebook\.com\/plugins|youtube-nocookie\.com/, (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>player</title>" }));
+    await admin.goto("/admin/materials");
+    await admin.getByRole("button", { name: "+ Add" }).click();
+    const drawer = admin.getByRole("dialog");
+    await drawer.getByLabel("Which class is it for?").selectOption({ label: "Drive Videos E2E" });
+    await drawer.getByRole("radio", { name: /^Video/ }).click();
+    await drawer.getByRole("radio", { name: /Add a link instead/ }).click();
+
+    // a share link would only open on Facebook: what to copy instead
+    await drawer.locator("#mat-url").fill("https://www.facebook.com/share/v/1AbCdEfGh2/");
+    await expect(drawer.getByText("This Facebook address will open on Facebook")).toBeVisible();
+    await expect(drawer.getByText(/copy the address from the browser's address bar/)).toBeVisible();
+
+    // the video's own address: it will play in the class page, and plays here
+    const fb = "https://www.facebook.com/mawahacademy/videos/1234567890123456/";
+    await drawer.locator("#mat-url").fill(fb);
+    const panel = drawer.getByRole("region", { name: "The Facebook video" });
+    await expect(panel.getByText("This plays inside the class page, in Facebook's own player.")).toBeVisible();
+    await expect(panel.getByText(/Only a video everyone may see on Facebook plays/)).toBeVisible();
+    await expect(drawer.getByText("This Facebook address will open on Facebook")).toHaveCount(0);
+    await panel.getByRole("button", { name: "Play here" }).click();
+    await expect(panel.locator(".drive-play iframe")).toHaveAttribute("src", `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(fb)}&show_text=false`);
+    const axe = await new AxeBuilder({ page: admin }).include('[role="dialog"]').withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
+
+    // YouTube too; and as a "Link" it would open as a link, so the owner is told to choose Video
+    await drawer.locator("#mat-url").fill("https://youtu.be/dQw4w9WgXcQ");
+    await expect(drawer.getByRole("region", { name: "The YouTube video" }).getByText("This plays inside the class page, in YouTube's own player.")).toBeVisible();
+    await drawer.getByRole("radio", { name: /^Link/ }).click();
+    await expect(drawer.getByText("This YouTube link opens as a link. To play it inside the class page, choose the type “Video”.")).toBeVisible();
+    await expect(drawer.getByRole("region", { name: "The YouTube video" })).toHaveCount(0);
+
+    admin.off("console", onConsole);
+    await admin.unroute(/www\.facebook\.com\/plugins|youtube-nocookie\.com/);
+    expect(blocked).toEqual([]);
   });
 });
