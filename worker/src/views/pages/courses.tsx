@@ -90,11 +90,15 @@ export function CoursesPage({ ctx, data }: { ctx: PageCtx; data: ListData }) {
                 </a>
               ))}
               {shop && (
-                <a class="pill pill-shop" href={shop.href} target="_blank" rel="noopener noreferrer" data-shop>
+                <a class="pill pill-shop" href={shop.href} {...(shop.internal ? {} : { target: "_blank", rel: "noopener noreferrer", "data-shop": "" })}>
                   <Icon name="shop" />
                   {shop.label}
-                  <Icon name="external" />
-                  <span class="vh"> ({t("shop.opens")})</span>
+                  {!shop.internal && (
+                    <>
+                      <Icon name="external" />
+                      <span class="vh"> ({t("shop.opens")})</span>
+                    </>
+                  )}
                 </a>
               )}
             </nav>

@@ -15,6 +15,7 @@ import { requirePerm } from "../../../middleware/auth";
 import { rateLimit } from "../../../middleware/ratelimit";
 import { notices, notificationRecipients, sendNotice } from "../../../services/notify";
 import { SSL_LAST_KEY, amountCap, dearestPrice, sslCheck, sslConfigured, sslHost, sslMode, sslReturnUrls, type SslLast } from "../../../services/payments/sslcommerz";
+import { isDistrict } from "../../../services/geo";
 
 /** Every business setting (contacts, payment options, policies, analytics …) is edited here — nothing needs a redeploy. */
 export const settings = new Hono<AppEnv>();
@@ -76,6 +77,10 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     order_en: long(20000),
     hotline_bn: long(20000),
     hotline_en: long(20000),
+    shop_terms_bn: long(20000),
+    shop_terms_en: long(20000),
+    shop_returns_bn: long(20000),
+    shop_returns_en: long(20000),
   }),
   about: z.object({ bn: long(20000), en: long(20000) }),
   // these IDs are injected into pages as script parameters, so they are validated strictly
@@ -86,6 +91,25 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
   }),
   chatbot: z.object({ enabled: z.boolean(), greeting_bn: textSchema(300), greeting_en: textSchema(300), faq_bn: long(6000), faq_en: long(6000) }),
   shop: z.object({ enabled: z.boolean(), url: urlOrEmpty, label_bn: textSchema(24), label_en: textSchema(24) }),
+  // the tools shop: it opens only with the delivery charges set (or free delivery chosen) — no made-up price is ever shown to a buyer
+  store: z
+    .object({
+      enabled: z.boolean(),
+      cod: z.boolean(),
+      online: z.boolean(),
+      home_district: z.number().int().positive().refine(isDistrict, "invalid"),
+      fee_home: z.number().int().min(0).max(5000),
+      fee_other: z.number().int().min(0).max(5000),
+      free_over: z.number().int().min(0).max(500000),
+      free_delivery: z.boolean(),
+      delivery_bn: textSchema(200),
+      delivery_en: textSchema(200),
+    })
+    .superRefine((v, ctx) => {
+      if (v.enabled && !v.free_delivery && v.fee_home <= 0) ctx.addIssue({ code: "custom", path: ["fee_home"], message: "required" });
+      if (v.enabled && !v.free_delivery && v.fee_other <= 0) ctx.addIssue({ code: "custom", path: ["fee_other"], message: "required" });
+      if (v.enabled && !v.cod && !v.online) ctx.addIssue({ code: "custom", path: ["cod"], message: "store_no_payment" });
+    }),
   notifications: z.object({
     emails: z.array(emailSchema).max(5, "too_long").transform((a) => [...new Set(a)]),
     off: z.array(z.enum(NOTIFY_KINDS)).max(NOTIFY_KINDS.length).transform((a) => [...new Set(a)]),

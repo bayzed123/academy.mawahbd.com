@@ -43,12 +43,35 @@ export interface Settings {
     order_en: string;
     hotline_bn: string;
     hotline_en: string;
+    /** the tools shop's own pages: terms (ordering, delivery, paying, cancelling) and return & refund for products */
+    shop_terms_bn: string;
+    shop_terms_en: string;
+    shop_returns_bn: string;
+    shop_returns_en: string;
   };
   about: { bn: string; en: string };
   analytics: { ga4: string; clarity: string; meta_pixel: string };
   chatbot: { enabled: boolean; greeting_bn: string; greeting_en: string; faq_bn: string; faq_en: string };
   /** a link to the owner's shop (https://mawahbd.com): shown in the menus, the footer, the class list and the student app */
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
+  /**
+   * the tools shop on this website (/shop): closed until the owner opens it, with the delivery charges set (or free delivery chosen).
+   * Delivery costs `fee_home` inside the home district (the shop's own, from the trade licence: Chattogram) and `fee_other` elsewhere;
+   * nothing from `free_over` taka (0 = never). `cod` = cash on delivery, `online` = SSLCommerz (needs the store keys).
+   */
+  store: {
+    enabled: boolean;
+    cod: boolean;
+    online: boolean;
+    home_district: number;
+    fee_home: number;
+    fee_other: number;
+    free_over: number;
+    free_delivery: boolean;
+    /** how long delivery takes, in the owner's words ("2–3 days inside Chattogram, 3–5 days elsewhere") — shown at checkout */
+    delivery_bn: string;
+    delivery_en: string;
+  };
   /** who is e-mailed about what happens on the site (payments, messages, questions …); no addresses = the default one from NOTIFY_EMAIL */
   notifications: { emails: string[]; off: NotifyKind[] };
   /** text messages to students (Admin → Settings → SMS): the sender name the SMS company approved, and when messages go out */
@@ -92,11 +115,17 @@ export const SETTING_DEFAULTS: Settings = {
     order_en: PAGE_TEXTS.order.en,
     hotline_bn: PAGE_TEXTS.hotline.bn,
     hotline_en: PAGE_TEXTS.hotline.en,
+    shop_terms_bn: PAGE_TEXTS.shop_terms.bn,
+    shop_terms_en: PAGE_TEXTS.shop_terms.en,
+    shop_returns_bn: PAGE_TEXTS.shop_returns.bn,
+    shop_returns_en: PAGE_TEXTS.shop_returns.en,
   },
   about: { bn: ABOUT_TEXT.bn, en: ABOUT_TEXT.en },
   analytics: { ga4: "", clarity: "", meta_pixel: "" },
   chatbot: { enabled: true, greeting_bn: "", greeting_en: "", faq_bn: "", faq_en: "" },
   shop: { enabled: true, url: "https://mawahbd.com", label_bn: "দোকান", label_en: "Shop" },
+  // Chattogram district (worker/src/data/bd-geo.ts), where the shop is; no charges are made up: the owner sets them before opening
+  store: { enabled: false, cod: true, online: true, home_district: 8, fee_home: 0, fee_other: 0, free_over: 0, free_delivery: false, delivery_bn: "", delivery_en: "" },
   notifications: { emails: [], off: [] },
   sms: { enabled: true, sender_id: "", with_email: true },
   onboarding: { dismissed: false },

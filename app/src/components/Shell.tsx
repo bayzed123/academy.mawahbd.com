@@ -35,6 +35,9 @@ export function Shell() {
   const initial = (student?.name ?? "?").trim().charAt(0).toUpperCase();
   const shop = useSite().data?.shop ?? null;
   const shopLabel = shop ? (lang === "bn" ? shop.label_bn || shop.label_en : shop.label_en || shop.label_bn) || t("app.nav.shop") : "";
+  // the tools shop is part of this website (the English pages under /en); the owner's other shop opens in a new tab
+  const shopHref = shop?.internal ? `${home === "/" ? "" : home}${shop.url}` : (shop?.url ?? "");
+  const shopOut = shop?.internal ? {} : { target: "_blank", rel: "noopener noreferrer" };
 
   return (
     <>
@@ -58,10 +61,14 @@ export function Shell() {
               ))}
             <a href={`${home === "/" ? "" : home}/courses`}>{t("app.nav.browse")}</a>
             {shop && (
-              <a className="nav-shop" href={shop.url} target="_blank" rel="noopener noreferrer">
+              <a className="nav-shop" href={shopHref} {...shopOut}>
                 <Icon name="shop" /> {shopLabel}
-                <Icon name="external" />
-                <span className="vh"> ({t("app.nav.opensNew")})</span>
+                {!shop.internal && (
+                  <>
+                    <Icon name="external" />
+                    <span className="vh"> ({t("app.nav.opensNew")})</span>
+                  </>
+                )}
               </a>
             )}
           </nav>
@@ -85,9 +92,9 @@ export function Shell() {
                   <Icon name="search" /> {t("app.nav.browse")}
                 </a>
                 {shop && (
-                  <a href={shop.url} target="_blank" rel="noopener noreferrer">
+                  <a href={shopHref} {...shopOut}>
                     <Icon name="shop" /> {shopLabel}
-                    <span className="vh"> ({t("app.nav.opensNew")})</span>
+                    {!shop.internal && <span className="vh"> ({t("app.nav.opensNew")})</span>}
                   </a>
                 )}
                 <hr />

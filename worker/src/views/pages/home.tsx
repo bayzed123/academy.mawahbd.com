@@ -164,16 +164,22 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
               </a>
             ))}
             {shop && (
-              <a class="tile tile-shop" href={shop.href} target="_blank" rel="noopener noreferrer" data-shop>
+              <a class="tile tile-shop" href={shop.href} {...(shop.internal ? {} : { target: "_blank", rel: "noopener noreferrer", "data-shop": "" })}>
                 <span class="tile-ico">
                   <Icon name="shop" />
                 </span>
                 <span>
                   <b>
-                    {shop.label} <Icon name="external" />
-                    <span class="vh"> ({t("shop.opens")})</span>
+                    {shop.label}
+                    {!shop.internal && (
+                      <>
+                        {" "}
+                        <Icon name="external" />
+                        <span class="vh"> ({t("shop.opens")})</span>
+                      </>
+                    )}
                   </b>
-                  <small>{t("shop.tile.sub", { host: shop.host })}</small>
+                  <small>{shop.internal ? t("shop.tile.own") : t("shop.tile.sub", { host: shop.host })}</small>
                 </span>
               </a>
             )}

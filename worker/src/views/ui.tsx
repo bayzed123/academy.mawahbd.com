@@ -48,11 +48,13 @@ export const avgLabel = (ctx: PageCtx, avg: number) => (ctx.lang === "bn" ? form
 export const reviewsLabel = (ctx: PageCtx, n: number) => (n === 1 ? ctx.t("reviews.count.one") : ctx.t("reviews.count", { n: numLabel(ctx, n) }));
 
 /**
- * The owner's shop link (Admin → Settings → Contact → Shop), or null when it is switched off or has no valid address.
- * It leaves the site, so it always opens in a new tab and says so for screen readers.
+ * The menus' Shop link: the tools shop on this website (/shop) once the owner has opened it — otherwise the owner's other shop
+ * (Admin → Settings → Contact → Shop), or null when that is switched off or has no valid address. That one leaves the site, so it
+ * opens in a new tab and says so for screen readers (`internal` false).
  */
-export function shopOf(ctx: PageCtx): { href: string; label: string; host: string } | null {
+export function shopOf(ctx: PageCtx): { href: string; label: string; host: string; internal: boolean } | null {
   const s = ctx.settings.shop;
+  if (ctx.settings.store.enabled) return { href: ctx.href("/shop"), label: ctx.t("shop.title"), host: "", internal: true };
   if (!s.enabled || !/^https?:\/\//i.test(s.url)) return null;
   let host = "";
   try {
@@ -61,7 +63,7 @@ export function shopOf(ctx: PageCtx): { href: string; label: string; host: strin
     return null;
   }
   const label = (ctx.lang === "bn" ? s.label_bn || s.label_en : s.label_en || s.label_bn) || ctx.t("nav.shop");
-  return { href: s.url, label, host };
+  return { href: s.url, label, host, internal: false };
 }
 
 /**

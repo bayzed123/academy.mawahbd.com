@@ -18,6 +18,7 @@ import { media } from "./media";
 import { orders } from "./orders";
 import { reports } from "./reports";
 import { settings } from "./settings";
+import { shopCategoriesAdmin, shopOrdersAdmin, shopPictures, shopProductsAdmin, shopReviewsAdmin } from "./shop";
 import { staff } from "./staff";
 import { students } from "./students";
 
@@ -37,7 +38,9 @@ adminApi.route("/banners", banners);
 adminApi.route("/faqs", faqs);
 adminApi.route("/coupons", coupons);
 adminApi.route("/courses", courses);
+adminApi.route("/shop/categories", shopCategoriesAdmin);
+adminApi.route("/shop/products", shopProductsAdmin);
 
-for (const router of [courseOverview, curriculum, drive, gallery, materials, media, orders, students, engagement, audience, analytics, chatbot, settings, reports, dashboard, staff]) {
+for (const router of [shopPictures, shopOrdersAdmin, shopReviewsAdmin, courseOverview, curriculum, drive, gallery, materials, media, orders, students, engagement, audience, analytics, chatbot, settings, reports, dashboard, staff]) {
   adminApi.route("/", router);
 }
