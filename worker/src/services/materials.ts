@@ -1,4 +1,4 @@
-import { MATERIAL_KINDS, type MaterialKind } from "@mawah/shared";
+import { externalEmbed, MATERIAL_KINDS, type MaterialKind } from "@mawah/shared";
 import type { Env } from "../env";
 import { all, first, run } from "../lib/db";
 import { driveReadable, driveRef, type DriveRef } from "../lib/drive";
@@ -49,9 +49,10 @@ export interface StudentMaterial {
   /**
    * "file" = downloaded through the authorised endpoint; "link" = opened through the authorised "open" endpoint; "play" = a Google Drive video the
    * website plays itself, inside the class page (media_url); "pending" = a Google Drive video the website cannot play yet (not shared with its
-   * Google account, a folder, not a video …) — said plainly, with no link: a student is never sent to the owner's Drive
+   * Google account, a folder, not a video …) — said plainly, with no link: a student is never sent to the owner's Drive; "embed" = a video on
+   * YouTube or Vimeo: it plays inside the class page, in that site's player (its address comes from "open", which records it), never in a new tab
    */
-  delivery: "file" | "link" | "play" | "pending";
+  delivery: "file" | "link" | "play" | "pending" | "embed";
   /** "play" only: where the player gets the video — for an enrolled student, checked on every request */
   media_url: string | null;
   filename: string | null;
@@ -120,7 +121,7 @@ export async function materialsForStudent(env: Env, studentId: number, courseId:
     title_en: r.title_en,
     note_bn: r.note_bn,
     note_en: r.note_en,
-    delivery: r.r2_key ? "file" : playable[i] === null ? "link" : playable[i] ? "play" : "pending",
+    delivery: r.r2_key ? "file" : playable[i] !== null ? (playable[i] ? "play" : "pending") : r.kind === "video" && r.url && externalEmbed(r.url) ? "embed" : "link",
     media_url: playable[i] ? `/api/student/materials/${r.id}/media` : null,
     filename: r.r2_key ? r.filename : null,
     size_bytes: r.r2_key ? r.size_bytes : null,

@@ -62,28 +62,3 @@ export async function videoStatus(env: Env, uid: string): Promise<VideoStatus> {
     error: (v.status as { errorReasonText?: string }).errorReasonText || null,
   };
 }
-
-/** YouTube / Vimeo links become privacy-friendly embeds; anything else just opens as a link. */
-export function externalEmbed(url: string): string | null {
-  try {
-    const u = new URL(url);
-    const host = u.hostname.replace(/^www\.|^m\./, "");
-    let id: string | null = null;
-    if (host === "youtu.be") id = u.pathname.slice(1).split("/")[0];
-    else if (host === "youtube.com" || host === "youtube-nocookie.com") {
-      if (u.pathname === "/watch") id = u.searchParams.get("v");
-      else {
-        const m = /^\/(?:embed|shorts|live)\/([\w-]{11})/.exec(u.pathname);
-        if (m) id = m[1];
-      }
-    }
-    if (id && /^[\w-]{11}$/.test(id)) return `https://www.youtube-nocookie.com/embed/${id}`;
-    if (host === "vimeo.com") {
-      const m = /^\/(\d{6,12})/.exec(u.pathname);
-      if (m) return `https://player.vimeo.com/video/${m[1]}`;
-    }
-  } catch {
-    /* not a URL */
-  }
-  return null;
-}

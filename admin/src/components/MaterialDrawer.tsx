@@ -4,6 +4,7 @@ import { FILE_MATERIAL_KINDS, GROUP_PLATFORMS, LIVE_PLATFORMS, MATERIAL_KINDS, M
 import { adm, ApiError, upload } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { DriveHelp } from "./DriveHelp";
+import { VideoLinkHelp } from "./VideoLinkHelp";
 import { Button, Field, Icon, Progress, Select, SlideOver, Switch, TextArea, TextInput, useFieldErrors, useToast } from "./ui";
 
 /** A material as the list returns it. */
@@ -283,6 +284,7 @@ export function MaterialDrawer({ open, row, courseId, classes, onClose }: { open
             )}
             {/* a Google Drive video plays inside the class page once it is shared with the website's Google address: how, and "Check access" */}
             {!byFile && kind !== "group" && <DriveHelp url={d.url} />}
+            {!byFile && (kind === "video" || kind === "link") && <VideoLinkHelp url={d.url} asLink={kind === "link"} />}
 
             <Field id="mat-note-bn" label={t("adm.mat.noteBn")} error={errors.note_bn}>
               <TextArea id="mat-note-bn" rows={2} maxLength={300} value={d.note_bn} error={errors.note_bn} onChange={(e) => set({ note_bn: e.target.value })} />

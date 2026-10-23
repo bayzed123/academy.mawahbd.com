@@ -1,3 +1,4 @@
+import { externalEmbed } from "@mawah/shared";
 import type {
   CertificateDTO,
   CourseCardDTO,
@@ -15,7 +16,7 @@ import { addSeconds, all, first, nowIso, run } from "../lib/db";
 import { forbidden, HttpError, notFound, unauthorized } from "../lib/http";
 import { renderMarkdown } from "../lib/markdown";
 import { driveReadable, driveRef } from "../lib/drive";
-import { externalEmbed, streamEmbedUrl } from "../lib/stream";
+import { streamEmbedUrl } from "../lib/stream";
 import { getCurriculum, getCourseBySlug, toCard } from "./catalog";
 
 export const CERT_PREFIX = "MWH";
