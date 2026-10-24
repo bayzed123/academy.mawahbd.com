@@ -66,7 +66,25 @@ import { inView, stagger } from "framer-motion/dom";
         })
         .catch(function () { if (status) { status.className = "status-line err"; status.textContent = form.getAttribute("data-err"); } })
         .then(function () { if (btn) btn.disabled = false; });
+      });
+  });
+
+  /* 3b. day/night theme: theme.js applies the choice before paint; these controls update its state after the DOM exists. */
+  function syncThemeButton(btn, theme) {
+    var isLight = theme === "light";
+    btn.setAttribute("aria-pressed", isLight ? "true" : "false");
+    btn.setAttribute("aria-label", isLight ? btn.getAttribute("data-dark-label") : btn.getAttribute("data-light-label"));
+    var icon = $(".theme-icon", btn);
+    if (icon) icon.textContent = isLight ? "☀" : "◐";
+  }
+  $$('[data-theme-toggle]').forEach(function (btn) {
+    syncThemeButton(btn, d.documentElement.getAttribute("data-theme") || "dark");
+    btn.addEventListener("click", function () {
+      if (window.MawahTheme) window.MawahTheme.toggle();
     });
+  });
+  d.addEventListener("mawah:theme", function (e) {
+    $$('[data-theme-toggle]').forEach(function (btn) { syncThemeButton(btn, e.detail && e.detail.theme); });
   });
 
   /* 4. AI assistant: the widget script is fetched only when someone asks for it */

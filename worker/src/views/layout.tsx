@@ -3,7 +3,7 @@ import { loc, readSslLogo, SSL_BANNER } from "@mawah/shared";
 import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
-import { ANALYTICS_JS, BANNERS_JS, COURSE_CSS, CSS, DOC_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS } from "../generated/assets";
+import { ANALYTICS_JS, BANNERS_JS, COURSE_CSS, CSS, DOC_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS, THEME_JS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
@@ -133,6 +133,7 @@ export function Layout(props: LayoutProps) {
         {fontPreloads.map((href) => (
           <link rel="preload" href={href} as="font" type="font/woff2" crossorigin="anonymous" />
         ))}
+        <script src={THEME_JS} />
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         {props.shop && <style dangerouslySetInnerHTML={{ __html: SHOP_CSS }} />}
         {props.landing && <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />}
@@ -177,6 +178,17 @@ export function Layout(props: LayoutProps) {
                       <Icon name="globe" />
                       {t("lang.switch")}
                     </a>
+                    <button
+                      class="theme-toggle"
+                      type="button"
+                      data-theme-toggle
+                      aria-pressed="false"
+                      data-light-label={lang === "bn" ? "লাইট মোড চালু করুন" : "Switch to light mode"}
+                      data-dark-label={lang === "bn" ? "ডার্ক মোড চালু করুন" : "Switch to dark mode"}
+                    >
+                      <span class="theme-icon" aria-hidden="true">◐</span>
+                      <span class="theme-label">{lang === "bn" ? "থিম" : "Theme"}</span>
+                    </button>
                     <a class="btn btn-gold btn-sm" data-guest href="/app/login">
                       {t("btn.login")}
                     </a>
