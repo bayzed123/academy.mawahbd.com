@@ -34,7 +34,9 @@
 /* a slide with a picture: the picture whole and clean, in the shape it was made for (1600 × 600), and its words and button in a caption
    underneath, in the design's colour — never drawn over the picture, which often carries its own words */
 .bn-cap{display:flex;flex-direction:column}
-.bn-cap .bn-media{flex:none;aspect-ratio:8/3;height:auto}
+/* the frame keeps its shape whatever the picture's own: the picture fills it from inside and cannot push it taller */
+.bn-cap .bn-media{position:relative;flex:none;aspect-ratio:8/3;height:auto;overflow:hidden}
+.bn-cap .bn-media picture,.bn-cap .bn-media img{position:absolute;inset:0}
 .bn-cap .bn-copy{position:relative;inset:auto;flex:1;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 28px;padding:16px clamp(16px,2.4vw,30px);padding-inline-end:clamp(16px,2.4vw,30px);background:var(--bn-bg);border-top:1px solid rgba(255,255,255,.08);pointer-events:auto}
 .bn-cap .bn-words{gap:.25rem;flex:1 1 320px}
 .bn-cap .bn-title{font-size:clamp(1.1rem,1.9vw,1.5rem)}

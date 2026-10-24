@@ -94,7 +94,7 @@ test("the Equipment Shop is in every menu (this website's own shop, in the same 
   }
   // the shop is not open yet (Admin → Shop): its page says so, with no product or price
   await page.goto("/en");
-  await page.locator('nav a[href="/en/shop"]:visible').first().click();
+  await page.locator('.nav-links a[href="/en/shop"]').click();
   await expect(page.getByRole("heading", { level: 1, name: "Equipment Shop" })).toBeVisible();
   await expect(page.getByText("Opening soon")).toBeVisible();
   await expect(page.locator("article.pcard")).toHaveCount(0);

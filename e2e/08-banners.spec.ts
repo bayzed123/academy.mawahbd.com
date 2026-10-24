@@ -88,6 +88,11 @@ test("a visitor sees the slider: arrows, dots and a pause button work, nothing m
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); // the page keeps its own headline
   await expect(slider.getByText("Eid offer: save on every class")).toBeVisible();
   await expect(slider.getByRole("link", { name: "See the classes" })).toHaveAttribute("href", "/en/courses/beginners-baking-class");
+  // the picture (a square one here) fills the slide's wide 8:3 frame, and its words sit under it, never over it
+  const frame = (await slider.locator(".bn-cap .bn-media").first().boundingBox())!;
+  expect(Math.abs(frame.width / frame.height - 8 / 3)).toBeLessThan(0.02);
+  const words = (await slider.getByText("Eid offer: save on every class").boundingBox())!;
+  expect(words.y).toBeGreaterThanOrEqual(frame.y + frame.height);
 
   const dots = slider.getByRole("button", { name: /^Show banner/ });
   await expect(dots).toHaveCount(2);
