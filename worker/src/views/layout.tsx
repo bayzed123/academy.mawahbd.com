@@ -404,6 +404,9 @@ export function Layout(props: LayoutProps) {
             </footer>
 
             <div class="floats">
+              <a class="fab fab-top" href="#top" data-to-top aria-label={t("top.label")} title={t("top.label")}>
+                <Icon name="up" />
+              </a>
               {waHref && (
                 <a class="fab fab-wa" href={waHref} rel="noopener noreferrer" target="_blank" aria-label={t("wa.label")} title={t("wa.label")}>
                   <Icon name="whatsapp" />

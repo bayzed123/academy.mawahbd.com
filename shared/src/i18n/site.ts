@@ -32,6 +32,7 @@ const en = {
   "faq.sub": "Quick answers about joining a class, paying, watching lessons and certificates.",
   "faq.eyebrow": "Questions",
   "faq.home.title": "Questions before you join",
+  "faq.home.title.hl": "before you join",
   "faq.home.sub": "Short answers to common questions.",
   "faq.all": "See all questions",
   "faq.course.title": "Frequently asked questions",
@@ -132,6 +133,7 @@ const en = {
 
   "hero.eyebrow": "Premium online cooking & baking academy",
   "hero.title": "Learn cooking & baking step by step, from home.",
+  "hero.title.hl": "cooking & baking",
   "hero.sub":
     "Cakes, mishti, fast food, biryani and frozen-food business — clear online classes in Bangla, with a verified certificate when you finish.",
   "hero.cta1": "Browse classes",
@@ -143,6 +145,7 @@ const en = {
   "hero.chip.mobile": "Made for mobile",
 
   "why.title": "Why learn with MAWAH",
+  "why.title.hl": "MAWAH",
   "why.sub": "Everything is built so a home cook can start today, on a phone.",
   "why.video.title": "Step-by-step video lessons",
   "why.video.desc": "Watch at your own pace on your phone. Video adapts to slow connections.",
@@ -154,12 +157,16 @@ const en = {
   "why.ask.desc": "Ask in any lesson and get an answer from our team.",
 
   "sec.classes": "Our classes",
+  "sec.classes.hl": "classes",
   "sec.classes.sub": "Pick a class, pay once, learn at your own pace.",
   "sec.featured": "Popular places to begin",
   "sec.beginners": "New to the kitchen? Start here",
+  "sec.beginners.hl": "Start here",
   "sec.beginners.sub": "These classes are arranged for complete beginners.",
   "sec.categories": "Browse by category",
+  "sec.categories.hl": "category",
   "sec.how": "How it works",
+  "sec.how.hl": "it works",
   "how.1.title": "Choose a class",
   "how.1.desc": "Open a class to see its details, then press Enroll Now.",
   "how.2.title": "Pay securely",
@@ -167,8 +174,11 @@ const en = {
   "how.3.title": "Learn & get certified",
   "how.3.desc": "Complete the lessons and download your certificate with a verification code.",
   "sec.instructors": "Your instructors",
+  "sec.instructors.hl": "instructors",
   "sec.reviews": "What students say",
+  "sec.reviews.hl": "students say",
   "sec.blog": "From the blog",
+  "sec.blog.hl": "blog",
   "sec.related": "More classes you may like",
 
   "news.title": "Get new class alerts",
@@ -360,6 +370,7 @@ const en = {
   "wa.label": "Chat on WhatsApp",
   "wa.prefill": "Hello MAWAH Academy, I have a question.",
   "ms.label": "Chat on Messenger",
+  "top.label": "Back to the top",
   "chat.open": "Ask our assistant",
 
   "bar.join": "Join now",
@@ -419,6 +430,7 @@ const bn: Record<keyof typeof en, string> = {
   "faq.sub": "ক্লাসে ভর্তি, পেমেন্ট, লেসন দেখা ও সার্টিফিকেট নিয়ে দ্রুত উত্তর।",
   "faq.eyebrow": "সচরাচর জিজ্ঞাসা",
   "faq.home.title": "ভর্তির আগে যা জানতে চান",
+  "faq.home.title.hl": "যা জানতে চান",
   "faq.home.sub": "সাধারণ প্রশ্নের ছোট ছোট উত্তর।",
   "faq.all": "সব প্রশ্ন দেখুন",
   "faq.course.title": "সচরাচর জিজ্ঞাসা",
@@ -519,6 +531,7 @@ const bn: Record<keyof typeof en, string> = {
 
   "hero.eyebrow": "প্রিমিয়াম অনলাইন রান্না ও বেকিং একাডেমি",
   "hero.title": "ঘরে বসেই ধাপে ধাপে শিখুন রান্না ও বেকিং।",
+  "hero.title.hl": "রান্না ও বেকিং",
   "hero.sub":
     "কেক, মিষ্টি, ফাস্টফুড, বিরিয়ানি ও ফ্রোজেন ফুড বিজনেস — বাংলায় সহজ অনলাইন ক্লাস, শেষ করলে পাবেন যাচাইযোগ্য সার্টিফিকেট।",
   "hero.cta1": "ক্লাস দেখুন",
@@ -530,6 +543,7 @@ const bn: Record<keyof typeof en, string> = {
   "hero.chip.mobile": "মোবাইলের জন্য তৈরি",
 
   "why.title": "কেন মাওয়াহ একাডেমিতে শিখবেন",
+  "why.title.hl": "মাওয়াহ একাডেমিতে",
   "why.sub": "সবকিছু এমনভাবে সাজানো, যাতে ঘরের রাঁধুনি আজই মোবাইলে শুরু করতে পারেন।",
   "why.video.title": "ধাপে ধাপে ভিডিও লেসন",
   "why.video.desc": "মোবাইলে নিজের সময়ে দেখুন। ধীর ইন্টারনেটেও ভিডিও চলে।",
@@ -541,12 +555,16 @@ const bn: Record<keyof typeof en, string> = {
   "why.ask.desc": "যেকোনো লেসনে প্রশ্ন করুন, আমাদের টিম উত্তর দেবে।",
 
   "sec.classes": "আমাদের ক্লাসসমূহ",
+  "sec.classes.hl": "ক্লাসসমূহ",
   "sec.classes.sub": "ক্লাস বেছে নিন, একবার পেমেন্ট করুন, নিজের গতিতে শিখুন।",
   "sec.featured": "শুরু করার জনপ্রিয় ক্লাস",
   "sec.beginners": "রান্নাঘরে নতুন? এখান থেকে শুরু করুন",
+  "sec.beginners.hl": "এখান থেকে শুরু করুন",
   "sec.beginners.sub": "এই ক্লাসগুলো একদম নতুনদের জন্য সাজানো।",
   "sec.categories": "ক্যাটাগরি অনুযায়ী দেখুন",
+  "sec.categories.hl": "ক্যাটাগরি",
   "sec.how": "কীভাবে কাজ করে",
+  "sec.how.hl": "কাজ করে",
   "how.1.title": "ক্লাস বেছে নিন",
   "how.1.desc": "ক্লাসের বিস্তারিত দেখে “এখনই ভর্তি হন” চাপুন।",
   "how.2.title": "নিরাপদে পেমেন্ট করুন",
@@ -554,8 +572,11 @@ const bn: Record<keyof typeof en, string> = {
   "how.3.title": "শিখুন ও সার্টিফিকেট নিন",
   "how.3.desc": "লেসনগুলো শেষ করে ভেরিফিকেশন কোডসহ সার্টিফিকেট ডাউনলোড করুন।",
   "sec.instructors": "আপনার প্রশিক্ষক",
+  "sec.instructors.hl": "প্রশিক্ষক",
   "sec.reviews": "শিক্ষার্থীরা কী বলছেন",
+  "sec.reviews.hl": "কী বলছেন",
   "sec.blog": "ব্লগ থেকে",
+  "sec.blog.hl": "ব্লগ",
   "sec.related": "আরও ক্লাস যা ভালো লাগতে পারে",
 
   "news.title": "নতুন ক্লাসের খবর পান",
@@ -747,6 +768,7 @@ const bn: Record<keyof typeof en, string> = {
   "wa.label": "হোয়াটসঅ্যাপে কথা বলুন",
   "wa.prefill": "আসসালামু আলাইকুম, মাওয়াহ একাডেমি। আমার একটি প্রশ্ন আছে।",
   "ms.label": "মেসেঞ্জারে কথা বলুন",
+  "top.label": "উপরে ফিরে যান",
   "chat.open": "আমাদের সহকারীকে জিজ্ঞাসা করুন",
 
   "bar.join": "এখনই ভর্তি হোন",

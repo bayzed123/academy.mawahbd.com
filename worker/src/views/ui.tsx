@@ -109,20 +109,38 @@ export const InstructorBadges = ({ ctx, rating }: { ctx: PageCtx; rating?: Instr
   </div>
 );
 
+/** A heading in two tones: the words of `hl` (when the text has them) in orange, the rest white. Screen readers hear one plain heading. */
+export const Highlight = ({ text, hl }: { text: string; hl?: string }) => {
+  const at = hl ? text.indexOf(hl) : -1;
+  if (!hl || at < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, at)}
+      <span class="hl">{hl}</span>
+      {text.slice(at + hl.length)}
+    </>
+  );
+};
+
 export const SectionHead = ({
   eyebrow,
   title,
+  hl,
   sub,
   center,
 }: {
   eyebrow?: string;
   title: string;
+  /** the words of the title drawn in orange */
+  hl?: string;
   sub?: string;
   center?: boolean;
 }) => (
   <header class={`sec-head${center ? " center" : ""}`}>
     {eyebrow && <span class="eyebrow">{eyebrow}</span>}
-    <h2>{title}</h2>
+    <h2>
+      <Highlight text={title} hl={hl} />
+    </h2>
     {sub && <p>{sub}</p>}
   </header>
 );

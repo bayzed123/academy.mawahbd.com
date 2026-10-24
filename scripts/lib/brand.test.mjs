@@ -197,6 +197,34 @@ test("the dark look has no brown: its greys are true greys, and none of its styl
   assert.ok(!brownish("#ff5722") && !brownish("#ff6b00") && !brownish("#151515") && !brownish("#ffa47a"));
 });
 
+/*
+ * The owner's fourth round (the CraftSkills reference): a few parts of the home page sit on a light section, for a light and dark rhythm.
+ * The light is a true grey (no cream), and its dark words and its deeper orange keep AA contrast on it and on its white cards.
+ */
+test("the light sections: a true light grey with white cards, dark words and a deeper orange that keep AA contrast", () => {
+  const site = read("marketing/site.css");
+  const rule = /(?:^|\n)\.band-light\{([^}]*)\}/.exec(site);
+  assert.ok(rule, ".band-light is styled");
+  const vars = Object.fromEntries([...rule[1].matchAll(/--([a-z0-9-]+):(#[0-9a-f]{6}|#[0-9a-f]{3})\b/gi)].map(([, name, hex]) => [name, full(hex)]));
+  const bg = full(/background:(#[0-9a-f]{6}|#[0-9a-f]{3})\b/.exec(rule[1])[1]);
+  assert.equal(bg, "#f5f5f5");
+  assert.equal(vars.card, "#ffffff", "white cards");
+  assert.match(rule[1], /--focus:var\(--red-900\)/, "a focus ring that shows on light");
+  const accent = dark["red-900"]; // the deeper orange of the light sections' words and links
+  const failures = [];
+  for (const surface of [bg, vars.card]) {
+    for (const [name, hex] of [["ink", vars.ink], ["ink-2", vars["ink-2"]], ["ink-3", vars["ink-3"]], ["heading", vars.heading], ["red-900", accent]]) {
+      assert.ok(hex, `--${name} is set`);
+      const r = ratio(hex, surface);
+      if (r < 4.5) failures.push(`${name} ${hex} on ${surface}: ${r.toFixed(2)} < 4.5`);
+    }
+  }
+  assert.deepEqual(failures, []);
+  // the page's orange would be too pale there (under 3:1), so their orange words are the deeper one
+  assert.ok(ratio(dark["o-500"], bg) < 3);
+  assert.match(site, /\.band-light a,\.band-light \.hl\{color:var\(--red-900\)\}/);
+});
+
 function* files(dir, exts) {
   for (const name of readdirSync(dir)) {
     if (["node_modules", "dist", ".wrangler", "generated", "test-results", ".lighthouseci"].includes(name)) continue;

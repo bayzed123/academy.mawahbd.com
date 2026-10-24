@@ -4,7 +4,7 @@ import { stripMarkdown } from "../../lib/markdown";
 import type { PageCtx } from "../ctx";
 import { gaListAttr } from "../ga";
 import { Layout } from "../layout";
-import { Carousel, CourseCard, Flash, Icon, InstructorBadges, SectionHead, Stars, shopOf } from "../ui";
+import { Carousel, CourseCard, Flash, Highlight, Icon, InstructorBadges, SectionHead, Stars, shopOf } from "../ui";
 import { organizationLd, websiteLd } from "../seo";
 import type { BannerDTO } from "../../services/banners";
 import type { FaqDTO } from "../../services/faqs";
@@ -49,7 +49,9 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
       <section class={`hero${data.banners.length > 0 ? " has-banners" : ""}`}>
         <div class="wrap hero-grid">
           <span class="eyebrow">{t("hero.eyebrow")}</span>
-          <h1>{t("hero.title")}</h1>
+          <h1>
+            <Highlight text={t("hero.title")} hl={t("hero.title.hl")} />
+          </h1>
           <p class="hero-sub">{t("hero.sub")}</p>
           <div class="hero-cta">
             <a class="btn btn-primary btn-lg" href={ctx.href("/courses")}>
@@ -83,19 +85,23 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
         </div>
       </section>
 
-      <section class="section tight">
-        <div class="wrap">
+      {data.flash && (
+        <div class="wrap flash-top">
           <Flash ctx={ctx} flag={data.flash} />
+        </div>
+      )}
+
+      <section class="section band-light" id="why">
+        <div class="wrap">
+          <SectionHead title={t("why.title")} hl={t("why.title.hl")} sub={t("why.sub")} center />
           <div class="trust">
             {trust.map((x) => (
               <div class="trust-item">
                 <span class="trust-ico">
                   <Icon name={x.icon} />
                 </span>
-                <div>
-                  <h2>{x.title}</h2>
-                  <p>{x.desc}</p>
-                </div>
+                <h3>{x.title}</h3>
+                <p>{x.desc}</p>
               </div>
             ))}
           </div>
@@ -104,7 +110,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
 
       <section class="section" id="classes">
         <div class="wrap">
-          <SectionHead eyebrow={t("hero.count", { n: num(ctx, data.classCount) })} title={t("sec.classes")} sub={t("sec.classes.sub")} />
+          <SectionHead eyebrow={t("hero.count", { n: num(ctx, data.classCount) })} title={t("sec.classes")} hl={t("sec.classes.hl")} sub={t("sec.classes.sub")} />
           <div class="grid" {...gaListAttr(ctx, "home_featured")}>
             {data.featured.map((c, i) => (
               <CourseCard course={c} ctx={ctx} eager={i < 3} />
@@ -122,7 +128,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
       {data.beginners.length > 0 && (
         <section class="section band" id="beginners">
           <div class="wrap">
-            <SectionHead eyebrow={t("label.beginner")} title={t("sec.beginners")} sub={t("sec.beginners.sub")} />
+            <SectionHead eyebrow={t("label.beginner")} title={t("sec.beginners")} hl={t("sec.beginners.hl")} sub={t("sec.beginners.sub")} />
             <Carousel ctx={ctx} label={t("sec.beginners")} track={gaListAttr(ctx, "home_beginners")}>
               {data.beginners.map((c) => (
                 <CourseCard course={c} ctx={ctx} />
@@ -134,7 +140,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
 
       <section class="section">
         <div class="wrap">
-          <SectionHead title={t("sec.categories")} />
+          <SectionHead title={t("sec.categories")} hl={t("sec.categories.hl")} />
           <div class="tiles">
             {ctx.categories.map((c: CategoryDTO) => (
               <a class={`tile a-${c.accent}`} href={ctx.href(`/courses?cat=${c.slug}`)}>
@@ -171,9 +177,9 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
         </div>
       </section>
 
-      <section class="section band">
+      <section class="section band-light">
         <div class="wrap">
-          <SectionHead title={t("sec.how")} center />
+          <SectionHead title={t("sec.how")} hl={t("sec.how.hl")} center />
           <ol class="steps">
             {[1, 2, 3].map((n) => (
               <li class="step">
@@ -188,7 +194,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
       {data.instructors.length > 0 && (
         <section class="section">
           <div class="wrap">
-            <SectionHead title={t("sec.instructors")} />
+            <SectionHead title={t("sec.instructors")} hl={t("sec.instructors.hl")} />
             <div class="grid">
               {data.instructors.map((i) => (
                 <div class="person">
@@ -211,7 +217,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
       {data.reviews.length > 0 && (
         <section class="section band">
           <div class="wrap">
-            <SectionHead title={t("sec.reviews")} />
+            <SectionHead title={t("sec.reviews")} hl={t("sec.reviews.hl")} />
             <Carousel ctx={ctx} label={t("sec.reviews")}>
               {data.reviews.map((r) => (
                 <figure class="review">
@@ -232,7 +238,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
       {data.posts.length > 0 && (
         <section class="section">
           <div class="wrap">
-            <SectionHead title={t("sec.blog")} />
+            <SectionHead title={t("sec.blog")} hl={t("sec.blog.hl")} />
             <div class="grid">
               {data.posts.map((p) => (
                 <article class="card">
