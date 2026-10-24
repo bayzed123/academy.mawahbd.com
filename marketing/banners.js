@@ -79,7 +79,7 @@
   var delay = (Number(pop.getAttribute("data-delay")) || 0) * 1000;
   var store = function () { return days > 0 ? window.localStorage : window.sessionStorage; };
   var key = "mawah_offer_" + id;
-  var lastFocus = null;
+  var lastFocus = null, openTimer = 0;
 
   function seen() {
     try {
@@ -95,14 +95,17 @@
   function open() {
     var a = d.activeElement;
     // never interrupt someone who is typing, or a chat window that is open
-    if ((a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) || d.querySelector(".mc-panel:not([hidden])")) { window.setTimeout(open, 5000); return; }
+    if ((a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) || d.querySelector(".mc-panel:not([hidden])")) { openTimer = window.setTimeout(open, 5000); return; }
     lastFocus = a;
     pop.hidden = false;
     d.documentElement.classList.add("offer-open");
+    pop.classList.remove("is-open");
+    window.requestAnimationFrame(function () { if (!pop.hidden) pop.classList.add("is-open"); });
     var f = focusable();
     if (f.length) f[0].focus();
   }
   function close() {
+    window.clearTimeout(openTimer);
     if (pop.hidden) return;
     pop.hidden = true;
     d.documentElement.classList.remove("offer-open");
@@ -125,5 +128,9 @@
     if (e.shiftKey && d.activeElement === first) { e.preventDefault(); last.focus(); }
     else if (!e.shiftKey && d.activeElement === last) { e.preventDefault(); first.focus(); }
   });
-  if (!seen()) window.setTimeout(open, delay);
+  window.MawahOffer = {
+    close: close,
+    suspend: function () { window.clearTimeout(openTimer); },
+  };
+  if (!seen()) openTimer = window.setTimeout(open, delay);
 })();

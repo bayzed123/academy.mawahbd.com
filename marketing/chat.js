@@ -78,6 +78,7 @@
   }
 
   function show() {
+    if (window.MawahOffer) { window.MawahOffer.suspend(); window.MawahOffer.close(); }
     build();
     lastFocus = d.activeElement;
     panel.hidden = false;
