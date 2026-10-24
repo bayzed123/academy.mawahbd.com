@@ -29,10 +29,10 @@ html[lang=bn] .brand-name{font-weight:400;letter-spacing:.02em;font-size:1.1rem;
 .nav-links a{color:#e5e5e5;text-decoration:none;font-weight:600;padding:.4rem .1rem;border-bottom:2px solid transparent}
 .nav-links a:hover,.nav-links a[aria-current=page]{color:#fff;border-color:var(--g-400)}
 .nav-links a.nav-shop{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .85rem;border:1.5px solid rgba(255,87,34,.6);border-radius:999px;color:var(--o-300)}
-.nav-links a.nav-shop:hover{background:rgba(249,115,22,.1);border-color:var(--o-500);color:#fff}
+.nav-links a.nav-shop:hover{background:rgba(255,255,255,.05);border-color:var(--o-500);color:#fff}
 .nav-links a.nav-shop .icon{width:18px;height:18px}
 .lang-btn{min-height:44px;padding:.3rem .9rem;border:1.5px solid rgba(255,255,255,.24);border-radius:999px;background:transparent;color:#f5f5f5;font-weight:600;cursor:pointer}
-.lang-btn:hover{border-color:var(--o-500);color:#fff;background:rgba(249,115,22,.08)}
+.lang-btn:hover{border-color:var(--o-500);color:#fff;background:rgba(255,255,255,.05)}
 .user-menu{position:relative}
 .user-menu>summary{list-style:none;display:flex;align-items:center;gap:.5rem;min-height:44px;padding:.2rem .5rem .2rem .25rem;border:1.5px solid rgba(255,255,255,.24);border-radius:999px;background:transparent;color:#f5f5f5;cursor:pointer}
 .user-menu>summary::-webkit-details-marker{display:none}
@@ -200,7 +200,7 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .pay-opts{display:grid;gap:10px;border:0;margin:0;padding:0}
 .pay-opt{display:flex;gap:14px;align-items:center;padding:14px 16px;border:1.5px solid var(--edge);border-radius:16px;background:var(--field);cursor:pointer;transition:border-color .3s,box-shadow .3s}
 .pay-opt:hover{border-color:var(--g-500)}
-.pay-opt:has(input:checked){border-color:var(--o-500);box-shadow:0 0 0 3px rgba(255,87,34,.22);background:var(--g-100)}
+.pay-opt:has(input:checked){border-color:var(--o-500);box-shadow:0 0 0 1px var(--o-500);background:var(--g-100)}
 .pay-opt input{width:22px;height:22px;accent-color:var(--red-600);flex:none}
 .pay-opt b{display:block}
 .pay-opt small{color:var(--ink-3)}

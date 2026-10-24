@@ -96,5 +96,5 @@
 .stars-pick label{position:relative}
 .stars-pick input{position:absolute;opacity:0;inset:0}
 .stars-pick span[aria-hidden],.stars-pick label>span:first-of-type{display:inline-block;padding:.3rem .6rem;border-radius:10px;border:1.5px solid var(--line-2);color:var(--g-600);letter-spacing:.05em}
-.stars-pick input:checked+span{border-color:var(--o-500);background:rgba(255,87,34,.15);color:#ffb020}
+.stars-pick input:checked+span{border-color:var(--o-500);background:var(--raised);color:#ffb020}
 .stars-pick input:focus-visible+span{outline:3px solid var(--g-500);outline-offset:2px}

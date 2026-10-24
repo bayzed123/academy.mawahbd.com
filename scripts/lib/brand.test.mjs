@@ -131,8 +131,8 @@ const brownish = (hex) => {
 
 /*
  * The owner's third round: minimal and flat. The page is one solid colour; no radial gradients, background patterns, blur, glows or
- * floating decoration; buttons are one solid orange with a small crisp shadow only under the pointer. (A form field's focus ring and a
- * chosen option's 3px ring are outlines, not glows. A picture's text scrim and the loading shimmer are the only linear gradients.)
+ * floating decoration; buttons are one solid orange with a small crisp shadow only under the pointer. (A form field in use and a chosen
+ * option get a crisp 1px orange ring: an edge, not a halo. A picture's text scrim and the loading shimmer are the only linear gradients.)
  */
 test("the dark look is flat: one solid page colour, no radial gradients, patterns, blur, glows or gradient fills", () => {
   const found = [];
@@ -147,6 +147,8 @@ test("the dark look is flat: one solid page colour, no radial gradients, pattern
       if (/text-shadow/.test(rule)) found.push(`${file}: ${sel} has a text glow`);
       // a glow: a shadow with no offset and a blur, in orange
       if (/box-shadow:(?:[^;}]*,)?\s*0 0 [1-9]\d*px[^;}]*(?:249,115,22|255,87,34|255,107,0|var\(--o-)/.test(rule)) found.push(`${file}: ${sel} glows`);
+      // a halo: a wide ring of see-through orange around a field or an option
+      if (/box-shadow:(?:[^;}]*,)?\s*0 0 0 [1-9]\d*px rgba\((?:249,115,22|255,87,34|255,107,0)/.test(rule)) found.push(`${file}: ${sel} has a halo`);
       if (/background(?:-image)?:[^;}]*linear-gradient/.test(rule) && !/^\.lp-hero\.has-img::after$|^\.skeleton$/.test(sel)) found.push(`${file}: ${sel} has a gradient fill`);
     }
   }
@@ -177,10 +179,16 @@ test("the dark look has no brown: its greys are true greys, and none of its styl
       const hex = `#${rgb.match(/\d+/g).map((n) => Number(n).toString(16).padStart(2, "0")).join("")}`;
       if (brownish(hex)) found.push(`${file}: ${rgb})`);
     }
+    // a see-through warm fill or word is brown where it lands: orange at 35% over the black page is a dark brown
+    for (const [, prop, ...rgba] of css.matchAll(/(?:^|[;{])\s*(background(?:-color)?|color):[^;}]*?rgba\((\d+),(\d+),(\d+),(0?\.\d+)\)/g)) {
+      const a = Number(rgba[3]);
+      const hex = `#${rgba.slice(0, 3).map((n) => Math.round(Number(n) * a).toString(16).padStart(2, "0")).join("")}`;
+      if (brownish(hex)) found.push(`${file}: ${prop} rgba(${rgba.join(",")}) over the page`);
+    }
   }
   assert.deepEqual(found, []);
   // the check itself tells brown from orange
-  assert.ok(brownish("#1b1512") && brownish("#2a1d16") && brownish("#e9e4e0"));
+  assert.ok(brownish("#1b1512") && brownish("#2a1d16") && brownish("#e9e4e0") && brownish("#593e0b"));
   assert.ok(!brownish("#ff5722") && !brownish("#ff6b00") && !brownish("#151515") && !brownish("#ffa47a"));
 });
 

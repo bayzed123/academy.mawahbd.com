@@ -68,7 +68,7 @@
 
 | Token | Value | Use |
 |---|---|---|
-| Page | one flat pitch black (`#000`) everywhere — hero, bands, footer; cards, FAQ questions, panels and form fields a flat dark grey (`#121212`) with a thin see-through white border (cards 9%, fields 40% so they stay visible, 3:1) | Cards stand out from the page by their border, not by shadows. `scripts/lib/brand.test.mjs` fails on a radial gradient, a background pattern, blur, a glow, a gradient fill, a brown or a grey that is not a true grey |
+| Page | one flat pitch black (`#000`) everywhere — hero, bands, footer; cards, FAQ questions, panels and form fields a flat dark grey (`#121212`) with a thin see-through white border (cards 9%, fields 40% so they stay visible, 3:1) | Cards stand out from the page by their border, not by shadows. `scripts/lib/brand.test.mjs` fails on a radial gradient, a background pattern, blur, a glow, a halo (a wide see-through orange ring; a field in use gets a crisp 1px orange ring), a gradient fill, a brown (also a see-through orange or gold that turns brown on the black page) or a grey that is not a true grey |
 | Orange | one solid `#FF5722` (`--o-500`; hover `#ff6a3d`); links `#ff7b45` | Buttons (solid orange with **near-black words** — white on `#FF5722` is only 3.2:1; under the pointer a 1px lift and a small crisp shadow, nothing at rest), icons, an open question's edge, a card's edge under the pointer |
 | Text | headings `#FFFFFF`, paragraphs `#CCCCCC`, quiet text `#a3a3a3` | All ≥ 4.5:1 on the black page and on the cards |
 | States | problems red (`#ff7066` on `#2a0f10`), “paid / ok” green (`#4ade80`) | The brand's red turns orange in the dark look, so problems have their own `--bad-*` tokens |
