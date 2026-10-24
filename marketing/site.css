@@ -66,6 +66,15 @@ html[lang=bn] .hero h1{line-height:1.3}
 .page-hero .wrap{position:relative;padding-block:clamp(32px,5vw,58px)}
 .page-hero h1{color:#fff;margin-bottom:.3em}
 .page-hero p{color:#cccccc;margin:0;max-width:40rem}
+/* a small label in a pill with a dot, like "Opening soon" */
+.pill-badge{display:inline-flex;align-items:center;gap:.5rem;margin:0 0 .9rem;padding:.3rem .9rem;border:1px solid rgba(255,255,255,.14);border-radius:999px;color:var(--o-300);font-size:.8rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+html[lang=bn] .pill-badge{font-size:.92rem;letter-spacing:0;text-transform:none}
+.pill-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--o-500)}
+/* the Equipment Shop's page while it is closed */
+.shop-soon .wrap{padding-block:clamp(48px,9vw,110px)}
+.shop-soon .crumbs{margin-bottom:1.4rem}
+.shop-soon .hero-cta{justify-content:flex-start;margin:1.6rem 0 .8rem}
+.shop-soon .muted{color:var(--ink-3)}
 .crumbs{display:flex;flex-wrap:wrap;gap:.4rem;font-size:.9rem;list-style:none;margin:0 0 .8rem;padding:0;color:#a3a3a3}
 .crumbs a{color:#e5e5e5}
 .crumbs li+li::before{content:"›";margin-right:.4rem;opacity:.7}

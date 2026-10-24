@@ -5,6 +5,7 @@ import { all, first } from "../lib/db";
 import { HttpError } from "../lib/http";
 import { pageCtxFor } from "../lib/pagectx";
 import { cachedPage, renderHtml } from "../lib/render";
+import { menuShop } from "../lib/settings";
 import { NO_TRACKING } from "../lib/tracking";
 import { checkRateLimit } from "../middleware/ratelimit";
 import {
@@ -29,8 +30,8 @@ import { includedIn } from "../services/materials";
 import { certificateByCode } from "../services/learning";
 import { landingBySlug, landingData, readBlocks } from "../services/landing";
 import { CoursesPage } from "../views/pages/courses";
-import { ProductPage, ShopPage } from "../views/pages/shop";
-import { productReviews, relatedProducts, shopCategories, shopProduct, shopProducts, type ShopSort } from "../services/shop";
+import { ProductPage, ShopPage, ShopSoonPage } from "../views/pages/shop";
+import { SHOP_SORTS, productReviews, relatedProducts, shopCategories, shopProduct, shopProducts, type ShopSort } from "../services/shop";
 import { CoursePage, RelatedFragment, ReviewList } from "../views/pages/course";
 import { FaqPage } from "../views/pages/faq";
 import { HomePage } from "../views/pages/home";
@@ -120,22 +121,30 @@ export function pageRoutes(lang: Lang) {
     });
   });
 
-  /* the tools shop: only while the owner has it open (Admin → Shop → Settings) */
-  const SHOP_SORTS: ShopSort[] = ["featured", "new", "price_asc", "price_desc"];
+  /* the Equipment Shop: open only while the owner has it open (Admin → Shop → Settings); before that its page says it opens soon */
   const shopList = (c: C, categorySlug: string | null) => {
     const q = c.req.query();
     const page = Math.min(500, Math.max(1, Math.floor(Number(q.page) || 1)));
     const sort = (SHOP_SORTS as string[]).includes(q.sort ?? "") ? (q.sort as ShopSort) : "featured";
     const search = q.q?.trim().slice(0, 80) || undefined;
+    // the price filter: whole taka, the two ends swapped when typed the wrong way round
+    const taka = (v: string | undefined) => Math.min(10_000_000, Math.max(0, Math.floor(Number(v) || 0)));
+    let [min, max] = [taka(q.min), taka(q.max)];
+    if (min && max && min > max) [min, max] = [max, min];
+    const inStock = q.stock === "1";
     const path = categorySlug ? `/shop/category/${categorySlug}` : "/shop";
-    return cachedPage(c, { ttl: 120, keep: ["sort", "page"], bypass: !!search }, async () => {
+    return cachedPage(c, { ttl: 120, keep: ["sort", "page", "stock"], bypass: !!search || !!min || !!max }, async () => {
       const ctx = await pageCtxFor(c, lang, path);
-      if (!ctx.settings.store.enabled) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
+      if (!ctx.settings.store.enabled) {
+        // the menus point here (rather than to another shop): say it opens soon; anything else of a closed shop is not there
+        const soon = !categorySlug && menuShop(ctx.settings)?.own;
+        return soon ? renderHtml(c, ctx, <ShopSoonPage ctx={ctx} />) : renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
+      }
       const categories = await shopCategories(c.env);
       const category = categorySlug ? (categories.find((x) => x.slug === categorySlug) ?? null) : null;
       if (categorySlug && !category) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
-      const list = await shopProducts(c.env, { category: categorySlug, sort, page, q: search });
-      return renderHtml(c, ctx, <ShopPage ctx={ctx} data={{ ...list, categories, category, sort, q: search }} />);
+      const list = await shopProducts(c.env, { category: categorySlug, sort, page, q: search, min, max, inStock });
+      return renderHtml(c, ctx, <ShopPage ctx={ctx} data={{ ...list, categories, category, sort, q: search, min, max, inStock }} />);
     });
   };
   r.get("/shop", (c) => shopList(c, null));

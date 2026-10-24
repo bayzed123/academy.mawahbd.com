@@ -53,7 +53,7 @@ shopRoutes.get("/config", async (c) => {
 
 const listQuery = z.object({
   category: z.string().max(80).regex(/^[a-z0-9-]*$/).optional(),
-  sort: z.enum(["featured", "new", "price_asc", "price_desc"]).optional(),
+  sort: z.enum(["featured", "popular", "rating", "new", "price_asc", "price_desc"]).optional(),
   page: z.coerce.number().int().min(1).max(1000).optional(),
   ids: z
     .string()

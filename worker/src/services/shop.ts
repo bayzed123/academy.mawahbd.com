@@ -23,7 +23,8 @@ import { sslConfigured } from "./payments/sslcommerz";
  * Worker's, read again for each quote and for the order), delivery anywhere in Bangladesh, cash on delivery or SSLCommerz.
  */
 
-export type ShopSort = "featured" | "new" | "price_asc" | "price_desc";
+export type ShopSort = "featured" | "popular" | "rating" | "new" | "price_asc" | "price_desc";
+export const SHOP_SORTS: ShopSort[] = ["featured", "popular", "rating", "new", "price_asc", "price_desc"];
 
 const media = (key: string | null | undefined) => (key ? `/media/${key}` : null);
 
@@ -88,8 +89,13 @@ const toCard = (r: CardRow): ShopCardDTO => ({
   reviews: r.reviews,
 });
 
+// "popular": how many were ordered (orders not cancelled, failed or refunded); "rating": the approved reviews' average, then how many
+const SOLD = `(SELECT COALESCE(SUM(i.qty), 0) FROM shop_order_items i JOIN shop_orders o ON o.id = i.order_id
+               WHERE i.product_id = p.id AND o.status IN ('placed','paid','review','confirmed','shipped','delivered'))`;
 const ORDER_BY: Record<ShopSort, string> = {
   featured: "p.featured DESC, p.sort, p.id DESC",
+  popular: `${SOLD} DESC, p.featured DESC, p.sort, p.id DESC`,
+  rating: "COALESCE(rating, 0) DESC, reviews DESC, p.featured DESC, p.sort, p.id DESC",
   new: "COALESCE(p.published_at, p.created_at) DESC, p.id DESC",
   price_asc: "v.price, p.id",
   price_desc: "v.price DESC, p.id",
@@ -107,7 +113,7 @@ export async function shopCategories(env: Env): Promise<ShopCategoryDTO[]> {
 
 export async function shopProducts(
   env: Env,
-  opts: { category?: string | null; sort?: ShopSort; page?: number; perPage?: number; ids?: number[]; q?: string },
+  opts: { category?: string | null; sort?: ShopSort; page?: number; perPage?: number; ids?: number[]; q?: string; min?: number; max?: number; inStock?: boolean },
 ): Promise<{ items: ShopCardDTO[]; total: number; page: number; pages: number }> {
   const where: string[] = [];
   const params: (string | number)[] = [];
@@ -125,6 +131,16 @@ export async function shopProducts(
     const like = `%${opts.q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`;
     params.push(like, like);
   }
+  // the price filter reads the price the grid shows (the cheapest weight's)
+  if (opts.min) {
+    where.push("v.price >= ?");
+    params.push(opts.min);
+  }
+  if (opts.max) {
+    where.push("v.price <= ?");
+    params.push(opts.max);
+  }
+  if (opts.inStock) where.push("v.in_stock = 1");
   const base = `${CARD_SQL}${where.length ? ` AND ${where.join(" AND ")}` : ""}`;
   const perPage = opts.perPage ?? SHOP_PER_PAGE;
   const total = (await first<{ n: number }>(env.DB, `SELECT COUNT(*) AS n FROM (${base})`, ...params))?.n ?? 0;

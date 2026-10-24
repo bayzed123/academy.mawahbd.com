@@ -57,7 +57,10 @@ export interface Settings {
   about: { bn: string; en: string };
   analytics: { ga4: string; clarity: string; meta_pixel: string };
   chatbot: { enabled: boolean; greeting_bn: string; greeting_en: string; faq_bn: string; faq_en: string };
-  /** a link to the owner's shop (https://mawahbd.com): shown in the menus, the footer, the class list and the student app */
+  /**
+   * the Shop item of the menus, the footer, the class list and the student app (see menuShop): the Equipment Shop on this website, or —
+   * when the owner gives an address — another shop of theirs, opened in a new tab. The names are that other shop's.
+   */
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
   /**
    * the tools shop on this website (/shop): closed until the owner opens it, with the delivery charges set (or free delivery chosen).
@@ -128,7 +131,7 @@ export const SETTING_DEFAULTS: Settings = {
   about: { bn: ABOUT_TEXT.bn, en: ABOUT_TEXT.en },
   analytics: { ga4: "", clarity: "", meta_pixel: "" },
   chatbot: { enabled: true, greeting_bn: "", greeting_en: "", faq_bn: "", faq_en: "" },
-  shop: { enabled: true, url: "https://mawahbd.com", label_bn: "দোকান", label_en: "Shop" },
+  shop: { enabled: true, url: "", label_bn: "দোকান", label_en: "Shop" },
   // Chattogram district (worker/src/data/bd-geo.ts), where the shop is; no charges are made up: the owner sets them before opening
   store: { enabled: false, cod: true, online: true, home_district: 8, fee_home: 0, fee_other: 0, free_over: 0, free_delivery: false, delivery_bn: "", delivery_en: "" },
   notifications: { emails: [], off: [] },
@@ -201,6 +204,17 @@ export async function bumpContentVersion(env: Env): Promise<void> {
 }
 
 /** Test helper: forget in-isolate caches. */
+/**
+ * What the menus' Shop item opens. The Equipment Shop on this website once it is open; before that, the other shop whose address the owner
+ * gave (Admin → Settings → Shop in the menu), or else this website's shop page saying it opens soon. Null when the owner switched the item off.
+ */
+export function menuShop(s: Settings): { own: true } | { own: false; url: string } | null {
+  if (s.store.enabled) return { own: true };
+  if (!s.shop.enabled) return null;
+  if (!s.shop.url) return { own: true };
+  return /^https?:\/\//i.test(s.shop.url) ? { own: false, url: s.shop.url } : null;
+}
+
 export function resetSettingsCache(): void {
   memo = null;
   cvMemo = null;

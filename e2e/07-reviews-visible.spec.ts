@@ -81,53 +81,74 @@ test("a review goes from 'waiting' to the class page, the class list and the ins
   await visitorCtx.close();
 });
 
-test("the Shop link is everywhere a visitor looks, opens a new tab safely, and the owner can switch it off", async ({ browser }) => {
+test("the Equipment Shop is in every menu (this website's own shop, in the same tab); another shop's address opens a new tab safely, and the owner can switch it off", async ({ browser }) => {
   const ctx = await browser.newContext({ locale: "en-US" });
   await useLang(ctx, "en");
   const page = await ctx.newPage();
 
   for (const path of ["/en", "/en/courses", "/en/courses/beginners-baking-class"]) {
     await page.goto(path);
-    const shop = page.locator('a[data-shop]:visible, nav a[href="https://mawahbd.com"]:visible').first();
+    const shop = page.locator('a[href="/en/shop"]:visible').first();
     await expect(shop, path).toBeVisible();
-    await expect(shop).toHaveAttribute("href", "https://mawahbd.com");
-    await expect(shop).toHaveAttribute("target", "_blank");
-    await expect(shop).toHaveAttribute("rel", /noopener/);
+    await expect(shop, path).not.toHaveAttribute("target", "_blank");
   }
+  // the shop is not open yet (Admin → Shop): its page says so, with no product or price
+  await page.goto("/en");
+  await page.locator('nav a[href="/en/shop"]:visible').first().click();
+  await expect(page.getByRole("heading", { level: 1, name: "Equipment Shop" })).toBeVisible();
+  await expect(page.getByText("Opening soon")).toBeVisible();
+  await expect(page.locator("article.pcard")).toHaveCount(0);
 
   // on a phone it sits in the menu
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto("/en");
   await page.locator("details.menu > summary").click();
-  await expect(page.locator('.menu-panel a[href="https://mawahbd.com"]')).toBeVisible();
+  await expect(page.locator('.menu-panel a[href="/en/shop"]')).toBeVisible();
 
   // the student app has it too
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/app/login");
-  await expect(page.locator('a.nav-shop[href="https://mawahbd.com"]')).toBeVisible();
+  await expect(page.locator('a.nav-shop[href="/en/shop"]')).toBeVisible();
 
-  // the owner switches it off in Settings -> everything disappears
+  // the owner gives another shop's address in Settings: the menus open it in a new tab, safely
   const adminCtx = await browser.newContext({ locale: "en-US" });
   await useLang(adminCtx, "en");
   const admin = await adminCtx.newPage();
   await adminLogin(admin);
   await admin.goto("/admin/settings");
   const shopForm = admin.locator("form", { has: admin.locator("#sh-url") });
-  const shopSwitch = shopForm.getByRole("switch", { name: "Show the Shop link on the website and in the student app" });
+  const save = async () => {
+    const saved = admin.waitForResponse((r) => r.url().endsWith("/api/admin/settings/shop") && r.request().method() === "PUT");
+    await shopForm.getByRole("button", { name: "Save" }).click();
+    expect((await saved).status()).toBe(200);
+  };
+  await expect(shopForm.locator("#sh-url")).toHaveValue("");
+  await shopForm.locator("#sh-url").fill("https://mawahbd.com");
+  await save();
+  for (const path of ["/en", "/en/courses"]) {
+    await page.goto(path);
+    const other = page.locator('a[data-shop]:visible, nav a[href="https://mawahbd.com"]:visible').first();
+    await expect(other, path).toHaveAttribute("href", "https://mawahbd.com");
+    await expect(other, path).toHaveAttribute("target", "_blank");
+    await expect(other, path).toHaveAttribute("rel", /noopener/);
+  }
+
+  // switched off in Settings -> every shop link disappears
+  const shopSwitch = shopForm.getByRole("switch", { name: "Show the shop in the menus of the website and the student app" });
   await expect(shopSwitch).toBeChecked();
   await shopForm.locator("label.switch").click();
   await expect(shopSwitch).not.toBeChecked();
-  await shopForm.getByRole("button", { name: "Save" }).click();
-  await expect(admin.getByText("Saved.")).toBeVisible();
+  await save();
   await page.goto("/en");
-  await expect(page.locator('a[href="https://mawahbd.com"]')).toHaveCount(0);
-  // …and back on again
+  await expect(page.locator('a[href="https://mawahbd.com"], a[href="/en/shop"]')).toHaveCount(0);
+  // …and back to this website's own shop
   await shopForm.locator("label.switch").click();
   await expect(shopSwitch).toBeChecked();
-  await shopForm.getByRole("button", { name: "Save" }).click();
-  await expect(admin.getByText("Saved.").first()).toBeVisible();
+  await shopForm.locator("#sh-url").fill("");
+  await save();
   await page.goto("/en");
-  await expect(page.locator('a[href="https://mawahbd.com"]').first()).toBeVisible();
+  await expect(page.locator('a[href="/en/shop"]').first()).toBeVisible();
+  await expect(page.locator('a[href="https://mawahbd.com"]')).toHaveCount(0);
 
   await adminCtx.close();
   await ctx.close();

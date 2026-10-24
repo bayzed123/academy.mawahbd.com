@@ -1,6 +1,6 @@
-import { formatMoney, formatNumber, loc, percentOff, type ShopCardDTO, type ShopCategoryDTO, type ShopProductDTO, type ShopReviewDTO } from "@mawah/shared";
+import { SHOP_PER_PAGE, formatMoney, formatNumber, loc, percentOff, type ShopCardDTO, type ShopCategoryDTO, type ShopProductDTO, type ShopReviewDTO } from "@mawah/shared";
 import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
-import type { ShopSort } from "../../services/shop";
+import { SHOP_SORTS, type ShopSort } from "../../services/shop";
 import type { PageCtx } from "../ctx";
 import { Layout } from "../layout";
 import { breadcrumbLd } from "../seo";
@@ -8,7 +8,7 @@ import { avgLabel, Crumbs, Icon, Pager, reviewsLabel, Stars } from "../ui";
 import { raw } from "hono/html";
 
 /*
- * The tools shop's own pages (server-made, so search engines and link previews see them): the grid with its categories and pages, and a
+ * The Equipment Shop's own pages (server-made, so search engines and link previews see them): the grid with its categories and pages, and a
  * product with its weights, prices, pictures, description, reviews and related products. The cart, the wishlist and "Add to cart" work in
  * the browser (marketing/shop.js keeps only variant ids and quantities); checkout is in the app (/app/shop/…), where the Worker prices
  * everything again.
@@ -37,7 +37,8 @@ const WishButton = ({ ctx, product, big = false }: { ctx: PageCtx; product: { id
   </button>
 );
 
-export const ProductCard = ({ ctx, p, eager = false, headingLevel = 2 }: { ctx: PageCtx; p: ShopCardDTO; eager?: boolean; headingLevel?: 2 | 3 }) => {
+/** A product in the grid. `category` is its category's name, said above the name when the grid knows it. */
+export const ProductCard = ({ ctx, p, eager = false, headingLevel = 2, category }: { ctx: PageCtx; p: ShopCardDTO; eager?: boolean; headingLevel?: 2 | 3; category?: string }) => {
   const Heading = headingLevel === 2 ? "h2" : "h3";
   const href = ctx.href(`/shop/p/${p.slug}`);
   const name = loc(p, "name", ctx.lang);
@@ -49,6 +50,7 @@ export const ProductCard = ({ ctx, p, eager = false, headingLevel = 2 }: { ctx: 
       <OffBadge ctx={ctx} price={p.price} list={p.list_price} />
       <WishButton ctx={ctx} product={p} />
       <div class="pcard-body">
+        {category && <p class="pcard-cat">{category}</p>}
         <Heading class="pcard-title">
           <a href={href}>{name}</a>
         </Heading>
@@ -124,34 +126,74 @@ export interface ShopListData {
   category: ShopCategoryDTO | null;
   sort: ShopSort;
   q?: string;
+  /** the price filter, in whole taka (0 = no end) */
+  min?: number;
+  max?: number;
+  inStock?: boolean;
 }
 
+/** A filter's hidden fields: each of the page's three small forms keeps what the other two chose. */
+const Keep = ({ sort, q, min, max, inStock }: { sort?: ShopSort; q?: string; min?: number; max?: number; inStock?: boolean }) => (
+  <>
+    {sort && sort !== "featured" && <input type="hidden" name="sort" value={sort} />}
+    {q && <input type="hidden" name="q" value={q} />}
+    {!!min && <input type="hidden" name="min" value={String(min)} />}
+    {!!max && <input type="hidden" name="max" value={String(max)} />}
+    {inStock && <input type="hidden" name="stock" value="1" />}
+  </>
+);
+
+/*
+ * The shop's grid, laid out like a shop's category page: the categories, a price filter and "in stock only" at the side (above the grid on
+ * a phone, the filters folded away), "Showing 1–12 of 30 results" with the sorting, the products four to a row on a computer and two on a
+ * phone, and numbered pages. Every filter is an ordinary form and link, so it works without the script and each result has its own address.
+ */
 export function ShopPage({ ctx, data }: { ctx: PageCtx; data: ShopListData }) {
   const { t, lang } = ctx;
   const base = data.category ? `/shop/category/${data.category.slug}` : "/shop";
+  const state = { sort: data.sort, q: data.q, min: data.min || 0, max: data.max || 0, inStock: !!data.inStock };
   const hrefFor = (over: { page?: number; sort?: ShopSort; q?: string }) => {
     const params = new URLSearchParams();
-    const sort = over.sort ?? data.sort;
-    const q = "q" in over ? over.q : data.q;
+    const sort = over.sort ?? state.sort;
+    const q = "q" in over ? over.q : state.q;
     if (sort !== "featured") params.set("sort", sort);
     if (q) params.set("q", q);
+    if (state.min) params.set("min", String(state.min));
+    if (state.max) params.set("max", String(state.max));
+    if (state.inStock) params.set("stock", "1");
     if (over.page && over.page > 1) params.set("page", String(over.page));
     const qs = params.toString();
     return ctx.href(base) + (qs ? `?${qs}` : "");
   };
   const title = data.category ? loc(data.category, "name", lang) : t("shop.title");
   const crumbs = [{ label: t("nav.home"), href: ctx.href("/") }, ...(data.category ? [{ label: t("shop.title"), href: ctx.href("/shop") }, { label: title }] : [{ label: t("shop.title") }])];
+  const filtered = !!(state.q || state.min || state.max || state.inStock);
+  const from = (data.page - 1) * SHOP_PER_PAGE + 1;
+  const to = Math.min(data.total, data.page * SHOP_PER_PAGE);
+  const showing =
+    data.total === 1 ? t("shop.showing.one") : data.pages <= 1 ? t("shop.showing.all", { n: num(ctx, data.total) }) : t("shop.showing", { from: num(ctx, from), to: num(ctx, to), n: num(ctx, data.total) });
+  const catName = new Map(data.categories.map((c) => [c.slug, loc(c, "name", lang)]));
+  // a category link keeps the sorting and the filters, and starts again at page one
+  const catHref = (slug: string | null) => {
+    const params = new URLSearchParams();
+    if (state.sort !== "featured") params.set("sort", state.sort);
+    if (state.min) params.set("min", String(state.min));
+    if (state.max) params.set("max", String(state.max));
+    if (state.inStock) params.set("stock", "1");
+    const qs = params.toString();
+    return ctx.href(slug ? `/shop/category/${slug}` : "/shop") + (qs ? `?${qs}` : "");
+  };
   return (
     <Layout
       ctx={ctx}
       title={`${title}${data.page > 1 ? ` — ${t("pager.page", { n: num(ctx, data.page), total: num(ctx, data.pages) })}` : ""} — ${t("brand.name")}`}
       description={t("shop.sub")}
-      noindex={!!data.q || data.sort !== "featured"}
-      canonicalPath={hrefFor({ sort: "featured", q: undefined, page: data.page })}
+      noindex={filtered || data.sort !== "featured"}
+      canonicalPath={ctx.href(base) + (data.page > 1 ? `?page=${data.page}` : "")}
       jsonLd={[breadcrumbLd(ctx, crumbs.map((c) => ({ name: c.label, path: c.href ?? ctx.href(base) })))]}
       shop
     >
-      <section class="page-hero">
+      <section class="page-hero shop-hero">
         <div class="wrap">
           <Crumbs items={crumbs} />
           <h1>{title}</h1>
@@ -160,44 +202,76 @@ export function ShopPage({ ctx, data }: { ctx: PageCtx; data: ShopListData }) {
       </section>
       <section class="section tight">
         <div class="wrap shop-layout">
-          <aside class="shop-side" aria-labelledby="shop-cats">
-            <h2 id="shop-cats" class="side-title">
-              {t("shop.categories")}
-            </h2>
-            <ul class="cat-list">
-              <li>
-                <a href={ctx.href("/shop")} aria-current={!data.category ? "page" : undefined}>
-                  {t("label.all")}
-                </a>
-              </li>
-              {data.categories.map((c) => (
+          <aside class="shop-side">
+            <section class="side-box" aria-labelledby="shop-cats">
+              <h2 id="shop-cats" class="side-title">
+                {t("shop.categories")}
+              </h2>
+              <ul class="cat-list">
                 <li>
-                  <a href={ctx.href(`/shop/category/${c.slug}`)} aria-current={data.category?.slug === c.slug ? "page" : undefined}>
-                    {loc(c, "name", lang)}
-                    <span class="muted"> ({num(ctx, c.count)})</span>
+                  <a href={catHref(null)} aria-current={!data.category ? "page" : undefined}>
+                    {t("shop.all")}
                   </a>
                 </li>
-              ))}
-            </ul>
+                {data.categories.map((c) => (
+                  <li>
+                    <a href={catHref(c.slug)} aria-current={data.category?.slug === c.slug ? "page" : undefined}>
+                      {loc(c, "name", lang)}
+                      <span class="cat-n">{num(ctx, c.count)}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <details class="side-box side-filter" data-shop-filters open>
+              <summary>
+                <span class="side-title">{t("shop.filters")}</span>
+                <Icon name="chevron" />
+              </summary>
+              <form class="filter-form" method="get" action={ctx.href(base)}>
+                <Keep sort={state.sort} q={state.q} />
+                <fieldset>
+                  <legend>{t("shop.price")}</legend>
+                  <div class="price-row">
+                    <label>
+                      <span>{t("shop.price.min")}</span>
+                      <input class="input" type="number" name="min" min="0" step="1" inputmode="numeric" value={state.min ? String(state.min) : ""} />
+                    </label>
+                    <label>
+                      <span>{t("shop.price.max")}</span>
+                      <input class="input" type="number" name="max" min="0" step="1" inputmode="numeric" value={state.max ? String(state.max) : ""} />
+                    </label>
+                  </div>
+                </fieldset>
+                <fieldset>
+                  <legend>{t("shop.availability")}</legend>
+                  <label class="check">
+                    <input type="checkbox" name="stock" value="1" checked={state.inStock} />
+                    <span>{t("shop.stock.only")}</span>
+                  </label>
+                </fieldset>
+                <div class="filter-actions">
+                  <button class="btn btn-primary btn-sm" type="submit">
+                    {t("shop.apply")}
+                  </button>
+                  {filtered && (
+                    <a class="btn btn-ghost btn-sm" href={ctx.href(base)}>
+                      {t("shop.clear")}
+                    </a>
+                  )}
+                </div>
+              </form>
+            </details>
             <PolicyLinks ctx={ctx} />
           </aside>
           <div class="shop-main">
             <div class="shop-tools">
               <form class="searchbar" method="get" action={ctx.href(base)} role="search">
+                <Keep sort={state.sort} min={state.min} max={state.max} inStock={state.inStock} />
                 <label class="vh" for="sq">
                   {t("shop.search")}
                 </label>
                 <input class="input" id="sq" type="search" name="q" value={data.q ?? ""} placeholder={t("shop.search")} maxlength={80} />
-                <label class="vh" for="ssort">
-                  {t("courses.sort")}
-                </label>
-                <select class="input" id="ssort" name="sort">
-                  {(["featured", "new", "price_asc", "price_desc"] as ShopSort[]).map((s) => (
-                    <option value={s} selected={data.sort === s}>
-                      {t(`sort.${s}` as never)}
-                    </option>
-                  ))}
-                </select>
                 <button class="btn btn-dark" type="submit">
                   <Icon name="search" />
                   {t("btn.search")}
@@ -205,12 +279,28 @@ export function ShopPage({ ctx, data }: { ctx: PageCtx; data: ShopListData }) {
               </form>
               <ShopBar ctx={ctx} />
             </div>
-            <p class="muted shop-count">{t("shop.count", { n: num(ctx, data.total) })}</p>
+            <div class="shop-toolbar">
+              <p class="shop-count">{data.total ? showing : t("shop.count", { n: num(ctx, 0) })}</p>
+              <form class="sort-form" method="get" action={ctx.href(base)}>
+                <Keep q={state.q} min={state.min} max={state.max} inStock={state.inStock} />
+                <label for="ssort">{t("shop.sort")}</label>
+                <select class="input" id="ssort" name="sort" data-autosubmit>
+                  {SHOP_SORTS.map((s) => (
+                    <option value={s} selected={data.sort === s}>
+                      {t(`sort.${s}` as never)}
+                    </option>
+                  ))}
+                </select>
+                <button class="btn btn-dark btn-sm" type="submit" data-autosubmit-btn>
+                  {t("shop.apply")}
+                </button>
+              </form>
+            </div>
             {data.items.length === 0 ? (
               <div class="empty">
                 <Icon name="shop" />
                 <p>{t("shop.empty")}</p>
-                {(data.q || data.category) && (
+                {(filtered || data.category) && (
                   <a class="btn btn-outline" href={ctx.href("/shop")}>
                     {t("courses.clear")}
                   </a>
@@ -219,15 +309,53 @@ export function ShopPage({ ctx, data }: { ctx: PageCtx; data: ShopListData }) {
             ) : (
               <div class="pgrid">
                 {data.items.map((p, i) => (
-                  <ProductCard ctx={ctx} p={p} eager={i < 4} />
+                  <ProductCard ctx={ctx} p={p} eager={i < 4} category={p.category_slug ? catName.get(p.category_slug) : undefined} />
                 ))}
               </div>
             )}
-            <Pager ctx={ctx} page={data.page} pages={data.pages} hrefFor={(p) => hrefFor({ page: p })} />
+            <Pager ctx={ctx} page={data.page} pages={data.pages} hrefFor={(p) => hrefFor({ page: p })} numbers />
           </div>
         </div>
       </section>
       <ShopToast ctx={ctx} />
+    </Layout>
+  );
+}
+
+/**
+ * The shop's page while it is closed and the menus point to it: what is coming, and two ways on — WhatsApp (when the owner gave a
+ * number) and the classes. No product, price or date is shown, because none is decided yet.
+ */
+export function ShopSoonPage({ ctx }: { ctx: PageCtx }) {
+  const { t } = ctx;
+  const wa = ctx.settings.contact.whatsapp.replace(/\D/g, "");
+  return (
+    <Layout ctx={ctx} title={`${t("shop.title")} — ${t("brand.name")}`} description={t("shop.soon.text")} noindex>
+      <section class="page-hero shop-soon">
+        <div class="wrap">
+          <Crumbs items={[{ label: t("nav.home"), href: ctx.href("/") }, { label: t("shop.title") }]} />
+          <p class="pill-badge">
+            <span class="dot" aria-hidden="true" />
+            {t("shop.soon.badge")}
+          </p>
+          <h1>{t("shop.title")}</h1>
+          <p>{t("shop.soon.text")}</p>
+          <div class="hero-cta">
+            {wa && (
+              <a class="btn btn-primary btn-lg" href={`https://wa.me/${wa}?text=${encodeURIComponent(t("wa.prefill"))}`} target="_blank" rel="noopener noreferrer">
+                <Icon name="whatsapp" />
+                {t("shop.soon.wa")}
+                <span class="vh"> ({t("shop.opens")})</span>
+              </a>
+            )}
+            <a class={`btn ${wa ? "btn-outline" : "btn-primary"} btn-lg`} href={ctx.href("/courses")}>
+              {t("shop.soon.classes")}
+              <Icon name="arrow" />
+            </a>
+          </div>
+          {wa && <p class="muted">{t("shop.soon.ask")}</p>}
+        </div>
+      </section>
     </Layout>
   );
 }

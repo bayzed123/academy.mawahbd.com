@@ -4,6 +4,7 @@ import { formatMoney, formatNumber, loc } from "@mawah/shared";
 import type { PageCtx } from "./ctx";
 import { gaCardAttr } from "./ga";
 import type { InstructorRating } from "../services/catalog";
+import { menuShop } from "../lib/settings";
 
 /* ------------------------------------------------------------------ icons & brand */
 export const Icon = ({ name, class: cls = "" }: { name: string; class?: string }) => (
@@ -48,14 +49,14 @@ export const avgLabel = (ctx: PageCtx, avg: number) => (ctx.lang === "bn" ? form
 export const reviewsLabel = (ctx: PageCtx, n: number) => (n === 1 ? ctx.t("reviews.count.one") : ctx.t("reviews.count", { n: numLabel(ctx, n) }));
 
 /**
- * The menus' Shop link: the tools shop on this website (/shop) once the owner has opened it — otherwise the owner's other shop
- * (Admin → Settings → Contact → Shop), or null when that is switched off or has no valid address. That one leaves the site, so it
- * opens in a new tab and says so for screen readers (`internal` false).
+ * The menus' Shop link (menuShop): the Equipment Shop on this website (/shop) — or, when the owner gave its address, another shop of theirs,
+ * which leaves the site, so it opens in a new tab and says so for screen readers (`internal` false). Null when switched off.
  */
 export function shopOf(ctx: PageCtx): { href: string; label: string; host: string; internal: boolean } | null {
   const s = ctx.settings.shop;
-  if (ctx.settings.store.enabled) return { href: ctx.href("/shop"), label: ctx.t("shop.title"), host: "", internal: true };
-  if (!s.enabled || !/^https?:\/\//i.test(s.url)) return null;
+  const to = menuShop(ctx.settings);
+  if (!to) return null;
+  if (to.own) return { href: ctx.href("/shop"), label: ctx.t("shop.title"), host: "", internal: true };
   let host = "";
   try {
     host = new URL(s.url).host.replace(/^www\./, "");
@@ -170,25 +171,61 @@ export const Crumbs = ({ items }: { items: { label: string; href?: string }[] })
   </ol>
 );
 
+/** The page numbers a numbered pager shows: the first, the last and two either side of this one; 0 marks a gap ("…"). */
+export function pageList(page: number, pages: number): number[] {
+  const out: number[] = [];
+  for (let n = 1; n <= pages; n++) {
+    if (n === 1 || n === pages || Math.abs(n - page) <= 2) out.push(n);
+    else if (out[out.length - 1] !== 0) out.push(0);
+  }
+  return out;
+}
+
+/** Previous / next with "Page 2 of 5" — or, with `numbers` (the shop), every page number to jump to, like a shop's category pages. */
 export const Pager = ({
   ctx,
   page,
   pages,
   hrefFor,
+  numbers = false,
 }: {
   ctx: PageCtx;
   page: number;
   pages: number;
   hrefFor: (p: number) => string;
+  numbers?: boolean;
 }) =>
   pages <= 1 ? null : (
-    <nav class="pager" aria-label="pagination">
+    <nav class={numbers ? "pager pager-num" : "pager"} aria-label={numbers ? ctx.t("shop.pages") : "pagination"}>
       {page > 1 ? (
         <a class="btn btn-outline btn-sm" rel="prev" href={hrefFor(page - 1)}>
           {ctx.t("pager.prev")}
         </a>
       ) : null}
-      <span>{ctx.t("pager.page", { n: ctx.lang === "bn" ? formatNumber(page, "bn") : page, total: ctx.lang === "bn" ? formatNumber(pages, "bn") : pages })}</span>
+      {numbers ? (
+        <ol>
+          {pageList(page, pages).map((n) =>
+            n === 0 ? (
+              <li aria-hidden="true">…</li>
+            ) : (
+              <li>
+                {n === page ? (
+                  <span aria-current="page">
+                    <span class="vh">{ctx.t("pager.page", { n: numLabel(ctx, n), total: numLabel(ctx, pages) })}</span>
+                    <span aria-hidden="true">{numLabel(ctx, n)}</span>
+                  </span>
+                ) : (
+                  <a href={hrefFor(n)} aria-label={ctx.t("pager.page", { n: numLabel(ctx, n), total: numLabel(ctx, pages) })}>
+                    {numLabel(ctx, n)}
+                  </a>
+                )}
+              </li>
+            ),
+          )}
+        </ol>
+      ) : (
+        <span>{ctx.t("pager.page", { n: ctx.lang === "bn" ? formatNumber(page, "bn") : page, total: ctx.lang === "bn" ? formatNumber(pages, "bn") : pages })}</span>
+      )}
       {page < pages ? (
         <a class="btn btn-outline btn-sm" rel="next" href={hrefFor(page + 1)}>
           {ctx.t("pager.next")}

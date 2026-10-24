@@ -1,4 +1,4 @@
-/* MAWAH tools shop — the cart and the wishlist on the shop's pages. Both live in this browser (localStorage), and hold only ids and
+/* MAWAH Equipment Shop — the cart and the wishlist on the shop's pages. Both live in this browser (localStorage), and hold only ids and
    quantities: every name and price at checkout comes from the website again (/app/shop/cart). Loaded only on the shop's pages.
    Without it (or without storage) the product pages still read and link as usual; only the cart buttons need it. */
 (function () {
@@ -15,6 +15,19 @@
   };
   var $ = function (s, r) { return (r || d).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || d).querySelectorAll(s)); };
+
+  // the grid's sorting takes effect as soon as it is chosen (its button stays for browsers without this script)
+  $$("select[data-autosubmit]").forEach(function (sel) {
+    var btn = sel.form && sel.form.querySelector("[data-autosubmit-btn]");
+    if (btn) btn.hidden = true;
+    sel.addEventListener("change", function () {
+      if (sel.form.requestSubmit) sel.form.requestSubmit();
+      else sel.form.submit();
+    });
+  });
+  // on a phone the price and stock filters start folded, so the products come first (open again when one is in use)
+  var filters = $("[data-shop-filters]");
+  if (filters && window.matchMedia && window.matchMedia("(max-width: 899px)").matches && !/[?&](min|max|stock)=/.test(location.search)) filters.open = false;
 
   var store;
   try {
