@@ -2,7 +2,7 @@ import { z } from "zod";
 import { LANDING_MAX_BLOCKS, LANDING_MAX_FAQS, LANDING_MAX_PICTURES, videoEmbed, type CourseCardDTO, type LandingBlock } from "@mawah/shared";
 import type { Env } from "../env";
 import { all, first, qs } from "../lib/db";
-import { textSchema } from "../lib/schemas";
+import { buttonLinkSchema, textSchema } from "../lib/schemas";
 import { listCourses, shortName, type PublicReview } from "./catalog";
 
 /*
@@ -21,12 +21,8 @@ export function landingVideo(url: string): string | null {
 
 const imageKey = z.string().max(200).regex(/^banners\/[a-f0-9]{16,64}\.(png|jpe?g|webp|avif)$/, "invalid_image");
 
-/** Where a button goes. A relative link must start with a single "/" (a "//host" would leave the site without saying so). */
-const link = z
-  .string()
-  .trim()
-  .max(500, "too_long")
-  .refine((v) => v === "" || /^\/(?!\/)\S*$/.test(v) || /^https:\/\/\S+$/i.test(v) || /^tel:\+?[\d -]{6,20}$/i.test(v) || /^mailto:[^\s@]+@[^\s@]+$/i.test(v), "invalid_url");
+/** Where the button goes (lib/schemas.ts). */
+const link = buttonLinkSchema;
 
 const money = z.number().int().min(0).max(10_000_000);
 const pair = (max: number) => ({ bn: textSchema(max), en: textSchema(max) });

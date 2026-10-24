@@ -111,7 +111,7 @@ test("a visitor sees the slider: arrows, dots and a pause button work, nothing m
 });
 
 test("the slider moves by itself every few seconds and the pause button stops it", async ({ browser }) => {
-  const ctx = await browser.newContext({ locale: "en-US" });
+  const ctx = await browser.newContext({ locale: "en-US", reducedMotion: "no-preference" });
   await useLang(ctx, "en");
   const page = await ctx.newPage();
   // Time that moves only when this test moves it. (After install() alone the fake clock also follows the real one, so on a

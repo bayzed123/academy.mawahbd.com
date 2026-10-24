@@ -432,6 +432,20 @@
 * প্রতিটি লেখা দুই ভাষায়; এক ভাষা খালি রাখলে সেই ব্লকে অন্য ভাষার লেখা দেখায়।
 * লুকানো বা “শীঘ্রই আসছে” ক্লাসের ব্লক, অনুমোদিত রিভিউ ছাড়া রিভিউ ব্লক, আর নম্বর ছাড়া হোয়াটসঅ্যাপ ব্লক পাতায় দেখায় না — ভুয়া কিছু দেখানো হয় না।
 
+## ২৮. নতুন ডিজাইন — পরিষ্কার কালো ও কমলা, কাউন্টডাউন বার, মেসেঞ্জার বোতাম
+
+পুরো ওয়েবসাইট আর শিক্ষার্থীদের অ্যাপ এখন পরিষ্কার, সমতল কালো পটভূমিতে — কোনো নকশা, আলো বা ঝাপসা দাগ নেই। ক্লাসের কার্ড, প্রশ্নোত্তর আর ফর্মের ঘর সমতল গাঢ় ধূসর, পাতলা আধা-স্বচ্ছ সাদা রেখায় ঘেরা। বোতাম একটাই কমলা রঙে, আইকনও কমলা; বড় সাদা শিরোনাম, হালকা ধূসর লেখা, Hind Siliguri-এর মোটা অক্ষর। অ্যাডমিন আগের মতোই সাদা থাকে।
+* **কাউন্টডাউন বার** — *সেটিংস → যোগাযোগ, ঘোষণা ও দোকান → ঘোষণা বার*:
+  1. ঘোষণার লেখা (বাংলা ও ইংরেজি) লিখুন।
+  2. **কাউন্টডাউন যে সময় পর্যন্ত** — অফারের আসল শেষ সময় দিন (বাংলাদেশ সময়)। নিচে লেখা ওঠে “বারটি … পর্যন্ত কাউন্টডাউন দেখাবে”।
+  3. **বোতামের লিংক** — যেমন `/courses`, বা একটি ল্যান্ডিং পেজ `/l/eid-offer`। বোতামের লেখা খালি রাখলে “এখনই ভর্তি হোন” লেখা থাকে।
+  4. **সংরক্ষণ করুন**। প্রতিটি পাতার একেবারে উপরে বারটি দিন : ঘণ্টা : মিনিট : সেকেন্ড গুনতে থাকে, আর স্ক্রল করলেও উপরে থাকে। সময় শেষ হলে বারটি নিজে থেকেই সরে যায়।
+  * কাউন্টডাউন সবসময় আপনার দেওয়া আসল সময় ধরে চলে, কখনো বানানো সময়ে নয়। সময় না দিলে আগের মতো সাধারণ ঘোষণা দেখায়।
+* **মেসেঞ্জার বোতাম** — *সেটিংস → যোগাযোগ → Facebook*-এ আপনার পেজের ঠিকানা থাকলে (যেমন `https://www.facebook.com/mawahacademy`) ডানদিকে নিচে হোয়াটসঅ্যাপের পাশে মেসেঞ্জারের ভাসমান বোতাম আসে। চাপলে আপনার পেজের সাথে চ্যাট খোলে। গ্রুপ বা পোস্টের ঠিকানা দিলে এই বোতাম আসে না।
+* **শান্ত চলমান ডিজাইন** — নিচে নামলে প্রতিটি অংশ, শিরোনাম আর ক্লাসের কার্ড একটু নিচ থেকে ধীরে ভেসে ওঠে, কার্ডগুলো একের পর এক (Framer Motion দিয়ে)। কার্ডের ওপর মাউস রাখলে কার্ডটি একটু উঠে আসে, ধারটা কমলা হয়; বোতামের ওপর মাউস রাখলে হালকা ছায়া পড়ে। কোনো কিছু জ্বলে না, লাফায় না বা ভাসে না। ছবি ছাড়া ক্লাসের কার্ডে ছোট সমতল ঘরে কমলা আইকন থাকে। হোম পেজে ক্লাস ও রিভিউ পাশাপাশি স্লাইড করা যায়, প্রশ্নোত্তর মসৃণভাবে খোলে। যাঁদের ফোনে “কম অ্যানিমেশন” চালু আছে, তাঁদের জন্য সব স্থির থাকে।
+  * ক্লাসের **ব্যানার ছবি** দিলে (*ক্লাস → ক্লাসটি খুলুন → ব্যানার ছবি*) কার্ডে সেই ছবিই দেখায়, মাউস রাখলে একটু বড় হয় — ছবিওয়ালা কার্ড সবচেয়ে সুন্দর দেখায়।
+* **পেমেন্টের পর** — পেমেন্ট সফল হলে অর্ডারের পাতায় সবুজ টিক চিহ্ন আঁকা হয়, সাথে রঙিন কনফেটি।
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -852,3 +866,17 @@ In *Admin → Landing pages* make your own pages, each at its own address: **maw
 4. When it is ready: the pencil on its row → status **Published** → **Save**. The ↗ button on the row opens the page.
 * Every block's words are in both languages; if one language is empty, that block shows the other.
 * A block for a hidden or "coming soon" class, a reviews block with no approved review, and a WhatsApp block with no number are left out of the page — nothing made up is ever shown.
+
+## 28. The new look — clean black and orange, the countdown bar, the Messenger button
+
+The whole website and the students' app are now on a clean, flat black — no patterns, lights or blurry glows. Class cards, questions and form fields are a flat dark grey with a thin see-through white border. Buttons are one solid orange, icons orange too; big white headings, light grey words, bold Hind Siliguri letters. The admin stays light, as before.
+* **Countdown bar** — *Settings → Contact, announcement & shop → Announcement bar*:
+  1. Write the announcement (Bangla and English).
+  2. **Countdown to (Bangladesh time)** — the real end of your offer. A line under it says "The bar counts down to …".
+  3. **Button link** — for example `/courses`, or a landing page such as `/l/eid-offer`. With the button text left empty, the button says "Join now".
+  4. **Save**. At the very top of every page the bar counts days : hours : minutes : seconds, and stays there while people scroll. When the time is over, the bar goes away by itself.
+  * The countdown always runs to the real time you give, never a made-up one. Without a time, the bar is a plain announcement, as before.
+* **Messenger button** — when *Settings → Contact → Facebook* holds your page's address (like `https://www.facebook.com/mawahacademy`), a floating Messenger button appears bottom right, next to WhatsApp. It opens a chat with your page. A group's or a post's address gives no button.
+* **Calm motion** — as people scroll, each section, heading and class card rises a little and fades in, the cards one after another (Framer Motion). A card lifts a little under the pointer and its edge turns orange; a button gets a small shadow under the pointer. Nothing glows, pulses, bounces or floats. A class without a picture shows its orange icon on a small flat tile. The home page's classes and reviews slide sideways, and answers slide open. For people whose phone asks for less motion, everything stays still.
+  * Give a class its **Banner picture** (*Classes → open the class → Banner picture*) and the card shows it, zooming in a little under the pointer — cards with pictures look best.
+* **After paying** — when a payment goes through, the order page draws a green check mark with a burst of confetti.

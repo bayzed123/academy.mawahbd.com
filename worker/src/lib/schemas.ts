@@ -106,3 +106,14 @@ export const optionalUrl = z
   .union([urlSchema, z.literal(""), z.null()])
   .optional()
   .transform((v) => (v ? v : null));
+
+/**
+ * Where a button the owner sets goes (a banner, a landing page block, the announcement bar): a page of this site, an https address, a
+ * phone number or an e-mail address — never javascript: or data:. A relative link must start with a single "/" (a "//host" would leave the
+ * site without saying so). Empty = no button.
+ */
+export const buttonLinkSchema = z
+  .string()
+  .trim()
+  .max(500, "too_long")
+  .refine((v) => v === "" || /^\/(?!\/)\S*$/.test(v) || /^https:\/\/\S+$/i.test(v) || /^tel:\+?[\d -]{6,20}$/i.test(v) || /^mailto:[^\s@]+@[^\s@]+$/i.test(v), "invalid_url");

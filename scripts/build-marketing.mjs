@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 /**
  * Builds the public-site assets:
- *   shared/styles/base.css + shared/styles/banners.css + marketing/site.css -> minified string inlined into every page (worker/src/generated/assets.ts)
+ *   shared/styles/base.css + dark.css + banners.css + marketing/site.css -> minified string inlined into every page (worker/src/generated/assets.ts)
  *   marketing/shop.css -> minified string inlined only into the tools shop's pages (SHOP_CSS)
  *   marketing/landing.css -> minified string inlined only into landing pages (LANDING_CSS)
+ *   marketing/course.css -> minified string inlined only into the class page (COURSE_CSS)
+ *   marketing/doc.css -> minified string inlined only into certificates, invoices and the certificate check (DOC_CSS)
  *   marketing/site.js       -> dist/static/assets/site.<hash>.js          (immutable, 1 year cache)
  *   marketing/analytics.js  -> dist/static/assets/analytics.<hash>.js     (only on pages that carry a measurement ID; also injected into the student app)
  *   marketing/banners.js    -> dist/static/assets/banners.<hash>.js       (only on pages with a slider or an offer pop-up)
@@ -18,7 +20,7 @@ import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { transform } from "esbuild";
+import { build, transform } from "esbuild";
 import { readVerificationFiles } from "./lib/verification-files.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -34,7 +36,7 @@ mkdirSync(gen, { recursive: true });
 // static public files (fonts, sprite, logo + icons, pattern, manifest, og image …)
 cpSync(resolve(root, "marketing/public"), out, { recursive: true });
 
-const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/banners.css")}\n${read("marketing/site.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/dark.css")}\n${read("shared/styles/banners.css")}\n${read("marketing/site.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 // the decorative background pattern is tiny: inline it once (CSS variable) instead of a cached-for-a-day extra request
 const patternSvg = read("marketing/public/pattern.svg").replace(/\s+/g, " ").replace(/> </g, "><").replace(/"/g, "'").trim();
 const patternUri = `url("data:image/svg+xml,${patternSvg.replace(/</g, "%3C").replace(/>/g, "%3E").replace(/#/g, "%23")}")`;
@@ -42,7 +44,22 @@ if (!minifiedCss.includes("--pattern:url(/pattern.svg)")) throw new Error("build
 const css = minifiedCss.replace("--pattern:url(/pattern.svg)", `--pattern:${patternUri}`);
 // the landing pages' look: inlined only into a landing page (a second <style>, allowed by its own hash)
 const landingCss = (await transform(read("marketing/landing.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
-const js = (await transform(read("marketing/site.js"), { loader: "js", minify: true, target: "es2017" })).code;
+// the class page's look, and the documents' (certificates, invoices, the certificate check): inlined only into those pages, the same way
+const courseCss = (await transform(read("marketing/course.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+const docCss = (await transform(read("marketing/doc.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+// site.js is bundled with the parts of Framer Motion it imports (framer-motion, MIT: its notice is kept at the top of the file)
+const js = (
+  await build({
+    entryPoints: [resolve(root, "marketing/site.js")],
+    bundle: true,
+    format: "iife",
+    minify: true,
+    target: "es2017",
+    write: false,
+    legalComments: "none",
+    banner: { js: "/*! Framer Motion (framer-motion, motion-dom, motion-utils) (c) Framer B.V. and contributors - MIT License - https://github.com/motiondivision/motion/blob/main/LICENSE.md */" },
+  })
+).outputFiles[0].text;
 // the banner slider and the offer pop-up: loaded only on pages that have one, so every other page stays as light as before
 const bannersJs = (await transform(read("marketing/banners.js"), { loader: "js", minify: true, target: "es2017" })).code;
 // counting visits (Google Analytics …): referenced only by pages that carry a measurement ID
@@ -88,6 +105,8 @@ writeFileSync(
     `export const ANALYTICS_JS = ${JSON.stringify(`/assets/${analyticsJsName}`)};\n` +
     `export const GALLERY_JS = ${JSON.stringify(`/assets/${galleryJsName}`)};\n` +
     `export const LANDING_CSS = ${JSON.stringify(landingCss)};\n` +
+    `export const COURSE_CSS = ${JSON.stringify(courseCss)};\n` +
+    `export const DOC_CSS = ${JSON.stringify(docCss)};\n` +
     `export const SHOP_CSS = ${JSON.stringify(shopCss)};\n` +
     `export const SHOP_JS = ${JSON.stringify(`/assets/${shopJsName}`)};\n` +
     `export const OG_IMAGE = ${JSON.stringify(ogImage)};\n`,
@@ -139,4 +158,4 @@ writeFileSync(
 );
 
 const kb = (n) => (n / 1024).toFixed(1);
-console.log(`marketing assets built: css ${kb(css.length)} KB (inline), shop css ${kb(shopCss.length)} KB (inline on the shop's pages), landing css ${kb(landingCss.length)} KB (inline on landing pages), ${siteJsName} ${kb(js.length)} KB, ${bannersJsName} ${kb(bannersJs.length)} KB, ${galleryJsName} ${kb(galleryJs.length)} KB, ${shopJsName} ${kb(shopJs.length)} KB, ${analyticsJsName} ${kb(analyticsJs.length)} KB, chat.js ${kb(chatJs.length)} KB, ${Object.keys(verification).length} verification file(s)`);
+console.log(`marketing assets built: css ${kb(css.length)} KB (inline), shop css ${kb(shopCss.length)} KB (inline on the shop's pages), landing css ${kb(landingCss.length)} KB (inline on landing pages), class page css ${kb(courseCss.length)} KB, documents css ${kb(docCss.length)} KB, ${siteJsName} ${kb(js.length)} KB, ${bannersJsName} ${kb(bannersJs.length)} KB, ${galleryJsName} ${kb(galleryJs.length)} KB, ${shopJsName} ${kb(shopJs.length)} KB, ${analyticsJsName} ${kb(analyticsJs.length)} KB, chat.js ${kb(chatJs.length)} KB, ${Object.keys(verification).length} verification file(s)`);

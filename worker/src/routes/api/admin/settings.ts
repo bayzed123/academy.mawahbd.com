@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS, readSslLogo, sslcommerzUrl, SSL_LOGO_MAX } from "@mawah/shared";
+import { dhakaMinuteMs, MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS, readSslLogo, sslcommerzUrl, SSL_LOGO_MAX } from "@mawah/shared";
 import { isDev, type AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { underHourlyCap } from "../../../lib/cap";
 import { all } from "../../../lib/db";
 import { HttpError, ok, parseBody } from "../../../lib/http";
 import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_TEST_KEY, mailProblem, sendMail, testMail, type MailLastTest } from "../../../lib/mailer";
-import { emailSchema, langSchema, requiredPhoneSchema, textSchema } from "../../../lib/schemas";
+import { buttonLinkSchema, emailSchema, langSchema, requiredPhoneSchema, textSchema } from "../../../lib/schemas";
 import { SMS_LAST_KEY, sendSms, smsBalance, smsConfigured, smsEndpoints, type SmsLast } from "../../../lib/sms";
 import { testSms } from "../../../lib/smsText";
 import { getSettings, SETTING_KEYS, setSetting, type SettingKey } from "../../../lib/settings";
@@ -37,7 +37,24 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     address_en: textSchema(200).optional(),
     trade_license: textSchema(60).optional(),
   }),
-  announcement: z.object({ bn: textSchema(200), en: textSchema(200) }),
+  announcement: z
+    .object({
+      bn: textSchema(200),
+      en: textSchema(200),
+      // the end of the offer the bar counts down to: a minute of Bangladesh time ("2026-10-31T23:59"); empty = no countdown
+      ends_at: z
+        .string()
+        .trim()
+        .refine((v) => v === "" || dhakaMinuteMs(v) !== null, "invalid_date")
+        .default(""),
+      button_bn: textSchema(40).default(""),
+      button_en: textSchema(40).default(""),
+      link: buttonLinkSchema.default(""),
+    })
+    // a button needs somewhere to go (a link alone gets the usual words, "Join now")
+    .superRefine((v, ctx) => {
+      if ((v.button_bn || v.button_en) && !v.link) ctx.addIssue({ code: "custom", path: ["link"], message: "required" });
+    }),
   payments: z.object({
     sslcommerz: z.boolean(),
     bkash_direct: z.boolean(),

@@ -10,8 +10,10 @@
 
 @font-face{font-family:"Hind Siliguri";font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/hind-bn-400.woff2) format("woff2");unicode-range:U+0951-0952,U+0964-0965,U+0980-09FE,U+1CD0,U+1CD2,U+1CD5-1CD6,U+1CD8,U+1CE1,U+1CEA,U+1CED,U+1CF2,U+1CF5-1CF7,U+200C-200D,U+20B9,U+25CC,U+A8F1}
 @font-face{font-family:"Hind Siliguri";font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/hind-bn-600.woff2) format("woff2");unicode-range:U+0951-0952,U+0964-0965,U+0980-09FE,U+1CD0,U+1CD2,U+1CD5-1CD6,U+1CD8,U+1CE1,U+1CEA,U+1CED,U+1CF2,U+1CF5-1CF7,U+200C-200D,U+20B9,U+25CC,U+A8F1}
+@font-face{font-family:"Hind Siliguri";font-style:normal;font-weight:700;font-display:swap;src:url(/fonts/hind-bn-700.woff2) format("woff2");unicode-range:U+0951-0952,U+0964-0965,U+0980-09FE,U+1CD0,U+1CD2,U+1CD5-1CD6,U+1CD8,U+1CE1,U+1CEA,U+1CED,U+1CF2,U+1CF5-1CF7,U+200C-200D,U+20B9,U+25CC,U+A8F1}
 @font-face{font-family:"Hind Siliguri";font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/hind-latin-400.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 @font-face{font-family:"Hind Siliguri";font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/hind-latin-600.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Hind Siliguri";font-style:normal;font-weight:700;font-display:swap;src:url(/fonts/hind-latin-700.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 @font-face{font-family:"Tiro Bangla";font-style:normal;font-weight:400;font-display:swap;src:url(/fonts/tiro-bn-400.woff2) format("woff2");unicode-range:U+0951-0952,U+0964-0965,U+0980-09FE,U+1CD0,U+1CD2,U+1CD5-1CD6,U+1CD8,U+1CE1,U+1CEA,U+1CED,U+1CF2,U+1CF5-1CF7,U+200C-200D,U+20B9,U+25CC,U+A8F1}
 @font-face{font-family:"Playfair Display";font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/playfair-latin-600.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 
@@ -28,6 +30,9 @@
   --ivory:#fbf7ee;--ivory-2:#f4eddc;--paper:#fffdf8;
   --ink:#1b1213;--ink-2:#4a3d3e;--ink-3:#6d5f60;--line:#e7dfca;--line-2:#d9cfb4;
   --focus:var(--red-700);
+  /* roles that shared/styles/dark.css gives other colours: headings, form fields, and problems (which stay red when the brand's red turns orange) */
+  --heading:var(--k-900);--field:#fff;
+  --bad-50:var(--red-50);--bad-100:var(--red-100);--bad-600:var(--red-600);--bad-700:var(--red-700);--bad-800:var(--red-800);
   /* category accents stay inside the brand palette (red, gold, black and their shades) */
   --snack:#db1718;--cake:#9a8627;--dessert:#8c0b0e;--cook:#43292c;--sweet:#816f1c;--frozen:#6d5f60;
   --accent:var(--red-600);
@@ -48,7 +53,7 @@ a{color:var(--red-700);text-decoration-thickness:1px;text-underline-offset:3px}
 a:hover{color:var(--red-800)}
 ::selection{background:var(--g-300);color:var(--k-950)}
 p{margin:0 0 1em}
-h1,h2,h3,h4{font-family:var(--font-display);font-weight:400;color:var(--k-900);margin:0 0 .5em;line-height:1.28}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:400;color:var(--heading);margin:0 0 .5em;line-height:1.28}
 html[lang=en] h1,html[lang=en] h2,html[lang=en] h3,html[lang=en] h4{font-weight:600;line-height:1.2;letter-spacing:-.005em}
 h1{font-size:clamp(2rem,5.2vw,3.35rem)}
 h2{font-size:clamp(1.6rem,3.4vw,2.3rem)}
@@ -122,7 +127,7 @@ html[lang=bn] .eyebrow{letter-spacing:0;text-transform:none;font-size:.9rem}
 .card-body{display:flex;flex-direction:column;gap:.55rem;padding:18px 18px 20px;flex:1}
 .card-title{font-size:1.14rem;line-height:1.4;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 html[lang=en] .card-title{line-height:1.3}
-.card-title a{color:var(--k-900);text-decoration:none}
+.card-title a{color:var(--heading);text-decoration:none}
 .card-title a:hover{color:var(--red-700)}
 .card-desc{margin:0;color:var(--ink-3);font-size:.95rem;line-height:1.65;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .card-meta{display:flex;flex-wrap:wrap;gap:.35rem .9rem;font-size:.84rem;color:var(--ink-3);padding-top:.1rem}
@@ -153,14 +158,14 @@ html[lang=en] .card-title{line-height:1.3}
 /* ---------- forms ---------- */
 .field{display:grid;gap:.35rem;margin-bottom:1rem}
 .field label{font-weight:600;font-size:.95rem;color:var(--ink-2)}
-.input,select.input,textarea.input{width:100%;min-height:48px;padding:.6rem .95rem;border-radius:12px;border:1.5px solid var(--line-2);background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+.input,select.input,textarea.input{width:100%;min-height:48px;padding:.6rem .95rem;border-radius:12px;border:1.5px solid var(--line-2);background:var(--field);color:var(--ink);transition:border-color .15s,box-shadow .15s}
 textarea.input{min-height:130px;resize:vertical;line-height:1.6}
 .input:focus{outline:none;border-color:var(--k-900);box-shadow:0 0 0 4px rgba(196,177,74,.38)}
 .flash{padding:.8rem 1rem;border-radius:12px;font-weight:600;margin:0 0 1rem}
 .flash.ok{background:var(--ok-50);color:var(--ok-800);border:1px solid var(--ok-100)}
-.flash.err{background:var(--red-50);color:var(--red-800);border:1px solid var(--red-100)}
+.flash.err{background:var(--bad-50);color:var(--bad-800);border:1px solid var(--bad-100)}
 .status-line{min-height:1.4em;margin:.5rem 0 0;font-size:.92rem;font-weight:600}
-.status-line.ok{color:var(--ok-700)}.status-line.err{color:var(--red-700)}
+.status-line.ok{color:var(--ok-700)}.status-line.err{color:var(--bad-700)}
 
 /* ---------- 404 / empty ---------- */
 .empty{display:grid;justify-items:center;gap:.6rem;padding:48px 16px;text-align:center;color:var(--ink-3)}

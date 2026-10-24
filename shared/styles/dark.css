@@ -1,0 +1,102 @@
+/* MAWAH Academy — the dark look of the public site and the student app. Both load it right after base.css; the admin does not, and keeps
+   the light look. Minimal and flat: a pitch-black page with no gradients, patterns or glows; cards, questions, panels and form fields a
+   flat dark grey, set off from the page by a thin see-through white border; one solid orange for buttons, icons and accents; white bold
+   headings, #CCCCCC paragraphs. Space and contrast carry the design, not decoration.
+   base.css's light tokens are turned dark here, so every component follows; the few that need more are restyled below. Every
+   text/background pair keeps WCAG AA contrast (scripts/lib/brand.test.mjs). Orange is bright: text on it is near-black, because white on
+   #FF5722 is only 3.2:1. Motion is quiet (sections rise in, a card lifts under the pointer) and off for people who ask for less. */
+:root{
+  color-scheme:dark;
+  /* orange: 500 is the brand accent (buttons, icons), 400 its hover, 300 for links and small text on black, 200 for text on panels */
+  --o-600:#e64a19;--o-500:#ff5722;--o-400:#ff6a3d;--o-300:#ff7b45;--o-200:#ffa47a;
+  --on-accent:#0a0a0a;
+  /* surfaces: a pitch-black page; cards, panels and fields a flat dark grey with a thin see-through white edge */
+  --ivory:#000;--ivory-2:#0a0a0a;--paper:#121212;--field:#121212;--raised:#1a1a1a;
+  --ink:#f5f5f5;--ink-2:#cccccc;--ink-3:#a3a3a3;--line:rgba(255,255,255,.09);--line-2:rgba(255,255,255,.16);
+  /* a form field's edge must stay visible (3:1): white at 40% over the page or a card */
+  --edge:#6b6b6b;--edge-a:rgba(255,255,255,.4);
+  --heading:#fff;
+  --band:#000;
+  --card:#121212;
+  /* the brand's warm black scale (base.css) becomes neutral */
+  --k-950:#000;--k-900:#0a0a0a;--k-800:#171717;--k-700:#262626;--k-600:#404040;
+  /* the brand's red and gold scales become orange; their pale tints become neutral panels that carry orange words … */
+  --red-900:#c2410c;--red-800:#e64a19;--red-700:#ff7b45;--red-600:#ff5722;--red-500:#ff6a3d;--red-300:#ffa47a;--red-100:#2e2e2e;--red-50:#1a1a1a;
+  --g-900:#ffc2a6;--g-800:#ffa47a;--g-700:#ff7b45;--g-600:#ff5722;--g-500:#ff5722;--g-400:#ff6a3d;--g-300:#ff8a50;--g-100:#1a1a1a;
+  --snack:#ff5722;--cake:#ff8a3d;--dessert:#ff6a3d;--cook:#ff9d5c;--sweet:#ffb04d;--frozen:#ff7b45;
+  /* … while problems stay red and "paid / ok" stays green */
+  --bad-50:#2a0f10;--bad-100:#5c1d1d;--bad-600:#ef4444;--bad-700:#ff7066;--bad-800:#ffa199;
+  --ok-50:#0f2418;--ok-100:#1d4a30;--ok-600:#34d399;--ok-700:#4ade80;--ok-800:#86efac;
+  --focus:var(--o-300);
+  --font-display:var(--font-body);
+  /* no glows: shadows are small and crisp, and only where something lifts */
+  --sh-1:none;
+  --sh-2:0 16px 40px rgba(0,0,0,.6);
+  --sh-lift:0 10px 24px -12px rgba(0,0,0,.9);
+  --ease:cubic-bezier(.4,0,.2,1);
+  --ease-out:cubic-bezier(0,0,.2,1);
+}
+body{background:var(--ivory)}
+h1,h2,h3,h4{font-weight:700;line-height:1.3}
+html[lang=en] h1,html[lang=en] h2,html[lang=en] h3,html[lang=en] h4{font-weight:700;letter-spacing:-.015em}
+a{color:var(--o-300)}
+a:hover{color:var(--o-200)}
+::selection{background:var(--o-500);color:#000}
+
+/* ---------- buttons: one solid orange with near-black words; under the pointer a crisp, small shadow and a 1px lift — no glow ---------- */
+.btn{transition:transform .2s var(--ease-out),box-shadow .2s var(--ease-out),background-color .2s var(--ease-out),border-color .2s var(--ease-out),color .2s var(--ease-out)}
+.btn-primary,.btn-gold{background:var(--o-500);border-color:var(--o-500);color:var(--on-accent);font-weight:700;box-shadow:none}
+.btn-primary:hover,.btn-gold:hover{background:var(--o-400);border-color:var(--o-400);color:var(--on-accent);transform:translateY(-1px);box-shadow:0 4px 12px -4px rgba(255,87,34,.55)}
+.btn-primary:active,.btn-gold:active{transform:none;box-shadow:none}
+.btn-dark{background:var(--raised);border-color:var(--line-2);color:#fff}
+.btn-dark:hover{background:#222;border-color:rgba(255,255,255,.3);color:#fff}
+.btn-outline{background:transparent;border-color:rgba(255,255,255,.24);color:#fff}
+.btn-outline:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.5);color:#fff}
+.btn-light:hover{border-color:rgba(255,255,255,.5)}
+/* a button that cannot be pressed yet is plain grey (a dimmed orange would look brown) */
+.btn-primary:disabled,.btn-gold:disabled{background:#262626;border-color:#262626;color:#8a8a8a;box-shadow:none;transform:none;opacity:1}
+.btn-price{background:rgba(0,0,0,.16)}
+
+/* ---------- form fields: flat dark grey with a thin see-through edge; orange when in use ---------- */
+.input,select.input,textarea.input{background:var(--field);border:1px solid var(--edge-a);color:var(--ink);box-shadow:none}
+.input::placeholder{color:#8a8a8a}
+.input:focus{border-color:var(--o-500);box-shadow:0 0 0 3px rgba(255,87,34,.22)}
+select.input option{background:#121212;color:#f5f5f5}
+.field label{color:var(--ink)}
+
+/* ---------- cards: flat dark grey on the black page with a thin see-through edge; under the pointer they lift and the edge turns orange ---------- */
+.card{background:var(--card);border:1px solid var(--line);box-shadow:none;transition:transform .3s var(--ease-out),border-color .3s var(--ease-out),box-shadow .3s var(--ease-out)}
+.card:hover{transform:translateY(-6px);border-color:rgba(255,87,34,.55);box-shadow:var(--sh-lift)}
+.card-foot{border-top:1px solid var(--line)}
+.card-title a:hover{color:var(--o-200)}
+.chip-cat{background:rgba(0,0,0,.72);color:#fff;border:1px solid rgba(255,255,255,.14);box-shadow:none}
+.ribbon{background:var(--o-500);color:var(--on-accent);box-shadow:none}
+.stars{color:#ffb020}
+.stars .off{color:#3d3d3d}
+/* a class's picture zooms in a little under the pointer */
+.banner{background:#171717}
+.banner img{transition:transform .5s var(--ease-out)}
+.card:hover .banner img{transform:scale(1.04)}
+/* a class without a picture: its icon in solid orange on a small flat tile — no drawing, pattern or glow */
+.banner-art{background:#171717;border-bottom:1px solid var(--line)}
+.banner-art::before,.banner-art::after{content:none}
+.banner-art .frame{inset:auto;left:50%;top:50%;width:76px;height:76px;translate:-50% -50%;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:#1f1f1f;transition:transform .3s var(--ease-out),border-color .3s var(--ease-out)}
+.banner-art .icon{left:50%;top:50%;right:auto;bottom:auto;z-index:2;width:34px;height:34px;translate:-50% -50%;color:var(--o-500);stroke-width:1.8;filter:none;transition:transform .3s var(--ease-out)}
+.card:hover .banner-art .frame{transform:scale(1.05);border-color:rgba(255,87,34,.5)}
+.card:hover .banner-art .icon{transform:scale(1.05)}
+.banner-cat{color:var(--o-200)}
+.eyebrow{color:var(--o-300)}
+.sec-head h2::after{width:40px;height:2px;background:var(--o-500);box-shadow:none}
+.sec-head p{color:var(--ink-2)}
+.muted{color:var(--ink-3)}
+/* the offer pop-up without a design of its own is a dark grey card: its title is white */
+.offer-card .offer-title{color:var(--heading)}
+
+/* ---------- the owner's banners: a banner with no design chosen is a flat dark grey card, like the rest of the site (the ruby, gold and
+   ivory designs are the owner's own choice and keep their colours); no glow, no pattern ---------- */
+.bn-slide,.bn-t-dark{--bn-bg:#121212;--bn-glow:transparent;--bn-a:var(--o-300);--bn-ink2:#d4d4d4;--bn-shade:0,0,0;--focus:var(--o-300)}
+/* inside the owner's ruby, gold and ivory designs the brand's own reds, golds and blacks still hold (the dark look turns them orange
+   and grey everywhere else): a ruby banner's white button keeps its deep-red words, a gold one its black button with gold words */
+.bn-t-ruby,.bn-t-gold,.bn-t-ivory{--k-900:#0f0708;--k-700:#2c1b1d;--g-300:#e6dc8c;--g-100:#f8f3d9;--red-900:#5c070a;--red-800:#8c0b0e;--red-700:#b50f12}
+.bn-slide{background:#121212}
+.bn-plain::before{content:none}

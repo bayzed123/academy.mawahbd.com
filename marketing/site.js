@@ -1,5 +1,9 @@
-/* MAWAH Academy — tiny progressive-enhancement script for the public pages (target: < 3 KB gzipped).
-   Everything here is optional: pages, forms and links work without it. */
+/* MAWAH Academy — small progressive-enhancement script for the public pages. Everything here is optional: pages, forms and links work
+   without it. scripts/build-marketing.mjs bundles it with Framer Motion (framer-motion, MIT): its small Web Animations animate(), inView()
+   and stagger() — about 4.5 KB gzipped — drive the scroll reveals. */
+import { animate } from "framer-motion/dom/mini";
+import { inView, stagger } from "framer-motion/dom";
+
 (function () {
   "use strict";
   var d = document;
@@ -91,4 +95,132 @@
     };
     d.head.appendChild(ts);
   }
+
+  /* 6. motion: sections, headings, text blocks and cards fade in and rise 20px as they come into view — Framer Motion animates them from
+     { opacity: 0, y: 20 } to { opacity: 1, y: 0 } (0.5 s, ease-out), the cards of a row one after another. Only for visitors who have not
+     asked for less motion: the CSS waits for .motion. What is on screen when the page opens is never hidden first, and an element gets
+     its own hover back once it is in. */
+  var still = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (!still && "IntersectionObserver" in window && "animate" in Element.prototype) {
+    var html = d.documentElement;
+    var targets = [];
+    var mark = function (sel) {
+      $$(sel).forEach(function (el) {
+        if (el.mawahRv || el.closest(".car-track")) return; // a slider's cards move sideways instead
+        el.mawahRv = true;
+        targets.push(el);
+      });
+    };
+    ["main .sec-head", ".trust-item", ".grid>.card", ".tile", ".step", ".person", ".carousel", ".faq-side", ".faq-item", ".rev-sum",
+      ".review", ".news>*", ".band-dark .sec-head~*", ".detail-main>section", ".curr details", ".lp-card", ".lp-offer-card", ".lp-pic-grid>li",
+      ".lp-frame", ".page-contact", ".foot-grid>*"].forEach(mark);
+    html.classList.add("motion");
+    var fold = (window.innerHeight || html.clientHeight) * 0.92;
+    var later = targets.filter(function (el) { return el.getBoundingClientRect().top > fold; });
+    later.forEach(function (el) { el.classList.add("rv"); });
+    // what comes into view together rises together, one after another (at most 0.4 s apart from the first)
+    var queue = [], queued = false, step = stagger(0.08);
+    var rise = function () {
+      queued = false;
+      var batch = queue.splice(0);
+      animate(batch, { opacity: [0, 1], transform: ["translate3d(0,20px,0)", "none"] }, {
+        duration: 0.5,
+        ease: "easeOut",
+        delay: function (i, n) { return Math.min(step(i, n), 0.4); },
+      }).then(function () {
+        // the end state is the page's own: the element is back to its CSS (and its hover lift)
+        batch.forEach(function (el) {
+          el.classList.remove("rv");
+          el.style.removeProperty("opacity");
+          el.style.removeProperty("transform");
+        });
+      });
+    };
+    if (later.length) inView(later, function (el) {
+      queue.push(el);
+      if (!queued) { queued = true; requestAnimationFrame(rise); }
+    }, { margin: "0px 0px -6% 0px", amount: 0.1 });
+  }
+
+  /* 7. the announcement bar's countdown to the end of the owner's offer: the numbers move every second; at zero the bar goes away */
+  var cd = $("[data-countdown]");
+  if (cd) {
+    var end = Date.parse(cd.getAttribute("data-countdown"));
+    var cells = {};
+    ["d", "h", "m", "s"].forEach(function (u) { cells[u] = $('[data-cd="' + u + '"]', cd); });
+    var bnDigits = d.documentElement.lang === "bn";
+    var two = function (n) {
+      var v = (n < 10 ? "0" : "") + n;
+      return bnDigits ? v.replace(/\d/g, function (c) { return "০১২৩৪৫৬৭৮৯".charAt(+c); }) : v;
+    };
+    var tick = function () {
+      var left = Math.floor((end - Date.now()) / 1000);
+      if (!(left > 0)) {
+        cd.hidden = true;
+        d.documentElement.classList.remove("has-topbar");
+        return false;
+      }
+      var parts = { d: Math.floor(left / 86400), h: Math.floor((left % 86400) / 3600), m: Math.floor((left % 3600) / 60), s: left % 60 };
+      for (var u in parts) if (cells[u] && cells[u].textContent !== two(parts[u])) cells[u].textContent = two(parts[u]);
+      return true;
+    };
+    if (tick()) var cdTimer = setInterval(function () { if (!tick()) clearInterval(cdTimer); }, 1000);
+  }
+
+  /* 8. sliders: the arrows, and dragging with a mouse (a finger scrolls them by itself); the click that ends a drag opens nothing */
+  $$("[data-carousel]").forEach(function (car) {
+    var track = $(".car-track", car), nav = $(".car-nav", car), prev = $("[data-car-prev]", car), next = $("[data-car-next]", car);
+    if (!track) return;
+    var step = function () {
+      var first = track.firstElementChild;
+      return first ? first.getBoundingClientRect().width + (parseFloat(getComputedStyle(track).columnGap) || 16) : track.clientWidth;
+    };
+    var update = function () {
+      var max = track.scrollWidth - track.clientWidth - 2;
+      if (nav) nav.hidden = max <= 0;
+      if (prev) prev.disabled = track.scrollLeft <= 2;
+      if (next) next.disabled = track.scrollLeft >= max;
+    };
+    var go = function (dir) { track.scrollBy({ left: dir * step(), behavior: still ? "auto" : "smooth" }); };
+    if (prev) prev.addEventListener("click", function () { go(-1); });
+    if (next) next.addEventListener("click", function () { go(1); });
+    track.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    update();
+    var drag = null, swallow = false;
+    track.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button === 0) drag = { x: e.clientX, left: track.scrollLeft, moved: false };
+    });
+    window.addEventListener("pointermove", function (e) {
+      if (!drag) return;
+      if (!(e.buttons & 1)) return end(); // let go where the page did not see it
+      var dx = e.clientX - drag.x;
+      if (!drag.moved && Math.abs(dx) > 6) { drag.moved = true; track.classList.add("dragging"); }
+      if (drag.moved) track.scrollLeft = drag.left - dx;
+    });
+    // where the dragged row comes to rest: the card nearest to where it was let go (snapping alone would go back to the card it left)
+    var nearest = function () {
+      var start = track.getBoundingClientRect().left + (parseFloat(getComputedStyle(track).paddingLeft) || 0), best = 0, gap = Infinity;
+      Array.prototype.forEach.call(track.children, function (card) {
+        var x = card.getBoundingClientRect().left - start + track.scrollLeft;
+        if (Math.abs(x - track.scrollLeft) < gap) { gap = Math.abs(x - track.scrollLeft); best = x; }
+      });
+      return Math.max(0, Math.min(best, track.scrollWidth - track.clientWidth));
+    };
+    var end = function () {
+      if (!drag) return;
+      if (drag.moved) {
+        var rest = nearest();
+        track.classList.remove("dragging");
+        track.scrollTo({ left: rest, behavior: "auto" });
+        swallow = true;
+        setTimeout(function () { swallow = false; }, 0);
+      }
+      drag = null;
+    };
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    track.addEventListener("click", function (e) { if (swallow) { e.preventDefault(); e.stopPropagation(); } }, true);
+    track.addEventListener("dragstart", function (e) { e.preventDefault(); });
+  });
 })();

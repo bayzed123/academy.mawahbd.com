@@ -121,6 +121,27 @@ export function useFieldErrors() {
   );
 }
 
+/* ---------------------------------------------------------------- success */
+/**
+ * The moment a payment goes through: a check mark that draws itself and a burst of confetti (CSS only — no animation library). Decorative:
+ * the words next to it say what happened. People who ask for less motion see the finished check mark and no confetti.
+ */
+export function SuccessMark() {
+  return (
+    <div className="success-mark" aria-hidden="true">
+      <svg viewBox="0 0 52 52" focusable="false">
+        <circle cx="26" cy="26" r="24" />
+        <path d="M15 27l7.5 7.5L38 19" />
+      </svg>
+      <span className="confetti">
+        {Array.from({ length: 14 }, (_, i) => (
+          <i key={i} />
+        ))}
+      </span>
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------- toasts */
 interface Toast {
   id: number;

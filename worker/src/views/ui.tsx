@@ -126,6 +126,26 @@ export const SectionHead = ({
   </header>
 );
 
+/**
+ * A row that slides sideways (marketing/site.js): swipe it on a phone, drag it with a mouse, or press the arrows. Without the script it is a
+ * plain scrolling row; the arrows show only when there is more than fits.
+ */
+export const Carousel = ({ ctx, label, track, children }: { ctx: PageCtx; label: string; track?: Record<string, string>; children?: unknown }) => (
+  <div class="carousel" data-carousel role="region" aria-roledescription="carousel" aria-label={label}>
+    <div class="car-track" {...(track ?? {})}>
+      {children as never}
+    </div>
+    <div class="car-nav" hidden>
+      <button type="button" class="car-btn" data-car-prev aria-label={ctx.t("car.prev")}>
+        <Icon name="chevron" />
+      </button>
+      <button type="button" class="car-btn" data-car-next aria-label={ctx.t("car.next")}>
+        <Icon name="chevron" />
+      </button>
+    </div>
+  </div>
+);
+
 export const Flash = ({ ctx, flag }: { ctx: PageCtx; flag: string | undefined }) => {
   if (!flag) return null;
   const map: Record<string, [string, string]> = {

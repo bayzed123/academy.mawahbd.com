@@ -3,7 +3,7 @@ import { BANNER_FOCUS, BANNER_LAYOUTS, BANNER_PLACEMENTS, BANNER_THEMES, CLASS_I
 import { audit } from "../../../lib/audit";
 import { crudRoutes, type ResourceDef } from "../../../lib/crud";
 import { HttpError, ok } from "../../../lib/http";
-import { textSchema } from "../../../lib/schemas";
+import { buttonLinkSchema, textSchema } from "../../../lib/schemas";
 import { bumpContentVersion } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
 import { createStarterBanners } from "../../../services/bannerStarter";
@@ -22,12 +22,8 @@ const imageKey = z
 /** A day in the Bangladesh calendar, "2026-10-20", or nothing. */
 const day = z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "invalid_date"), z.null()]);
 
-/** Where the button goes. Relative links must start with a single "/" (a "//host" would leave the site without saying so). */
-const link = z
-  .string()
-  .trim()
-  .max(500, "too_long")
-  .refine((v) => v === "" || /^\/(?!\/)\S*$/.test(v) || /^https:\/\/\S+$/i.test(v) || /^tel:\+?[\d -]{6,20}$/i.test(v) || /^mailto:[^\s@]+@[^\s@]+$/i.test(v), "invalid_url");
+/** Where the button goes (lib/schemas.ts). */
+const link = buttonLinkSchema;
 
 const bannerSchema = z.object({
   placement: z.enum(BANNER_PLACEMENTS),

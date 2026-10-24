@@ -64,6 +64,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
       ogType="website"
       image={course.banner_key ? ctx.abs(`/media/${course.banner_key}`) : undefined}
       hasBuybar
+      course
       ga={{ item: gaItem(course) }}
       gallery={pics.length > 0}
       jsonLd={[

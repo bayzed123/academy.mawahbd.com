@@ -63,6 +63,127 @@ test("text and background pairs keep WCAG AA contrast", () => {
   assert.deepEqual(failures, []);
 });
 
+/*
+ * The dark look of the public site and the student app (shared/styles/dark.css): its own tokens, read the same way. The colours the owner
+ * asked for are the tokens, and every text/background pair it uses keeps AA contrast. Text on orange is near-black: white on #FF5722 is
+ * only 3.2:1.
+ */
+const darkCss = read("shared/styles/dark.css");
+const darkBlock = darkCss.slice(darkCss.indexOf(":root{"), darkCss.indexOf("}", darkCss.indexOf(":root{")));
+const full = (hex) => (hex.length === 4 ? `#${[...hex.slice(1)].map((c) => c + c).join("")}` : hex).toLowerCase();
+const dark = Object.fromEntries([...darkBlock.matchAll(/--([a-z0-9-]+):(#[0-9a-f]{6}|#[0-9a-f]{3})\b/gi)].map(([, name, hex]) => [name, full(hex)]));
+
+test("the dark look: a pitch-black page, flat dark-grey cards and fields with thin see-through edges, one orange, white headings, #CCCCCC paragraphs", () => {
+  assert.equal(dark["ivory"], "#000000", "the page is pitch black");
+  assert.equal(dark["paper"], "#121212", "cards and panels are a flat dark grey, so they stand out from the page");
+  assert.equal(dark["card"], "#121212");
+  assert.equal(dark["field"], "#121212", "so are form fields");
+  assert.match(darkBlock, /--line:rgba\(255,255,255,\.09\)/, "a card's edge is a thin see-through white line");
+  assert.match(darkBlock, /--edge-a:rgba\(255,255,255,\.4\)/, "a field's edge too, strong enough to see (3:1)");
+  assert.equal(dark["o-500"], "#ff5722", "the orange accent");
+  assert.equal(dark["heading"], "#ffffff", "white headings");
+  assert.equal(dark["ink-2"], "#cccccc", "paragraphs");
+});
+
+test("the dark look keeps WCAG AA contrast: text, buttons, form fields and the graphics that carry meaning", () => {
+  const T = dark;
+  const pairs = [
+    // text on the black page, the bands and the cards (4.5:1)
+    ["ink", "ivory", 4.5], ["ink", "paper", 4.5], ["ink-2", "ivory", 4.5], ["ink-2", "ivory-2", 4.5], ["ink-2", "paper", 4.5],
+    ["ink-3", "ivory", 4.5], ["ink-3", "paper", 4.5], ["ink-3", "field", 4.5], ["ink-3", "raised", 4.5], ["heading", "paper", 4.5], ["ink", "field", 4.5],
+    // links and orange words, on black, on cards and on orange-tinted panels
+    ["o-300", "ivory", 4.5], ["o-300", "paper", 4.5], ["o-200", "paper", 4.5], ["red-700", "red-50", 4.5], ["g-800", "g-100", 4.5], ["g-900", "g-100", 4.5],
+    // problems stay red, "paid / ok" green
+    ["bad-700", "ivory", 4.5], ["bad-700", "paper", 4.5], ["bad-800", "bad-50", 4.5], ["ok-700", "paper", 4.5], ["ok-800", "ok-50", 4.5],
+    // the orange buttons and chips carry near-black words
+    ["on-accent", "o-500", 4.5], ["on-accent", "o-400", 4.5],
+    // form-field edges, icons, the focus ring (o-300, above) (3:1)
+    ["edge", "field", 3], ["edge", "paper", 3], ["o-500", "paper", 3], ["o-500", "ivory", 3], ["g-300", "ivory", 3],
+  ];
+  const failures = [];
+  for (const [fg, bg, min] of pairs) {
+    const a = T[fg], b = T[bg];
+    assert.ok(a && b, `unknown token in pair ${fg} / ${bg}`);
+    const r = ratio(a, b);
+    if (r < min) failures.push(`${fg} ${a} on ${bg} ${b}: ${r.toFixed(2)} < ${min}`);
+  }
+  // white is too pale on the orange: the buttons do not use it
+  assert.ok(ratio("#ffffff", T["o-500"]) < 4.5);
+  assert.match(darkCss, /\.btn-primary,\.btn-gold\{[^}]*color:var\(--on-accent\)/);
+  assert.deepEqual(failures, []);
+});
+
+/*
+ * The owner's second round: "a flat, muddy brown theme" is not wanted. Every grey of the dark look is a true grey (red = green = blue),
+ * and no stylesheet of the dark look uses a brown (a dull warm colour — dark orange, tan, cream). Orange is a light there: buttons, icons,
+ * lines and glows. (Problems stay red, and the owner's own banner designs and the paper certificates keep their colours: not checked.)
+ */
+const DARK_SHEETS = ["shared/styles/dark.css", "marketing/site.css", "marketing/course.css", "marketing/shop.css", "marketing/landing.css", "marketing/chat.css", "app/src/styles/app.css"];
+const brownish = (hex) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
+  if (max === min) return false;
+  const sat = l > 0.5 ? (max - min) / (2 - max - min) : (max - min) / (max + min);
+  const hue = max === r ? (60 * ((g - b) / (max - min)) + 360) % 360 : max === g ? 60 * ((b - r) / (max - min)) + 120 : 60 * ((r - g) / (max - min)) + 240;
+  if (hue < 10 || hue > 45 || sat <= 0.04) return false; // not an orange-brown hue, or a true grey
+  return l < 0.6 ? !(sat > 0.5 && l > 0.35) : sat < 0.35; // dark and dull (brown), or light and dull (cream); a vivid orange is fine
+};
+
+/*
+ * The owner's third round: minimal and flat. The page is one solid colour; no radial gradients, background patterns, blur, glows or
+ * floating decoration; buttons are one solid orange with a small crisp shadow only under the pointer. (A form field's focus ring and a
+ * chosen option's 3px ring are outlines, not glows. A picture's text scrim and the loading shimmer are the only linear gradients.)
+ */
+test("the dark look is flat: one solid page colour, no radial gradients, patterns, blur, glows or gradient fills", () => {
+  const found = [];
+  for (const file of DARK_SHEETS) {
+    const css = read(file);
+    const rules = css.replace(/\/\*[\s\S]*?\*\//g, "").match(/[^{}]+\{[^{}]*\}/g) ?? [];
+    for (const rule of rules) {
+      const sel = rule.slice(0, rule.indexOf("{")).trim();
+      if (/radial-gradient/.test(rule)) found.push(`${file}: ${sel} has a radial gradient`);
+      if (/var\(--pattern\)/.test(rule)) found.push(`${file}: ${sel} draws the background pattern`);
+      if (/(?:^|[;{])\s*(?:-webkit-)?(?:backdrop-)?filter:[^;}]*(?:blur|drop-shadow)/.test(rule)) found.push(`${file}: ${sel} blurs or glows`);
+      if (/text-shadow/.test(rule)) found.push(`${file}: ${sel} has a text glow`);
+      // a glow: a shadow with no offset and a blur, in orange
+      if (/box-shadow:(?:[^;}]*,)?\s*0 0 [1-9]\d*px[^;}]*(?:249,115,22|255,87,34|255,107,0|var\(--o-)/.test(rule)) found.push(`${file}: ${sel} glows`);
+      if (/background(?:-image)?:[^;}]*linear-gradient/.test(rule) && !/^\.lp-hero\.has-img::after$|^\.skeleton$/.test(sel)) found.push(`${file}: ${sel} has a gradient fill`);
+    }
+  }
+  assert.deepEqual(found, []);
+  // the page, the hero, the bands and the footer are the one flat page colour
+  const site = read("marketing/site.css");
+  for (const sel of [".hero", ".page-hero", ".band", ".band-dark", ".site-footer", ".site-header"]) {
+    const rule = new RegExp(`(?:^|\\n)${sel.replace(/\./g, "\\.")}\\{([^}]*)\\}`).exec(site);
+    assert.ok(rule, `${sel} is styled`);
+    assert.match(rule[1], /background:#000[;}]?/, `${sel} is flat black`);
+  }
+  // no floating decoration in the hero, no pulsing or bouncing
+  assert.doesNotMatch(read("worker/src/views/pages/home.tsx"), /hero-fx/);
+  for (const file of DARK_SHEETS) assert.doesNotMatch(read(file), /hero-fx|@keyframes (?:cta-|pulse-|fab-bounce|drift|float|badge-float)/, file);
+});
+
+test("the dark look has no brown: its greys are true greys, and none of its stylesheets uses a dull warm colour", () => {
+  for (const name of ["ivory", "ivory-2", "paper", "field", "raised", "k-950", "k-900", "k-800", "k-700", "k-600", "red-50", "red-100", "g-100"]) {
+    const hex = dark[name];
+    assert.ok(hex, `--${name} is defined`);
+    assert.ok(hex.slice(1, 3) === hex.slice(3, 5) && hex.slice(3, 5) === hex.slice(5, 7), `--${name} ${hex} is a true grey`);
+  }
+  const found = [];
+  for (const file of DARK_SHEETS) {
+    const css = read(file);
+    for (const [hex] of css.matchAll(/#[0-9a-f]{6}\b/gi)) if (brownish(hex.toLowerCase())) found.push(`${file}: ${hex}`);
+    for (const [rgb] of css.matchAll(/rgba?\((\d+),(\d+),(\d+)/g)) {
+      const hex = `#${rgb.match(/\d+/g).map((n) => Number(n).toString(16).padStart(2, "0")).join("")}`;
+      if (brownish(hex)) found.push(`${file}: ${rgb})`);
+    }
+  }
+  assert.deepEqual(found, []);
+  // the check itself tells brown from orange
+  assert.ok(brownish("#1b1512") && brownish("#2a1d16") && brownish("#e9e4e0"));
+  assert.ok(!brownish("#ff5722") && !brownish("#ff6b00") && !brownish("#151515") && !brownish("#ffa47a"));
+});
+
 function* files(dir, exts) {
   for (const name of readdirSync(dir)) {
     if (["node_modules", "dist", ".wrangler", "generated", "test-results", ".lighthouseci"].includes(name)) continue;

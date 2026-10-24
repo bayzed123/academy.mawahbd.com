@@ -338,7 +338,18 @@ const en = {
 
   "wa.label": "Chat on WhatsApp",
   "wa.prefill": "Hello MAWAH Academy, I have a question.",
+  "ms.label": "Chat on Messenger",
   "chat.open": "Ask our assistant",
+
+  "bar.join": "Join now",
+  "bar.ends": "The offer ends {date}",
+  "bar.d": "Days",
+  "bar.h": "Hours",
+  "bar.m": "Mins",
+  "bar.s": "Secs",
+  "car.prev": "Show the previous ones",
+  "car.next": "Show more",
+  "hero.chip.from": "Classes from {price}",
 
   "err.404.title": "Page not found",
   "err.404.body": "The page you are looking for does not exist or has moved.",
@@ -693,7 +704,18 @@ const bn: Record<keyof typeof en, string> = {
 
   "wa.label": "হোয়াটসঅ্যাপে কথা বলুন",
   "wa.prefill": "আসসালামু আলাইকুম, মাওয়াহ একাডেমি। আমার একটি প্রশ্ন আছে।",
+  "ms.label": "মেসেঞ্জারে কথা বলুন",
   "chat.open": "আমাদের সহকারীকে জিজ্ঞাসা করুন",
+
+  "bar.join": "এখনই ভর্তি হোন",
+  "bar.ends": "অফার শেষ হবে {date}",
+  "bar.d": "দিন",
+  "bar.h": "ঘণ্টা",
+  "bar.m": "মিনিট",
+  "bar.s": "সেকেন্ড",
+  "car.prev": "আগেরগুলো দেখুন",
+  "car.next": "আরও দেখুন",
+  "hero.chip.from": "ক্লাস শুরু {price} থেকে",
 
   "err.404.title": "পাতাটি পাওয়া যায়নি",
   "err.404.body": "আপনি যে পাতাটি খুঁজছেন তা নেই অথবা সরানো হয়েছে।",

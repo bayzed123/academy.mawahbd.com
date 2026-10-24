@@ -6,7 +6,8 @@ import { CURRENCY, firstTime, gaItem, track } from "../lib/analytics";
 import { api } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { KeepAccount } from "../components/KeepAccount";
-import { Empty, ErrorState, Icon, Spinner } from "../components/ui";
+import { Reveal } from "../components/motion";
+import { Empty, ErrorState, Icon, Spinner, SuccessMark } from "../components/ui";
 import { ManualPay, ManualWaiting } from "./ManualPay";
 
 const statusIcon: Record<OrderStatus, string> = { paid: "check", pending: "clock", awaiting_verification: "clock", failed: "x", cancelled: "x", refunded: "x" };
@@ -28,20 +29,24 @@ export function Orders() {
           </a>
         </Empty>
       )}
-      {q.data?.map((o) => (
-        <Link key={o.public_id} to={`/orders/${o.public_id}`} className="order-row">
-          <span>
-            <b>{o.invoice_no ?? o.public_id.slice(0, 8).toUpperCase()}</b>
-            <br />
-            <small className="muted">{o.items.map((i) => pick(i, "title")).join(", ")}</small>
-          </span>
-          <span className="row">
-            <span className="muted small">{date(o.created_at)}</span>
-            <b>{money(o.total)}</b>
-            <span className={`chip ${o.status}`}>{o.gateway === "manual" && o.status === "pending" ? t("app.orders.payNow") : t(`status.${o.status}` as "status.paid")}</span>
-          </span>
-        </Link>
-      ))}
+      {!!q.data?.length && (
+        <Reveal>
+          {q.data.map((o) => (
+            <Link key={o.public_id} to={`/orders/${o.public_id}`} className="order-row">
+              <span>
+                <b>{o.invoice_no ?? o.public_id.slice(0, 8).toUpperCase()}</b>
+                <br />
+                <small className="muted">{o.items.map((i) => pick(i, "title")).join(", ")}</small>
+              </span>
+              <span className="row">
+                <span className="muted small">{date(o.created_at)}</span>
+                <b>{money(o.total)}</b>
+                <span className={`chip ${o.status}`}>{o.gateway === "manual" && o.status === "pending" ? t("app.orders.payNow") : t(`status.${o.status}` as "status.paid")}</span>
+              </span>
+            </Link>
+          ))}
+        </Reveal>
+      )}
     </>
   );
 }
@@ -102,9 +107,13 @@ export function OrderDetail() {
 
   const hero = (
     <section className={`panel status-hero ${o.status}`}>
-      <div className="big">
-        <Icon name={statusIcon[o.status]} />
-      </div>
+      {o.status === "paid" ? (
+        <SuccessMark />
+      ) : (
+        <div className="big">
+          <Icon name={statusIcon[o.status]} />
+        </div>
+      )}
       <h1>{t(`app.orders.status.${o.status}.title` as "app.orders.status.paid.title")}</h1>
       <p className="muted">{t(`app.orders.status.${o.status}.body` as "app.orders.status.paid.body")}</p>
       {o.status === "pending" && <span className="spinner sm" aria-hidden="true" />}

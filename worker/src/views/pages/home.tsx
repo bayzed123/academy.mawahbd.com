@@ -2,10 +2,9 @@ import { formatMoney, formatNumber, loc, type CategoryDTO, type CourseCardDTO } 
 import type { InstructorDTO, PublicReview } from "../../services/catalog";
 import { stripMarkdown } from "../../lib/markdown";
 import type { PageCtx } from "../ctx";
-import { HeroArt } from "../hero-art";
 import { gaListAttr } from "../ga";
 import { Layout } from "../layout";
-import { CourseCard, Flash, Icon, InstructorBadges, SectionHead, Stars, shopOf } from "../ui";
+import { Carousel, CourseCard, Flash, Icon, InstructorBadges, SectionHead, Stars, shopOf } from "../ui";
 import { organizationLd, websiteLd } from "../seo";
 import type { BannerDTO } from "../../services/banners";
 import type { FaqDTO } from "../../services/faqs";
@@ -49,53 +48,38 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
       {data.banners.length > 0 && <BannerSlider ctx={ctx} banners={data.banners} />}
       <section class={`hero${data.banners.length > 0 ? " has-banners" : ""}`}>
         <div class="wrap hero-grid">
-          <div>
-            <span class="eyebrow">{t("hero.eyebrow")}</span>
-            <h1>{t("hero.title")}</h1>
-            <p class="hero-sub">{t("hero.sub")}</p>
-            <div class="hero-cta">
-              <a class="btn btn-primary btn-lg" href={ctx.href("/courses")}>
-                {t("hero.cta1")}
-                <Icon name="arrow" />
-              </a>
-              <a class="btn btn-light btn-lg" href={ctx.href("/courses?level=beginner")}>
-                {t("hero.cta2")}
-              </a>
-            </div>
-            <ul class="chips">
-              <li>
-                <Icon name="award" />
-                {t("hero.chip.cert")}
-              </li>
-              <li>
-                <Icon name="wallet" />
-                {t("hero.chip.pay")}
-              </li>
-              <li>
-                <Icon name="phone" />
-                {t("hero.chip.mobile")}
-              </li>
-            </ul>
+          <span class="eyebrow">{t("hero.eyebrow")}</span>
+          <h1>{t("hero.title")}</h1>
+          <p class="hero-sub">{t("hero.sub")}</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary btn-lg" href={ctx.href("/courses")}>
+              {t("hero.cta1")}
+              <Icon name="arrow" />
+            </a>
+            <a class="btn btn-light btn-lg" href={ctx.href("/courses?level=beginner")}>
+              {t("hero.cta2")}
+            </a>
           </div>
-          <div class="hero-art">
-            <HeroArt />
-            <div class="tag-float tag-a">
+          <ul class="chips">
+            <li>
               <Icon name="award" />
-              <span>
-                {t("hero.chip.cert")}
-                <small>MWH-••••-••••-••••</small>
-              </span>
-            </div>
+              {t("hero.chip.cert")}
+            </li>
+            <li>
+              <Icon name="wallet" />
+              {t("hero.chip.pay")}
+            </li>
+            <li>
+              <Icon name="phone" />
+              {t("hero.chip.mobile")}
+            </li>
             {data.minPrice > 0 && (
-              <div class="tag-float tag-b">
-                <Icon name="wallet" />
-                <span>
-                  {formatMoney(data.minPrice, lang)}
-                  <small>{t("hero.from")}</small>
-                </span>
-              </div>
+              <li>
+                <Icon name="tag" />
+                {t("hero.chip.from", { price: formatMoney(data.minPrice, lang) })}
+              </li>
             )}
-          </div>
+          </ul>
         </div>
       </section>
 
@@ -139,11 +123,11 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
         <section class="section band" id="beginners">
           <div class="wrap">
             <SectionHead eyebrow={t("label.beginner")} title={t("sec.beginners")} sub={t("sec.beginners.sub")} />
-            <div class="grid" {...gaListAttr(ctx, "home_beginners")}>
+            <Carousel ctx={ctx} label={t("sec.beginners")} track={gaListAttr(ctx, "home_beginners")}>
               {data.beginners.map((c) => (
                 <CourseCard course={c} ctx={ctx} />
               ))}
-            </div>
+            </Carousel>
           </div>
         </section>
       )}
@@ -228,7 +212,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
         <section class="section band">
           <div class="wrap">
             <SectionHead title={t("sec.reviews")} />
-            <div class="reviews">
+            <Carousel ctx={ctx} label={t("sec.reviews")}>
               {data.reviews.map((r) => (
                 <figure class="review">
                   <Stars value={r.rating} />
@@ -238,7 +222,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
                   </footer>
                 </figure>
               ))}
-            </div>
+            </Carousel>
           </div>
         </section>
       )}

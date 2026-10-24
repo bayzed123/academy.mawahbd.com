@@ -3,10 +3,11 @@ import { loc, readSslLogo, SSL_BANNER } from "@mawah/shared";
 import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
-import { ANALYTICS_JS, BANNERS_JS, CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS } from "../generated/assets";
+import { ANALYTICS_JS, BANNERS_JS, COURSE_CSS, CSS, DOC_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
+import { messengerHref, TopBar, topBar } from "./topbar";
 import { Brand, Icon, jsonLd, shopOf } from "./ui";
 
 export interface LayoutProps {
@@ -29,6 +30,10 @@ export interface LayoutProps {
   shop?: boolean;
   /** a landing page: send the landing pages' own CSS */
   landing?: boolean;
+  /** the class page: send its own CSS (marketing/course.css) */
+  course?: boolean;
+  /** a certificate, an invoice or the certificate check: send the documents' CSS (marketing/doc.css) */
+  doc?: boolean;
   /** shows/hides the site chrome (certificate & invoice documents print without it) */
   chrome?: boolean;
   /** what the analytics script needs to know about this page (the class on show …); written into the page only when measuring is on */
@@ -49,10 +54,14 @@ export function Layout(props: LayoutProps) {
   const ids = chrome ? ctx.track : NO_TRACKING;
   const measuring = isTracking(ids);
   const tsKey = turnstileEnabled(env) ? env.TURNSTILE_SITE_KEY : "";
-  const announcement = lang === "bn" ? settings.announcement.bn || settings.announcement.en : settings.announcement.en || settings.announcement.bn;
+  // the announcement bar (with a countdown to the end of the offer and a button, when the owner set them): see views/topbar.tsx
+  const bar = chrome ? topBar(ctx) : null;
+  const counting = bar !== null && bar.end !== null;
   const wa = digits(settings.contact.whatsapp);
   const waHref = wa ? `https://wa.me/${wa}?text=${encodeURIComponent(t("wa.prefill"))}` : "";
   const fb = httpUrl(settings.contact.facebook);
+  // the Messenger chat of the owner's Facebook page, when the address is a page's
+  const ms = fb ? messengerHref(fb) : null;
   const yt = httpUrl(settings.contact.youtube);
   const ig = httpUrl(settings.contact.instagram);
   // the registered address and trade licence number (SSLCommerz asks for them on every page)
@@ -80,13 +89,15 @@ export function Layout(props: LayoutProps) {
     { href: ctx.href("/faq"), label: t("nav.faq"), match: "/faq" },
     { href: ctx.href("/contact"), label: t("nav.contact"), match: "/contact" },
   ];
-  const fontPreloads =
-    lang === "bn"
+  // the pages use Hind Siliguri, with bold headings; certificates and invoices keep their serif titles
+  const fontPreloads = chrome
+    ? [`/fonts/hind-${lang === "bn" ? "bn" : "latin"}-400.woff2`, `/fonts/hind-${lang === "bn" ? "bn" : "latin"}-700.woff2`]
+    : lang === "bn"
       ? ["/fonts/hind-bn-400.woff2", "/fonts/tiro-bn-400.woff2"]
       : ["/fonts/hind-latin-400.woff2", "/fonts/playfair-latin-600.woff2"];
 
   return (
-    <html lang={lang}>
+    <html lang={lang} class={counting ? "has-topbar" : undefined}>
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -125,6 +136,8 @@ export function Layout(props: LayoutProps) {
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         {props.shop && <style dangerouslySetInnerHTML={{ __html: SHOP_CSS }} />}
         {props.landing && <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />}
+        {props.course && <style dangerouslySetInnerHTML={{ __html: COURSE_CSS }} />}
+        {props.doc && <style dangerouslySetInnerHTML={{ __html: DOC_CSS }} />}
         {(props.jsonLd ?? []).map((data) => (
           <script type="application/ld+json">{jsonLd(data)}</script>
         ))}
@@ -135,71 +148,74 @@ export function Layout(props: LayoutProps) {
             <a class="skip" href="#main">
               {t("nav.skip")}
             </a>
-            {announcement && <div class="announce">{announcement}</div>}
-            <header class="site-header">
-              <div class="wrap nav">
-                <Brand ctx={ctx} />
-                <ul class="nav-links">
-                  {nav.map((n) => (
-                    <li>
-                      <a href={n.href} aria-current={n.match && ctx.path.startsWith(n.match) ? "page" : undefined}>
-                        {n.label}
-                      </a>
-                    </li>
-                  ))}
-                  {shop && (
-                    <li class="nav-shop">
-                      <a href={shop.href} {...shopAttrs}>
-                        <Icon name="shop" />
-                        {shop.label}
-                        {opens}
-                      </a>
-                    </li>
-                  )}
-                </ul>
-                <div class="nav-actions">
-                  <a class="lang-toggle" href={ctx.altHref} hreflang={lang === "bn" ? "en" : "bn"} lang={lang === "bn" ? "en" : "bn"} title={t("lang.switch")}>
-                    <Icon name="globe" />
-                    {t("lang.switch")}
-                  </a>
-                  <a class="btn btn-gold btn-sm" data-guest href="/app/login">
-                    {t("btn.login")}
-                  </a>
-                  <a class="btn btn-gold btn-sm" data-user href="/app/" hidden>
-                    {t("btn.myLearning")}
-                  </a>
-                  <details class="menu">
-                    <summary aria-label={t("nav.menu")}>
-                      <Icon name="menu" />
-                    </summary>
-                    <div class="menu-panel">
-                      {nav.map((n) => (
-                        <a href={n.href}>{n.label}</a>
-                      ))}
-                      {shop && (
-                        <a class="menu-shop" href={shop.href} {...shopAttrs}>
+            {bar && !counting && <TopBar ctx={ctx} bar={bar} />}
+            <div class="top">
+              {bar && counting && <TopBar ctx={ctx} bar={bar} />}
+              <header class="site-header">
+                <div class="wrap nav">
+                  <Brand ctx={ctx} />
+                  <ul class="nav-links">
+                    {nav.map((n) => (
+                      <li>
+                        <a href={n.href} aria-current={n.match && ctx.path.startsWith(n.match) ? "page" : undefined}>
+                          {n.label}
+                        </a>
+                      </li>
+                    ))}
+                    {shop && (
+                      <li class="nav-shop">
+                        <a href={shop.href} {...shopAttrs}>
                           <Icon name="shop" />
                           {shop.label}
                           {opens}
                         </a>
-                      )}
-                      <a href={ctx.href("/verify")}>
-                        <Icon name="award" />
-                        {t("nav.verify")}
-                      </a>
-                      <a class="menu-login" data-guest href="/app/login">
-                        <Icon name="user" />
-                        {t("btn.login")}
-                      </a>
-                      <a class="menu-login" data-user href="/app/" hidden>
-                        <Icon name="book" />
-                        {t("btn.myLearning")}
-                      </a>
-                    </div>
-                  </details>
+                      </li>
+                    )}
+                  </ul>
+                  <div class="nav-actions">
+                    <a class="lang-toggle" href={ctx.altHref} hreflang={lang === "bn" ? "en" : "bn"} lang={lang === "bn" ? "en" : "bn"} title={t("lang.switch")}>
+                      <Icon name="globe" />
+                      {t("lang.switch")}
+                    </a>
+                    <a class="btn btn-gold btn-sm" data-guest href="/app/login">
+                      {t("btn.login")}
+                    </a>
+                    <a class="btn btn-gold btn-sm" data-user href="/app/" hidden>
+                      {t("btn.myLearning")}
+                    </a>
+                    <details class="menu">
+                      <summary aria-label={t("nav.menu")}>
+                        <Icon name="menu" />
+                      </summary>
+                      <div class="menu-panel">
+                        {nav.map((n) => (
+                          <a href={n.href}>{n.label}</a>
+                        ))}
+                        {shop && (
+                          <a class="menu-shop" href={shop.href} {...shopAttrs}>
+                            <Icon name="shop" />
+                            {shop.label}
+                            {opens}
+                          </a>
+                        )}
+                        <a href={ctx.href("/verify")}>
+                          <Icon name="award" />
+                          {t("nav.verify")}
+                        </a>
+                        <a class="menu-login" data-guest href="/app/login">
+                          <Icon name="user" />
+                          {t("btn.login")}
+                        </a>
+                        <a class="menu-login" data-user href="/app/" hidden>
+                          <Icon name="book" />
+                          {t("btn.myLearning")}
+                        </a>
+                      </div>
+                    </details>
+                  </div>
                 </div>
-              </div>
-            </header>
+              </header>
+            </div>
           </>
         )}
 
@@ -391,6 +407,11 @@ export function Layout(props: LayoutProps) {
               {waHref && (
                 <a class="fab fab-wa" href={waHref} rel="noopener noreferrer" target="_blank" aria-label={t("wa.label")} title={t("wa.label")}>
                   <Icon name="whatsapp" />
+                </a>
+              )}
+              {ms && (
+                <a class="fab fab-ms" href={ms} rel="noopener noreferrer" target="_blank" aria-label={t("ms.label")} title={t("ms.label")}>
+                  <Icon name="messenger" />
                 </a>
               )}
               {settings.chatbot.enabled && (
