@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { BANNERS_JS } from "../worker/src/generated/assets";
 
 test("offer popup opens smoothly and yields to the chatbot", async ({ page }) => {
   await page.goto("/en");
-  const bannerSrc = "/assets/banners.466992cda9.js";
+  const bannerSrc = BANNERS_JS;
 
   await page.evaluate(() => {
     const offer = document.createElement("div");

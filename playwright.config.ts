@@ -26,6 +26,7 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     locale: "bn-BD",
+    colorScheme: "dark",
     // The site moves (sections rise in, buttons pulse, floating buttons bounce) only for visitors who have not asked for less motion. Every
     // spec runs as one who has: nothing waits to be shown, so each accessibility scan sees the whole page and no click waits for a move to
     // end. e2e/28-look.spec.ts turns motion on to test it; the slider's own timing test turns it on too.

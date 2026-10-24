@@ -338,8 +338,8 @@ html.offer-open{overflow:hidden}
 .offer-x:hover{background:#0a0a0a}
 @media (prefers-reduced-motion:reduce){.offer-card{transition:none;transform:none}}
 @media (max-width:560px){
-  .offer{place-items:end center;padding:0}
-  .offer-card{width:100%;border-radius:20px 20px 0 0;border-inline:0;border-bottom:0}
+  .offer{place-items:center;padding:16px}
+  .offer-card{width:min(100%,480px);border-radius:18px;border:1px solid rgba(255,255,255,.12)}
 }
 
 /* ---------- FAQ: questions and answers (Admin -> FAQ) ---------- */

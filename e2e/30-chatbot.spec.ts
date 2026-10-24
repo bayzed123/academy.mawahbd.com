@@ -14,7 +14,8 @@ test("chatbot keeps the send action visible on mobile and manages dialog focus",
   await expect(dialog).toHaveAttribute("aria-modal", "true");
   await expect(launcher).toHaveAttribute("aria-expanded", "true");
   await expect(launcher).toHaveAttribute("aria-hidden", "true");
-  await expect(dialog.getByRole("link", { name: /WhatsApp/ })).toHaveAttribute("href", "https://wa.me/01700000000");
+  const site = await page.request.get("/api/site").then((r) => r.json() as Promise<{ site: { contact: { whatsapp: string } } }>);
+  await expect(dialog.getByRole("link", { name: /WhatsApp/ })).toHaveAttribute("href", `https://wa.me/${site.site.contact.whatsapp.replace(/\D/g, "")}`);
   await expect(dialog.getByRole("link", { name: /Messenger/ })).toHaveAttribute("href", "https://www.facebook.com/mawahcookingschool/?rdid=MRdfBI65oWmOpDDh");
   await expect(dialog.getByRole("button", { name: /AI Bot/ })).toBeVisible();
 
