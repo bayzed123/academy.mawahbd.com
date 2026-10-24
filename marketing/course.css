@@ -1,0 +1,119 @@
+/*
+ * The class page (views/pages/course.tsx): sent only with it (an inline <style> allowed by its own hash, like the shop's and the landing
+ * pages'), so every other page stays as light as before. It comes after the site's own CSS and uses its variables.
+ */
+.detail{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(24px,4vw,48px);align-items:start;padding-block:clamp(28px,4vw,56px)}
+.detail-main .btn{white-space:normal;text-align:center} /* a long label wraps instead of widening the page */
+.detail-main>*+*{margin-top:clamp(28px,4vw,44px)}
+.detail-banner .banner{aspect-ratio:16/9}
+/* a class without a picture: its icon tile, larger on its own page */
+.detail-banner .banner-art .frame{width:clamp(96px,20%,132px);height:auto;aspect-ratio:1;border-radius:clamp(22px,4vw,30px)}
+.detail-banner .banner-art .icon{width:clamp(42px,9%,58px);height:auto;aspect-ratio:1}
+/* a class's pictures: the grid under the main picture, and the full-screen viewer (marketing/gallery.js; without it they are plain links) */
+.gal-main{display:block;cursor:zoom-in}
+.gal-main:focus-visible{outline-offset:-4px} /* the picture's frame clips an outline drawn outside it */
+.detail-banner .banner-art::before,.detail-banner .banner-art::after{pointer-events:none} /* the decorative layers over the picture must not catch the click meant for it */
+.gal-main img{display:block;width:100%;height:auto}
+.gal-grid{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr))}
+.gal-grid a{display:block;aspect-ratio:4/3;overflow:hidden;border-radius:14px;border:1px solid var(--line);background:var(--paper);cursor:zoom-in}
+.gal-grid img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .25s}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){.gal-grid a:hover img{transform:scale(1.05)}}
+html.lb-open{overflow:hidden}
+.lb[open]{position:fixed;inset:0;display:grid;grid-template-areas:"top top top" "prev fig next";grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto minmax(0,1fr);gap:8px;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:8px;border:0;background:transparent;color:#fff;overflow:hidden}
+.lb::backdrop{background:rgba(5,5,5,.96)}
+.lb[open]{touch-action:pinch-zoom;overscroll-behavior:contain} /* a swipe turns the picture; it must not scroll the page behind */
+.lb-top{grid-area:top;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-inline:6px}
+.lb-count{font-size:.95rem;font-variant-numeric:tabular-nums}
+.lb-x,.lb-nav{display:grid;place-items:center;width:48px;height:48px;border:0;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;cursor:pointer}
+.lb-x:hover,.lb-nav:hover{background:rgba(255,255,255,.3)}
+.lb-prev{grid-area:prev;align-self:center}
+.lb-next{grid-area:next;align-self:center}
+.lb-prev .icon{transform:rotate(90deg)}
+.lb-next .icon{transform:rotate(-90deg)}
+.lb-fig{grid-area:fig;margin:0;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.lb-fig img{max-width:100%;max-height:calc(100dvh - 150px);width:auto;height:auto;object-fit:contain;border-radius:10px}
+.lb-fig figcaption{max-width:60ch;max-height:5em;overflow:auto;padding:0 8px;text-align:center;line-height:1.5}
+.lb-fig figcaption:empty{display:none}
+@media (max-width:640px){
+  .lb[open]{grid-template-areas:"top top" "fig fig" "prev next";grid-template-columns:1fr 1fr;grid-template-rows:auto minmax(0,1fr) auto}
+  .lb-prev{justify-self:start}
+  .lb-next{justify-self:end}
+  .lb-fig img{max-height:calc(100dvh - 215px)}
+}
+.detail-main h2{font-size:clamp(1.35rem,2.4vw,1.75rem)}
+.buy{position:relative;background:var(--card);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:24px 22px 22px}
+.buy-price{font-family:var(--font-display);font-weight:700;font-size:2.5rem;color:var(--heading);line-height:1.1;margin:.2rem 0 .9rem}
+html[lang=en] .buy-price{font-weight:600}
+.buy ul{list-style:none;padding:0;margin:1rem 0 0;display:grid;gap:.55rem;font-size:.95rem}
+.buy li{display:flex;gap:.6rem;align-items:flex-start}
+.buy li .icon{color:var(--g-600);margin-top:.3em;width:1.05em;height:1.05em}
+.buy .btn+.btn{margin-top:10px}
+.buy .stock{margin:0 0 .7rem;line-height:1.45}
+.facts{display:flex;flex-wrap:wrap;gap:.5rem 1.4rem;margin:1rem 0 0;padding:0;list-style:none;font-size:.95rem;color:#d9d9d9}
+.facts li{display:inline-flex;align-items:center;gap:.45rem}
+.facts .icon{color:var(--g-400)}
+.curr details{border:1px solid var(--line);border-radius:14px;background:var(--card);margin-bottom:10px;overflow:hidden;transition:border-color .4s var(--ease)}
+.curr details[open]{border-color:rgba(255,87,34,.45)}
+.curr summary{display:flex;align-items:center;gap:.8rem;padding:.9rem 1.1rem;cursor:pointer;font-weight:600;list-style:none;min-height:52px}
+.curr summary::-webkit-details-marker{display:none}
+.curr summary .icon{margin-left:auto;transition:transform .4s var(--ease);color:var(--o-500)}
+.curr details[open] summary .icon{transform:rotate(180deg)}
+.curr ul{list-style:none;margin:0;padding:0 1.1rem .8rem}
+.curr li{display:flex;align-items:center;gap:.7rem;padding:.55rem 0;border-top:1px dashed var(--line);font-size:.97rem}
+.curr li .icon{color:var(--g-600);width:1.05em;height:1.05em}
+.curr li small{margin-left:auto;color:var(--ink-3)}
+.tag-preview{background:var(--g-100);color:var(--g-800);border-radius:999px;font-size:.75rem;padding:.05rem .55rem;font-weight:700}
+.lazy{min-height:120px}
+.lazy[aria-busy=true]{display:grid;place-items:center;color:var(--ink-3)}
+
+/* mobile buy bar on course pages */
+.buybar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px clamp(12px,3vw,24px) calc(10px + env(safe-area-inset-bottom));background:#000;border-top:1px solid rgba(255,255,255,.12)}
+.buybar b{font-family:var(--font-display);font-weight:700;font-size:1.45rem;color:#fff}
+body.has-buybar{padding-bottom:78px}
+
+@media (min-width:900px){
+  .detail{grid-template-columns:minmax(0,1fr) 360px}
+  .buy{position:sticky;top:96px}
+  .has-topbar .buy{top:158px}
+  .buybar{display:none}
+  body.has-buybar{padding-bottom:0}
+  body.has-buybar .floats{bottom:max(14px,env(safe-area-inset-bottom))}
+}
+@media (max-width:899px){
+  .detail .buy{order:-1}
+}
+/* reviews on the class page */
+.rev-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 18px;margin-bottom:14px}
+.rev-head h2{margin:0}
+.rev-sum{display:grid;gap:22px;grid-template-columns:minmax(0,210px) minmax(0,1fr);align-items:center;padding:20px 22px;margin-bottom:16px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r)}
+.rev-score{display:grid;justify-items:start;gap:.3rem}
+.rev-avg{font-family:var(--font-display);font-weight:700;font-size:3.2rem;line-height:1;color:var(--heading)}
+.rev-score .stars{display:inline-flex;gap:2px;color:#ffb020}
+.rev-score .stars .icon{width:1.25em;height:1.25em}
+.rev-score .stars .icon.off{color:var(--line-2)}
+.rev-bars{display:grid;gap:7px;margin:0;padding:0;list-style:none}
+.rev-bars li{display:grid;grid-template-columns:4.2rem minmax(0,1fr) 2.2rem;gap:10px;align-items:center;font-size:.92rem;color:var(--ink-2)}
+.rev-bars .num{text-align:end;font-variant-numeric:tabular-nums}
+.rev-bar{width:100%;height:10px;border-radius:999px;overflow:hidden}
+.rev-bar-bg{fill:var(--line)}
+.rev-bar-fg{fill:var(--g-500)}
+.rev-rule{display:flex;gap:.5rem;align-items:center;margin-top:14px}
+.rev-rule .icon{width:1.1em;height:1.1em;color:var(--g-700)}
+.rev-empty{display:grid;justify-items:center;text-align:center;gap:.55rem;padding:28px 20px;border:1.5px dashed var(--line-2);border-radius:var(--r);background:var(--paper)}
+.rev-empty .stars{display:inline-flex;gap:3px;color:var(--line-2)}
+.rev-empty .stars .icon{width:1.6em;height:1.6em}
+.rev-empty h3{margin:.2rem 0 0}
+.rev-empty p{margin:0;max-width:46ch;color:var(--ink-2)}
+.rev-empty .btn{margin-top:.4rem}
+.buy .btn-outline{margin-top:10px}
+@media (max-width:640px){
+  .rev-sum{grid-template-columns:minmax(0,1fr);gap:14px;padding:16px}
+  .rev-avg{font-size:2.6rem}
+}
+/* ---------- class page: what the class includes beyond lessons (downloads, links, groups) ---------- */
+.inc-sub{margin:1.1rem 0 .5rem;font-size:1rem}
+.inc-list{list-style:none;margin:0;padding:0;display:grid;gap:.5rem}
+.inc-list li{display:flex;gap:.6rem;align-items:center;padding:.55rem .8rem;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+.inc-list .icon{flex:none;width:1.15em;height:1.15em;color:var(--red-600)}
+.inc-note{margin:.8rem 0 0;font-size:.92rem}
+

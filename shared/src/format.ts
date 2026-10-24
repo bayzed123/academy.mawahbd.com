@@ -46,6 +46,23 @@ export function toDhaka(iso: string | Date): Date {
   return new Date(d.getTime() + DHAKA_OFFSET_MS);
 }
 
+/** "2026-10-31T23:59": a minute of Bangladesh time, as a date-and-time box gives it (the end of the owner's offer, Settings → Announcement bar). */
+export const DHAKA_MINUTE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+
+/** That minute as milliseconds since 1970, or null when it is not one (a wrong shape, or a day the month does not have, like 31 February). */
+export function dhakaMinuteMs(local: string): number | null {
+  if (!DHAKA_MINUTE.test(local)) return null;
+  const ms = Date.parse(`${local}:00+06:00`);
+  if (!Number.isFinite(ms)) return null;
+  return toDhaka(new Date(ms)).toISOString().slice(0, 16) === local ? ms : null;
+}
+
+/** Whole days, hours, minutes and seconds from `now` until `end` (all 0 once it has passed). */
+export function timeLeft(end: number, now: number): { d: number; h: number; m: number; s: number } {
+  const t = Math.max(0, Math.floor((end - now) / 1000));
+  return { d: Math.floor(t / 86400), h: Math.floor((t % 86400) / 3600), m: Math.floor((t % 3600) / 60), s: t % 60 };
+}
+
 /** "14 Oct 2026" / "১৪ অক্টোবর ২০২৬" (Bangladesh time). */
 export function formatDate(iso: string | null | undefined, lang: Lang): string {
   if (!iso) return "";

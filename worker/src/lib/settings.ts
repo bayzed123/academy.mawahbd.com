@@ -8,7 +8,12 @@ export interface Settings {
   /** how to reach the shop; and the registered address and trade licence number, as on the trade licence — every page's footer, the Contact and
    * About pages show them (SSLCommerz asks for them) */
   contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string; address_bn: string; address_en: string; trade_license: string };
-  announcement: { bn: string; en: string };
+  /**
+   * the bar at the very top of every page: the owner's words, and — when the owner sets them — a countdown to the end of the offer
+   * (`ends_at`, a minute of Bangladesh time like "2026-10-31T23:59"; once it has passed the bar is gone) and a button (a page of this
+   * site or an https address, the same rules as a banner's button)
+   */
+  announcement: { bn: string; en: string; ends_at: string; button_bn: string; button_en: string; link: string };
   payments: {
     sslcommerz: boolean;
     bkash_direct: boolean;
@@ -88,7 +93,7 @@ export const TRADE_LICENCE = {
 
 export const SETTING_DEFAULTS: Settings = {
   contact: { whatsapp: "", phone: "", email: "", facebook: "", youtube: "", instagram: "", ...TRADE_LICENCE },
-  announcement: { bn: "", en: "" },
+  announcement: { bn: "", en: "", ends_at: "", button_bn: "", button_en: "", link: "" },
   payments: {
     sslcommerz: true,
     bkash_direct: false,

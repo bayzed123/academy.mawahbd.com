@@ -395,7 +395,7 @@ export function VerifyPage({ ctx, code, cert }: { ctx: PageCtx; code?: string; c
   const { t, lang } = ctx;
   const searched = code !== undefined && code !== "";
   return (
-    <Layout ctx={ctx} title={t("meta.verify.title")} description={t("meta.verify.desc")} noindex ga={searched ? { events: [["certificate_verify", { result: cert && !cert.revoked_at ? "found" : "not_found" }]] } : undefined}>
+    <Layout ctx={ctx} title={t("meta.verify.title")} description={t("meta.verify.desc")} noindex doc ga={searched ? { events: [["certificate_verify", { result: cert && !cert.revoked_at ? "found" : "not_found" }]] } : undefined}>
       <section class="page-hero">
         <div class="wrap">
           <Crumbs items={[{ label: t("nav.home"), href: ctx.href("/") }, { label: t("nav.verify") }]} />
@@ -479,6 +479,7 @@ export function CertificatePage({ ctx, cert }: { ctx: PageCtx; cert: CertRow }) 
       title={`${t("cert.heading")} — ${cert.student_name}`}
       description={`${cert.student_name} · ${course}`}
       noindex
+      doc
       bodyClass="doc"
     >
       <div class="doc-bar">
@@ -525,7 +526,7 @@ export function InvoicePage({ ctx, order, customer }: { ctx: PageCtx; order: Ord
   const c = ctx.settings.contact;
   const title = `${lang === "bn" ? "ইনভয়েস" : "Invoice"} ${order.invoice_no ?? ""}`;
   return (
-    <Layout ctx={ctx} chrome={false} title={title} description={title} noindex bodyClass="doc">
+    <Layout ctx={ctx} chrome={false} title={title} description={title} noindex doc bodyClass="doc">
       <div class="doc-bar">
         <button class="btn btn-primary" type="button" data-print>
           <Icon name="download" />

@@ -1,0 +1,52 @@
+/*
+ * Certificates, invoices and the certificate check (views/pages/misc.tsx): sent only with those pages, like marketing/course.css.
+ * A certificate and an invoice are paper: they keep the light look and print as before.
+ */
+/* certificates and invoices are paper: they keep the light look (and print as before) */
+.doc{color-scheme:light;--k-950:#070304;--k-900:#0f0708;--k-800:#1b0f10;--k-700:#2c1b1d;--k-600:#43292c;--ivory:#fbf7ee;--ivory-2:#f4eddc;--paper:#fffdf8;--field:#fff;--ink:#1b1213;--ink-2:#4a3d3e;--ink-3:#6d5f60;--line:#e7dfca;--line-2:#d9cfb4;--heading:#0f0708;--g-100:#f8f3d9;--g-300:#e6dc8c;--g-500:#c4b14a;--g-600:#9a8627;--g-800:#665613;--red-600:#db1718;--red-700:#b50f12;--ok-50:#ecf8f1;--ok-100:#d6eedf;--ok-800:#145a34;--focus:#b50f12;--font-display:"Playfair Display","Tiro Bangla","Noto Serif Bengali",Georgia,serif;background:#e9e3d6;color:var(--ink)}
+.doc h1,.doc h2,.doc h3{font-weight:400}
+html[lang=en] .doc h1,html[lang=en] .doc h2,html[lang=en] .doc h3{font-weight:600}
+.verify-card{max-width:620px;margin-inline:auto;padding:28px;background:var(--paper);border:1px solid var(--line-2);border-radius:22px;box-shadow:var(--sh-1)}
+.verdict{display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:16px;margin-bottom:18px;font-weight:600}
+.verdict.ok{background:var(--ok-50);color:var(--ok-800);border:1px solid var(--ok-100)}
+.verdict.bad{background:var(--bad-50);color:var(--bad-800);border:1px solid var(--bad-100)}
+.verdict .icon{width:34px;height:34px}
+.kv{display:grid;gap:.15rem;margin:0 0 14px}
+.kv dt{font-size:.82rem;color:var(--ink-3);font-weight:600}
+.kv dd{margin:0;font-size:1.08rem;font-weight:600}
+
+.doc-bar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:16px}
+.cert{position:relative;width:min(100%,1123px);aspect-ratio:1.4142;margin:0 auto 24px;background:var(--paper);color:var(--ink);padding:clamp(14px,2.6vw,34px);box-shadow:var(--sh-2)}
+.cert-border{position:absolute;inset:clamp(8px,1.4vw,18px);border:2px solid var(--g-500);outline:1px solid var(--g-300);outline-offset:-9px}
+.cert-in{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:clamp(10px,2.4vw,34px);gap:.2rem;background:radial-gradient(60% 60% at 50% 50%,#fff,var(--paper));overflow:hidden}
+.cert-in::before{content:"";position:absolute;inset:0;background:var(--pattern) center/64px 64px;opacity:.05}
+.cert-in>*{position:relative}
+.cert-logo{width:clamp(120px,17vw,210px);height:auto;border-radius:10px;border:1px solid var(--g-500)}
+.cert-brand{font-family:var(--font-display);font-size:clamp(.9rem,1.9vw,1.4rem);letter-spacing:.3em;color:var(--k-900);text-transform:uppercase;font-weight:600}
+html[lang=bn] .cert-brand{letter-spacing:0;text-transform:none}
+.cert h1{font-size:clamp(1.3rem,3.9vw,3rem);margin:.15em 0 .05em;color:var(--k-900)}
+.cert .small{font-size:clamp(.72rem,1.5vw,1.05rem);color:var(--ink-3);margin:0}
+.cert-name{font-family:var(--font-display);font-size:clamp(1.5rem,5vw,3.6rem);color:var(--k-900);line-height:1.25;margin:.1em 0;padding-bottom:.1em;border-bottom:2px solid var(--g-500);min-width:50%}
+.cert-course{font-family:var(--font-display);font-size:clamp(1.05rem,2.8vw,2rem);color:var(--g-800);margin:.2em 0}
+.cert-foot{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;width:100%;margin-top:clamp(8px,2vw,24px);font-size:clamp(.66rem,1.3vw,.95rem);color:var(--ink-2)}
+.cert-foot b{display:block;font-size:1.05em}
+.cert-qr{width:clamp(56px,9vw,104px);height:auto;background:#fff;padding:4px;border:1px solid var(--line)}
+.cert-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.06em}
+
+.invoice{max-width:820px;margin:0 auto 32px;background:#fff;padding:clamp(18px,4vw,44px);border:1px solid var(--line);border-radius:16px}
+.inv-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding-bottom:18px;border-bottom:3px solid var(--red-600)}
+.inv-logo{display:block;width:150px;height:auto;border-radius:8px;border:1px solid var(--g-500)}
+.inv-meta{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));padding-top:18px}
+.inv-table{width:100%;border-collapse:collapse;margin:22px 0}
+.inv-table th,.inv-table td{padding:.7rem .5rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.inv-table th{font-size:.82rem;color:var(--ink-3);font-weight:600}
+.inv-table td:last-child,.inv-table th:last-child{text-align:right;white-space:nowrap}
+.inv-total td{font-weight:700;font-size:1.1rem;border-bottom:0}
+.paid-stamp{display:inline-block;border:3px solid var(--red-600);color:var(--red-700);padding:.1rem .8rem;border-radius:8px;font-weight:700;transform:rotate(-6deg);font-family:var(--font-display);font-size:1.4rem}
+
+@media print{
+  @page{size:A4 landscape;margin:0}
+  .cert{box-shadow:none;width:297mm;height:210mm;margin:0;aspect-ratio:auto;page-break-after:avoid}
+  .invoice{border:0;box-shadow:none;max-width:none}
+  .cert-in::before{display:none}
+}

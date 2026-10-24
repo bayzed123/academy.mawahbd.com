@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { readSslLogo, SSL_BANNER, SSL_LOGO_MAX } from "@mawah/shared";
+import { dhakaMinuteMs, formatDateTime, readSslLogo, SSL_BANNER, SSL_LOGO_MAX } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -12,7 +12,7 @@ import { SmsPanel } from "./SmsPanel";
 
 interface S {
   contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string; address_bn: string; address_en: string; trade_license: string };
-  announcement: { bn: string; en: string };
+  announcement: { bn: string; en: string; ends_at: string; button_bn: string; button_en: string; link: string };
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
   payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number; ssl_logo: string; manual_link: string };
   policies: {
@@ -69,6 +69,23 @@ function SslLogoPreview({ value, hasError }: { value: string; hasError: boolean 
       ) : (
         <p className="err-text">{t("err.ssl_logo_invalid")}</p>
       )}
+    </div>
+  );
+}
+
+/**
+ * What the countdown in the announcement bar will do with the time in the box: count down to it (with the moment written out, in
+ * Bangladesh time), or nothing, because it has passed (the bar is then hidden on the website).
+ */
+function CountdownState({ endsAt }: { endsAt: string }) {
+  const { t, lang } = useI18n();
+  if (!endsAt) return null;
+  const end = dhakaMinuteMs(endsAt);
+  if (end === null) return null;
+  const date = formatDateTime(new Date(end).toISOString(), lang);
+  return (
+    <div className="field wide" aria-live="polite">
+      <p className={end > Date.now() ? "hint" : "err-text"}>{end > Date.now() ? t("adm.settings.countdownOn", { date }) : t("adm.settings.countdownOver", { date })}</p>
     </div>
   );
 }
@@ -196,6 +213,19 @@ export function Settings() {
                   </Field>
                   <Field id="an-en" label={t("adm.settings.announcementEn")} error={e.en}>
                     <TextInput id="an-en" value={v.en} maxLength={200} error={e.en} disabled={!canWrite} onChange={(x) => set({ en: x.target.value })} />
+                  </Field>
+                  <Field id="an-end" label={t("adm.settings.countdown")} hint={t("adm.settings.countdownHint")} error={e.ends_at}>
+                    <TextInput id="an-end" type="datetime-local" value={v.ends_at ?? ""} error={e.ends_at} disabled={!canWrite} onChange={(x) => set({ ends_at: x.target.value })} />
+                  </Field>
+                  <CountdownState endsAt={v.ends_at ?? ""} />
+                  <Field id="an-btn-bn" label={t("adm.settings.barButtonBn")} hint={t("adm.settings.barButtonHint")} error={e.button_bn}>
+                    <TextInput id="an-btn-bn" value={v.button_bn ?? ""} maxLength={40} error={e.button_bn} disabled={!canWrite} onChange={(x) => set({ button_bn: x.target.value })} />
+                  </Field>
+                  <Field id="an-btn-en" label={t("adm.settings.barButtonEn")} error={e.button_en}>
+                    <TextInput id="an-btn-en" value={v.button_en ?? ""} maxLength={40} error={e.button_en} disabled={!canWrite} onChange={(x) => set({ button_en: x.target.value })} />
+                  </Field>
+                  <Field id="an-link" label={t("adm.settings.barLink")} hint={t("adm.settings.barLinkHint")} error={e.link} wide>
+                    <TextInput id="an-link" inputMode="url" placeholder="/courses" value={v.link ?? ""} error={e.link} disabled={!canWrite} onChange={(x) => set({ link: x.target.value.trim() })} />
                   </Field>
                 </div>
               )}

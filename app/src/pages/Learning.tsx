@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { KeepAccount } from "../components/KeepAccount";
+import { Reveal, stagger } from "../components/motion";
 import { accentClass, Banner, Empty, ErrorState, Icon, Progress } from "../components/ui";
 
 export function MyLearning() {
@@ -20,10 +21,10 @@ export function MyLearning() {
 
   return (
     <>
-      <div className="page-head">
+      <Reveal className="page-head">
         <h1>{t("app.learning.title")}</h1>
         <p>{student ? t("app.learning.hello", { name: student.name.split(" ")[0] }) : ""} {t("app.learning.sub")}</p>
-      </div>
+      </Reveal>
 
       <KeepAccount />
 
@@ -64,39 +65,41 @@ export function MyLearning() {
         </Empty>
       )}
       <div className="grid">
-        {courses.data?.map((m) => {
+        {courses.data?.map((m, i) => {
           const done = m.progress.pct >= 100;
           const cta = m.resume_lesson_id && m.progress.done > 0 && !done ? `/learn/${m.course.slug}/${m.resume_lesson_id}` : `/learn/${m.course.slug}`;
           return (
-            <article key={m.course.id} className={`card course-card ${accentClass(m.course)}`}>
-              <Link to={`/learn/${m.course.slug}`} tabIndex={-1} aria-hidden="true">
-                <Banner course={m.course} />
-              </Link>
-              {m.course.category && <span className="chip-cat">{pick(m.course.category, "name")}</span>}
-              <div className="card-body">
-                <h3 className="card-title">
-                  <Link to={`/learn/${m.course.slug}`}>{pick(m.course, "title")}</Link>
-                </h3>
-                <Progress pct={m.progress.pct} done={done} label={t("app.learning.progress", { done: lang === "bn" ? toBn(m.progress.done) : m.progress.done, total: lang === "bn" ? toBn(m.progress.total) : m.progress.total })} />
-                <div className="prog-line">
-                  <span>{t("app.learning.progress", { done: lang === "bn" ? toBn(m.progress.done) : m.progress.done, total: lang === "bn" ? toBn(m.progress.total) : m.progress.total })}</span>
-                  <b>{lang === "bn" ? toBn(m.progress.pct) : m.progress.pct}%</b>
+            <Reveal key={m.course.id} delay={stagger(i)}>
+              <article className={`card course-card ${accentClass(m.course)}`}>
+                <Link to={`/learn/${m.course.slug}`} tabIndex={-1} aria-hidden="true">
+                  <Banner course={m.course} />
+                </Link>
+                {m.course.category && <span className="chip-cat">{pick(m.course.category, "name")}</span>}
+                <div className="card-body">
+                  <h3 className="card-title">
+                    <Link to={`/learn/${m.course.slug}`}>{pick(m.course, "title")}</Link>
+                  </h3>
+                  <Progress pct={m.progress.pct} done={done} label={t("app.learning.progress", { done: lang === "bn" ? toBn(m.progress.done) : m.progress.done, total: lang === "bn" ? toBn(m.progress.total) : m.progress.total })} />
+                  <div className="prog-line">
+                    <span>{t("app.learning.progress", { done: lang === "bn" ? toBn(m.progress.done) : m.progress.done, total: lang === "bn" ? toBn(m.progress.total) : m.progress.total })}</span>
+                    <b>{lang === "bn" ? toBn(m.progress.pct) : m.progress.pct}%</b>
+                  </div>
+                  {m.certificate_code && (
+                    <span className="cert-pill">
+                      <Icon name="award" /> {t("app.learning.certificate")}
+                    </span>
+                  )}
+                  <div className="card-foot">
+                    <Link className="btn btn-primary" to={cta}>
+                      {done ? t("app.learning.review") : m.progress.done > 0 ? t("app.learning.continue") : t("app.learning.start")}
+                    </Link>
+                    <Link className="btn btn-outline" to={`/review/${m.course.slug}`}>
+                      <Icon name="star" /> {t("app.learning.rate")}
+                    </Link>
+                  </div>
                 </div>
-                {m.certificate_code && (
-                  <span className="cert-pill">
-                    <Icon name="award" /> {t("app.learning.certificate")}
-                  </span>
-                )}
-                <div className="card-foot">
-                  <Link className="btn btn-primary" to={cta}>
-                    {done ? t("app.learning.review") : m.progress.done > 0 ? t("app.learning.continue") : t("app.learning.start")}
-                  </Link>
-                  <Link className="btn btn-outline" to={`/review/${m.course.slug}`}>
-                    <Icon name="star" /> {t("app.learning.rate")}
-                  </Link>
-                </div>
-              </div>
-            </article>
+              </article>
+            </Reveal>
           );
         })}
       </div>

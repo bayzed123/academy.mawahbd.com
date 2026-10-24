@@ -1,26 +1,26 @@
-/* Loaded on demand by chat.js. Matches the black / red / gold / ivory brand (same values as the tokens in shared/styles/base.css). */
-.mc-panel{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:60;width:min(392px,calc(100vw - 28px));height:min(560px,calc(100dvh - 28px));display:flex;flex-direction:column;background:#fffdf8;border:1px solid #d9cfb4;border-radius:22px;box-shadow:0 24px 70px rgba(7,3,4,.42);overflow:hidden;font-family:"Hind Siliguri","Noto Sans Bengali","Nirmala UI",system-ui,sans-serif;font-size:16px;line-height:1.6;color:#1b1213}
+/* Loaded on demand by chat.js. Matches the dark look of the site and the student app: pitch black, flat dark-grey panels, one solid orange (shared/styles/dark.css). */
+.mc-panel{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:60;width:min(392px,calc(100vw - 28px));height:min(560px,calc(100dvh - 28px));display:flex;flex-direction:column;background:#121212;border:1px solid rgba(255,255,255,.12);border-radius:22px;box-shadow:0 24px 60px rgba(0,0,0,.7);overflow:hidden;font-family:"Hind Siliguri","Noto Sans Bengali","Nirmala UI",system-ui,sans-serif;font-size:16px;line-height:1.6;color:#f5f5f5}
 .mc-panel[hidden]{display:none}
-.mc-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:linear-gradient(162deg,#070304,#1b0f10);color:#e6dc8c;border-bottom:3px solid #db1718}
+.mc-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#0a0a0a;color:#ffa47a;border-bottom:1px solid rgba(255,255,255,.1)}
 .mc-head b{font-weight:600;font-size:1.02rem}
 .mc-x{width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.1);color:#fff;font-size:24px;line-height:1;cursor:pointer}
 .mc-x:hover{background:rgba(255,255,255,.22)}
-.mc-list{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#fbf7ee}
+.mc-list{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#0b0b0b}
 .mc-msg{max-width:88%;padding:.6rem .9rem;border-radius:16px;word-wrap:break-word;overflow-wrap:anywhere}
 .mc-msg p{margin:0 0 .5em}.mc-msg p:last-child{margin:0}
-.mc-assistant{align-self:flex-start;background:#fff;border:1px solid #e7dfca;border-bottom-left-radius:5px}
-.mc-user{align-self:flex-end;background:#1b0f10;color:#fff;border-bottom-right-radius:5px}
+.mc-assistant{align-self:flex-start;background:#1c1c1c;border:1px solid #2e2e2e;border-bottom-left-radius:5px}
+.mc-user{align-self:flex-end;background:#ff5722;color:#0a0a0a;border-bottom-right-radius:5px}
 .mc-typing{opacity:.7;font-style:italic}
-.mc-msg a{color:#b50f12}
-.mc-user a{color:#e6dc8c}
-.mc-wa{display:inline-block;margin-top:.5rem;padding:.45rem .9rem;border-radius:10px;background:#1fa855;color:#fff!important;text-decoration:none;font-weight:600;font-size:.92rem}
-.mc-note{margin:0;padding:.35rem 14px;font-size:.78rem;color:#6d5f60;background:#f4eddc;border-top:1px solid #e7dfca}
-.mc-form{display:flex;gap:8px;padding:10px;border-top:1px solid #e7dfca;background:#fffdf8}
-.mc-in{flex:1;min-height:46px;padding:.5rem .85rem;border:1.5px solid #d9cfb4;border-radius:12px;font:inherit;background:#fff}
-.mc-in:focus{outline:none;border-color:#070304;box-shadow:0 0 0 4px rgba(196,177,74,.38)}
-.mc-send{min-height:46px;padding:0 1.1rem;border:0;border-radius:12px;background:#db1718;color:#fff;font:inherit;font-weight:700;cursor:pointer}
-.mc-send:hover:not(:disabled){background:#b50f12}
+.mc-msg a{color:#ff7b45}
+.mc-user a{color:#0a0a0a}
+.mc-wa{display:inline-block;margin-top:.5rem;padding:.45rem .9rem;border-radius:10px;background:#15803d;color:#fff!important;text-decoration:none;font-weight:600;font-size:.92rem}
+.mc-note{margin:0;padding:.35rem 14px;font-size:.78rem;color:#a3a3a3;background:#121212;border-top:1px solid #2e2e2e}
+.mc-form{display:flex;gap:8px;padding:10px;border-top:1px solid #2e2e2e;background:#121212}
+.mc-in{flex:1;min-height:46px;padding:.5rem .85rem;border:1.5px solid #737373;border-radius:12px;font:inherit;background:#1c1c1c;color:#f5f5f5}
+.mc-in:focus{outline:none;border-color:#ff5722;box-shadow:0 0 0 3px rgba(255,87,34,.22)}
+.mc-send{min-height:46px;padding:0 1.1rem;border:0;border-radius:12px;background:#ff5722;color:#0a0a0a;font:inherit;font-weight:700;cursor:pointer}
+.mc-send:hover:not(:disabled){background:#ff6a3d}
 .mc-send:disabled{opacity:.55;cursor:default}
-.mc-launch{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:45;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;border:2px solid #d9cd69;background:linear-gradient(180deg,#1b0f10,#070304);color:#e6dc8c;box-shadow:0 8px 22px rgba(0,0,0,.28);cursor:pointer}
+.mc-launch{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:45;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:#121212;color:#ff7b45;box-shadow:0 6px 16px rgba(0,0,0,.55);cursor:pointer}
 .mc-launch:hover{transform:translateY(-2px)}
 @media (max-width:480px){.mc-panel{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}}
