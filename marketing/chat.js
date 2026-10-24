@@ -12,7 +12,7 @@
 
   var history = [];
   try { history = JSON.parse(sessionStorage.getItem("mawah_chat") || "[]").slice(-12); } catch (e) { history = []; }
-  var panel, list, input, form, sendBtn, whatsapp = "", greeting = T.hello, ready = false;
+  var panel, list, input, form, sendBtn, launcher, lastFocus, whatsapp = "", greeting = T.hello, ready = false;
 
   function el(tag, cls, text) { var n = d.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; }
   function save() { try { sessionStorage.setItem("mawah_chat", JSON.stringify(history.slice(-12))); } catch (e) { /* private mode */ } }
@@ -49,16 +49,26 @@
     if (ready) return;
     ready = true;
     var css = d.createElement("link"); css.rel = "stylesheet"; css.href = "/chat.css"; d.head.appendChild(css);
-    panel = el("section", "mc-panel"); panel.setAttribute("role", "dialog"); panel.setAttribute("aria-label", T.title); panel.hidden = true;
-    var head = el("header", "mc-head"); head.appendChild(el("b", "", T.title));
+    panel = el("section", "mc-panel"); panel.id = "mawah-chat-panel"; panel.setAttribute("role", "dialog"); panel.setAttribute("aria-modal", "true"); panel.setAttribute("aria-labelledby", "mawah-chat-title"); panel.hidden = true;
+    var head = el("header", "mc-head"); var title = el("b", "", T.title); title.id = "mawah-chat-title"; head.appendChild(title);
     var close = el("button", "mc-x", "×"); close.type = "button"; close.setAttribute("aria-label", T.close); close.onclick = hide; head.appendChild(close);
     list = el("div", "mc-list"); list.setAttribute("role", "log"); list.setAttribute("aria-live", "polite");
     form = el("form", "mc-form"); input = el("input", "mc-in"); input.type = "text"; input.maxLength = 500; input.placeholder = T.ph; input.setAttribute("aria-label", T.ph); input.autocomplete = "off";
     sendBtn = el("button", "mc-send", T.send); sendBtn.type = "submit"; form.appendChild(input); form.appendChild(sendBtn);
     panel.appendChild(head); panel.appendChild(list); panel.appendChild(el("p", "mc-note", T.note)); panel.appendChild(form);
     d.body.appendChild(panel);
+    launcher = launcher || d.querySelector("[data-chat-open]");
+    if (launcher) { launcher.setAttribute("aria-controls", "mawah-chat-panel"); launcher.setAttribute("aria-expanded", "false"); }
     form.addEventListener("submit", function (e) { e.preventDefault(); send(); });
-    d.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) hide(); });
+    d.addEventListener("keydown", function (e) {
+      if (!panel || panel.hidden) return;
+      if (e.key === "Escape") return hide();
+      if (e.key !== "Tab") return;
+      var focusable = [close, input, sendBtn].concat(Array.prototype.slice.call(panel.querySelectorAll("a[href]"))).filter(function (node) { return !node.disabled && !node.hidden; });
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && d.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && d.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
     fetch("/api/site", { credentials: "omit" }).then(function (r) { return r.json(); }).then(function (j) {
       if (j && j.site) { whatsapp = j.site.contact.whatsapp || ""; var g = j.site.greeting && j.site.greeting[lang]; if (g) greeting = g; }
     }).catch(function () {}).then(function () {
@@ -67,8 +77,19 @@
     });
   }
 
-  function show() { build(); panel.hidden = false; setTimeout(function () { input.focus(); }, 30); }
-  function hide() { if (panel) panel.hidden = true; }
+  function show() {
+    build();
+    lastFocus = d.activeElement;
+    panel.hidden = false;
+    if (launcher) { launcher.setAttribute("aria-expanded", "true"); launcher.setAttribute("aria-hidden", "true"); launcher.dataset.previousTabindex = launcher.getAttribute("tabindex") || ""; launcher.setAttribute("tabindex", "-1"); }
+    setTimeout(function () { input.focus(); }, 30);
+  }
+  function hide() {
+    if (!panel) return;
+    panel.hidden = true;
+    if (launcher) { launcher.setAttribute("aria-expanded", "false"); launcher.removeAttribute("aria-hidden"); if (launcher.dataset.previousTabindex) launcher.setAttribute("tabindex", launcher.dataset.previousTabindex); else launcher.removeAttribute("tabindex"); }
+    if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus({ preventScroll: true });
+  }
 
   function send() {
     var text = input.value.trim();
@@ -106,7 +127,7 @@
   d.addEventListener("DOMContentLoaded", function () {
     if (d.querySelector("[data-chat-open]") || d.documentElement.hasAttribute("data-no-chat-launcher")) return;
     var css = d.createElement("link"); css.rel = "stylesheet"; css.href = "/chat.css"; d.head.appendChild(css);
-    var b = el("button", "mc-launch"); b.type = "button"; b.setAttribute("aria-label", T.open); b.title = T.open;
+    var b = el("button", "mc-launch"); launcher = b; b.type = "button"; b.setAttribute("aria-label", T.open); b.setAttribute("aria-controls", "mawah-chat-panel"); b.setAttribute("aria-expanded", "false"); b.title = T.open;
     b.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4.5h12A2.5 2.5 0 0 1 20.5 7v7.5A2.5 2.5 0 0 1 18 17h-6l-4.5 3.5V17H6a2.5 2.5 0 0 1-2.5-2.5V7A2.5 2.5 0 0 1 6 4.5z"/><path d="M8.5 9.5h7M8.5 12.5h4"/></svg>';
     b.onclick = show;
     d.body.appendChild(b);
