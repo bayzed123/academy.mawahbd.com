@@ -7,7 +7,8 @@ import { Icon } from "./ui";
  * Banners the owner manages in Admin → Banners: the slider at the top of the home page and the offer pop-up.
  * The words and pictures are the owner's; the page adds what makes them usable — a real link or button, text for blind
  * visitors, controls that work without a mouse, no movement for people who asked for less, and no layout jump while the
- * pictures load (every slide has a fixed shape).
+ * pictures load (every slide has a fixed shape). A picture is shown whole and clean, in the shape it was made for (wide, or the phone
+ * picture's 4:3 on a phone); its words and button sit in a caption under it, never drawn over it.
  */
 
 /** Where a banner's button goes. A page of this site follows the visitor's language: /courses/x becomes /en/courses/x in English. */
@@ -46,7 +47,12 @@ function Slide({ ctx, b, i, total }: { ctx: PageCtx; b: BannerDTO; i: number; to
   const icon = bannerIcon(b);
   const design = bannerDesign(b, true);
   return (
-    <div class={`bn-slide${b.image_key ? "" : " bn-plain"}${design ? ` ${design}` : ""}`} role="group" aria-roledescription="slide" aria-label={t("banner.slide", { n: numLabel(ctx, i + 1), total: numLabel(ctx, total) })}>
+    <div
+      class={`bn-slide${b.image_key ? " bn-cap" : " bn-plain"}${b.image_key && b.mobile_image_key ? " bn-mob" : ""}${design ? ` ${design}` : ""}`}
+      role="group"
+      aria-roledescription="slide"
+      aria-label={t("banner.slide", { n: numLabel(ctx, i + 1), total: numLabel(ctx, total) })}
+    >
       {wholePictureLinks ? (
         <a class="bn-media" href={href} {...newTab(b)} aria-label={alt || title || t("banner.open")}>
           {picture}
@@ -61,9 +67,13 @@ function Slide({ ctx, b, i, total }: { ctx: PageCtx; b: BannerDTO; i: number; to
       )}
       {(kicker || title || text || button) && (
         <div class="bn-copy">
-          {kicker && <p class="bn-kicker">{kicker}</p>}
-          {title && <p class="bn-title">{title}</p>}
-          {text && <p class="bn-text">{text}</p>}
+          {(kicker || title || text) && (
+            <div class="bn-words">
+              {kicker && <p class="bn-kicker">{kicker}</p>}
+              {title && <p class="bn-title">{title}</p>}
+              {text && <p class="bn-text">{text}</p>}
+            </div>
+          )}
           {button && (
             <a class="btn btn-primary btn-lg" href={href} {...newTab(b)}>
               {label}
@@ -77,7 +87,7 @@ function Slide({ ctx, b, i, total }: { ctx: PageCtx; b: BannerDTO; i: number; to
   );
 }
 
-/** The slider at the top of the home page. One banner is a still picture; two or more become a slider with arrows, dots and a pause button. */
+/** The slider at the top of the home page. One banner is a still picture; two or more become a slider with dots, arrows and a pause button. */
 export function BannerSlider({ ctx, banners }: { ctx: PageCtx; banners: BannerDTO[] }) {
   const { t } = ctx;
   const n = banners.length;
@@ -92,14 +102,14 @@ export function BannerSlider({ ctx, banners }: { ctx: PageCtx; banners: BannerDT
           </div>
           {n > 1 && (
             <div class="bn-ctrl" hidden>
-              <button type="button" class="bn-btn bn-prev" data-prev aria-label={t("banner.prev")}>
-                <Icon name="arrow" />
-              </button>
               <div class="bn-dots">
                 {banners.map((_, i) => (
                   <button type="button" data-go aria-label={t("banner.go", { n: numLabel(ctx, i + 1) })} aria-current={i === 0 ? "true" : undefined} />
                 ))}
               </div>
+              <button type="button" class="bn-btn bn-prev" data-prev aria-label={t("banner.prev")}>
+                <Icon name="arrow" />
+              </button>
               <button type="button" class="bn-btn bn-next" data-next aria-label={t("banner.next")}>
                 <Icon name="arrow" />
               </button>

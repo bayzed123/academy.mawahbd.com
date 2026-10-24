@@ -161,7 +161,7 @@ describe("the look on the page", () => {
     const admin = await owner();
     await create(admin, { image_key: PICTURE, theme: "ivory", layout: "left", focus: "bottom", icon: "cake", alt_en: "Cakes on a table" });
     const html = sliderOf(await home());
-    expect(html).toContain('class="bn-slide bn-t-ivory bn-l-left bn-f-bottom"');
+    expect(html).toContain('class="bn-slide bn-cap bn-t-ivory bn-l-left bn-f-bottom"'); // a picture: its words in a caption under it
     expect(html).not.toContain("bn-plain");
     expect(html).not.toContain('class="bn-art"');
     expect(html).toContain(`src="/media/${PICTURE}" alt="Cakes on a table"`);

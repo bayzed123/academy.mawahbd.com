@@ -262,7 +262,6 @@ export function ShopPage({ ctx, data }: { ctx: PageCtx; data: ShopListData }) {
                 </div>
               </form>
             </details>
-            <PolicyLinks ctx={ctx} />
           </aside>
           <div class="shop-main">
             <div class="shop-tools">
@@ -314,6 +313,7 @@ export function ShopPage({ ctx, data }: { ctx: PageCtx; data: ShopListData }) {
               </div>
             )}
             <Pager ctx={ctx} page={data.page} pages={data.pages} hrefFor={(p) => hrefFor({ page: p })} numbers />
+            <PolicyLinks ctx={ctx} />
           </div>
         </div>
       </section>

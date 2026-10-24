@@ -67,13 +67,14 @@ html[lang=bn] .hero h1{line-height:1.3}
 .page-hero h1{color:#fff;margin-bottom:.3em}
 .page-hero p{color:#cccccc;margin:0;max-width:40rem}
 /* a small label in a pill with a dot, like "Opening soon" */
-.pill-badge{display:inline-flex;align-items:center;gap:.5rem;margin:0 0 .9rem;padding:.3rem .9rem;border:1px solid rgba(255,255,255,.14);border-radius:999px;color:var(--o-300);font-size:.8rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
-html[lang=bn] .pill-badge{font-size:.92rem;letter-spacing:0;text-transform:none}
+.pill-badge,.page-hero .pill-badge{display:inline-flex;align-items:center;gap:.5rem;margin:0 0 .9rem;padding:.3rem .9rem;border:1px solid rgba(255,255,255,.14);border-radius:999px;color:var(--o-300);font-size:.8rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+html[lang=bn] .pill-badge,html[lang=bn] .page-hero .pill-badge{font-size:.92rem;letter-spacing:0;text-transform:none}
 .pill-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--o-500)}
 /* the Equipment Shop's page while it is closed */
-.shop-soon .wrap{padding-block:clamp(48px,9vw,110px)}
+.shop-soon .wrap{display:grid;justify-items:center;text-align:center;padding-block:clamp(48px,9vw,110px)}
+.shop-soon p{margin-inline:auto}
 .shop-soon .crumbs{margin-bottom:1.4rem}
-.shop-soon .hero-cta{justify-content:flex-start;margin:1.6rem 0 .8rem}
+.shop-soon .hero-cta{margin:1.6rem 0 .8rem}
 .shop-soon .muted{color:var(--ink-3)}
 .crumbs{display:flex;flex-wrap:wrap;gap:.4rem;font-size:.9rem;list-style:none;margin:0 0 .8rem;padding:0;color:#a3a3a3}
 .crumbs a{color:#e5e5e5}
@@ -281,20 +282,21 @@ a.rating-badge:hover{border-color:var(--g-600);color:#fff}
 /* ---------- banners: the home slider and the offer pop-up (Admin -> Banners) ---------- */
 .bn-band{padding-block:clamp(14px,2.2vw,24px) 0;background:#000}
 .bn{position:relative}
-.bn-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;border-radius:var(--r);border:1px solid rgba(255,255,255,.1)}
+.bn-track{display:flex;align-items:stretch;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;border-radius:22px;border:1px solid rgba(255,255,255,.1)}
 .bn-track::-webkit-scrollbar{display:none}
-.bn-ctrl{display:flex;align-items:center;justify-content:center;gap:10px;padding-top:12px}
+/* the slider's controls: a slim row under it, the slides as short bars on the left and small buttons on the right */
+.bn-ctrl{display:flex;align-items:center;gap:6px;padding-top:10px}
 .bn-ctrl[hidden]{display:none}
-.bn-btn{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:transparent;color:#fff;cursor:pointer}
+.bn-btn{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:transparent;color:#e5e5e5;cursor:pointer}
 .bn-btn:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.5)}
-.bn-btn .icon{width:1.15em;height:1.15em}
+.bn-btn .icon{width:1em;height:1em}
 .bn-prev .icon{transform:scaleX(-1)}
 .bn-toggle .icon+.icon,.bn-toggle.is-paused .icon:first-child{display:none}
 .bn-toggle.is-paused .icon+.icon{display:block}
-.bn-dots{display:flex;gap:2px}
-.bn-dots button{position:relative;width:24px;height:24px;padding:0;border:0;background:none;cursor:pointer}
-.bn-dots button::before{content:"";position:absolute;inset:7px;border-radius:50%;background:rgba(255,255,255,.4);transition:background .2s,transform .2s}
-.bn-dots button[aria-current=true]::before{background:var(--g-400);transform:scale(1.3)}
+.bn-dots{display:flex;gap:2px;margin-inline-end:auto}
+.bn-dots button{position:relative;width:32px;height:24px;padding:0;border:0;background:none;cursor:pointer}
+.bn-dots button::before{content:"";position:absolute;left:4px;right:4px;top:10px;height:4px;border-radius:999px;background:rgba(255,255,255,.4);transition:background .25s}
+.bn-dots button[aria-current=true]::before{background:var(--o-500)}
 .hero.has-banners .hero-grid{padding-block:clamp(28px,5vw,56px)}
 .hero.has-banners h1{font-size:clamp(1.7rem,4.6vw,2.8rem)}
 .offer{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.72);overflow:auto}

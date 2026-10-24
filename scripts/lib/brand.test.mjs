@@ -160,6 +160,11 @@ test("the dark look is flat: one solid page colour, no radial gradients, pattern
     assert.ok(rule, `${sel} is styled`);
     assert.match(rule[1], /background:#000[;}]?/, `${sel} is flat black`);
   }
+  // a banner with no design chosen is the same flat dark grey (banners.css comes after dark.css, so it must say so itself): no glow, no pattern
+  const banners = read("shared/styles/banners.css");
+  assert.match(banners, /\.bn-slide,\.bn-t-dark\{--bn-bg:#121212;--bn-glow:transparent;/);
+  assert.match(banners, /\.bn-slide\{[^}]*background:#121212/);
+  assert.match(banners, /\.bn-plain\{background:var\(--bn-bg\)\}/);
   // no floating decoration in the hero, no pulsing or bouncing
   assert.doesNotMatch(read("worker/src/views/pages/home.tsx"), /hero-fx/);
   for (const file of DARK_SHEETS) assert.doesNotMatch(read(file), /hero-fx|@keyframes (?:cta-|pulse-|fab-bounce|drift|float|badge-float)/, file);
