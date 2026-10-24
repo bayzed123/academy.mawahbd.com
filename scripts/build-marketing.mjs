@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Builds the public-site assets:
- *   shared/styles/base.css + dark.css + banners.css + marketing/site.css -> minified string inlined into every page (worker/src/generated/assets.ts)
+ *   shared/styles/base.css + dark.css + banners.css + marketing/site.css + theme.css -> minified string inlined into every page (worker/src/generated/assets.ts)
  *   marketing/shop.css -> minified string inlined only into the tools shop's pages (SHOP_CSS)
  *   marketing/landing.css -> minified string inlined only into landing pages (LANDING_CSS)
  *   marketing/course.css -> minified string inlined only into the class page (COURSE_CSS)
@@ -11,6 +11,7 @@
  *   marketing/banners.js    -> dist/static/assets/banners.<hash>.js       (only on pages with a slider or an offer pop-up)
  *   marketing/gallery.js    -> dist/static/assets/gallery.<hash>.js       (only on class pages with more than one picture)
  *   marketing/chat.{js,css} -> dist/static/chat.{js,css}                  (small, 1 hour cache)
+ *   marketing/theme.js -> dist/static/theme.js                            (first-paint theme state, 1 hour cache)
  *   marketing/public/**     -> dist/static/**                             (fonts, sprite, icons, manifest)
  *   marketing/public/og-default.jpg -> dist/static/assets/og.<hash>.jpg   (the share image, under a name that changes with the picture)
  *   marketing/verification/* -> worker/src/generated/verification.ts      (proof-of-ownership files for Meta / Google / Bing …, answered by the Worker at the root)
@@ -36,7 +37,7 @@ mkdirSync(gen, { recursive: true });
 // static public files (fonts, sprite, logo + icons, pattern, manifest, og image …)
 cpSync(resolve(root, "marketing/public"), out, { recursive: true });
 
-const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/dark.css")}\n${read("shared/styles/banners.css")}\n${read("marketing/site.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/dark.css")}\n${read("shared/styles/banners.css")}\n${read("marketing/site.css")}\n${read("shared/styles/theme.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 // the decorative background pattern is tiny: inline it once (CSS variable) instead of a cached-for-a-day extra request
 const patternSvg = read("marketing/public/pattern.svg").replace(/\s+/g, " ").replace(/> </g, "><").replace(/"/g, "'").trim();
 const patternUri = `url("data:image/svg+xml,${patternSvg.replace(/</g, "%3C").replace(/>/g, "%3E").replace(/#/g, "%23")}")`;
@@ -72,6 +73,7 @@ const shopCss = (await transform(read("marketing/shop.css"), { loader: "css", mi
 const shopJs = (await transform(read("marketing/shop.js"), { loader: "js", minify: true, target: "es2017" })).code;
 const chatJs = (await transform(read("marketing/chat.js"), { loader: "js", minify: true, target: "es2017" })).code;
 const chatCss = (await transform(read("marketing/chat.css"), { loader: "css", minify: true })).code;
+const themeJs = (await transform(read("marketing/theme.js"), { loader: "js", minify: true, target: "es2017" })).code;
 
 const siteJsName = `site.${hash(js)}.js`;
 writeFileSync(resolve(out, "assets", siteJsName), js);
@@ -85,6 +87,7 @@ const shopJsName = `shop.${hash(shopJs)}.js`;
 writeFileSync(resolve(out, "assets", shopJsName), shopJs);
 writeFileSync(resolve(out, "chat.js"), chatJs);
 writeFileSync(resolve(out, "chat.css"), chatCss);
+writeFileSync(resolve(out, "theme.js"), themeJs);
 
 // the share image (the picture Facebook / WhatsApp show for a link) under a name that changes with the picture: they keep a picture they have
 // fetched once for a long time, so a new picture at the old address could go unseen for weeks — a new address is fetched at once
@@ -109,6 +112,7 @@ writeFileSync(
     `export const DOC_CSS = ${JSON.stringify(docCss)};\n` +
     `export const SHOP_CSS = ${JSON.stringify(shopCss)};\n` +
     `export const SHOP_JS = ${JSON.stringify(`/assets/${shopJsName}`)};\n` +
+    `export const THEME_JS = "/theme.js";\n` +
     `export const OG_IMAGE = ${JSON.stringify(ogImage)};\n`,
 );
 
@@ -148,6 +152,8 @@ writeFileSync(
 /chat.js
   Cache-Control: public, max-age=3600
 /chat.css
+  Cache-Control: public, max-age=3600
+/theme.js
   Cache-Control: public, max-age=3600
 /manifest.webmanifest
   Cache-Control: public, max-age=86400

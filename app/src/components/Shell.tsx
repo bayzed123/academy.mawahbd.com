@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
@@ -12,6 +12,35 @@ const TABS = [
   { to: "/certificates", end: false, icon: "award", key: "app.nav.certificates" },
   { to: "/profile", end: false, icon: "user", key: "app.nav.profile" },
 ] as const;
+
+type Theme = "light" | "dark";
+declare global {
+  interface Window {
+    MawahTheme?: { get: () => Theme; toggle: () => Theme };
+  }
+}
+
+function ThemeToggle({ lang }: { lang: "bn" | "en" }) {
+  const [theme, setTheme] = useState<Theme>(() => (document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark"));
+  useEffect(() => {
+    const onTheme = (event: Event) => {
+      const next = (event as CustomEvent<{ theme?: Theme }>).detail?.theme;
+      if (next === "light" || next === "dark") setTheme(next);
+    };
+    document.addEventListener("mawah:theme", onTheme);
+    return () => document.removeEventListener("mawah:theme", onTheme);
+  }, []);
+  const light = theme === "light";
+  const label = light
+    ? (lang === "bn" ? "ডার্ক মোড চালু করুন" : "Switch to dark mode")
+    : (lang === "bn" ? "লাইট মোড চালু করুন" : "Switch to light mode");
+  return (
+    <button type="button" className="theme-toggle" data-theme-toggle aria-label={label} aria-pressed={light} onClick={() => window.MawahTheme?.toggle()}>
+      <span className="theme-icon" aria-hidden="true">{light ? "☀" : "◐"}</span>
+      <span className="theme-label">{lang === "bn" ? "থিম" : "Theme"}</span>
+    </button>
+  );
+}
 
 export function Shell() {
   const { t, lang, setLang } = useI18n();
@@ -75,6 +104,7 @@ export function Shell() {
           <button type="button" className="lang-btn" onClick={switchLang} lang={lang === "bn" ? "en" : "bn"}>
             {t("lang.switch")}
           </button>
+          <ThemeToggle lang={lang} />
           {student ? (
             <details className="user-menu">
               <summary aria-label={t("app.nav.profile")}>
