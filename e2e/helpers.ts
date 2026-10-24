@@ -11,6 +11,16 @@ export const SETUP_TOKEN = "dev-setup-token"; // from worker/.dev.vars.example (
  * The apps remember the language in localStorage; tests pick a starting language so selectors stay readable.
  * It only seeds the value when none is stored yet, so a language the test switches to survives reloads.
  */
+/**
+ * Draw every section of a public page now, as a visitor scrolling through it would see them. Sections further down are drawn only
+ * when someone scrolls near them (content-visibility: auto, marketing/site.css), and until then each counts as 640px tall. The
+ * accessibility scan cannot tell: it sees their content spill onto the next section and reports buttons "covered" that nobody
+ * ever sees covered. A scan that cannot scroll first (a pop-up holds the page still) draws the page with this.
+ */
+export async function drawWholePage(page: Page) {
+  await page.evaluate(() => document.querySelectorAll<HTMLElement>("main>section").forEach((s) => s.style.setProperty("content-visibility", "visible")));
+}
+
 export async function useLang(ctx: BrowserContext, lang: "bn" | "en") {
   await ctx.addInitScript((l) => {
     try {

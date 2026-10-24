@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminLogin, apiGet, apiPost, PNG, useLang } from "./helpers";
+import { adminLogin, apiGet, apiPost, drawWholePage, PNG, useLang } from "./helpers";
 
 /*
  * Admin → Banners. The owner could not upload a hero banner, a slider or an offer pop-up and give its button a link — there was
@@ -192,6 +192,7 @@ test("the offer pop-up passes the accessibility audit while open and keeps a pho
   await page.goto("/en");
   const offer = page.getByRole("dialog", { name: "Special offer" });
   await expect(offer).toBeVisible({ timeout: 6000 });
+  await drawWholePage(page); // the pop-up holds the page still, so the scan cannot scroll through it first
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
   await offer.getByRole("button", { name: "No, thanks" }).click();
