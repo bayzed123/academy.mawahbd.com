@@ -231,11 +231,12 @@ test("a paid order: the check mark draws itself, with a burst of confetti", asyn
   await expect(mark.locator(".confetti i")).toHaveCount(14);
   expect(await mark.locator(".confetti i").first().evaluate((el) => getComputedStyle(el).animationName)).toBe("sm-burst");
   await axe(page, "main");
-  // My Learning: the class's card rises into view (Framer Motion) and ends exactly in place; under the pointer it lifts 8px
+  // My Learning: the class's card rises into view (Framer Motion) and ends exactly in place; under the pointer it lifts 6px
   await page.goto("/app/");
   const card = page.locator(".grid .card", { hasText: "Beginners Baking Class" });
   await expect(card).toBeVisible();
-  const cell = page.locator(".grid>.reveal").filter({ has: card });
+  const cell = card.locator("xpath=.."); // the block that rises in: the card's own wrapper in the grid
+  await expect(cell).toHaveClass(/\breveal\b/);
   await expect(cell).toHaveCSS("opacity", "1");
   await expect(cell).toHaveCSS("transform", "none");
   await card.hover();
