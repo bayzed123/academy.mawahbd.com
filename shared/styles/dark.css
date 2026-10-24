@@ -92,11 +92,8 @@ select.input option{background:#121212;color:#f5f5f5}
 /* the offer pop-up without a design of its own is a dark grey card: its title is white */
 .offer-card .offer-title{color:var(--heading)}
 
-/* ---------- the owner's banners: a banner with no design chosen is a flat dark grey card, like the rest of the site (the ruby, gold and
-   ivory designs are the owner's own choice and keep their colours); no glow, no pattern ---------- */
-.bn-slide,.bn-t-dark{--bn-bg:#121212;--bn-glow:transparent;--bn-a:var(--o-300);--bn-ink2:#d4d4d4;--bn-shade:0,0,0;--focus:var(--o-300)}
+/* ---------- the owner's banners: a banner with no design chosen is a flat dark grey card, like the rest of the site — set in
+   shared/styles/banners.css itself (it comes after this file); the ruby, gold and ivory designs are the owner's own choice ---------- */
 /* inside the owner's ruby, gold and ivory designs the brand's own reds, golds and blacks still hold (the dark look turns them orange
    and grey everywhere else): a ruby banner's white button keeps its deep-red words, a gold one its black button with gold words */
 .bn-t-ruby,.bn-t-gold,.bn-t-ivory{--k-900:#0f0708;--k-700:#2c1b1d;--g-300:#e6dc8c;--g-100:#f8f3d9;--red-900:#5c070a;--red-800:#8c0b0e;--red-700:#b50f12}
-.bn-slide{background:#121212}
-.bn-plain::before{content:none}

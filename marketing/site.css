@@ -46,26 +46,61 @@ html[lang=bn] .brand-name{font-weight:600;letter-spacing:.02em;font-size:1.12rem
 .hero-grid{position:relative;display:grid;justify-items:center;padding-block:clamp(64px,11vw,140px) clamp(56px,9vw,112px)}
 .hero h1{color:#fff;font-size:clamp(2.15rem,6.2vw,4.1rem);line-height:1.16;max-width:20ch;margin-bottom:.4em;text-wrap:balance}
 html[lang=bn] .hero h1{line-height:1.3}
-.hero .eyebrow{color:var(--o-300);padding:.3rem .9rem;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:transparent}
+/* the small label over a heading: a flat dark pill with an orange dot */
+.hero .eyebrow,.sec-head .eyebrow{display:inline-flex;align-items:center;gap:.55rem;padding:.32rem .95rem .32rem .8rem;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:#121212;color:var(--o-300)}
+.hero .eyebrow::before,.sec-head .eyebrow::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--o-500)}
+/* a heading in two tones: its key words in orange */
+.hl{color:var(--o-500)}
 .hero-sub{font-size:clamp(1.05rem,2.1vw,1.25rem);color:#cccccc;max-width:40rem;margin:0 auto 2.2rem}
 .hero-cta{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;margin-bottom:1.9rem}
-.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;list-style:none;margin:0;padding:0}
-.chips li{display:inline-flex;align-items:center;gap:.5rem;padding:.4rem .95rem;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:transparent;font-size:.9rem;color:#d4d4d4}
+/* the home page's main button: its arrow sits in its own small circle */
+.hero .hero-cta .btn-primary .icon{box-sizing:content-box;width:1em;height:1em;padding:.34em;margin-inline-end:-.55em;border-radius:50%;background:rgba(0,0,0,.12)}
+/* what every class gives: flat dark tiles, two to a row on a phone, one row on a computer */
+.chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:min(100%,30rem);list-style:none;margin:0;padding:0}
+.chips li{display:flex;align-items:center;justify-content:center;gap:.5rem;min-height:56px;padding:.5rem .7rem;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#121212;font-size:.9rem;line-height:1.35;color:#e5e5e5;text-align:center}
+.chips li:last-child:nth-child(odd){grid-column:1/-1}
+/* (on a phone every tile has room for two lines, so nothing moves when the web font swaps in) */
+@media (min-width:760px){
+  .chips{display:flex;flex-wrap:wrap;justify-content:center;width:auto}
+  .chips li{min-height:0;padding:.6rem 1.1rem}
+}
 .chips .icon{color:var(--o-500);width:1.05em;height:1.05em}
 
-/* ---------- trust strip ---------- */
-.trust{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
-.trust-item{display:flex;gap:14px;align-items:flex-start;padding:22px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);transition:transform .3s var(--ease-out),border-color .3s var(--ease-out)}
-.trust-item:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.2)}
-.trust-ico{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;flex:none;color:var(--o-500);background:#1a1a1a;border:1px solid rgba(255,255,255,.1)}
-.trust-item h2{font-size:1.06rem;margin:0 0 .2em;font-family:var(--font-body);font-weight:700}
+/* ---------- light sections: a few parts of the home page sit on a light neutral grey with white cards — a light and dark rhythm that is
+   easy on the eyes. Their words are dark, and their orange words a deeper orange (--red-900, #C2410C) that keeps AA contrast on light.
+   True greys only: no cream. ---------- */
+.band-light{--ink:#171717;--ink-2:#404040;--ink-3:#525252;--heading:#0a0a0a;--card:#fff;--line:rgba(0,0,0,.08);--focus:var(--red-900);background:#f5f5f5;color:var(--ink);border-block:1px solid rgba(0,0,0,.06)}
+.band-light a,.band-light .hl{color:var(--red-900)}
+.band-light .sec-head .eyebrow{background:#fff;border-color:rgba(0,0,0,.12);color:var(--red-900)}
+.band-light .step:hover{border-color:rgba(0,0,0,.16);box-shadow:var(--sh-lift)}
+.flash-top{padding-top:24px}
+
+/* ---------- why learn with us: white cards, each under a solid orange icon tile that sits on its top edge ---------- */
+.trust{display:grid;gap:46px 18px;grid-template-columns:minmax(0,1fr);padding-top:26px}
+.trust-item{position:relative;padding:44px 22px 24px;border-radius:20px;background:var(--card);border:1px solid var(--line);transition:transform .3s var(--ease-out),border-color .3s var(--ease-out),box-shadow .3s var(--ease-out)}
+.trust-item:hover{transform:translateY(-4px);border-color:rgba(0,0,0,.16);box-shadow:var(--sh-lift)}
+.trust-ico{position:absolute;top:-26px;left:22px;display:grid;place-items:center;width:52px;height:52px;border-radius:14px;color:#fff;background:var(--o-500)}
+.trust-ico .icon{width:26px;height:26px}
+.trust-item h3{font-size:1.08rem;margin:0 0 .3em;font-family:var(--font-body);font-weight:700}
 .trust-item p{margin:0;color:var(--ink-2);font-size:.95rem;line-height:1.6}
+@media (min-width:560px){.trust{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1024px){.trust{grid-template-columns:repeat(4,minmax(0,1fr))}}
 
 /* ---------- filters / list page ---------- */
 .page-hero{background:#000;color:#fff;position:relative;border-bottom:1px solid rgba(255,255,255,.08)}
 .page-hero .wrap{position:relative;padding-block:clamp(32px,5vw,58px)}
 .page-hero h1{color:#fff;margin-bottom:.3em}
 .page-hero p{color:#cccccc;margin:0;max-width:40rem}
+/* a small label in a pill with a dot, like "Opening soon" */
+.pill-badge,.page-hero .pill-badge{display:inline-flex;align-items:center;gap:.5rem;margin:0 0 .9rem;padding:.3rem .9rem;border:1px solid rgba(255,255,255,.14);border-radius:999px;color:var(--o-300);font-size:.8rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+html[lang=bn] .pill-badge,html[lang=bn] .page-hero .pill-badge{font-size:.92rem;letter-spacing:0;text-transform:none}
+.pill-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--o-500)}
+/* the Equipment Shop's page while it is closed */
+.shop-soon .wrap{display:grid;justify-items:center;text-align:center;padding-block:clamp(48px,9vw,110px)}
+.shop-soon p{margin-inline:auto}
+.shop-soon .crumbs{margin-bottom:1.4rem}
+.shop-soon .hero-cta{margin:1.6rem 0 .8rem}
+.shop-soon .muted{color:var(--ink-3)}
 .crumbs{display:flex;flex-wrap:wrap;gap:.4rem;font-size:.9rem;list-style:none;margin:0 0 .8rem;padding:0;color:#a3a3a3}
 .crumbs a{color:#e5e5e5}
 .crumbs li+li::before{content:"›";margin-right:.4rem;opacity:.7}
@@ -179,6 +214,12 @@ body.has-buybar .floats{bottom:calc(86px + env(safe-area-inset-bottom))}
 .fab-chat::before{border:1px solid rgba(255,255,255,.18)}
 .fab:hover{color:#fff}
 .fab:hover::before{transform:scale(1.06)}
+/* "back to the top": white, ringed in orange, above the others; it appears once the visitor is well down the page (site.js) */
+.fab-top{--fab:#fff;width:48px;height:48px;justify-self:center;color:var(--red-900);opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .25s var(--ease-out),transform .25s var(--ease-out),visibility 0s linear .25s}
+.fab-top::before{border:2px solid var(--o-500)}
+.fab-top.on{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+.fab-top:hover{color:var(--red-900)}
+.fab-top .icon{width:24px;height:24px}
 
 /* ---------- verification & documents ---------- */
 /* ---------- chat launcher styling lives in /chat.css (loaded on first click) ---------- */
@@ -198,8 +239,6 @@ body.has-buybar .floats{bottom:calc(86px + env(safe-area-inset-bottom))}
   .pills{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;margin-inline:-16px;padding:2px 16px 6px;-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent)}
   .pills::-webkit-scrollbar{display:none}
   .pill{flex:0 0 auto;white-space:nowrap}
-  /* hero chips stack, so their row positions do not depend on text widths while the web font loads */
-  .chips{flex-direction:column;align-items:center}
   /* the countdown bar keeps one row on a phone: the words stay for screen readers */
   .topbar.has-cd .topbar-text{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .topbar-in{gap:8px 12px;min-height:52px}
@@ -272,20 +311,21 @@ a.rating-badge:hover{border-color:var(--g-600);color:#fff}
 /* ---------- banners: the home slider and the offer pop-up (Admin -> Banners) ---------- */
 .bn-band{padding-block:clamp(14px,2.2vw,24px) 0;background:#000}
 .bn{position:relative}
-.bn-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;border-radius:var(--r);border:1px solid rgba(255,255,255,.1)}
+.bn-track{display:flex;align-items:stretch;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;border-radius:22px;border:1px solid rgba(255,255,255,.1)}
 .bn-track::-webkit-scrollbar{display:none}
-.bn-ctrl{display:flex;align-items:center;justify-content:center;gap:10px;padding-top:12px}
+/* the slider's controls: a slim row under it, the slides as short bars on the left and small buttons on the right */
+.bn-ctrl{display:flex;align-items:center;gap:6px;padding-top:10px}
 .bn-ctrl[hidden]{display:none}
-.bn-btn{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:transparent;color:#fff;cursor:pointer}
+.bn-btn{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:transparent;color:#e5e5e5;cursor:pointer}
 .bn-btn:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.5)}
-.bn-btn .icon{width:1.15em;height:1.15em}
+.bn-btn .icon{width:1em;height:1em}
 .bn-prev .icon{transform:scaleX(-1)}
 .bn-toggle .icon+.icon,.bn-toggle.is-paused .icon:first-child{display:none}
 .bn-toggle.is-paused .icon+.icon{display:block}
-.bn-dots{display:flex;gap:2px}
-.bn-dots button{position:relative;width:24px;height:24px;padding:0;border:0;background:none;cursor:pointer}
-.bn-dots button::before{content:"";position:absolute;inset:7px;border-radius:50%;background:rgba(255,255,255,.4);transition:background .2s,transform .2s}
-.bn-dots button[aria-current=true]::before{background:var(--g-400);transform:scale(1.3)}
+.bn-dots{display:flex;gap:2px;margin-inline-end:auto}
+.bn-dots button{position:relative;width:32px;height:24px;padding:0;border:0;background:none;cursor:pointer}
+.bn-dots button::before{content:"";position:absolute;left:4px;right:4px;top:10px;height:4px;border-radius:999px;background:rgba(255,255,255,.4);transition:background .25s}
+.bn-dots button[aria-current=true]::before{background:var(--o-500)}
 .hero.has-banners .hero-grid{padding-block:clamp(28px,5vw,56px)}
 .hero.has-banners h1{font-size:clamp(1.7rem,4.6vw,2.8rem)}
 .offer{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.72);overflow:auto}
@@ -308,7 +348,9 @@ html.offer-open{overflow:hidden}
 .faq-item[open]{border-color:rgba(255,87,34,.5)}
 .faq-item>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:58px;padding:.95rem 1.25rem;cursor:pointer;font-weight:700;font-size:1.03rem;line-height:1.5;color:#fff;border-radius:var(--r);transition:background .3s}
 .faq-item>summary::-webkit-details-marker{display:none}
-.faq-item>summary::after{content:"";flex:none;width:.62em;height:.62em;margin-top:-.25em;border:solid var(--o-500);border-width:0 2.5px 2.5px 0;transform:rotate(45deg);transition:transform .45s var(--ease),margin .45s var(--ease)}
+.faq-item>summary{justify-content:flex-start}
+.faq-item>summary::before{content:"?" / "";flex:none;display:grid;place-items:center;width:1.75em;height:1.75em;border:2px solid var(--o-500);border-radius:50%;color:var(--o-500);font-size:.82rem;font-weight:700;line-height:1}
+.faq-item>summary::after{content:"";flex:none;width:.62em;height:.62em;margin-top:-.25em;margin-inline-start:auto;border:solid var(--o-500);border-width:0 2.5px 2.5px 0;transform:rotate(45deg);transition:transform .45s var(--ease),margin .45s var(--ease)}
 .faq-item[open]>summary::after{transform:rotate(225deg);margin-top:.25em}
 .faq-item>summary:hover{background:rgba(255,255,255,.03)}
 .faq-item[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0}

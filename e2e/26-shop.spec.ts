@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { adminLogin, agree, uniquePhone, useLang } from "./helpers";
 
 /*
- * The tools shop, end to end on a fresh local database: the owner opens it (delivery charges, a category, a product with two weights and
+ * The Equipment Shop, end to end on a fresh local database: the owner opens it (delivery charges, a category, a product with two weights and
  * their usual prices), a visitor finds it, chooses a weight, keeps it on the wishlist, adds it to the cart and orders it to a village in
  * Comilla with cash on delivery, staff take the order from "new" to "delivered", the buyer's review shows as a verified buyer's once
  * approved — and the pages read in Bangla on a 360 px phone and pass the accessibility scan. Nothing leaves this machine.
@@ -44,9 +44,14 @@ async function setShopOpen(on: boolean) {
   else await expect(sw).not.toBeChecked();
 }
 
-test("while the shop is closed its pages are not there", async ({ request }) => {
-  expect((await request.get("/shop")).status()).toBe(404);
-  expect((await request.get("/en/shop")).status()).toBe(404);
+test("while the shop is closed, its menu link only says it opens soon", async ({ request }) => {
+  for (const [path, words] of [["/shop", "শীঘ্রই আসছে"], ["/en/shop", "Opening soon"]]) {
+    const res = await request.get(path);
+    expect(res.status(), path).toBe(200);
+    const html = await res.text();
+    expect(html, path).toContain(words);
+    expect(html, path).not.toContain('class="pcard"');
+  }
 });
 
 test("the owner opens the shop: delivery charges, a category, and a product with two weights and their usual prices", async () => {
@@ -106,7 +111,8 @@ test("a visitor finds it, chooses a weight, keeps it on the wishlist and adds tw
   await useLang(ctx, "en");
   const page = await ctx.newPage();
   await page.goto("/en/shop");
-  await expect(page.getByRole("heading", { level: 1, name: "Tools shop" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Equipment Shop" })).toBeVisible();
+  await expect(page.locator(".shop-count")).toHaveText(/^Showing (the single result|all \d+ results)$/); // a retry may have added one
   const card = page.locator("article.pcard", { hasText: PRODUCT });
   await expect(card).toContainText("From ৳450");
   await expect(card.locator(".off-badge")).toHaveText("−10%");
@@ -254,7 +260,7 @@ test("in Bangla on a 360 px phone the shop, the product page and the checkout fi
   await useLang(ctx, "bn");
   const page = await ctx.newPage();
   await page.goto("/shop");
-  await expect(page.getByRole("heading", { level: 1, name: "টুলস শপ" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "ইকুইপমেন্ট শপ" })).toBeVisible();
   await expect(page.locator("article.pcard", { hasText: PRODUCT_BN })).toContainText("শুরু ৳৪৫০");
   expect(await noSideScroll(page)).toBe(true);
   await axe(page);
@@ -282,7 +288,7 @@ test("closed again, the shop's pages are gone and nothing more can be ordered", 
   await setShopOpen(false);
   await admin.getByRole("button", { name: "Save" }).click();
   await expect(admin.getByText("Saved.")).toBeVisible();
-  expect((await request.get("/shop")).status()).toBe(404);
+  expect(await (await request.get("/shop")).text()).toContain("শীঘ্রই আসছে");
   expect((await request.get(productUrl)).status()).toBe(404);
   const cfg = await (await request.get("/api/shop/config")).json();
   expect(cfg.open).toBe(false);

@@ -7,8 +7,9 @@ import { adminLogin, agree, apiGet, apiSend, TEST_ADDRESS, uniquePhone, useLang 
  * top in both languages, press its Join button, and see the bar go away at the end. The look is flat and still: no glow, pulse or
  * bounce anywhere. For visitors who have not asked for less motion, sections, headings and cards rise 20px and fade in as they come into
  * view (Framer Motion), and a card lifts under the pointer with an orange edge; once everything is in, the page passes the accessibility
- * scan. The class slider moves with its arrows and a mouse drag, and a drag opens nothing. The Messenger button floats with WhatsApp. A
- * paid order gets its check mark and confetti, and in My Learning the class's card rises in (Framer Motion).
+ * scan. The class slider moves with its arrows and a mouse drag, and a drag opens nothing. The Messenger button floats with WhatsApp, and
+ * a "back to the top" button above it appears down the page. A paid order gets its check mark and confetti, and in My Learning the class's
+ * card rises in (Framer Motion).
  * The other specs run with reduced motion (playwright.config.ts); these turn it on where they need it. Runs after the admin spec (the owner exists).
  */
 test.describe.configure({ mode: "serial" });
@@ -209,6 +210,37 @@ test("the Messenger button floats with WhatsApp once the Facebook page is set, i
   await expect(page.getByRole("link", { name: "Chat on WhatsApp" }).last()).toBeVisible();
   await page.goto("/");
   await expect(page.getByRole("link", { name: "মেসেঞ্জারে কথা বলুন" })).toBeVisible();
+  await ctx.close();
+});
+
+test("the back-to-the-top button appears once the visitor is well down the page and takes them back up, and the focus too from the keyboard", async ({ browser }) => {
+  await apiSend(admin, "PUT", "/admin/settings/contact", { ...contact, whatsapp: "01711000000" });
+  const ctx = await browser.newContext({ locale: "bn-BD", viewport: { width: 390, height: 844 } });
+  await useLang(ctx, "bn");
+  await offerAnswered(ctx);
+  const page = await ctx.newPage();
+  await page.goto("/");
+  const toTop = page.getByRole("link", { name: "উপরে ফিরে যান" });
+  await expect(toTop).toBeHidden(); // at the top of the page there is nothing to go back to
+  const down = () => page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const scrolled = () => page.evaluate(() => Math.round(window.scrollY));
+  await down();
+  await expect(toTop).toBeVisible();
+  // it floats above WhatsApp, in the same column
+  const [a, b] = await Promise.all([toTop.boundingBox(), page.locator(".fab-wa").boundingBox()]);
+  expect(a!.y + a!.height).toBeLessThan(b!.y);
+  expect(Math.abs(a!.x + a!.width / 2 - (b!.x + b!.width / 2))).toBeLessThan(2);
+  await toTop.click();
+  await expect.poll(scrolled).toBe(0);
+  await expect(toTop).toBeHidden();
+  await expect(page).toHaveURL(/\/$/); // no "#top" left in the address
+  // from the keyboard, the focus goes back up too: the next Tab starts at the top of the page
+  await down();
+  await expect(toTop).toBeVisible();
+  await toTop.focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(scrolled).toBe(0);
+  await expect(page.locator(".site-header .brand")).toBeFocused();
   await ctx.close();
 });
 

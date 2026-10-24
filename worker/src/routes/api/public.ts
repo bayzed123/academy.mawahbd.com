@@ -6,7 +6,7 @@ import { driveMedia } from "../../lib/drive";
 import { HttpError, intParam, notFound, ok, parseBody, parseQuery } from "../../lib/http";
 import { contactAckMail, sendMail } from "../../lib/mailer";
 import { emailSchema, langSchema, nameSchema, phoneSchema, textSchema, turnstileField } from "../../lib/schemas";
-import { getSettings } from "../../lib/settings";
+import { getSettings, menuShop, type Settings } from "../../lib/settings";
 import { turnstileEnabled, verifyTurnstile } from "../../lib/turnstile";
 import { loadStudent } from "../../middleware/auth";
 import { notices, notifyOwner } from "../../services/notify";
@@ -18,6 +18,12 @@ export const publicRoutes = new Hono<AppEnv>();
 
 const cacheable = (c: Context<AppEnv>, seconds = 60) => c.header("Cache-Control", `public, max-age=${seconds}, s-maxage=${seconds * 2}`);
 
+const shopLink = (s: Settings) => {
+  const to = menuShop(s);
+  if (!to) return null;
+  return to.own ? { url: "/shop", label_bn: "ইকুইপমেন্ট শপ", label_en: "Equipment Shop", internal: true } : { url: to.url, label_bn: s.shop.label_bn, label_en: s.shop.label_en };
+};
+
 /** Non-sensitive site configuration for the React apps (contact channels, announcement, feature switches). */
 publicRoutes.get("/site", async (c) => {
   const s = await getSettings(c.env);
@@ -26,12 +32,8 @@ publicRoutes.get("/site", async (c) => {
     site: {
       contact: { whatsapp: s.contact.whatsapp, phone: s.contact.phone, email: s.contact.email, facebook: s.contact.facebook },
       announcement: s.announcement,
-      // the tools shop here once it is open; otherwise the owner's other shop — null when that link is switched off or has no address
-      shop: s.store.enabled
-        ? { url: "/shop", label_bn: "টুলস শপ", label_en: "Tools shop", internal: true }
-        : s.shop.enabled && /^https?:\/\//i.test(s.shop.url)
-          ? { url: s.shop.url, label_bn: s.shop.label_bn, label_en: s.shop.label_en }
-          : null,
+      // the menus' Shop item (menuShop): the Equipment Shop here, or the owner's other shop — null when the item is switched off
+      shop: shopLink(s),
       chat_enabled: s.chatbot.enabled,
       greeting: { bn: s.chatbot.greeting_bn, en: s.chatbot.greeting_en },
       turnstile_site_key: turnstileEnabled(c.env) ? c.env.TURNSTILE_SITE_KEY : "",

@@ -160,6 +160,11 @@ test("the dark look is flat: one solid page colour, no radial gradients, pattern
     assert.ok(rule, `${sel} is styled`);
     assert.match(rule[1], /background:#000[;}]?/, `${sel} is flat black`);
   }
+  // a banner with no design chosen is the same flat dark grey (banners.css comes after dark.css, so it must say so itself): no glow, no pattern
+  const banners = read("shared/styles/banners.css");
+  assert.match(banners, /\.bn-slide,\.bn-t-dark\{--bn-bg:#121212;--bn-glow:transparent;/);
+  assert.match(banners, /\.bn-slide\{[^}]*background:#121212/);
+  assert.match(banners, /\.bn-plain\{background:var\(--bn-bg\)\}/);
   // no floating decoration in the hero, no pulsing or bouncing
   assert.doesNotMatch(read("worker/src/views/pages/home.tsx"), /hero-fx/);
   for (const file of DARK_SHEETS) assert.doesNotMatch(read(file), /hero-fx|@keyframes (?:cta-|pulse-|fab-bounce|drift|float|badge-float)/, file);
@@ -190,6 +195,34 @@ test("the dark look has no brown: its greys are true greys, and none of its styl
   // the check itself tells brown from orange
   assert.ok(brownish("#1b1512") && brownish("#2a1d16") && brownish("#e9e4e0") && brownish("#593e0b"));
   assert.ok(!brownish("#ff5722") && !brownish("#ff6b00") && !brownish("#151515") && !brownish("#ffa47a"));
+});
+
+/*
+ * The owner's fourth round (the CraftSkills reference): a few parts of the home page sit on a light section, for a light and dark rhythm.
+ * The light is a true grey (no cream), and its dark words and its deeper orange keep AA contrast on it and on its white cards.
+ */
+test("the light sections: a true light grey with white cards, dark words and a deeper orange that keep AA contrast", () => {
+  const site = read("marketing/site.css");
+  const rule = /(?:^|\n)\.band-light\{([^}]*)\}/.exec(site);
+  assert.ok(rule, ".band-light is styled");
+  const vars = Object.fromEntries([...rule[1].matchAll(/--([a-z0-9-]+):(#[0-9a-f]{6}|#[0-9a-f]{3})\b/gi)].map(([, name, hex]) => [name, full(hex)]));
+  const bg = full(/background:(#[0-9a-f]{6}|#[0-9a-f]{3})\b/.exec(rule[1])[1]);
+  assert.equal(bg, "#f5f5f5");
+  assert.equal(vars.card, "#ffffff", "white cards");
+  assert.match(rule[1], /--focus:var\(--red-900\)/, "a focus ring that shows on light");
+  const accent = dark["red-900"]; // the deeper orange of the light sections' words and links
+  const failures = [];
+  for (const surface of [bg, vars.card]) {
+    for (const [name, hex] of [["ink", vars.ink], ["ink-2", vars["ink-2"]], ["ink-3", vars["ink-3"]], ["heading", vars.heading], ["red-900", accent]]) {
+      assert.ok(hex, `--${name} is set`);
+      const r = ratio(hex, surface);
+      if (r < 4.5) failures.push(`${name} ${hex} on ${surface}: ${r.toFixed(2)} < 4.5`);
+    }
+  }
+  assert.deepEqual(failures, []);
+  // the page's orange would be too pale there (under 3:1), so their orange words are the deeper one
+  assert.ok(ratio(dark["o-500"], bg) < 3);
+  assert.match(site, /\.band-light a,\.band-light \.hl\{color:var\(--red-900\)\}/);
 });
 
 function* files(dir, exts) {

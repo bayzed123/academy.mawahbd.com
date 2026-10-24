@@ -240,9 +240,9 @@ export function Settings() {
                     <Switch checked={v.enabled} disabled={!canWrite} onChange={(x) => set({ enabled: x })} label={t("adm.shop.enabled")} />
                   </div>
                   <Field id="sh-url" label={t("adm.shop.url")} hint={t("adm.shop.urlHint")} error={e.url} wide>
-                    <TextInput id="sh-url" inputMode="url" placeholder="https://mawahbd.com" value={v.url} error={e.url} disabled={!canWrite} onChange={(x) => set({ url: x.target.value.trim() })} />
+                    <TextInput id="sh-url" inputMode="url" placeholder="https://…" value={v.url} error={e.url} disabled={!canWrite} onChange={(x) => set({ url: x.target.value.trim() })} />
                   </Field>
-                  <Field id="sh-bn" label={t("adm.shop.labelBn")} error={e.label_bn}>
+                  <Field id="sh-bn" label={t("adm.shop.labelBn")} hint={t("adm.shop.labelHint")} error={e.label_bn}>
                     <TextInput id="sh-bn" value={v.label_bn} maxLength={24} error={e.label_bn} disabled={!canWrite} onChange={(x) => set({ label_bn: x.target.value })} />
                   </Field>
                   <Field id="sh-en" label={t("adm.shop.labelEn")} error={e.label_en}>

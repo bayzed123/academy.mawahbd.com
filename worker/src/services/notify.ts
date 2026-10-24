@@ -31,7 +31,7 @@ const TITLE: Record<NotifyKind, { en: string; bn: string }> = {
   group_request: { en: "Someone asked to join a private group", bn: "কেউ প্রাইভেট গ্রুপে যোগ দিতে চেয়েছেন" },
   notify_me: { en: "Someone is waiting for a class to open", bn: "কেউ একটি ক্লাস চালুর অপেক্ষায় আছেন" },
   newsletter: { en: "A new newsletter subscriber", bn: "নিউজলেটারে নতুন সাবস্ক্রাইবার" },
-  shop_order: { en: "New order in the tools shop", bn: "টুলস শপে নতুন অর্ডার" },
+  shop_order: { en: "New order in the Equipment Shop", bn: "ইকুইপমেন্ট শপে নতুন অর্ডার" },
   shop_review: { en: "A product review is waiting for your approval", bn: "একটি পণ্যের রিভিউ আপনার অনুমোদনের অপেক্ষায়" },
 };
 

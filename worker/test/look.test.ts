@@ -167,3 +167,35 @@ describe("the class page's and the documents' own styles", () => {
     }
   });
 });
+
+describe("the home page, after the owner's CraftSkills reference", () => {
+  it("draws the key words of its headings in orange, and sets 'why learn with us' and 'how it works' in light sections, in both languages", async () => {
+    const en = await body("/en");
+    expect(en).toContain('<h1>Learn <span class="hl">cooking &amp; baking</span> step by step, from home.</h1>');
+    const why = /<section class="section band-light" id="why">([\s\S]*?)<\/section>/.exec(en);
+    expect(why, "'why learn with us' is a light section").not.toBeNull();
+    expect(why![1]).toContain('<h2>Why learn with <span class="hl">MAWAH</span></h2>');
+    expect(why![1].match(/<div class="trust-item"><span class="trust-ico">/g)).toHaveLength(4);
+    expect(why![1]).toContain("<h3>Verified certificate</h3>"); // under the section's heading, not beside it
+    expect(en).toContain('<h2>Our <span class="hl">classes</span></h2>');
+    expect(en).toContain('<section class="section band-light"><div class="wrap"><header class="sec-head center"><h2>How <span class="hl">it works</span></h2>');
+    expect(en).toContain('<h2 id="faq-h">Questions <span class="hl">before you join</span></h2>');
+
+    const bn = await body("/");
+    expect(bn).toContain('<h1>ঘরে বসেই ধাপে ধাপে শিখুন <span class="hl">রান্না ও বেকিং</span>।</h1>');
+    expect(bn).toContain('<h2>কেন <span class="hl">মাওয়াহ একাডেমিতে</span> শিখবেন</h2>');
+    expect(bn).toContain('<h2>আমাদের <span class="hl">ক্লাসসমূহ</span></h2>');
+    // a heading with no words to colour stays one plain heading (an instructor's page)
+    const chef = await env.DB.prepare("SELECT slug FROM instructors WHERE active = 1 AND deleted_at IS NULL ORDER BY id LIMIT 1").first<{ slug: string }>();
+    const page = await body(`/en/instructors/${chef!.slug}`);
+    expect(page).toContain('<header class="sec-head"><h2>Classes by ');
+    expect(page).not.toContain('class="hl"');
+  });
+
+  it("has a 'back to the top' button above WhatsApp on every page, in both languages", async () => {
+    for (const path of ["/en", "/en/courses", "/en/faq"]) {
+      expect(await body(path), path).toContain('<div class="floats"><a class="fab fab-top" href="#top" data-to-top="true" aria-label="Back to the top" title="Back to the top">');
+    }
+    expect(await body("/")).toContain('<a class="fab fab-top" href="#top" data-to-top="true" aria-label="উপরে ফিরে যান" title="উপরে ফিরে যান">');
+  });
+});

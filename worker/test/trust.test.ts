@@ -190,45 +190,57 @@ describe("what students say about an instructor", () => {
 });
 
 describe("shop link", () => {
-  const shopLinks = (html: string) => (html.match(/href="https:\/\/mawahbd\.com"[^>]*>/g) ?? []).length;
+  const ownLinks = (html: string) => (html.match(/href="\/en\/shop"/g) ?? []).length;
+  const otherLinks = (html: string) => (html.match(/href="https:\/\/mawahbd\.com"[^>]*>/g) ?? []).length;
 
-  it("is in the menu, the mobile menu, the footer, the class list and the home page — opening a new tab safely", async () => {
+  it("is the Equipment Shop on this website: in the menu, the mobile menu, the footer, the class list and the home page", async () => {
     const home = await text(await new Client().get("/en"));
-    expect(shopLinks(home)).toBeGreaterThanOrEqual(4); // header, mobile menu, footer, home tile
-    expect(home).toContain('target="_blank"');
-    expect(home).toMatch(/href="https:\/\/mawahbd\.com"[^>]*rel="noopener noreferrer"|rel="noopener noreferrer"[^>]*href="https:\/\/mawahbd\.com"/);
-    expect(home).toContain("opens in a new tab");
-    expect(home).toContain("mawahbd.com"); // the tile says where it goes
+    expect(ownLinks(home)).toBeGreaterThanOrEqual(4); // header, mobile menu, footer, home tile
+    expect(home).toContain("Equipment Shop");
+    expect(otherLinks(home)).toBe(0); // no other shop unless the owner gives its address
+    expect(home).not.toContain('data-shop=""'); // the mark of a link that leaves the site
 
     const list = await text(await new Client().get("/en/courses"));
     expect(list).toContain('class="pill pill-shop"');
-    expect(shopLinks(list)).toBeGreaterThanOrEqual(4);
+    expect(ownLinks(list)).toBeGreaterThanOrEqual(4);
 
-    const bn = await text(await new Client().get("/"));
-    expect(bn).toContain("দোকান");
+    expect(await text(await new Client().get("/"))).toContain("ইকুইপমেন্ট শপ");
+    expect((await json(await new Client().get("/api/site"))).site.shop).toEqual({ url: "/shop", label_bn: "ইকুইপমেন্ট শপ", label_en: "Equipment Shop", internal: true });
+    // the shop is not open yet (Admin → Shop): its page says it opens soon, and nothing else
+    const soon = await new Client().get("/en/shop");
+    expect(soon.status).toBe(200);
+    expect(await soon.text()).toContain("Opening soon");
   });
 
-  it("the owner can rename it or switch it off, and a bad address is refused", async () => {
+  it("the owner can send it to another shop of theirs (a new tab, safely), name that, or switch it off; a bad address is refused", async () => {
     const admin = (await loginStaff("super_admin")).client;
     const current = (await json(await admin.get("/api/admin/settings"))).settings.shop;
-    expect(current).toMatchObject({ enabled: true, url: "https://mawahbd.com" });
+    expect(current).toMatchObject({ enabled: true, url: "" });
     try {
       expect((await admin.put("/api/admin/settings/shop", { ...current, url: "javascript:alert(1)" })).status).toBe(422);
       expect((await admin.put("/api/admin/settings/shop", { ...current, url: "mawahbd.com" })).status).toBe(422); // must be a full https:// address
 
-      expect((await admin.put("/api/admin/settings/shop", { ...current, label_en: "Our Store" })).status).toBe(200);
-      expect(await text(await new Client().get("/en"))).toContain("Our Store");
+      expect((await admin.put("/api/admin/settings/shop", { ...current, url: "https://mawahbd.com", label_en: "Our Store" })).status).toBe(200);
+      const home = await text(await new Client().get("/en"));
+      expect(otherLinks(home)).toBeGreaterThanOrEqual(4);
+      expect(home).toContain('target="_blank"');
+      expect(home).toMatch(/href="https:\/\/mawahbd\.com"[^>]*rel="noopener noreferrer"|rel="noopener noreferrer"[^>]*href="https:\/\/mawahbd\.com"/);
+      expect(home).toContain("opens in a new tab");
+      expect(home).toContain("mawahbd.com"); // the tile says where it goes
+      expect(home).toContain("Our Store");
+      expect(ownLinks(home)).toBe(0);
       expect((await json(await new Client().get("/api/site"))).site.shop).toEqual({ url: "https://mawahbd.com", label_bn: current.label_bn, label_en: "Our Store" });
+      expect((await new Client().get("/en/shop")).status).toBe(404); // the menus no longer lead to the closed shop here
 
       expect((await admin.put("/api/admin/settings/shop", { ...current, enabled: false })).status).toBe(200);
       const off = await text(await new Client().get("/en"));
-      expect(shopLinks(off)).toBe(0);
+      expect(otherLinks(off) + ownLinks(off)).toBe(0);
       expect(off).not.toContain('class="tile tile-shop"');
       expect((await json(await new Client().get("/api/site"))).site.shop).toBeNull();
     } finally {
       await admin.put("/api/admin/settings/shop", current);
     }
-    expect(shopLinks(await text(await new Client().get("/en")))).toBeGreaterThanOrEqual(4);
+    expect(ownLinks(await text(await new Client().get("/en")))).toBeGreaterThanOrEqual(4);
   });
 
   it("only staff who may change settings can edit it", async () => {

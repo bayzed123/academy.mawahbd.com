@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminLogin, apiGet, apiPost, PNG, useLang } from "./helpers";
+import { adminLogin, apiGet, apiPost, drawWholePage, PNG, useLang } from "./helpers";
 
 /*
  * Admin → Banners. The owner could not upload a hero banner, a slider or an offer pop-up and give its button a link — there was
@@ -88,6 +88,11 @@ test("a visitor sees the slider: arrows, dots and a pause button work, nothing m
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); // the page keeps its own headline
   await expect(slider.getByText("Eid offer: save on every class")).toBeVisible();
   await expect(slider.getByRole("link", { name: "See the classes" })).toHaveAttribute("href", "/en/courses/beginners-baking-class");
+  // the picture (a square one here) fills the slide's wide 8:3 frame, and its words sit under it, never over it
+  const frame = (await slider.locator(".bn-cap .bn-media").first().boundingBox())!;
+  expect(Math.abs(frame.width / frame.height - 8 / 3)).toBeLessThan(0.02);
+  const words = (await slider.getByText("Eid offer: save on every class").boundingBox())!;
+  expect(words.y).toBeGreaterThanOrEqual(frame.y + frame.height);
 
   const dots = slider.getByRole("button", { name: /^Show banner/ });
   await expect(dots).toHaveCount(2);
@@ -187,6 +192,7 @@ test("the offer pop-up passes the accessibility audit while open and keeps a pho
   await page.goto("/en");
   const offer = page.getByRole("dialog", { name: "Special offer" });
   await expect(offer).toBeVisible({ timeout: 6000 });
+  await drawWholePage(page); // the pop-up holds the page still, so the scan cannot scroll through it first
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(axe.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
   await offer.getByRole("button", { name: "No, thanks" }).click();

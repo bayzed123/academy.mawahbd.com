@@ -223,4 +223,24 @@ import { inView, stagger } from "framer-motion/dom";
     track.addEventListener("click", function (e) { if (swallow) { e.preventDefault(); e.stopPropagation(); } }, true);
     track.addEventListener("dragstart", function (e) { e.preventDefault(); });
   });
+
+  /* 9. "back to the top": the round button above WhatsApp appears once the visitor is a screen and a half down the page, and takes them
+     back up (smoothly, unless they asked for less motion). From the keyboard, the focus goes back to the top too. */
+  var toTop = $("[data-to-top]");
+  if (toTop) {
+    var shown = false, ticking = false;
+    var place = function () {
+      ticking = false;
+      var on = (window.scrollY || d.documentElement.scrollTop) > (window.innerHeight || 800) * 1.5;
+      if (on !== shown) { shown = on; toTop.classList.toggle("on", on); }
+    };
+    window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(place); } }, { passive: true });
+    place();
+    toTop.addEventListener("click", function (e) {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: still ? "auto" : "smooth" });
+      var home = e.detail === 0 && $(".site-header .brand"); // a key press, not a click
+      if (home) home.focus({ preventScroll: true });
+    });
+  }
 })();

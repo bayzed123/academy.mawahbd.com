@@ -1,24 +1,27 @@
 /* MAWAH Academy — how a banner looks: the slide of the home-page slider and the card of the offer pop-up (Admin -> Banners).
    Shared by the public site (scripts/build-marketing.mjs adds it to the inlined stylesheet) and by the admin's live preview, so what the
-   owner sees while editing is what visitors get. A banner with no design chosen keeps the dark look it always had.
+   owner sees while editing is what visitors get. A banner with no design chosen has the site's look: flat dark grey, no glow or pattern.
    The slider's own parts (track, arrows, dots) and the pop-up's overlay live in marketing/site.css. */
 
 /* ------------------------------------------------------------------------------------------------ colour themes
-   Variables only: every part of a banner reads them. `dark` is also what a banner without a theme gets. */
-.bn-slide,.bn-t-dark{--bn-bg:linear-gradient(135deg,#1c0b0c,#070304 72%);--bn-glow:rgba(219,23,24,.55);--bn-ink:#fff;--bn-ink2:#eadfd2;--bn-a:var(--g-300);--bn-shade:7,3,4;--bn-s1:.86;--bn-s2:.58;--focus:var(--g-300)}
+   Variables only: every part of a banner reads them. `dark` is also what a banner without a theme gets: the site's own flat dark grey
+   with orange (the ruby, gold and ivory designs are the owner's own choice and keep their colours). */
+.bn-slide,.bn-t-dark{--bn-bg:#121212;--bn-glow:transparent;--bn-ink:#fff;--bn-ink2:#d4d4d4;--bn-a:#ff7b45;--bn-shade:0,0,0;--bn-s1:.86;--bn-s2:.58;--focus:#ff7b45}
 .bn-t-ruby{--bn-bg:linear-gradient(135deg,#e01c1d,#7a090c 82%);--bn-glow:rgba(255,205,120,.42);--bn-ink:#fff;--bn-ink2:#ffe9e4;--bn-a:#fbeeb1;--bn-shade:122,9,12;--bn-s1:.9;--bn-s2:.66;--focus:#fbeeb1}
 .bn-t-gold{--bn-bg:linear-gradient(135deg,#efe38f,#b9a43e 78%);--bn-glow:rgba(255,255,255,.5);--bn-ink:#1b1213;--bn-ink2:#3b2c14;--bn-a:#7d0a0d;--bn-shade:222,206,100;--bn-s1:.92;--bn-s2:.7;--focus:var(--k-900)}
 .bn-t-ivory{--bn-bg:linear-gradient(135deg,#fffdf8,#f1e7d0 78%);--bn-glow:rgba(219,23,24,.16);--bn-ink:#1b1213;--bn-ink2:#4a3d3e;--bn-a:#a31214;--bn-shade:255,251,242;--bn-s1:.94;--bn-s2:.72;--focus:var(--red-700)}
 
 /* ------------------------------------------------------------------------------------------------ the slide */
-.bn-slide{position:relative;flex:0 0 100%;scroll-snap-align:start;aspect-ratio:8/3;overflow:hidden;background:#110809;color:var(--bn-ink)}
+.bn-slide{position:relative;flex:0 0 100%;scroll-snap-align:start;overflow:hidden;background:#121212;color:var(--bn-ink)}
+.bn-plain{aspect-ratio:8/3}
 .bn-media,.bn-media picture,.bn-media img{display:block;width:100%;height:100%}
 .bn-media img{object-fit:cover}
 .bn-f-top .bn-media img,.bn-f-top .offer-media img{object-position:center top}
 .bn-f-bottom .bn-media img,.bn-f-bottom .offer-media img{object-position:center bottom}
-/* no picture: the theme's colour with a soft glow, the brand's pattern and a fine frame */
-.bn-plain{background:radial-gradient(520px 320px at 85% 8%,var(--bn-glow),transparent 65%),var(--bn-bg)}
-.bn-plain::before{content:"";position:absolute;inset:0;background:var(--pattern) center/60px 60px;opacity:.07;pointer-events:none}
+/* no picture: the design's colour and a fine frame — and, for the owner's ruby, gold and ivory designs, their soft glow and the pattern */
+.bn-plain{background:var(--bn-bg)}
+.bn-plain:is(.bn-t-ruby,.bn-t-gold,.bn-t-ivory){background:radial-gradient(520px 320px at 85% 8%,var(--bn-glow),transparent 65%),var(--bn-bg)}
+.bn-plain:is(.bn-t-ruby,.bn-t-gold,.bn-t-ivory)::before{content:"";position:absolute;inset:0;background:var(--pattern) center/60px 60px;opacity:.07;pointer-events:none}
 .bn-plain::after{content:"";position:absolute;inset:10px;border:1px solid color-mix(in srgb,var(--bn-a) 42%,transparent);border-radius:12px;pointer-events:none}
 /* the large line drawing of a banner with no picture (one of the class icons) */
 .bn-art{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-inline-end:clamp(18px,7vw,110px);color:var(--bn-a);pointer-events:none}
@@ -27,6 +30,18 @@
 .bn-copy{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:.55rem;padding:clamp(16px,4vw,56px);padding-inline-end:36%;color:var(--bn-ink);background:linear-gradient(90deg,rgba(var(--bn-shade),var(--bn-s1)) 0%,rgba(var(--bn-shade),var(--bn-s2)) 50%,transparent 84%);pointer-events:none}
 .bn-plain:is(.bn-t-ruby,.bn-t-gold,.bn-t-ivory) .bn-copy{background:none}
 .bn-copy .btn{pointer-events:auto;margin-top:.3rem}
+.bn-words{display:grid;gap:.55rem;justify-items:inherit;min-width:0}
+/* a slide with a picture: the picture whole and clean, in the shape it was made for (1600 × 600), and its words and button in a caption
+   underneath, in the design's colour — never drawn over the picture, which often carries its own words */
+.bn-cap{display:flex;flex-direction:column}
+/* the frame keeps its shape whatever the picture's own: the picture fills it from inside and cannot push it taller */
+.bn-cap .bn-media{position:relative;flex:none;aspect-ratio:8/3;height:auto;overflow:hidden}
+.bn-cap .bn-media picture,.bn-cap .bn-media img{position:absolute;inset:0}
+.bn-cap .bn-copy{position:relative;inset:auto;flex:1;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 28px;padding:16px clamp(16px,2.4vw,30px);padding-inline-end:clamp(16px,2.4vw,30px);background:var(--bn-bg);border-top:1px solid rgba(255,255,255,.08);pointer-events:auto}
+.bn-cap .bn-words{gap:.25rem;flex:1 1 320px}
+.bn-cap .bn-title{font-size:clamp(1.1rem,1.9vw,1.5rem)}
+.bn-cap .bn-text{font-size:clamp(.92rem,1.3vw,1.02rem)}
+.bn-cap .bn-copy .btn{margin:0}
 .bn-kicker{margin:0;font-size:.82rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--bn-a)}
 html[lang=bn] .bn-kicker{font-size:.95rem;letter-spacing:0;text-transform:none}
 .bn-title{margin:0;font-family:var(--font-display);font-weight:600;font-size:clamp(1.3rem,3.6vw,2.6rem);line-height:1.15;color:var(--bn-ink)}
@@ -40,6 +55,7 @@ html[lang=bn] .bn-title{line-height:1.35}
 
 /* layout: the words in the middle, over a large faint drawing */
 .bn-l-center .bn-copy{align-items:center;text-align:center;padding-inline:clamp(16px,14vw,180px);background:radial-gradient(ellipse at 50% 50%,rgba(var(--bn-shade),var(--bn-s1)),rgba(var(--bn-shade),var(--bn-s2)) 62%,transparent 100%)}
+.bn-l-center.bn-cap .bn-copy{flex-direction:column;justify-content:center;padding-inline:clamp(16px,6vw,80px);background:var(--bn-bg)}
 .bn-plain.bn-l-center .bn-copy{background:none}
 .bn-l-center .bn-art{justify-content:center;padding:0}
 .bn-l-center .bn-art .icon{height:150%;opacity:.13;stroke-width:.8;filter:none}
@@ -51,14 +67,22 @@ html[lang=bn] .bn-title{line-height:1.35}
   .bn-l-split .bn-media,.bn-l-split .bn-art{position:relative;inset:auto;grid-area:1/2}
   .bn-l-split .bn-art{justify-content:center;padding:0;background:radial-gradient(circle at 50% 50%,rgba(255,255,255,.1),transparent 62%)}
   .bn-l-split .bn-art .icon{height:min(80%,270px)}
+  /* a picture beside its words: the slide keeps the wide shape, the picture fills its half */
+  .bn-l-split.bn-cap{display:grid;aspect-ratio:8/3}
+  .bn-l-split.bn-cap .bn-copy{flex-direction:column;flex-wrap:nowrap;align-items:flex-start;justify-content:center;border-top:0}
+  .bn-l-split.bn-cap .bn-media{aspect-ratio:auto;height:100%}
 }
 
 /* phones: every layout puts the picture (or the drawing) first and the words at the bottom over it */
 @media (max-width:720px){
-  .bn-slide{aspect-ratio:5/4}
+  .bn-plain{aspect-ratio:5/4}
+  /* a phone: the wide picture whole, or the phone picture in 4:3; the caption's words above its button */
+  .bn-cap.bn-mob .bn-media{aspect-ratio:4/3}
+  .bn-cap .bn-copy{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:12px;padding:14px 16px 16px}
+  .bn-cap .bn-words{flex:none}
   .bn-copy{justify-content:flex-end;padding:16px;padding-inline-end:16px;background:linear-gradient(0deg,rgba(var(--bn-shade),.9) 0%,rgba(var(--bn-shade),.35) 55%,transparent 85%)}
   .bn-plain .bn-copy,.bn-plain.bn-l-center .bn-copy{background:none}
-  .bn-l-center .bn-copy{align-items:center;text-align:center;padding-inline:16px}
+  .bn-l-center .bn-copy,.bn-l-center.bn-cap .bn-copy{align-items:center;text-align:center;padding-inline:16px}
   /* the drawing stays behind the words, faint, so it can never hide them */
   .bn-art{justify-content:flex-end;padding:0 4% 0 0}
   .bn-l-center .bn-art{justify-content:center;padding:0}

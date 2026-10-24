@@ -1,54 +1,92 @@
 /*
- * The tools shop (/shop, /shop/p/…): sent only with the shop's own pages (a second inline <style>, allowed by its hash like the first),
+ * The Equipment Shop (/shop, /shop/p/…): sent only with the shop's own pages (a second inline <style>, allowed by its hash like the first),
  * so every other page stays as light as before. It comes after the site's own CSS and uses its variables.
  */
-.shop-layout{display:grid;gap:28px}
-@media (min-width:900px){.shop-layout{grid-template-columns:230px minmax(0,1fr)}}
-.shop-side{align-self:start}
-.side-title{font-size:1.15rem;margin-bottom:.6rem}
-.cat-list{list-style:none;margin:0 0 1rem;padding:0;display:flex;flex-wrap:wrap;gap:8px}
-@media (min-width:900px){.cat-list{display:grid;gap:2px}}
-.cat-list a{display:block;padding:.55rem .9rem;border-radius:12px;border:1.5px solid var(--line-2);background:var(--paper);color:var(--ink-2);text-decoration:none;font-weight:600;font-size:.94rem;min-height:44px}
-@media (min-width:900px){.cat-list a{border-color:transparent;background:none}}
-.cat-list a:hover{border-color:var(--o-500);color:#fff}
+/* the grid page, laid out like a shop's category page: the categories and filters at the side (above the grid on a phone), the count and
+   the sorting in a bar, four products to a row on a computer and two on a phone, numbered pages */
+.shop-layout{display:grid;gap:20px}
+@media (min-width:900px){.shop-layout{grid-template-columns:250px minmax(0,1fr);gap:32px}}
+.shop-side{align-self:start;display:grid;gap:14px;min-width:0}
+.side-box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px}
+.side-title{display:block;font-size:1.02rem;font-weight:700;margin:0 0 .55rem;color:var(--heading)}
+.cat-list{list-style:none;margin:0;padding:0 0 2px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
+.cat-list::-webkit-scrollbar{display:none}
+@media (min-width:900px){.cat-list{display:grid;gap:2px;overflow:visible;padding:0}}
+.cat-list a{display:flex;align-items:center;justify-content:space-between;gap:.6rem;white-space:nowrap;min-height:44px;padding:.45rem .85rem;border-radius:12px;border:1px solid var(--line-2);color:var(--ink-2);text-decoration:none;font-weight:600;font-size:.94rem}
+@media (min-width:900px){.cat-list a{border-color:transparent;white-space:normal}}
+.cat-list a:hover{color:#fff;background:rgba(255,255,255,.05)}
 .cat-list a[aria-current=page]{background:var(--o-500);border-color:var(--o-500);color:var(--on-accent)}
-.cat-list a[aria-current=page] .muted{color:var(--on-accent)}
-.shop-tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:.6rem}
-/* the breadcrumb sits on the light page here, not on a dark hero */
+.cat-n{display:inline-grid;place-items:center;min-width:1.9em;height:1.7em;padding:0 .45em;border-radius:999px;background:rgba(255,255,255,.08);color:var(--ink-2);font-size:.8rem;font-weight:700}
+.cat-list a[aria-current=page] .cat-n{background:rgba(0,0,0,.2);color:var(--on-accent)}
+.side-filter>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;cursor:pointer;list-style:none}
+.side-filter>summary::-webkit-details-marker{display:none}
+.side-filter>summary .side-title{margin:0}
+.side-filter>summary .icon{width:20px;height:20px;color:var(--ink-3);transition:transform .2s var(--ease-out)}
+.side-filter[open]>summary .icon{transform:rotate(180deg)}
+.filter-form{display:grid;gap:14px;margin-top:.5rem}
+.filter-form fieldset{border:0;margin:0;padding:0;min-width:0}
+.filter-form legend{font-weight:700;font-size:.92rem;color:var(--ink);margin-bottom:.45rem;padding:0}
+.price-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.price-row label{display:grid;gap:.3rem;font-size:.84rem;color:var(--ink-3);min-width:0}
+.price-row .input{min-height:44px;width:100%}
+.check{display:flex;align-items:center;gap:.6rem;min-height:44px;cursor:pointer;color:var(--ink-2)}
+.check input{width:20px;height:20px;margin:0;accent-color:var(--o-500)}
+.filter-actions{display:flex;gap:8px;flex-wrap:wrap}
+.shop-tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:.8rem}
+/* the breadcrumb on a product page sits on the page, not on a dark hero */
 .shop-tools .crumbs{margin:0;color:var(--ink-3)}
 .shop-tools .crumbs a{color:var(--ink-2)}
-.shop-tools .searchbar{flex:1 1 420px;margin:0}
+.shop-tools .searchbar{flex:1 1 360px;margin:0}
 .shop-bar{display:flex;gap:8px;flex-wrap:wrap}
 .count-badge{display:inline-grid;place-items:center;min-width:1.5em;height:1.5em;padding:0 .35em;border-radius:999px;background:var(--o-500);color:var(--on-accent);font-size:.78rem;font-weight:700;margin-left:.15rem}
-.shop-count{margin:.2rem 0 1rem}
-.pgrid{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
-@media (min-width:700px){.pgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (min-width:1180px){.shop-main .pgrid{grid-template-columns:repeat(3,minmax(0,1fr))}.section>.wrap>.pgrid,.product-related .pgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.pcard{position:relative;display:flex;flex-direction:column;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;transition:box-shadow .3s var(--ease-out),transform .3s var(--ease-out),border-color .3s var(--ease-out)}
-.pcard:hover{transform:translateY(-4px);border-color:rgba(255,87,34,.5)}
-.pcard-img{display:grid;place-items:center;aspect-ratio:1;background:var(--ivory-2);color:var(--g-600)}
-.pcard-img img{width:100%;height:100%;object-fit:cover}
-.pcard-img .icon{width:22%;height:22%;color:var(--o-500)}
-.pcard-body{display:flex;flex-direction:column;gap:.35rem;padding:12px 12px 14px;flex:1}
-.pcard-title{font-size:1rem;line-height:1.35;margin:0}
+.shop-toolbar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin:0 0 16px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.shop-count{margin:0;color:var(--ink-2);font-size:.95rem}
+.sort-form{display:flex;align-items:center;gap:8px;margin:0}
+.sort-form label{font-size:.9rem;color:var(--ink-3);white-space:nowrap}
+.sort-form .input{width:auto;min-height:40px;padding-block:.3rem}
+.pgrid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:700px){.pgrid{gap:18px;grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:1180px){.shop-main .pgrid,.section>.wrap>.pgrid,.product-related .pgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pcard{position:relative;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;transition:transform .3s var(--ease-out),border-color .3s var(--ease-out),box-shadow .3s var(--ease-out)}
+.pcard:hover{transform:translateY(-4px);border-color:rgba(255,87,34,.55);box-shadow:var(--sh-lift)}
+/* a product's photo on white, as products are usually photographed; without a photo a quiet grey tile with the shop's sign */
+.pcard-img{display:grid;place-items:center;aspect-ratio:1;background:#171717;color:var(--o-500);overflow:hidden}
+.pcard-img:has(img){background:#fff}
+.pcard-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s var(--ease-out)}
+.pcard:hover .pcard-img img{transform:scale(1.05)}
+.pcard-img .icon{width:22%;height:22%}
+.pcard-body{display:flex;flex-direction:column;gap:.3rem;padding:12px 12px 14px;flex:1}
+.pcard-cat{margin:0;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+html[lang=bn] .pcard-cat{font-size:.82rem;letter-spacing:0;text-transform:none}
+.pcard-title{font-size:.98rem;line-height:1.35;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+html[lang=bn] .pcard-title{line-height:1.5}
 .pcard-title a{color:var(--ink);text-decoration:none}
 .pcard-title a::after{content:"";position:absolute;inset:0;z-index:0}
-.pcard-title a:hover{color:var(--red-700)}
-.pcard-rating{display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem;color:var(--ink-3)}
-.pcard-price{margin:auto 0 .4rem;display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .5rem}
-.pcard-price b{font-size:1.12rem;color:var(--red-700)}
-.pcard-price s,.product-price s{color:var(--ink-3);font-size:.92rem}
+.pcard-title a:hover{color:var(--o-200)}
+.pcard-rating{display:inline-flex;align-items:center;gap:.3rem;font-size:.82rem;color:var(--ink-3)}
+.pcard-price{margin:auto 0 .5rem;padding-top:.25rem;display:flex;flex-wrap:wrap;align-items:baseline;gap:.1rem .5rem}
+.pcard-price b{font-size:1.12rem;color:var(--o-300)}
+.pcard-price s,.product-price s{color:var(--ink-3);font-size:.9rem}
 .pcard-price .from{font-size:.85rem;color:var(--ink-3)}
 .pcard .btn{position:relative;z-index:1;width:100%;justify-content:center}
 .pcard .is-disabled{opacity:.6;cursor:not-allowed}
-.off-badge{position:absolute;top:10px;left:10px;z-index:1;background:var(--o-500);color:var(--on-accent);font-weight:700;font-size:.82rem;padding:.2rem .55rem;border-radius:999px}
-.wish{position:absolute;top:8px;right:8px;z-index:2;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,138,80,.45);background:rgba(0,0,0,.72);color:#fff;cursor:pointer}
+.off-badge{position:absolute;top:10px;left:10px;z-index:1;background:var(--o-500);color:var(--on-accent);font-weight:700;font-size:.8rem;padding:.2rem .55rem;border-radius:999px}
+.wish{position:absolute;top:8px;right:8px;z-index:2;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.72);color:#fff;cursor:pointer}
 .wish[aria-pressed=true]{color:var(--red-600);border-color:var(--red-300)}
 .wish[aria-pressed=true] .icon{fill:currentColor}
 .wish-big{position:static;width:auto;height:auto;display:inline-flex;gap:.45rem;padding:.55rem 1rem;border-radius:999px;font-weight:600;margin:.6rem 0}
 .shop-toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;max-width:calc(100vw - 32px);padding:.75rem 1rem;border-radius:16px;background:#1c1c1c;border:1px solid rgba(255,87,34,.45);color:#fff;box-shadow:var(--sh-2);font-weight:600}
-.shop-policies{margin-top:1.2rem;color:var(--ink-3)}
+.shop-policies{margin:28px 0 0;text-align:center;color:var(--ink-3)}
+/* the shop's title band: a slim bar, like a shop's category page, so the products come up sooner */
+.shop-hero .wrap{padding-block:clamp(22px,3.6vw,40px)}
+.shop-hero h1{font-size:clamp(1.7rem,3.6vw,2.5rem);margin-bottom:.15em}
 .shop-policies a{color:var(--ink-2)}
+/* numbered pages */
+.pager-num ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.pager-num li{display:grid;place-items:center;min-width:28px;color:var(--ink-3)}
+.pager-num a,.pager-num [aria-current=page]{display:grid;place-items:center;min-width:44px;height:44px;padding:0 .6rem;border-radius:12px;border:1px solid var(--line-2);color:var(--ink);text-decoration:none;font-weight:700}
+.pager-num a:hover{border-color:var(--o-500);color:#fff}
+.pager-num [aria-current=page]{background:var(--o-500);border-color:var(--o-500);color:var(--on-accent)}
 /* a product */
 .product{display:grid;gap:28px;margin-top:.8rem}
 @media (min-width:900px){.product{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}}
@@ -60,6 +98,9 @@
 .product-thumbs a[aria-current=true]{border-color:var(--g-500)}
 .product-thumbs img{width:100%;height:100%;object-fit:cover}
 .product-info h1{font-size:clamp(1.5rem,3.4vw,2.2rem);margin:.4rem 0}
+/* the product's category above its name, in the flow (on a class card the same chip sits on the picture) */
+.product-info .chip-cat{position:static;margin-bottom:.2rem;text-decoration:none}
+.product-tabs h2{font-size:clamp(1.25rem,2.4vw,1.6rem)}
 .product-price{display:flex;flex-wrap:wrap;align-items:baseline;gap:.3rem .7rem;margin:.6rem 0}
 .product-price b{font-family:var(--font-display);font-size:2rem;color:var(--red-700);line-height:1.1}
 .off-inline{background:var(--red-50);color:var(--red-700);border:1px solid var(--red-100);font-weight:700;font-size:.85rem;padding:.15rem .55rem;border-radius:999px}

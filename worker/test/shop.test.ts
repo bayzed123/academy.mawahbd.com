@@ -10,7 +10,7 @@ import { DISTRICTS, DIVISIONS, UNIONS, UPAZILAS } from "../src/data/bd-geo";
 import { Client, json, loginStaff, uniqueEmail } from "./helpers";
 
 /*
- * The tools shop. What it must never get wrong: a price is always the Worker's own (a cart holds only ids and quantities), the last one in
+ * The Equipment Shop. What it must never get wrong: a price is always the Worker's own (a cart holds only ids and quantities), the last one in
  * stock goes to one buyer only, an online order is paid only when SSLCommerz's own validation says so for this order and this exact amount,
  * a buyer's order opens only with the key in their link, an address is a real division → district → upazila → union, and the shop stays
  * shut until the owner has set what delivery costs. SSLCommerz is stood in for; nothing leaves the machine.
@@ -56,7 +56,7 @@ async function makeProduct(admin: Client, over: Record<string, unknown> = {}) {
   expect(res.status, await res.clone().text()).toBe(201);
   const item = (await json(res)).item;
   const [small, big] = item.variants as { id: number; price: number; stock: number | null }[];
-  return { id: item.id as number, slug: item.slug as string, category: cat.item.slug as string, small, big };
+  return { id: item.id as number, slug: item.slug as string, category: cat.item.slug as string, categoryId: cat.item.id as number, small, big };
 }
 
 const address = { name: "Rina Akter", phone: "01711223366", ...CHATTOGRAM, upazila_id: 0, union_id: 0, address: "House 4, Road 2, Chandgaon", agree: true };
@@ -109,12 +109,19 @@ describe("the shop's own settings", () => {
     expect((await open({ home_district: 99 })).status).toBe(422);
     expect((await open({ fee_home: 0, fee_other: 0, free_delivery: true })).status).toBe(200);
     expect((await open({})).status).toBe(200);
-    // a closed shop: no page, no orders, and the menus keep pointing at the owner's other shop
+    // a closed shop: no products and no orders; its page in the menus only says it opens soon (not for search engines)
     await setSetting(env, "store", { ...STORE, enabled: false }, null);
-    expect((await new Client().get("/shop")).status).toBe(404);
+    const soon = await new Client().get("/shop");
+    expect(soon.status).toBe(200);
+    const soonHtml = await soon.text();
+    expect(soonHtml).toContain("শীঘ্রই আসছে");
+    expect(soonHtml).toContain('content="noindex');
+    expect(soonHtml).not.toContain('class="pcard"');
+    expect((await new Client().get("/en/shop")).status).toBe(200);
+    expect((await new Client().get("/shop/category/moulds")).status).toBe(404);
     expect((await json(await new Client().get("/api/shop/config"))).open).toBe(false);
     expect((await new Client().post("/api/shop/orders", { items: [{ variant_id: 1, qty: 1 }], ...address, payment: "cod" })).status).toBe(409);
-    expect((await json(await new Client().get("/api/site"))).site.shop).not.toMatchObject({ internal: true });
+    expect((await json(await new Client().get("/api/site"))).site.shop).toMatchObject({ url: "/shop", internal: true });
   });
 });
 
@@ -167,6 +174,58 @@ describe("the catalogue", () => {
   });
 });
 
+describe("the grid, like a shop's category page", () => {
+  it("filters by price and stock, sorts, says how many it shows, and numbers its pages", async () => {
+    const admin = await owner();
+    const p = await makeProduct(admin); // Cake mould: from ৳400
+    const one = (price: number, stock: number | null) => [{ label_bn: "১টি", label_en: "1 pc", price, list_price: 0, stock, sku: "" }];
+    const n = seq;
+    await makeProduct(admin, { category_id: p.categoryId, name_en: `Spatula ${n}`, variants: one(150, null) });
+    await makeProduct(admin, { category_id: p.categoryId, name_en: `Turntable ${n}`, variants: one(900, 0) });
+    const grid = async (q = "") => {
+      const res = await new Client().get(`/en/shop/category/${p.category}${q}`);
+      expect(res.status, q).toBe(200);
+      return res.text();
+    };
+    const all = await grid();
+    expect(all).toContain("Showing all 3 results");
+    expect(all).toContain(`<p class="pcard-cat">Category ${n}</p>`); // the category's name on each card
+    for (const name of [`Cake mould ${n}`, `Spatula ${n}`, `Turntable ${n}`]) expect(all).toContain(name);
+    // the price filter reads the price on the card; the two ends may be typed either way round
+    for (const q of ["?min=300&max=800", "?min=800&max=300"]) {
+      const mid = await grid(q);
+      expect(mid, q).toContain("Showing the single result");
+      expect(mid, q).toContain(`Cake mould ${n}`);
+      expect(mid, q).not.toContain(`Spatula ${n}`);
+      expect(mid, q).toContain('name="min" min="0" step="1" inputmode="numeric" value="300"');
+    }
+    // in stock only
+    const inStock = await grid("?stock=1");
+    expect(inStock).toContain("Showing all 2 results");
+    expect(inStock).not.toContain(`Turntable ${n}`);
+    // sorting by price, both ways; the other sortings answer too (and the API takes them)
+    const asc = await grid("?sort=price_asc");
+    expect(asc.indexOf(`Spatula ${n}`)).toBeLessThan(asc.indexOf(`Cake mould ${n}`));
+    expect(asc.indexOf(`Cake mould ${n}`)).toBeLessThan(asc.indexOf(`Turntable ${n}`));
+    const desc = await grid("?sort=price_desc");
+    expect(desc.indexOf(`Turntable ${n}`)).toBeLessThan(desc.indexOf(`Spatula ${n}`));
+    for (const sort of ["popular", "rating", "new"]) {
+      expect(await grid(`?sort=${sort}`)).toContain(`<option value="${sort}" selected`);
+      expect((await new Client().get(`/api/shop/products?sort=${sort}`)).status).toBe(200);
+    }
+    // more than a page: "Showing 1–12 of 14 results" and the page numbers
+    for (let i = 0; i < 11; i++) await makeProduct(admin, { category_id: p.categoryId, name_en: `Piping tip ${n}-${i}`, variants: one(200 + i, null) });
+    const first = await grid();
+    expect(first).toContain("Showing 1–12 of 14 results");
+    expect(first).toContain('class="pager pager-num"');
+    expect(first).toContain(`href="/en/shop/category/${p.category}?page=2" aria-label="Page 2 of 2"`);
+    expect(await grid("?page=2")).toContain("Showing 13–14 of 14 results");
+    // a filtered or sorted grid is not for search engines; the plain one is
+    expect(asc).toContain('content="noindex');
+    expect(all).not.toContain('content="noindex');
+  });
+});
+
 describe("the cart", () => {
   it("is priced by the Worker: unknown and sold-out weights are named, a quantity is cut to what is left, and delivery follows the district", async () => {
     const admin = await owner();
@@ -212,7 +271,7 @@ describe("cash on delivery", () => {
     expect((await new Client().get(`/api/shop/orders/${body.order.public_id}`)).status).toBe(404);
     expect((await new Client().get(`/api/shop/orders/${body.order.public_id}?k=${"x".repeat(key.length)}`)).status).toBe(404);
 
-    const note = await until(async () => (await mailsTo(to)).find((m) => /tools shop/i.test(m.subject)) ?? false);
+    const note = await until(async () => (await mailsTo(to)).find((m) => /equipment shop/i.test(m.subject)) ?? false);
     expect(note.text).toContain(body.order.public_id);
     expect(note.text).toContain("Cash on delivery");
     expect(note.text).toContain("01711223366");

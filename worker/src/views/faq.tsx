@@ -4,7 +4,7 @@ import { renderMarkdown } from "../lib/markdown";
 import type { FaqDTO } from "../services/faqs";
 import { bannerHref } from "./banners";
 import type { PageCtx } from "./ctx";
-import { Icon } from "./ui";
+import { Highlight, Icon } from "./ui";
 
 /**
  * Questions and answers the owner manages in Admin → FAQ. An answer is simple Markdown from the owner, rendered by the same
@@ -73,7 +73,9 @@ export function HomeFaq({ ctx, items }: { ctx: PageCtx; items: FaqDTO[] }) {
         <div class="faq-side">
           <header class="sec-head">
             <span class="eyebrow">{t("faq.eyebrow")}</span>
-            <h2 id="faq-h">{t("faq.home.title")}</h2>
+            <h2 id="faq-h">
+              <Highlight text={t("faq.home.title")} hl={t("faq.home.title.hl")} />
+            </h2>
             <p>{t("faq.home.sub")}</p>
           </header>
           <FaqCta ctx={ctx} />
