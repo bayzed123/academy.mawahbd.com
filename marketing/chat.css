@@ -1,10 +1,21 @@
 /* Loaded on demand by chat.js. Matches the dark look of the site and the student app: pitch black, flat dark-grey panels, one solid orange (shared/styles/dark.css). */
 .mc-panel{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:60;width:min(392px,calc(100vw - 28px));height:min(560px,calc(100dvh - 28px));display:flex;flex-direction:column;background:#121212;border:1px solid rgba(255,255,255,.12);border-radius:22px;box-shadow:0 24px 60px rgba(0,0,0,.7);overflow:hidden;font-family:"Hind Siliguri","Noto Sans Bengali","Nirmala UI",system-ui,sans-serif;font-size:16px;line-height:1.6;color:#f5f5f5}
 .mc-panel[hidden]{display:none}
+html.chat-open .floats{visibility:hidden;pointer-events:none}
 .mc-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#0a0a0a;color:#ffa47a;border-bottom:1px solid rgba(255,255,255,.1)}
 .mc-head b{font-weight:600;font-size:1.02rem}
 .mc-x{width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.1);color:#fff;font-size:24px;line-height:1;cursor:pointer}
 .mc-x:hover{background:rgba(255,255,255,.22)}
+.mc-support{padding:10px 12px 8px;background:#151515;border-bottom:1px solid #2e2e2e}
+.mc-support-title{display:block;margin:0 2px 7px;color:#d4d4d4;font-size:.75rem;font-weight:700;letter-spacing:.02em}
+.mc-support-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.mc-support-choice{display:flex;min-width:0;align-items:center;gap:6px;padding:7px 6px;border:1px solid #353535;border-radius:12px;background:#1c1c1c;color:#f5f5f5;text-align:left;text-decoration:none;font:inherit;appearance:none;-webkit-appearance:none;cursor:pointer;transition:transform .18s var(--ease-out),border-color .18s,background .18s}
+.mc-support-choice:hover,.mc-support-choice:focus-visible{border-color:#ff5722;background:#242424;transform:translateY(-1px)}
+.mc-support-choice.is-pending{opacity:.7;cursor:wait}
+.mc-support-icon{display:grid;place-items:center;flex:none;width:27px;height:27px;border-radius:9px;color:#fff}
+.mc-support-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.mc-support-whatsapp{background:#168c4a}.mc-support-messenger{background:#1687f5}.mc-support-bot{background:#ff5722;color:#111}
+.mc-support-copy{display:grid;min-width:0;line-height:1.15}.mc-support-copy strong{overflow:hidden;text-overflow:ellipsis;font-size:.72rem}.mc-support-copy small{overflow:hidden;text-overflow:ellipsis;color:#a3a3a3;font-size:.64rem;white-space:nowrap}
 .mc-list{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:#0b0b0b}
 .mc-msg{max-width:88%;padding:.6rem .9rem;border-radius:16px;word-wrap:break-word;overflow-wrap:anywhere}
 .mc-msg p{margin:0 0 .5em}.mc-msg p:last-child{margin:0}
@@ -14,7 +25,7 @@
 .mc-msg a{color:#ff7b45}
 .mc-user a{color:#0a0a0a}
 .mc-wa{display:inline-block;margin-top:.5rem;padding:.45rem .9rem;border-radius:10px;background:#15803d;color:#fff!important;text-decoration:none;font-weight:600;font-size:.92rem}
-.mc-note{margin:0;padding:.35rem 14px;font-size:.78rem;color:#a3a3a3;background:#121212;border-top:1px solid #2e2e2e}
+.mc-note{margin:0;padding:.35rem 14px;font-size:.78rem;line-height:1.35;color:#a3a3a3;background:#121212;border-top:1px solid #2e2e2e;overflow-wrap:anywhere}
 .mc-form{display:flex;gap:8px;padding:10px;border-top:1px solid #2e2e2e;background:#121212}
 .mc-in{flex:1 1 auto;min-width:0;width:100%;min-height:46px;padding:.5rem .85rem;border:1.5px solid #737373;border-radius:12px;font:inherit;background:#1c1c1c;color:#f5f5f5}
 .mc-in:focus{outline:none;border-color:#ff5722;box-shadow:0 0 0 1px #ff5722}
@@ -24,3 +35,4 @@
 .mc-launch{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:45;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:#121212;color:#ff7b45;box-shadow:0 6px 16px rgba(0,0,0,.55);cursor:pointer}
 .mc-launch:hover{transform:translateY(-2px)}
 @media (max-width:480px){.mc-panel{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}}
+@media (max-width:380px){.mc-support-choice{gap:4px;padding-inline:4px}.mc-support-icon{width:25px;height:25px}.mc-support-copy strong{font-size:.67rem}.mc-support-copy small{font-size:.58rem}}
