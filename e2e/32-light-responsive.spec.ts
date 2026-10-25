@@ -13,7 +13,7 @@ test.describe("light mode and shop mobile layout", () => {
     await expect(question).toBeVisible();
     await expect(question).toHaveCSS("color", "rgb(27, 18, 19)");
     await expect(page.locator(".faq-item").first()).toHaveCSS("background-color", "rgb(255, 253, 248)");
-    const primary = page.locator("a.btn-primary").first();
+    const primary = page.locator(".hero a.btn-primary").first();
     await expect(primary).toHaveCSS("background-color", "rgb(219, 23, 24)");
     await expect(primary).toHaveCSS("color", "rgb(255, 255, 255)");
     await context.close();
