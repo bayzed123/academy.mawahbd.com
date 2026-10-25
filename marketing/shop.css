@@ -4,9 +4,10 @@
  */
 /* the grid page, laid out like a shop's category page: the categories and filters at the side (above the grid on a phone), the count and
    the sorting in a bar, four products to a row on a computer and two on a phone, numbered pages */
-.shop-layout{display:grid;gap:20px}
+.shop-layout{display:grid;gap:20px;min-width:0}
 @media (min-width:900px){.shop-layout{grid-template-columns:250px minmax(0,1fr);gap:32px}}
 .shop-side{align-self:start;display:grid;gap:14px;min-width:0}
+.shop-main{min-width:0}
 .side-box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px}
 .side-title{display:block;font-size:1.02rem;font-weight:700;margin:0 0 .55rem;color:var(--heading)}
 .cat-list{list-style:none;margin:0;padding:0 0 2px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}
@@ -32,18 +33,18 @@
 .check{display:flex;align-items:center;gap:.6rem;min-height:44px;cursor:pointer;color:var(--ink-2)}
 .check input{width:20px;height:20px;margin:0;accent-color:var(--o-500)}
 .filter-actions{display:flex;gap:8px;flex-wrap:wrap}
-.shop-tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:.8rem}
+.shop-tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:.8rem;min-width:0}
 /* the breadcrumb on a product page sits on the page, not on a dark hero */
 .shop-tools .crumbs{margin:0;color:var(--ink-3)}
 .shop-tools .crumbs a{color:var(--ink-2)}
-.shop-tools .searchbar{flex:1 1 360px;margin:0}
+.shop-tools .searchbar{flex:1 1 360px;min-width:0;margin:0}
 .shop-bar{display:flex;gap:8px;flex-wrap:wrap}
 .count-badge{display:inline-grid;place-items:center;min-width:1.5em;height:1.5em;padding:0 .35em;border-radius:999px;background:var(--o-500);color:var(--on-accent);font-size:.78rem;font-weight:700;margin-left:.15rem}
-.shop-toolbar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin:0 0 16px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.shop-toolbar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin:0 0 16px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--card);min-width:0}
 .shop-count{margin:0;color:var(--ink-2);font-size:.95rem}
 .sort-form{display:flex;align-items:center;gap:8px;margin:0}
 .sort-form label{font-size:.9rem;color:var(--ink-3);white-space:nowrap}
-.sort-form .input{width:auto;min-height:40px;padding-block:.3rem}
+.sort-form .input{width:auto;max-width:100%;min-width:0;min-height:40px;padding-block:.3rem}
 .pgrid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
 @media (min-width:700px){.pgrid{gap:18px;grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (min-width:1180px){.shop-main .pgrid,.section>.wrap>.pgrid,.product-related .pgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -88,7 +89,7 @@ html[lang=bn] .pcard-title{line-height:1.5}
 .pager-num a:hover{border-color:var(--o-500);color:#fff}
 .pager-num [aria-current=page]{background:var(--o-500);border-color:var(--o-500);color:var(--on-accent)}
 /* a product */
-.product{display:grid;gap:28px;margin-top:.8rem}
+.product{display:grid;gap:28px;margin-top:.8rem;min-width:0}
 @media (min-width:900px){.product{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}}
 .product-main{position:relative;display:grid;place-items:center;aspect-ratio:1;border-radius:22px;overflow:hidden;border:1px solid var(--line);background:var(--ivory-2);color:var(--g-600)}
 .product-main img{width:100%;height:100%;object-fit:cover}
