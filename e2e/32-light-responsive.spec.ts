@@ -13,6 +13,9 @@ test.describe("light mode and shop mobile layout", () => {
     await expect(question).toBeVisible();
     await expect(question).toHaveCSS("color", "rgb(27, 18, 19)");
     await expect(page.locator(".faq-item").first()).toHaveCSS("background-color", "rgb(255, 253, 248)");
+    const primary = page.locator("a.btn-primary").first();
+    await expect(primary).toHaveCSS("background-color", "rgb(219, 23, 24)");
+    await expect(primary).toHaveCSS("color", "rgb(255, 255, 255)");
     await context.close();
   });
 
@@ -25,8 +28,12 @@ test.describe("light mode and shop mobile layout", () => {
       const dimensions = await page.evaluate(() => ({
         client: document.documentElement.clientWidth,
         scroll: document.documentElement.scrollWidth,
+        wideShopPanels: [...document.querySelectorAll(".shop-side, .shop-side > *, .shop-main")]
+          .map((el) => Math.ceil(el.getBoundingClientRect().width))
+          .filter((width) => width > document.documentElement.clientWidth + 1),
       }));
       expect(dimensions.scroll - dimensions.client, path).toBeLessThanOrEqual(1);
+      expect(dimensions.wideShopPanels, `${path} contains a panel wider than the viewport`).toEqual([]);
       await context.close();
     });
   }
