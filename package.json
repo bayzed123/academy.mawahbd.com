@@ -34,8 +34,8 @@
     "deploy": "npm run build && npm run deploy -w worker"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.13.0",
-    "@playwright/test": "^1.64.0",
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
     "framer-motion": "13.5.1",
     "typescript": "^7.0.2"
   }
