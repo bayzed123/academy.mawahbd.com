@@ -107,6 +107,13 @@ function judge(name, path, report) {
   if (row.cls > BUDGET.cls) problems.push(`CLS ${row.cls.toFixed(3)} > ${BUDGET.cls}`);
   if (row.tbt > BUDGET.tbt) problems.push(`TBT ${Math.round(row.tbt)}ms > ${BUDGET.tbt}ms`);
   row.problems = problems;
+  // a page that moves too much: what moved and why, in Lighthouse's own words — a CI runner's browser can move what no local one does
+  const named = (c) => String(c.extra?.value ?? c.extra?.snippet ?? "").replace(BASE, "");
+  row.shifts =
+    row.cls > BUDGET.cls
+      ? (a["layout-shifts"]?.details?.items ?? []).slice(0, 4).map((s) => `${s.score.toFixed(3)} \`${s.node?.selector ?? "?"}\`: ${(s.subItems?.items ?? []).map((c) => `${c.cause} ${named(c)}`.trim()).join("; ") || "no cause named"}`)
+      : [];
+  row.browser = report.environment?.hostUserAgent ?? "";
   return row;
 }
 
@@ -148,6 +155,7 @@ const lines = [
   ),
   "",
   `Budgets: performance ≥ ${BUDGET.performance}, accessibility ≥ ${BUDGET.accessibility}, best practices ≥ ${BUDGET["best-practices"]}, SEO ≥ ${BUDGET.seo}, CLS ≤ ${BUDGET.cls}, TBT ≤ ${BUDGET.tbt} ms. A page that misses a budget is measured again (up to ${TRIES} times): a one-off spike passes, a real slowdown misses every time.`,
+  ...rows.flatMap((r) => (r.shifts?.length ? ["", `Layout shifts on "${r.name}", biggest first (${r.browser}):`, ...r.shifts.map((s) => `- ${s}`)] : [])),
 ];
 console.log("\n" + lines.join("\n"));
 if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join("\n") + "\n");
