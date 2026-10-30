@@ -336,6 +336,33 @@ export async function issueCertificateIfEligible(env: Env, studentId: number, co
   return toCertificate(row);
 }
 
+/**
+ * Issue certificates for these enrolments at once — the academy's own decision (Admin → Certificates, or a student's page): a class taught
+ * live has no lessons in the app to finish. Only active enrolments in classes that give certificates; a student who already has one for the
+ * class, taken back or not, keeps it as it is. The codes come from the Worker's own random source, like a certificate earned lesson by
+ * lesson. Up to 40 a statement (D1 binds at most 100 values). Returns how many were issued.
+ */
+export async function issueCertificatesFor(env: Env, enrollmentIds: number[]): Promise<number> {
+  const at = nowIso();
+  let issued = 0;
+  for (let i = 0; i < enrollmentIds.length; i += 40) {
+    const chunk = enrollmentIds.slice(i, i + 40);
+    const res = await run(
+      env.DB,
+      `INSERT OR IGNORE INTO certificates (code, student_id, course_id, enrollment_id, student_name, course_title_bn, course_title_en, template, issued_at)
+       SELECT v.column1, e.student_id, e.course_id, e.id, s.name, c.title_bn, c.title_en, c.cert_template, ?
+       FROM (VALUES ${chunk.map(() => "(?, ?)").join(", ")}) AS v
+       JOIN enrollments e ON e.id = v.column2 AND e.status = 'active'
+       JOIN students s ON s.id = e.student_id
+       JOIN courses c ON c.id = e.course_id AND c.cert_enabled = 1`,
+      at,
+      ...chunk.flatMap((id) => [generateCertificateCode(CERT_PREFIX), id]),
+    );
+    issued += res.meta.changes ?? 0;
+  }
+  return issued;
+}
+
 export async function certificatesFor(env: Env, studentId: number): Promise<CertificateDTO[]> {
   const rows = await all<CertRow>(env.DB, "SELECT * FROM certificates WHERE student_id = ? ORDER BY issued_at DESC", studentId);
   return rows.map(toCertificate);

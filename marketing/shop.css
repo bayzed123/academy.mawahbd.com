@@ -139,3 +139,11 @@ html[lang=bn] .pcard-title{line-height:1.5}
 .stars-pick span[aria-hidden],.stars-pick label>span:first-of-type{display:inline-block;padding:.3rem .6rem;border-radius:10px;border:1.5px solid var(--line-2);color:var(--g-600);letter-spacing:.05em}
 .stars-pick input:checked+span{border-color:var(--o-500);background:var(--raised);color:#ffb020}
 .stars-pick input:focus-visible+span{outline:3px solid var(--g-500);outline-offset:2px}
+
+/* ---------- the day look (shared/styles/light.css) ---------- */
+html[data-theme=light] .cat-list a:hover{color:#0a0a0a;background:rgba(0,0,0,.04)}
+html[data-theme=light] .cat-n{background:rgba(0,0,0,.07)}
+html[data-theme=light] .pcard-img{background:#f5f5f5}
+html[data-theme=light] .pcard-img:has(img){background:#fff}
+html[data-theme=light] .shop-toast{background:#fff;color:#171717;border-color:var(--o-500)}
+html[data-theme=light] .pager-num a:hover{color:#0a0a0a}

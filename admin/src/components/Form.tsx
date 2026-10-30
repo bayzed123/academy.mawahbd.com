@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CLASS_ICONS } from "@mawah/shared";
 import { adm, api, ApiError } from "../lib/api";
@@ -20,7 +20,9 @@ export type FieldDef =
   | (Common & { type: "links" })
   | (Common & { type: "icon" })
   | (Common & { type: "variants" })
-  | { type: "section"; key: string; label: string; half?: boolean; hint?: string; required?: boolean; showIf?: (values: Values) => boolean };
+  | { type: "section"; key: string; label: string; half?: boolean; hint?: string; required?: boolean; showIf?: (values: Values) => boolean }
+  /** something of the page's own between the fields (a video's player under its address …): no value of its own */
+  | { type: "custom"; key: string; label?: string; half?: boolean; hint?: string; required?: boolean; showIf?: (values: Values) => boolean; render: (values: Values) => ReactNode };
 
 export type Values = Record<string, unknown>;
 
@@ -128,6 +130,7 @@ export function FormFields({ fields, values, onChange, errors = {}, idPrefix = "
             </h3>
           );
         }
+        if (f.type === "custom") return <Fragment key={f.key}>{f.render(values)}</Fragment>;
         let control: ReactNode;
         switch (f.type) {
           case "text":
@@ -234,7 +237,7 @@ export function initialValues(fields: FieldDef[], row: Values | null, defaults: 
   const out: Values = { ...defaults };
   if (row) {
     for (const f of fields) {
-      if (f.type === "section") continue;
+      if (f.type === "section" || f.type === "custom") continue;
       const raw = row[f.key];
       out[f.key] = f.type === "switch" ? !!raw : f.type === "links" ? parseLinks(raw) : f.type === "variants" ? toDrafts(raw) : (raw ?? (f.type === "courses" ? [] : ""));
       if (f.type === "date" && typeof raw === "string") out[f.key] = raw.slice(0, 10);
@@ -251,7 +254,7 @@ export function initialValues(fields: FieldDef[], row: Values | null, defaults: 
 export function toPayload(fields: FieldDef[], values: Values): Values {
   const body: Values = {};
   for (const f of fields) {
-    if (f.type === "section") continue;
+    if (f.type === "section" || f.type === "custom") continue;
     const v = values[f.key];
     const optional = f.type === "image" || f.type === "icon" || f.type === "date" || ("nullable" in f && !!f.nullable);
     body[f.key] = f.type === "variants" ? fromDrafts((v as VariantDraft[]) ?? []) : optional && (v === "" || v === undefined) ? null : v;

@@ -11,7 +11,7 @@ import { PaymentCheck } from "./PaymentCheck";
 import { SmsPanel } from "./SmsPanel";
 
 interface S {
-  contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string; address_bn: string; address_en: string; trade_license: string };
+  contact: { whatsapp: string; phone: string; email: string; facebook: string; messenger: string; youtube: string; instagram: string; address_bn: string; address_en: string; trade_license: string };
   announcement: { bn: string; en: string; ends_at: string; button_bn: string; button_en: string; link: string };
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
   payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number; ssl_logo: string; manual_link: string };
@@ -181,6 +181,9 @@ export function Settings() {
                 </Field>
                 <Field id="c-fb" label="Facebook" hint="https://facebook.com/…" error={e.facebook}>
                   <TextInput id="c-fb" value={v.facebook} error={e.facebook} disabled={!canWrite} onChange={(x) => set({ facebook: x.target.value })} />
+                </Field>
+                <Field id="c-ms" label="Messenger" hint={t("adm.settings.messengerHint")} error={e.messenger}>
+                  <TextInput id="c-ms" value={v.messenger ?? ""} placeholder="https://m.me/…" error={e.messenger} disabled={!canWrite} onChange={(x) => set({ messenger: x.target.value })} />
                 </Field>
                 <Field id="c-yt" label="YouTube" error={e.youtube}>
                   <TextInput id="c-yt" value={v.youtube} error={e.youtube} disabled={!canWrite} onChange={(x) => set({ youtube: x.target.value })} />

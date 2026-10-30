@@ -10,3 +10,4 @@ export * from "./sslLogo";
 export * from "./shop";
 export * from "./landing";
 export * from "./videoEmbed";
+export * from "./theme";

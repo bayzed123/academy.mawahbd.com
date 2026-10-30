@@ -8,6 +8,7 @@ import { contactAckMail, sendMail } from "../../lib/mailer";
 import { emailSchema, langSchema, nameSchema, phoneSchema, textSchema, turnstileField } from "../../lib/schemas";
 import { getSettings, menuShop, type Settings } from "../../lib/settings";
 import { turnstileEnabled, verifyTurnstile } from "../../lib/turnstile";
+import { messengerOf } from "../../views/topbar";
 import { loadStudent } from "../../middleware/auth";
 import { notices, notifyOwner } from "../../services/notify";
 import { rateLimit } from "../../middleware/ratelimit";
@@ -30,7 +31,8 @@ publicRoutes.get("/site", async (c) => {
   cacheable(c, 30);
   return ok(c, {
     site: {
-      contact: { whatsapp: s.contact.whatsapp, phone: s.contact.phone, email: s.contact.email, facebook: s.contact.facebook },
+      // messenger: the page's Messenger chat (m.me/…), worked out on the server — the student app's talk-to-us button offers it
+      contact: { whatsapp: s.contact.whatsapp, phone: s.contact.phone, email: s.contact.email, facebook: s.contact.facebook, messenger: messengerOf(s.contact) ?? "" },
       announcement: s.announcement,
       // the menus' Shop item (menuShop): the Equipment Shop here, or the owner's other shop — null when the item is switched off
       shop: shopLink(s),

@@ -6,8 +6,10 @@
   var d = document;
   var lang = (d.documentElement.lang || "bn").slice(0, 2) === "en" ? "en" : "bn";
   var T = {
-    bn: { title: "মাওয়াহ সহকারী", ph: "আপনার প্রশ্ন লিখুন…", send: "পাঠান", close: "বন্ধ করুন", open: "সহকারীকে জিজ্ঞাসা করুন", busy: "উত্তর লেখা হচ্ছে…", err: "দুঃখিত, এখন উত্তর দেওয়া যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।", limit: "অনেকগুলো বার্তা পাঠানো হয়েছে। এক মিনিট পরে আবার চেষ্টা করুন।", hello: "আসসালামু আলাইকুম! ক্লাস, দাম বা সার্টিফিকেট নিয়ে প্রশ্ন করুন।", wa: "হোয়াটসঅ্যাপে সাপোর্টে কথা বলুন", note: "এটি একটি এআই সহকারী। পেমেন্ট ও রিফান্ডের সিদ্ধান্তে আমাদের টিমের সাথে কথা বলুন।" },
-    en: { title: "MAWAH Assistant", ph: "Type your question…", send: "Send", close: "Close", open: "Ask our assistant", busy: "Writing…", err: "Sorry, I cannot answer right now. Please try again in a moment.", limit: "Too many messages. Please wait a minute and try again.", hello: "Hello! Ask me about classes, prices or certificates.", wa: "Talk to support on WhatsApp", note: "This is an AI assistant. For payment or refund decisions, please talk to our team." },
+    bn: { title: "মাওয়াহ সহকারী", ph: "আপনার প্রশ্ন লিখুন…", send: "পাঠান", close: "বন্ধ করুন", open: "সহকারীকে জিজ্ঞাসা করুন", busy: "উত্তর লেখা হচ্ছে…", err: "দুঃখিত, এখন উত্তর দেওয়া যাচ্ছে না। একটু পরে আবার চেষ্টা করুন।", limit: "অনেকগুলো বার্তা পাঠানো হয়েছে। এক মিনিট পরে আবার চেষ্টা করুন।", hello: "আসসালামু আলাইকুম! ক্লাস, দাম বা সার্টিফিকেট নিয়ে প্রশ্ন করুন।", wa: "হোয়াটসঅ্যাপে সাপোর্টে কথা বলুন", note: "এটি একটি এআই সহকারী। পেমেন্ট ও রিফান্ডের সিদ্ধান্তে আমাদের টিমের সাথে কথা বলুন।",
+      helpOpen: "আমাদের সাথে কথা বলুন", helpH: "আমাদের সাথে কথা বলুন", helpSub: "কীভাবে কথা বলতে চান, বেছে নিন।", waT: "হোয়াটসঅ্যাপ", waS: "আমাদের টিমের সাথে চ্যাট করুন", msT: "মেসেঞ্জার", msS: "আমাদের ফেসবুক পেজে মেসেজ দিন", aiT: "এআই সহকারী", aiS: "সঙ্গে সঙ্গে উত্তর, যেকোনো সময়", newTab: "নতুন ট্যাবে খুলবে" },
+    en: { title: "MAWAH Assistant", ph: "Type your question…", send: "Send", close: "Close", open: "Ask our assistant", busy: "Writing…", err: "Sorry, I cannot answer right now. Please try again in a moment.", limit: "Too many messages. Please wait a minute and try again.", hello: "Hello! Ask me about classes, prices or certificates.", wa: "Talk to support on WhatsApp", note: "This is an AI assistant. For payment or refund decisions, please talk to our team.",
+      helpOpen: "Talk to us", helpH: "Talk to us", helpSub: "Choose how you would like to talk to us.", waT: "WhatsApp", waS: "Chat with our team", msT: "Messenger", msS: "Message our Facebook page", aiT: "AI assistant", aiS: "Answers right away, any time", newTab: "opens in a new tab" },
   }[lang];
 
   var history = [];
@@ -67,8 +69,9 @@
     });
   }
 
-  function show() { build(); panel.hidden = false; setTimeout(function () { input.focus(); }, 30); }
-  function hide() { if (panel) panel.hidden = true; }
+  // while the window is open the round buttons in the corner step aside (shared/styles/help.css): they used to sit on its Send button
+  function show() { build(); panel.hidden = false; d.documentElement.classList.add("chat-open"); setTimeout(function () { input.focus(); }, 30); }
+  function hide() { if (panel) panel.hidden = true; d.documentElement.classList.remove("chat-open"); }
 
   function send() {
     var text = input.value.trim();
@@ -102,13 +105,50 @@
 
   window.MawahChat = { open: show, close: hide };
 
-  /* In the React apps there is no server-rendered launcher: add one. */
+  /* In the React apps there is no server-rendered talk-to-us button: build the same one as the public site's (views/layout.tsx; its look is
+     shared/styles/help.css, part of the app's stylesheet) — WhatsApp, Messenger and the assistant in a small card, or the one way alone. */
+  var icon = function (name, cls) { return '<svg class="icon' + (cls ? " " + cls : "") + '" aria-hidden="true" focusable="false"><use href="/sprite.svg#i-' + name + '"></use></svg>'; };
+  function launcher(site) {
+    var c = site && site.contact ? site.contact : {};
+    var wa = String(c.whatsapp || "").replace(/\D/g, "");
+    var ways = [];
+    if (wa) ways.push({ cls: "wa", href: "https://wa.me/" + wa, t: T.waT, s: T.waS, icon: "whatsapp" });
+    if (c.messenger) ways.push({ cls: "ms", href: c.messenger, t: T.msT, s: T.msS, icon: "messenger" });
+    // the assistant only while the owner has it switched on (Admin → AI chat), as on the site; with no answer from the server, it stays
+    if (!site || site.chat_enabled !== false) ways.push({ cls: "ai", t: T.aiT, s: T.aiS, icon: "bot" });
+    if (!ways.length) return;
+    var corner = el("div", "floats mc-floats");
+    if (ways.length === 1) {
+      var w1 = ways[0], one = el(w1.href ? "a" : "button", "fab fab-" + (w1.href ? w1.cls : "chat"));
+      var name1 = w1.href ? w1.t + " (" + T.newTab + ")" : T.open;
+      if (w1.href) { one.href = w1.href; one.target = "_blank"; one.rel = "noopener noreferrer"; } else { one.type = "button"; one.onclick = show; }
+      one.setAttribute("aria-label", name1); one.title = name1; one.innerHTML = icon(w1.href ? w1.icon : "chat");
+      corner.appendChild(one);
+    } else {
+      var box = el("details", "help"); box.setAttribute("data-help", "");
+      var sum = el("summary", "fab fab-help"); sum.setAttribute("aria-label", T.helpOpen); sum.title = T.helpOpen; sum.innerHTML = icon("chat", "chat") + icon("x", "x");
+      var pop = el("div", "help-pop"); pop.setAttribute("role", "group"); pop.setAttribute("aria-label", T.helpH);
+      pop.appendChild(el("p", "help-h", T.helpH)); pop.appendChild(el("p", "help-sub", T.helpSub));
+      var list = el("ul", "help-list");
+      ways.forEach(function (w) {
+        var li = el("li"), o = el(w.href ? "a" : "button", "help-opt help-" + w.cls);
+        if (w.href) { o.href = w.href; o.target = "_blank"; o.rel = "noopener noreferrer"; } else o.type = "button";
+        o.innerHTML = '<span class="help-ico">' + icon(w.icon) + '</span><span class="help-txt"><b></b><small></small></span>' + icon("arrow", "help-go");
+        o.querySelector("b").textContent = w.t;
+        o.querySelector("small").textContent = w.s;
+        if (w.href) { var vh = el("span", "vh", " (" + T.newTab + ")"); o.querySelector("b").appendChild(vh); }
+        o.addEventListener("click", function () { box.open = false; if (!w.href) show(); });
+        li.appendChild(o); list.appendChild(li);
+      });
+      pop.appendChild(list);
+      box.appendChild(sum); box.appendChild(pop); corner.appendChild(box);
+      d.addEventListener("keydown", function (e) { if (e.key === "Escape" && box.open) { box.open = false; sum.focus(); } });
+      d.addEventListener("click", function (e) { if (box.open && !box.contains(e.target)) box.open = false; });
+    }
+    d.body.appendChild(corner);
+  }
   d.addEventListener("DOMContentLoaded", function () {
-    if (d.querySelector("[data-chat-open]") || d.documentElement.hasAttribute("data-no-chat-launcher")) return;
-    var css = d.createElement("link"); css.rel = "stylesheet"; css.href = "/chat.css"; d.head.appendChild(css);
-    var b = el("button", "mc-launch"); b.type = "button"; b.setAttribute("aria-label", T.open); b.title = T.open;
-    b.innerHTML = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4.5h12A2.5 2.5 0 0 1 20.5 7v7.5A2.5 2.5 0 0 1 18 17h-6l-4.5 3.5V17H6a2.5 2.5 0 0 1-2.5-2.5V7A2.5 2.5 0 0 1 6 4.5z"/><path d="M8.5 9.5h7M8.5 12.5h4"/></svg>';
-    b.onclick = show;
-    d.body.appendChild(b);
+    if (d.querySelector("[data-chat-open], [data-help]") || d.documentElement.hasAttribute("data-no-chat-launcher")) return;
+    fetch("/api/site", { credentials: "omit" }).then(function (r) { return r.json(); }).then(function (j) { launcher(j && j.site); }).catch(function () { launcher(null); });
   });
 })();

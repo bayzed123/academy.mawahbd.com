@@ -60,8 +60,8 @@ test("the owner adds a main picture and three more at once, writes captions, mov
   await admin.getByLabel("Banner picture").setInputFiles({ name: "main.png", mimeType: "image/png", buffer: photoPng(1280, 800, 9) });
   await expect(admin.locator(".image-field .thumb img")).toBeVisible();
   await admin.getByRole("button", { name: "Save" }).click();
-  // a published class with no lessons asks first (this one only needs its pictures)
-  await admin.getByRole("alertdialog").getByRole("button", { name: "Publish anyway" }).click();
+  // already on sale: saving its picture asks nothing (only publishing a class without lessons does)
+  await expect(admin.getByRole("alertdialog")).toHaveCount(0);
   await expect(admin.getByText("Saved.")).toBeVisible();
 
   // the Pictures tab: nothing yet, and no Save button for the Details form (every change here saves by itself)

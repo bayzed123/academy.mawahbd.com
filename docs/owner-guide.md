@@ -189,6 +189,7 @@
 * শিক্ষার্থী **১০০% লেসন শেষ করলে** সার্টিফিকেট নিজে নিজেই তৈরি হয়। কোড দেখতে এমন: `MWH-7K3M-9P2Q-XR4T`।
 * যে কেউ **“সার্টিফিকেট যাচাই”** পাতায় কোড লিখে দেখতে পারেন সার্টিফিকেটটি আসল কি না (নাম, ক্লাস, তারিখ দেখাবে — আর কিছু নয়)।
 * **ভুল বা প্রতারণা হলে:** *সার্টিফিকেট* মেনুতে **বাতিল** করুন (কোডটি আর যাচাই হবে না), প্রয়োজনে **আবার ইস্যু** করুন — নতুন কোড পাবেন।
+* **লাইভ ক্লাস ও ডাউনলোড:** অংশ ২৯ দেখুন।
 
 ## ১০. রিফান্ড
 
@@ -441,11 +442,32 @@
   3. **বোতামের লিংক** — যেমন `/courses`, বা একটি ল্যান্ডিং পেজ `/l/eid-offer`। বোতামের লেখা খালি রাখলে “এখনই ভর্তি হোন” লেখা থাকে।
   4. **সংরক্ষণ করুন**। প্রতিটি পাতার একেবারে উপরে বারটি দিন : ঘণ্টা : মিনিট : সেকেন্ড গুনতে থাকে, আর স্ক্রল করলেও উপরে থাকে। সময় শেষ হলে বারটি নিজে থেকেই সরে যায়।
   * কাউন্টডাউন সবসময় আপনার দেওয়া আসল সময় ধরে চলে, কখনো বানানো সময়ে নয়। সময় না দিলে আগের মতো সাধারণ ঘোষণা দেখায়।
-* **মেসেঞ্জার বোতাম** — *সেটিংস → যোগাযোগ → Facebook*-এ আপনার পেজের ঠিকানা থাকলে (যেমন `https://www.facebook.com/mawahacademy`) ডানদিকে নিচে হোয়াটসঅ্যাপের পাশে মেসেঞ্জারের ভাসমান বোতাম আসে। চাপলে আপনার পেজের সাথে চ্যাট খোলে। গ্রুপ বা পোস্টের ঠিকানা দিলে এই বোতাম আসে না।
+* **মেসেঞ্জার** — এখন “আমাদের সাথে কথা বলুন” কার্ডে থাকে (অংশ ২৯)। *সেটিংস → যোগাযোগ → Messenger*-এ `https://m.me/…` লিংক দিন; না দিলে *Facebook* ঘরের পেজের ঠিকানা থেকে নেওয়া হয় (গ্রুপ, পোস্ট বা “share” লিংক থেকে হয় না)।
 * **শান্ত চলমান ডিজাইন** — নিচে নামলে প্রতিটি অংশ, শিরোনাম আর ক্লাসের কার্ড একটু নিচ থেকে ধীরে ভেসে ওঠে, কার্ডগুলো একের পর এক (Framer Motion দিয়ে)। কার্ডের ওপর মাউস রাখলে কার্ডটি একটু উঠে আসে, ধারটা কমলা হয়; বোতামের ওপর মাউস রাখলে হালকা ছায়া পড়ে। কোনো কিছু জ্বলে না, লাফায় না বা ভাসে না। ছবি ছাড়া ক্লাসের কার্ডে ছোট সমতল ঘরে কমলা আইকন থাকে। হোম পেজে ক্লাস ও রিভিউ পাশাপাশি স্লাইড করা যায়, প্রশ্নোত্তর মসৃণভাবে খোলে। যাঁদের ফোনে “কম অ্যানিমেশন” চালু আছে, তাঁদের জন্য সব স্থির থাকে।
   * ক্লাসের **ব্যানার ছবি** দিলে (*ক্লাস → ক্লাসটি খুলুন → ব্যানার ছবি*) কার্ডে সেই ছবিই দেখায়, মাউস রাখলে একটু বড় হয় — ছবিওয়ালা কার্ড সবচেয়ে সুন্দর দেখায়।
 * **পেমেন্টের পর** — পেমেন্ট সফল হলে অর্ডারের পাতায় সবুজ টিক চিহ্ন আঁকা হয়, সাথে রঙিন কনফেটি।
 * **হোম পাতা, আপনার পাঠানো CraftSkills-এর নমুনার মতো** — শিরোনামের মূল শব্দগুলো কমলা (যেমন “ঘরে বসেই ধাপে ধাপে শিখুন **রান্না ও বেকিং**”); শিরোনামের উপরের ছোট লেখা কমলা বিন্দুসহ গোল “পিল”-এ; উপরের সুবিধাগুলো (সার্টিফিকেট, পেমেন্ট, মোবাইল, দাম) ফোনে দুই কলামের টাইলে; **“কেন মাওয়াহ একাডেমিতে শিখবেন”** ও **“কীভাবে কাজ করে”** অংশ হালকা ধূসর পটে সাদা কার্ডে (কার্ডের মাথায় কমলা আইকন) — কালো আর হালকা অংশ পালা করে আসায় চোখে আরাম লাগে; প্রশ্নোত্তরের প্রতিটি প্রশ্নের আগে কমলা গোল “?”; আর পাতার অনেকটা নিচে নামলে হোয়াটসঅ্যাপের ওপরে একটি **উপরে ফিরে যাওয়ার** গোল বোতাম আসে।
+
+## ২৯. দিন/রাতের মোড, “আমাদের সাথে কথা বলুন”, হোম ভিডিও, ডেমো ক্লাস ও সার্টিফিকেট
+
+* **রাত ও দিনের মোড** — ওয়েবসাইট ও স্টুডেন্ট অ্যাপের উপরের সারিতে চাঁদ/সূর্যের গোল বোতাম। চাপলে পুরো সাইট সাদা “দিনের” রূপে যায়, আবার চাপলে কালো। পছন্দটি ওই ব্রাউজারে মনে থাকে, অ্যাপেও একই থাকে। আপনার কিছু করার নেই; অ্যাডমিন আগের মতোই থাকে।
+* **“আমাদের সাথে কথা বলুন” বোতাম** — ডানদিকে নিচে একটি কমলা গোল বোতাম। চাপলে ছোট একটি কার্ড খোলে: **হোয়াটসঅ্যাপ, মেসেঞ্জার ও এআই সহকারী** — দর্শক যেটা চান বেছে নেন। একটি মাত্র উপায় চালু থাকলে সেটির নিজের বোতামই থাকে।
+  1. *সেটিংস → যোগাযোগ → WhatsApp* — আপনার নম্বর।
+  2. *সেটিংস → যোগাযোগ → Messenger* — আপনার পেজের মেসেঞ্জার লিংক, যেমন `https://m.me/mawahacademy`। ফেসবুকের “share” লিংক (`facebook.com/share/…`) থেকে মেসেঞ্জার খোলা যায় না, তাই এই ঘরটি আলাদা।
+  3. এআই সহকারী চালু/বন্ধ — *এআই চ্যাট* মেনু থেকে। সহকারীর জানালা খুললে গোল বোতামগুলো সরে যায়, যাতে “পাঠান” বোতাম ঢেকে না যায়।
+* **হোম পেজের ভিডিও** — *হোম ভিডিও* মেনু:
+  1. **+ যোগ করুন** → ইউটিউব বা ভিমিও ভিডিওর ঠিকানা দিন, বাংলা ও ইংরেজি শিরোনাম লিখুন → **সংরক্ষণ করুন**। ফেসবুক ভিডিওর ঠিকানা নেওয়া হয় না (ওয়েবসাইট সেগুলো চালাতে পারে না)।
+  2. তালিকার সুইচ দিয়ে প্রতিটি ভিডিও চালু/বন্ধ করুন; “ক্রম”-এ ছোট সংখ্যা আগে আসে।
+  3. হোম পেজে ভিডিওর ছবি ও প্লে বোতাম দেখায়; চাপলে ভিডিও পাতাতেই চলে, অন্য কোথাও যায় না। একটিও চালু না থাকলে অংশটি দেখায় না।
+* **ডেমো ক্লাস (প্রতিটি ক্লাসে আলাদা)** — *ক্লাস → ক্লাসটি খুলুন → বিবরণ → ডেমো ক্লাস*:
+  1. **ডেমো ক্লাসের ভিডিও** ঘরে ইউটিউব বা ভিমিও ঠিকানা দিন — নিচে সঙ্গে সঙ্গে দেখায় এটি ক্লাসের পাতায় চলবে কি না, আর “এখানে চালান” দিয়ে দেখে নিতে পারেন।
+  2. ডেমোর শিরোনাম ও কয়েক লাইন বিবরণ (বাংলা ও ইংরেজি) লিখুন → **সংরক্ষণ করুন**।
+  3. ক্লাসের পাতায় ছবি ও বিবরণের ঠিক নিচে **“ডেমো ক্লাস দেখুন”** অংশ আসে (ভিডিওর কোণে “ফ্রি ডেমো” লেখা), আর দামের বাক্সে **“ডেমো ক্লাস দেখুন”** বোতাম — একবার চাপলেই নিচে গিয়ে ভিডিও চলতে শুরু করে। ঘর খালি রাখলে ডেমো দেখায় না।
+* **সার্টিফিকেট** — নতুন ডিজাইন: বাঁদিকে কালো অংশে লোগো ও কিউআর কোড, শিক্ষার্থীর নাম বড় করে, ক্লাসের নাম কমলা, তারিখ, সনদ নম্বর আর কমলা সিল। ডিজাইনটি দেখতে: *সার্টিফিকেট → ডিজাইন দেখুন* (নমুনায় “নমুনা” লেখা থাকে)।
+  * লেসনসহ ক্লাস: শিক্ষার্থী সব লেসন শেষ করলে নিজে থেকেই ইস্যু হয় (আগের মতো)।
+  * **লাইভ ক্লাস (অ্যাপে লেসন নেই):** *সার্টিফিকেট → সার্টিফিকেট ইস্যু করুন* → ক্লাস বেছে নিন → “ভর্তি থাকা সবাই, যাদের এখনো নেই” → **ইস্যু করুন**। একজনকে দিতে: *শিক্ষার্থী → শিক্ষার্থী খুলুন → ক্লাসের সারিতে “সার্টিফিকেট ইস্যু করুন”*।
+  * শিক্ষার্থী সঙ্গে সঙ্গে অ্যাপের *আমার সার্টিফিকেট*-এ পান: **PDF** (প্রিন্টের জানালা খোলে — সেখানে “Save as PDF” বেছে নিন) বা **ছবি** (PNG) ডাউনলোড করতে পারেন।
+  * ক্লাসের সেটিংসে “সার্টিফিকেট” বন্ধ থাকলে সেই ক্লাসে ইস্যু হয় না — আগে চালু করুন।
 
 # English
 
@@ -627,6 +649,7 @@ The dashboard’s **Needs attention today** (and the right-hand rail) lists what
 * A certificate is created **automatically at 100 % of lessons**. The code looks like `MWH-7K3M-9P2Q-XR4T`.
 * Anyone can open **Verify certificate** on the website and type the code to see whether it is genuine (it shows the name, class and date — nothing else).
 * **If something is wrong or fraudulent:** *Certificates* → **Revoke** (the code stops verifying); **Re-issue** if needed (a new code is created).
+* **Classes taught live, and downloads:** see section 29.
 
 ## 10. Refunds
 
@@ -877,8 +900,29 @@ The whole website and the students' app are now on a clean, flat black — no pa
   3. **Button link** — for example `/courses`, or a landing page such as `/l/eid-offer`. With the button text left empty, the button says "Join now".
   4. **Save**. At the very top of every page the bar counts days : hours : minutes : seconds, and stays there while people scroll. When the time is over, the bar goes away by itself.
   * The countdown always runs to the real time you give, never a made-up one. Without a time, the bar is a plain announcement, as before.
-* **Messenger button** — when *Settings → Contact → Facebook* holds your page's address (like `https://www.facebook.com/mawahacademy`), a floating Messenger button appears bottom right, next to WhatsApp. It opens a chat with your page. A group's or a post's address gives no button.
+* **Messenger** — now one of the ways in the “Talk to us” card (section 29). Put an `https://m.me/…` link in *Settings → Contact → Messenger*; without it, the page's address in the *Facebook* box is used (a group's, a post's or a “share” link gives none).
 * **Calm motion** — as people scroll, each section, heading and class card rises a little and fades in, the cards one after another (Framer Motion). A card lifts a little under the pointer and its edge turns orange; a button gets a small shadow under the pointer. Nothing glows, pulses, bounces or floats. A class without a picture shows its orange icon on a small flat tile. The home page's classes and reviews slide sideways, and answers slide open. For people whose phone asks for less motion, everything stays still.
   * Give a class its **Banner picture** (*Classes → open the class → Banner picture*) and the card shows it, zooming in a little under the pointer — cards with pictures look best.
 * **After paying** — when a payment goes through, the order page draws a green check mark with a burst of confetti.
 * **The home page, after the CraftSkills example you sent** — the key words of the headings are orange (like “Learn **cooking & baking** step by step, from home.”); the small line above a heading sits in a round “pill” with an orange dot; the class facts under the main buttons (certificate, payment, mobile, price) are tiles, two to a row on a phone; **“Why learn with MAWAH”** and **“How it works”** sit on a light grey with white cards (an orange icon on each card's top edge) — the dark and light parts take turns, which is easy on the eyes; every FAQ question starts with an orange “?”; and well down the page a round **back to the top** button appears above WhatsApp.
+
+## 29. Night and day, “Talk to us”, home videos, demo classes and certificates
+
+* **Night and day** — a round moon / sun button in the header of the website and the student app. Pressed, the whole site turns to a white “day” look; pressed again, back to black. The choice is kept in that browser, and the app follows it. Nothing for you to do; the admin stays as it is.
+* **The “Talk to us” button** — one round orange button bottom right. Pressed, it opens a small card: **WhatsApp, Messenger and the AI assistant** — the visitor picks one. With only one way switched on, that way's own button stands there instead.
+  1. *Settings → Contact → WhatsApp* — your number.
+  2. *Settings → Contact → Messenger* — your page's Messenger link, like `https://m.me/mawahacademy`. A Facebook “share” link (`facebook.com/share/…`) cannot open Messenger, which is why this box is separate.
+  3. The AI assistant on or off — in the *AI chat* menu. When its window opens, the round buttons step aside so they never cover its Send button.
+* **Home page videos** — the *Home videos* menu:
+  1. **+ Add** → paste a YouTube or Vimeo video's address, write the title in Bangla and English → **Save**. A Facebook video's address is not taken (the website cannot play those).
+  2. Switch each video on or off with the switch in the list; under “Order”, smaller numbers come first.
+  3. The home page shows each video's picture with a play button; pressed, it plays right there on the page. With none switched on, the section is not shown.
+* **Demo class (one for each class)** — *Classes → open the class → Details → Demo class*:
+  1. Paste a YouTube or Vimeo address in **Demo class video** — right under it you see whether it will play on the class page, and “Play here” lets you watch it.
+  2. Write the demo's title and a few lines (Bangla and English) → **Save**.
+  3. The class page shows **“Watch a demo class”** right under its picture and description (with “Free demo” on the video's corner), and the price box gets a **“Watch the demo class”** button — one press goes down to the video and starts it. With the box empty, no demo is shown.
+* **Certificates** — a new design: a black band on the left with the logo and a QR code, the student's name large, the class in orange, the date, the certificate ID and an orange seal. To see it: *Certificates → See the design* (the sample is marked SAMPLE).
+  * Classes with lessons: issued by itself when a student finishes every lesson (as before).
+  * **Classes taught live (no lessons in the app):** *Certificates → Issue certificates* → choose the class → “Everyone enrolled who has none yet” → **Issue**. For one student: *Students → open the student → “Issue certificate” on the class's row*.
+  * The student has it at once in the app's *My certificates*, and can download it as a **PDF** (the print window opens — choose “Save as PDF”) or a **Picture** (PNG).
+  * A class whose “Certificate” switch is off gives none — switch it on first.

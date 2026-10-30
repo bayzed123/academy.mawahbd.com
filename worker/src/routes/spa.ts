@@ -1,10 +1,11 @@
 import { Hono } from "hono";
+import { THEME_BOOT } from "@mawah/shared";
 import { ANALYTICS_JS } from "../generated/assets";
 import type { AppEnv } from "../env";
 import { getSettings } from "../lib/settings";
 import { isTracking, NO_TRACKING, trackingFor, type TrackIds } from "../lib/tracking";
 import { turnstileEnabled } from "../lib/turnstile";
-import { buildCsp } from "../middleware/security";
+import { buildCsp, inlineHash } from "../middleware/security";
 
 /**
  * The student app (/app) and admin (/admin) are static React builds. The Worker serves their HTML shell with a
@@ -28,9 +29,19 @@ function withTracking(html: string, ids: TrackIds): string {
     .filter(Boolean)
     .join("");
   // right after <meta charset>, so the script runs before the app's own (window.mawahTrack must exist when the app starts)
+  return afterCharset(html, tags);
+}
+
+const afterCharset = (html: string, tags: string) => {
   const charset = /<meta charset[^>]*>/i.exec(html);
   return charset ? html.slice(0, charset.index + charset[0].length) + tags + html.slice(charset.index + charset[0].length) : html.replace("</head>", `${tags}</head>`);
-}
+};
+
+/**
+ * The student app opens in the visitor's own look (night or day, shared/src/theme.ts): the few words that set it run before anything is
+ * drawn, at the end of <head> (after the theme-color and color-scheme tags they adjust). The admin keeps its one light look.
+ */
+const withTheme = (html: string) => html.replace("</head>", `<script>${THEME_BOOT}</script></head>`);
 
 async function shell(c: { env: AppEnv["Bindings"]; req: { url: string } }, base: "app" | "admin"): Promise<Response> {
   const asset = await c.env.ASSETS.fetch(new Request(new URL(`/${base}/`, c.req.url)));
@@ -51,11 +62,20 @@ async function shell(c: { env: AppEnv["Bindings"]; req: { url: string } }, base:
   const headers = new Headers({
     "Content-Type": "text/html; charset=utf-8",
     "Cache-Control": "no-cache",
-    "Content-Security-Policy": buildCsp({ spa: true, turnstile: turnstileEnabled(c.env), analytics: { ga4: !!ids.ga4, clarity: !!ids.clarity, pixel: !!ids.pixel } }),
+    "Content-Security-Policy": buildCsp({
+      spa: true,
+      turnstile: turnstileEnabled(c.env),
+      analytics: { ga4: !!ids.ga4, clarity: !!ids.clarity, pixel: !!ids.pixel },
+      ...(base === "app" ? { scriptHashes: [await inlineHash(THEME_BOOT)] } : {}),
+    }),
   });
-  if (base === "admin") headers.set("X-Robots-Tag", "noindex, nofollow");
+  if (base === "admin") {
+    headers.set("X-Robots-Tag", "noindex, nofollow");
+    return new Response(asset.body, { status: 200, headers });
+  }
   if (secretAddress) headers.set("Referrer-Policy", "no-referrer");
-  return new Response(isTracking(ids) ? withTracking(await asset.text(), ids) : asset.body, { status: 200, headers });
+  const html = withTheme(await asset.text());
+  return new Response(isTracking(ids) ? withTracking(html, ids) : html, { status: 200, headers });
 }
 
 spaRoutes.get("/app", (c) => shell(c, "app"));

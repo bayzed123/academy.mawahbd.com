@@ -21,6 +21,29 @@ export async function drawWholePage(page: Page) {
   await page.evaluate(() => document.querySelectorAll<HTMLElement>("main>section").forEach((s) => s.style.setProperty("content-visibility", "visible")));
 }
 
+/**
+ * The banners spec leaves an offer pop-up on the home page: a second after arrival it covers the page (as it should) and the page stops
+ * scrolling. These tests look at what is under it, so a visitor here has already answered it, the way the pop-up itself remembers.
+ */
+export async function offerAnswered(ctx: BrowserContext) {
+  const html = await (await ctx.request.get("/en")).text();
+  const tag = /<div class="offer"[^>]*>/.exec(html)?.[0];
+  if (!tag) return;
+  const attr = (name: string) => new RegExp(`${name}="([^"]*)"`).exec(tag)?.[1] ?? "";
+  const [id, v, days] = [attr("data-id"), attr("data-v"), attr("data-days")];
+  expect(id, "the pop-up names itself").toMatch(/^\d+$/);
+  await ctx.addInitScript(
+    ([key, value, persist]) => {
+      try {
+        (persist ? localStorage : sessionStorage).setItem(key, value);
+      } catch {
+        /* no storage: the pop-up simply shows */
+      }
+    },
+    [`mawah_offer_${id}`, JSON.stringify({ v, t: Date.now() }), Number(days) > 0] as const,
+  );
+}
+
 export async function useLang(ctx: BrowserContext, lang: "bn" | "en") {
   await ctx.addInitScript((l) => {
     try {

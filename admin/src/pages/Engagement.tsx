@@ -5,7 +5,8 @@ import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { DataTable } from "../components/DataTable";
-import { Button, Chip, Field, Icon, IconButton, PageHeader, Panel, SlideOver, StatusChip, Tabs, TextArea, useConfirm, useToast } from "../components/ui";
+import { Button, Chip, Field, Icon, IconButton, PageHeader, Panel, Select, SlideOver, Spinner, StatusChip, Tabs, TextArea, useConfirm, useToast } from "../components/ui";
+import { useCourseOptions } from "./Courses";
 
 const REVIEW_STATUSES = ["pending", "approved", "rejected"] as const;
 
@@ -220,15 +221,134 @@ interface Cert {
   revoked_reason: string | null;
 }
 
+interface ClassCerts {
+  course: { id: number; slug: string; title_bn: string; title_en: string; cert_enabled: boolean };
+  enrolled: number;
+  lessons: number;
+  with_cert: number;
+  to_all: number;
+  to_finished: number;
+}
+
+/**
+ * Issue certificates for a whole class at once — everyone enrolled, or only those who finished every lesson in the app. A class taught live
+ * has no lessons in the app, so the academy decides when it is complete. Each student sees theirs in the student app at once.
+ */
+function IssueDrawer({ onClose }: { onClose: () => void }) {
+  const { t, pick, num, err, lang } = useI18n();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const courses = useCourseOptions();
+  const [courseId, setCourseId] = useState("");
+  const [who, setWho] = useState<"all" | "finished">("all");
+  const stats = useQuery({ queryKey: ["cert-class", courseId], queryFn: () => adm<ClassCerts>(`/certificates/class/${courseId}`), enabled: !!courseId });
+  const s = stats.data;
+  const count = s ? (who === "all" ? s.to_all : s.to_finished) : 0;
+  const issue = useMutation({
+    // a big class goes in a few rounds (each one a few hundred), until nobody is left
+    mutationFn: async () => {
+      let issued = 0;
+      for (let round = 0; round < 25; round++) {
+        const r = await adm<{ issued: number; more: boolean }>("/certificates/issue", { json: { course_id: Number(courseId), who } });
+        issued += r.issued;
+        if (!r.more) break;
+      }
+      return issued;
+    },
+    onSuccess: (issued) => {
+      toast(t("adm.certs.issuedN", { n: num(issued) }));
+      void qc.invalidateQueries({ queryKey: ["/certificates"] });
+      void qc.invalidateQueries({ queryKey: ["cert-class"] });
+      onClose();
+    },
+    onError: (e) => toast(err(e instanceof ApiError ? e.code : "generic"), true),
+  });
+  return (
+    <SlideOver
+      open
+      onClose={onClose}
+      title={t("adm.certs.issueTitle")}
+      footer={
+        <div className="row end">
+          <Button className="btn-ghost" onClick={onClose}>
+            {t("btn.cancel")}
+          </Button>
+          <Button className="btn-primary" busy={issue.isPending} disabled={!s || !s.course.cert_enabled || count === 0} onClick={() => issue.mutate()}>
+            <Icon name="award" /> {t("adm.certs.issueN", { n: num(count) })}
+          </Button>
+        </div>
+      }
+    >
+      <div className="stack">
+        <p className="muted">{t("adm.certs.issueSub")}</p>
+        <Field id="ci-class" label={t("adm.certs.class")}>
+          <Select id="ci-class" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
+            <option value="">{t("adm.lp.chooseClass")}</option>
+            {courses.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        {stats.isPending && courseId && <Spinner />}
+        {s && !s.course.cert_enabled && (
+          <p className="notice" role="alert">
+            <Icon name="help" /> {t("err.cert_off")}
+          </p>
+        )}
+        {s && s.course.cert_enabled && (
+          <>
+            <p className="notice" role="status">
+              <Icon name="users" /> {t("adm.certs.stats", { enrolled: num(s.enrolled), have: num(s.with_cert) })}
+              {s.lessons === 0 && ` ${t("adm.certs.noLessons")}`}
+            </p>
+            <fieldset className="field wide">
+              <legend>{t("adm.certs.who")}</legend>
+              <label className="check">
+                <input type="radio" name="ci-who" checked={who === "all"} onChange={() => setWho("all")} /> {t("adm.certs.whoAll", { n: num(s.to_all) })}
+              </label>
+              <label className="check">
+                <input type="radio" name="ci-who" checked={who === "finished"} disabled={s.lessons === 0} onChange={() => setWho("finished")} /> {t("adm.certs.whoFinished", { n: num(s.to_finished) })}
+              </label>
+            </fieldset>
+            {count === 0 && <p className="muted">{t("adm.certs.nobody")}</p>}
+            <a className="link" href={`${lang === "en" ? "/en" : ""}/certificate/sample?class=${encodeURIComponent(s.course.slug)}`} target="_blank" rel="noopener noreferrer">
+              <Icon name="external" /> {t("adm.certs.design")}: {pick(s.course, "title")}
+            </a>
+          </>
+        )}
+      </div>
+    </SlideOver>
+  );
+}
+
 export function Certificates() {
   const { t, pick, date, lang } = useI18n();
   const { can } = useAuth();
   const confirm = useConfirm();
   const act = useAct(["/certificates"]);
   const canWrite = can("certificates:write");
+  const [issuing, setIssuing] = useState(false);
   return (
     <>
-      <PageHeader title={t("adm.nav.certificates")} sub={t("adm.certs.sub")} />
+      <PageHeader
+        title={t("adm.nav.certificates")}
+        sub={t("adm.certs.sub")}
+        actions={
+          <>
+            <a className="btn btn-outline" href={`${lang === "en" ? "/en" : ""}/certificate/sample`} target="_blank" rel="noopener noreferrer">
+              <Icon name="external" /> {t("adm.certs.design")}
+            </a>
+            {canWrite && (
+              <Button className="btn-primary" onClick={() => setIssuing(true)}>
+                <Icon name="award" /> {t("adm.certs.issue")}
+              </Button>
+            )}
+          </>
+        }
+      />
+      {issuing && <IssueDrawer onClose={() => setIssuing(false)} />}
       <DataTable<Cert>
         endpoint="/certificates"
         csv

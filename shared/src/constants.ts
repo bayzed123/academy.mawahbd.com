@@ -125,6 +125,7 @@ export const ADMIN_NAV = [
   { key: "bundles", path: "bundles", perm: "bundles:read" },
   { key: "shop", path: "shop", perm: "shop:read" },
   { key: "banners", path: "banners", perm: "banners:read" },
+  { key: "videos", path: "videos", perm: "banners:read" },
   { key: "landing", path: "landing", perm: "landing:read" },
   { key: "faqs", path: "faqs", perm: "faqs:read" },
   { key: "certificates", path: "certificates", perm: "certificates:read" },

@@ -1,15 +1,15 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
-import { adminLogin, agree, apiGet, apiSend, TEST_ADDRESS, uniquePhone, useLang } from "./helpers";
+import { expect, test, type Page } from "@playwright/test";
+import { adminLogin, agree, apiGet, apiSend, offerAnswered, TEST_ADDRESS, uniquePhone, useLang } from "./helpers";
 
 /*
  * The dark look's working parts, in a real browser. The owner sets a countdown in Settings → Announcement bar. Visitors see it tick at the
  * top in both languages, press its Join button, and see the bar go away at the end. The look is flat and still: no glow, pulse or
  * bounce anywhere. For visitors who have not asked for less motion, sections, headings and cards rise 20px and fade in as they come into
  * view (Framer Motion), and a card lifts under the pointer with an orange edge; once everything is in, the page passes the accessibility
- * scan. The class slider moves with its arrows and a mouse drag, and a drag opens nothing. The Messenger button floats with WhatsApp, and
- * a "back to the top" button above it appears down the page. A paid order gets its check mark and confetti, and in My Learning the class's
- * card rises in (Framer Motion).
+ * scan. The class slider moves with its arrows and a mouse drag, and a drag opens nothing. The talk-to-us button opens a card with
+ * WhatsApp, Messenger and the assistant, and a "back to the top" button above it appears down the page. A paid order gets its check mark
+ * and confetti, and in My Learning the class's card rises in (Framer Motion).
  * The other specs run with reduced motion (playwright.config.ts); these turn it on where they need it. Runs after the admin spec (the owner exists).
  */
 test.describe.configure({ mode: "serial" });
@@ -28,29 +28,6 @@ test.afterAll(async () => {
   await apiSend(admin, "PUT", "/admin/settings/contact", contact);
   await admin.context().close();
 });
-
-/**
- * The banners spec leaves an offer pop-up on the home page: a second after arrival it covers the page (as it should) and the page stops
- * scrolling. These tests look at what is under it, so a visitor here has already answered it, the way the pop-up itself remembers.
- */
-async function offerAnswered(ctx: BrowserContext) {
-  const html = await (await ctx.request.get("/en")).text();
-  const tag = /<div class="offer"[^>]*>/.exec(html)?.[0];
-  if (!tag) return;
-  const attr = (name: string) => new RegExp(`${name}="([^"]*)"`).exec(tag)?.[1] ?? "";
-  const [id, v, days] = [attr("data-id"), attr("data-v"), attr("data-days")];
-  expect(id, "the pop-up names itself").toMatch(/^\d+$/);
-  await ctx.addInitScript(
-    ([key, value, persist]) => {
-      try {
-        (persist ? localStorage : sessionStorage).setItem(key, value);
-      } catch {
-        /* no storage: the pop-up simply shows */
-      }
-    },
-    [`mawah_offer_${id}`, JSON.stringify({ v, t: Date.now() }), Number(days) > 0] as const,
-  );
-}
 
 /** A minute of Bangladesh time, as the date-and-time box takes it. */
 const dhakaLocal = (ms: number) => new Date(ms + 6 * 3600_000).toISOString().slice(0, 16);
@@ -129,7 +106,7 @@ test("with motion on, sections and cards rise in as they come into view, buttons
   // a solid orange button: no glow, no pulse; the floating buttons do not bounce
   expect(await cta.evaluate((el) => [getComputedStyle(el).animationName, getComputedStyle(el).boxShadow, getComputedStyle(el).backgroundImage])).toEqual(["none", "none", "none"]);
   expect(await cta.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(255, 87, 34)");
-  expect(await page.locator(".fab-chat").evaluate((el) => getComputedStyle(el, "::before").animationName)).toBe("none");
+  expect(await page.locator(".floats .fab").last().evaluate((el) => getComputedStyle(el, "::before").animationName)).toBe("none");
   // the page is one flat colour: no picture, gradient or pattern behind the hero
   expect(await page.locator(".hero").evaluate((el) => [getComputedStyle(el).backgroundImage, getComputedStyle(el, "::before").content])).toEqual(["none", "none"]);
   // what is on screen at once is never hidden; what is further down waits for the visitor, 20px lower and transparent
@@ -197,19 +174,48 @@ test("the class slider moves with its arrows and with a mouse drag, and a drag o
   await ctx.close();
 });
 
-test("the Messenger button floats with WhatsApp once the Facebook page is set, in both languages", async ({ browser }) => {
-  await apiSend(admin, "PUT", "/admin/settings/contact", { ...contact, whatsapp: "01711000000", facebook: "https://www.facebook.com/mawahacademy" });
+test("the talk-to-us button opens a card with WhatsApp, Messenger and the assistant; Escape or a click elsewhere closes it", async ({ browser }) => {
+  await apiSend(admin, "PUT", "/admin/settings/contact", { ...contact, whatsapp: "01711000000", facebook: "https://www.facebook.com/mawahacademy", messenger: "" });
   const ctx = await browser.newContext({ locale: "en-US" });
   await useLang(ctx, "en");
   await offerAnswered(ctx);
   const page = await ctx.newPage();
   await page.goto("/en");
-  const ms = page.getByRole("link", { name: "Chat on Messenger" });
+  const open = page.locator("summary.fab-help");
+  await expect(open).toHaveAttribute("aria-label", "Talk to us: WhatsApp, Messenger or our assistant");
+  const card = page.getByRole("group", { name: "Talk to us" });
+  await expect(card).toBeHidden();
+  await open.click();
+  await expect(card).toBeVisible();
+  const ms = card.getByRole("link", { name: /^Messenger/ });
   await expect(ms).toHaveAttribute("href", "https://m.me/mawahacademy");
   await expect(ms).toHaveAttribute("target", "_blank");
-  await expect(page.getByRole("link", { name: "Chat on WhatsApp" }).last()).toBeVisible();
+  await expect(card.getByRole("link", { name: /^WhatsApp/ })).toHaveAttribute("href", /^https:\/\/wa\.me\/01711000000\?text=/);
+  await expect(card.getByRole("button", { name: /^AI assistant/ })).toBeVisible();
+  // the card stays inside the screen, above its button
+  const [c, b] = await Promise.all([card.boundingBox(), open.boundingBox()]);
+  expect(c!.y + c!.height).toBeLessThanOrEqual(b!.y);
+  expect(c!.x).toBeGreaterThanOrEqual(0);
+  // Escape closes it and gives the focus back to the button; a click elsewhere closes it too
+  await page.keyboard.press("Escape");
+  await expect(card).toBeHidden();
+  await expect(open).toBeFocused();
+  await open.click();
+  await expect(card).toBeVisible();
+  await page.locator("h1").click();
+  await expect(card).toBeHidden();
+  // the assistant opens its window, and the round buttons step aside so they never cover its Send button
+  await open.click();
+  await card.getByRole("button", { name: /^AI assistant/ }).click();
+  const chat = page.getByRole("dialog", { name: /assistant/i });
+  await expect(chat).toBeVisible();
+  await expect(card).toBeHidden();
+  await expect(page.locator(".floats")).toBeHidden();
+  await chat.getByRole("button", { name: /close/i }).click();
+  await expect(page.locator(".floats")).toBeVisible();
   await page.goto("/");
-  await expect(page.getByRole("link", { name: "মেসেঞ্জারে কথা বলুন" })).toBeVisible();
+  await page.locator("summary.fab-help").click();
+  await expect(page.getByRole("group", { name: "আমাদের সাথে কথা বলুন" }).getByRole("link", { name: /^মেসেঞ্জার/ })).toBeVisible();
   await ctx.close();
 });
 
@@ -226,8 +232,8 @@ test("the back-to-the-top button appears once the visitor is well down the page 
   const scrolled = () => page.evaluate(() => Math.round(window.scrollY));
   await down();
   await expect(toTop).toBeVisible();
-  // it floats above WhatsApp, in the same column
-  const [a, b] = await Promise.all([toTop.boundingBox(), page.locator(".fab-wa").boundingBox()]);
+  // it floats above the talk-to-us button, in the same column
+  const [a, b] = await Promise.all([toTop.boundingBox(), page.locator(".floats > :last-child").boundingBox()]);
   expect(a!.y + a!.height).toBeLessThan(b!.y);
   expect(Math.abs(a!.x + a!.width / 2 - (b!.x + b!.width / 2))).toBeLessThan(2);
   await toTop.click();

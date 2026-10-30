@@ -20,6 +20,7 @@ const Coupons = lazyPage(() => import("./pages/Content"), "Coupons");
 const Banners = lazyPage(() => import("./pages/Banners"), "Banners");
 const Landing = lazyPage(() => import("./pages/Landing"), "Landing");
 const Faqs = lazyPage(() => import("./pages/Faqs"), "Faqs");
+const Videos = lazyPage(() => import("./pages/Videos"), "Videos");
 const Materials = lazyPage(() => import("./pages/Materials"), "Materials");
 const GroupRequests = lazyPage(() => import("./pages/Materials"), "GroupRequests");
 const MaterialDownloads = lazyPage(() => import("./pages/Materials"), "MaterialDownloads");
@@ -72,6 +73,7 @@ export default function App() {
           <Route path="coupons" element={guard("coupons:read", <Coupons />)} />
           <Route path="bundles" element={guard("bundles:read", <Bundles />)} />
           <Route path="banners" element={guard("banners:read", <Banners />)} />
+          <Route path="videos" element={guard("banners:read", <Videos />)} />
           <Route path="landing" element={guard("landing:read", <Landing />)} />
           <Route path="faqs" element={guard("faqs:read", <Faqs />)} />
           <Route path="shop" element={guard("shop:read", <Shop />)} />

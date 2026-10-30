@@ -4,6 +4,7 @@ import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
 import { useSite } from "../lib/hooks";
 import { useI18n } from "../lib/i18n";
+import { ThemeToggle } from "./ThemeToggle";
 import { Icon, Spinner } from "./ui";
 
 const TABS = [
@@ -23,6 +24,13 @@ export function Shell() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [pathname]);
+
+  // while the bottom tab bar shows (a signed-in student), the round talk-to-us button in the corner sits above it (app.css)
+  const signedIn = !!student;
+  useEffect(() => {
+    document.body.classList.toggle("has-tabbar", signedIn);
+    return () => document.body.classList.remove("has-tabbar");
+  }, [signedIn]);
 
   // keep the saved preference in step with the toggle for signed-in students (best effort)
   const switchLang = () => {
@@ -72,6 +80,7 @@ export function Shell() {
               </a>
             )}
           </nav>
+          <ThemeToggle />
           <button type="button" className="lang-btn" onClick={switchLang} lang={lang === "bn" ? "en" : "bn"}>
             {t("lang.switch")}
           </button>

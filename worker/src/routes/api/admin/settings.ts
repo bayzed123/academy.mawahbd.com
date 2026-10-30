@@ -16,6 +16,7 @@ import { rateLimit } from "../../../middleware/ratelimit";
 import { notices, notificationRecipients, sendNotice } from "../../../services/notify";
 import { SSL_LAST_KEY, amountCap, dearestPrice, sslCheck, sslConfigured, sslHost, sslMode, sslReturnUrls, type SslLast } from "../../../services/payments/sslcommerz";
 import { isDistrict } from "../../../services/geo";
+import { messengerUrl } from "../../../views/topbar";
 
 /** Every business setting (contacts, payment options, policies, analytics …) is edited here — nothing needs a redeploy. */
 export const settings = new Hono<AppEnv>();
@@ -30,6 +31,8 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     phone: bdNumber,
     email: z.union([z.literal(""), emailSchema]),
     facebook: urlOrEmpty,
+    // the Messenger chat of the page (m.me/<page>): needed when the Facebook address is a share link, which names no page
+    messenger: z.union([z.literal(""), z.string().trim().max(200).refine((v) => messengerUrl(v) !== null, "invalid_messenger")]).default(""),
     youtube: urlOrEmpty,
     instagram: urlOrEmpty,
     // as written on the trade licence (every page's footer, the Contact and About pages); left out = the site's own (lib/settings.ts)

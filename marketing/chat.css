@@ -1,5 +1,5 @@
 /* Loaded on demand by chat.js. Matches the dark look of the site and the student app: pitch black, flat dark-grey panels, one solid orange (shared/styles/dark.css). */
-.mc-panel{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:60;width:min(392px,calc(100vw - 28px));height:min(560px,calc(100dvh - 28px));display:flex;flex-direction:column;background:#121212;border:1px solid rgba(255,255,255,.12);border-radius:22px;box-shadow:0 24px 60px rgba(0,0,0,.7);overflow:hidden;font-family:"Hind Siliguri","Noto Sans Bengali","Nirmala UI",system-ui,sans-serif;font-size:16px;line-height:1.6;color:#f5f5f5}
+.mc-panel{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:90;width:min(392px,calc(100vw - 28px));height:min(560px,calc(100dvh - 28px));display:flex;flex-direction:column;background:#121212;border:1px solid rgba(255,255,255,.12);border-radius:22px;box-shadow:0 24px 60px rgba(0,0,0,.7);overflow:hidden;font-family:"Hind Siliguri","Noto Sans Bengali","Nirmala UI",system-ui,sans-serif;font-size:16px;line-height:1.6;color:#f5f5f5}
 .mc-panel[hidden]{display:none}
 .mc-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#0a0a0a;color:#ffa47a;border-bottom:1px solid rgba(255,255,255,.1)}
 .mc-head b{font-weight:600;font-size:1.02rem}
@@ -21,6 +21,15 @@
 .mc-send{min-height:46px;padding:0 1.1rem;border:0;border-radius:12px;background:#ff5722;color:#0a0a0a;font:inherit;font-weight:700;cursor:pointer}
 .mc-send:hover:not(:disabled){background:#ff6a3d}
 .mc-send:disabled{opacity:.55;cursor:default}
-.mc-launch{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:45;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:#121212;color:#ff7b45;box-shadow:0 6px 16px rgba(0,0,0,.55);cursor:pointer}
-.mc-launch:hover{transform:translateY(-2px)}
 @media (max-width:480px){.mc-panel{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}}
+/* the day look (shared/styles/light.css): a white window, a light-grey list, the deeper orange for words */
+html[data-theme=light] .mc-panel{background:#fff;border-color:rgba(0,0,0,.12);box-shadow:0 24px 60px rgba(0,0,0,.2);color:#171717}
+html[data-theme=light] .mc-head{background:#f5f5f5;color:#b13a0a;border-bottom-color:rgba(0,0,0,.08)}
+html[data-theme=light] .mc-x{background:rgba(0,0,0,.06);color:#171717}
+html[data-theme=light] .mc-x:hover{background:rgba(0,0,0,.12)}
+html[data-theme=light] .mc-list{background:#fafafa}
+html[data-theme=light] .mc-assistant{background:#fff;border-color:#e5e5e5}
+html[data-theme=light] .mc-msg a{color:#c2410c}
+html[data-theme=light] .mc-user a{color:#0a0a0a}
+html[data-theme=light] .mc-note,html[data-theme=light] .mc-form{background:#fff;color:#5c5c5c;border-top-color:#e5e5e5}
+html[data-theme=light] .mc-in{background:#fff;color:#171717;border-color:#8a8a8a}

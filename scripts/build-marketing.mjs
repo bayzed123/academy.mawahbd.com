@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Builds the public-site assets:
- *   shared/styles/base.css + dark.css + banners.css + marketing/site.css -> minified string inlined into every page (worker/src/generated/assets.ts)
+ *   shared/styles/base.css + dark.css + banners.css + help.css (the round corner buttons) + marketing/site.css + light.css (the day look) -> minified string inlined into every page (worker/src/generated/assets.ts)
  *   marketing/shop.css -> minified string inlined only into the tools shop's pages (SHOP_CSS)
  *   marketing/landing.css -> minified string inlined only into landing pages (LANDING_CSS)
  *   marketing/course.css -> minified string inlined only into the class page (COURSE_CSS)
@@ -10,6 +10,7 @@
  *   marketing/analytics.js  -> dist/static/assets/analytics.<hash>.js     (only on pages that carry a measurement ID; also injected into the student app)
  *   marketing/banners.js    -> dist/static/assets/banners.<hash>.js       (only on pages with a slider or an offer pop-up)
  *   marketing/gallery.js    -> dist/static/assets/gallery.<hash>.js       (only on class pages with more than one picture)
+ *   marketing/cert.js       -> dist/static/assets/cert.<hash>.js          (only on certificates: fits their long lines, makes their picture)
  *   marketing/chat.{js,css} -> dist/static/chat.{js,css}                  (small, 1 hour cache)
  *   marketing/public/**     -> dist/static/**                             (fonts, sprite, icons, manifest)
  *   marketing/public/og-default.jpg -> dist/static/assets/og.<hash>.jpg   (the share image, under a name that changes with the picture)
@@ -36,7 +37,7 @@ mkdirSync(gen, { recursive: true });
 // static public files (fonts, sprite, logo + icons, pattern, manifest, og image …)
 cpSync(resolve(root, "marketing/public"), out, { recursive: true });
 
-const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/dark.css")}\n${read("shared/styles/banners.css")}\n${read("marketing/site.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/dark.css")}\n${read("shared/styles/banners.css")}\n${read("shared/styles/help.css")}\n${read("marketing/site.css")}\n${read("shared/styles/light.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 // the decorative background pattern is tiny: inline it once (CSS variable) instead of a cached-for-a-day extra request
 const patternSvg = read("marketing/public/pattern.svg").replace(/\s+/g, " ").replace(/> </g, "><").replace(/"/g, "'").trim();
 const patternUri = `url("data:image/svg+xml,${patternSvg.replace(/</g, "%3C").replace(/>/g, "%3E").replace(/#/g, "%23")}")`;
@@ -66,6 +67,8 @@ const bannersJs = (await transform(read("marketing/banners.js"), { loader: "js",
 const analyticsJs = (await transform(read("marketing/analytics.js"), { loader: "js", minify: true, target: "es2017" })).code;
 // the class page's picture viewer: loaded only on a class that has more than its main picture
 const galleryJs = (await transform(read("marketing/gallery.js"), { loader: "js", minify: true, target: "es2017" })).code;
+// a certificate's long lines fitted to the sheet, and its picture (PNG): loaded only on certificates
+const certJs = (await transform(read("marketing/cert.js"), { loader: "js", minify: true, target: "es2017" })).code;
 // the tools shop's look: inlined only into the shop's pages (a second <style>, allowed by its own hash)
 const shopCss = (await transform(read("marketing/shop.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 // the tools shop's cart and wishlist: loaded only on the shop's pages
@@ -81,6 +84,8 @@ const analyticsJsName = `analytics.${hash(analyticsJs)}.js`;
 writeFileSync(resolve(out, "assets", analyticsJsName), analyticsJs);
 const galleryJsName = `gallery.${hash(galleryJs)}.js`;
 writeFileSync(resolve(out, "assets", galleryJsName), galleryJs);
+const certJsName = `cert.${hash(certJs)}.js`;
+writeFileSync(resolve(out, "assets", certJsName), certJs);
 const shopJsName = `shop.${hash(shopJs)}.js`;
 writeFileSync(resolve(out, "assets", shopJsName), shopJs);
 writeFileSync(resolve(out, "chat.js"), chatJs);
@@ -104,6 +109,7 @@ writeFileSync(
     `export const BANNERS_JS = ${JSON.stringify(`/assets/${bannersJsName}`)};\n` +
     `export const ANALYTICS_JS = ${JSON.stringify(`/assets/${analyticsJsName}`)};\n` +
     `export const GALLERY_JS = ${JSON.stringify(`/assets/${galleryJsName}`)};\n` +
+    `export const CERT_JS = ${JSON.stringify(`/assets/${certJsName}`)};\n` +
     `export const LANDING_CSS = ${JSON.stringify(landingCss)};\n` +
     `export const COURSE_CSS = ${JSON.stringify(courseCss)};\n` +
     `export const DOC_CSS = ${JSON.stringify(docCss)};\n` +
@@ -158,4 +164,4 @@ writeFileSync(
 );
 
 const kb = (n) => (n / 1024).toFixed(1);
-console.log(`marketing assets built: css ${kb(css.length)} KB (inline), shop css ${kb(shopCss.length)} KB (inline on the shop's pages), landing css ${kb(landingCss.length)} KB (inline on landing pages), class page css ${kb(courseCss.length)} KB, documents css ${kb(docCss.length)} KB, ${siteJsName} ${kb(js.length)} KB, ${bannersJsName} ${kb(bannersJs.length)} KB, ${galleryJsName} ${kb(galleryJs.length)} KB, ${shopJsName} ${kb(shopJs.length)} KB, ${analyticsJsName} ${kb(analyticsJs.length)} KB, chat.js ${kb(chatJs.length)} KB, ${Object.keys(verification).length} verification file(s)`);
+console.log(`marketing assets built: css ${kb(css.length)} KB (inline), shop css ${kb(shopCss.length)} KB (inline on the shop's pages), landing css ${kb(landingCss.length)} KB (inline on landing pages), class page css ${kb(courseCss.length)} KB, documents css ${kb(docCss.length)} KB, ${siteJsName} ${kb(js.length)} KB, ${bannersJsName} ${kb(bannersJs.length)} KB, ${galleryJsName} ${kb(galleryJs.length)} KB, ${certJsName} ${kb(certJs.length)} KB, ${shopJsName} ${kb(shopJs.length)} KB, ${analyticsJsName} ${kb(analyticsJs.length)} KB, chat.js ${kb(chatJs.length)} KB, ${Object.keys(verification).length} verification file(s)`);

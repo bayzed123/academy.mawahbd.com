@@ -243,4 +243,79 @@ import { inView, stagger } from "framer-motion/dom";
       if (home) home.focus({ preventScroll: true });
     });
   }
+
+  /* 10. night and day: the sun / moon button in the header switches the look, and the choice is kept in this browser (shared/src/theme.ts
+     sets it again before the next page is drawn). A change made in another tab follows here too. */
+  var root = d.documentElement;
+  var themeBtns = $$("[data-theme-toggle]");
+  var themeSync = function () {
+    var light = root.getAttribute("data-theme") === "light";
+    themeBtns.forEach(function (b) { b.setAttribute("aria-pressed", light ? "true" : "false"); });
+    var tc = $('meta[name="theme-color"]'), cs = $('meta[name="color-scheme"]');
+    if (tc) tc.setAttribute("content", light ? "#ffffff" : "#000000");
+    if (cs) cs.setAttribute("content", light ? "light" : "dark");
+  };
+  var themeSet = function (light) {
+    if (light) root.setAttribute("data-theme", "light"); else root.removeAttribute("data-theme");
+    themeSync();
+  };
+  themeBtns.forEach(function (b) {
+    b.hidden = false;
+    b.addEventListener("click", function () {
+      var light = root.getAttribute("data-theme") !== "light";
+      themeSet(light);
+      try { localStorage.setItem("mawah_theme", light ? "light" : "dark"); } catch (e) { /* private mode: this page only */ }
+    });
+  });
+  themeSync();
+  window.addEventListener("storage", function (e) { if (e.key === "mawah_theme") themeSet(e.newValue === "light"); });
+
+  /* 11. talk to us: the round orange button bottom right opens a small card with the ways to reach the academy — WhatsApp, Messenger and
+     the assistant (shared/styles/help.css). It is a native <details>, so it opens without this script; here it also closes with Escape
+     (the focus goes back to the button), with a click anywhere else, and as soon as a way is chosen (the assistant's then opens, 4.). */
+  var help = $("[data-help]");
+  if (help) {
+    var helpBtn = $("summary", help);
+    var helpClose = function (focus) { if (!help.open) return; help.open = false; if (focus && helpBtn) helpBtn.focus(); };
+    d.addEventListener("keydown", function (e) { if (e.key === "Escape") helpClose(true); });
+    d.addEventListener("click", function (e) { if (help.open && !help.contains(e.target)) helpClose(false); });
+    $$(".help-opt", help).forEach(function (o) { o.addEventListener("click", function () { helpClose(false); }); });
+  }
+
+  /* 12. videos (the home page's, and a class's demo): pressing the picture puts the video site's own player in its place and starts it —
+     on this page, never a link away. The player's address is the server's (data-player), never anything the page was given. */
+  $$("[data-player]").forEach(function (box) {
+    var play = $(".vid-play", box);
+    if (!play) return;
+    // a picture that cannot be fetched (the video removed, YouTube out of reach) leaves the play button on its own, not a broken-picture mark
+    var pic = $("img", box);
+    if (pic) {
+      var drop = function () { pic.remove(); };
+      if (pic.complete && pic.naturalWidth === 0 && pic.currentSrc) drop(); else pic.addEventListener("error", drop);
+    }
+    play.addEventListener("click", function (e) {
+      e.preventDefault();
+      var f = d.createElement("iframe");
+      f.src = box.getAttribute("data-player");
+      f.title = box.getAttribute("data-title") || "";
+      f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      f.setAttribute("allowfullscreen", "");
+      f.referrerPolicy = "strict-origin-when-cross-origin";
+      box.replaceChildren(f);
+      f.focus();
+    });
+  });
+
+  /* 13. "Watch the demo class" in a class page's price box: down to the demo and it starts — one press, not two. Without this script (or a
+     demo), the link is a plain jump to the video. */
+  $$("[data-play-demo]").forEach(function (link) {
+    link.addEventListener("click", function (e) {
+      var box = $("#demo"), play = box && $(".vid-play", box);
+      if (!play) return;
+      e.preventDefault();
+      var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      box.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "center" });
+      play.click();
+    });
+  });
 })();

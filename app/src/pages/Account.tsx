@@ -55,6 +55,13 @@ export function Certificates() {
               <a className="btn btn-primary btn-sm" href={`${home}/certificate/${c.code}`} target="_blank" rel="noopener noreferrer" onClick={() => track("certificate_view", { course_id: c.course_id })}>
                 {t("app.certs.view")}
               </a>
+              {/* the certificate's own page does it as soon as it opens: the print window (Save as PDF), or the picture's download */}
+              <a className="btn btn-outline btn-sm" href={`${home}/certificate/${c.code}?print=1`} target="_blank" rel="noopener noreferrer">
+                <Icon name="download" /> {t("app.certs.pdf")}
+              </a>
+              <a className="btn btn-outline btn-sm" href={`${home}/certificate/${c.code}?download=png`} target="_blank" rel="noopener noreferrer">
+                <Icon name="image" /> {t("app.certs.png")}
+              </a>
               <button className="btn btn-outline btn-sm" type="button" onClick={() => copy(c.code)}>
                 {t("app.certs.copy")}
               </button>

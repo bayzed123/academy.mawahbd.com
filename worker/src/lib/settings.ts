@@ -7,7 +7,19 @@ import { all, nowIso, run, safeJson } from "./db";
 export interface Settings {
   /** how to reach the shop; and the registered address and trade licence number, as on the trade licence — every page's footer, the Contact and
    * About pages show them (SSLCommerz asks for them) */
-  contact: { whatsapp: string; phone: string; email: string; facebook: string; youtube: string; instagram: string; address_bn: string; address_en: string; trade_license: string };
+  contact: {
+    whatsapp: string;
+    phone: string;
+    email: string;
+    facebook: string;
+    /** the Messenger chat of the owner's page (an m.me/… address); empty = worked out from `facebook` when that is the page's own address */
+    messenger: string;
+    youtube: string;
+    instagram: string;
+    address_bn: string;
+    address_en: string;
+    trade_license: string;
+  };
   /**
    * the bar at the very top of every page: the owner's words, and — when the owner sets them — a countdown to the end of the offer
    * (`ends_at`, a minute of Bangladesh time like "2026-10-31T23:59"; once it has passed the bar is gone) and a button (a page of this
@@ -95,7 +107,7 @@ export const TRADE_LICENCE = {
 };
 
 export const SETTING_DEFAULTS: Settings = {
-  contact: { whatsapp: "", phone: "", email: "", facebook: "", youtube: "", instagram: "", ...TRADE_LICENCE },
+  contact: { whatsapp: "", phone: "", email: "", facebook: "", messenger: "", youtube: "", instagram: "", ...TRADE_LICENCE },
   announcement: { bn: "", en: "", ends_at: "", button_bn: "", button_en: "", link: "" },
   payments: {
     sslcommerz: true,

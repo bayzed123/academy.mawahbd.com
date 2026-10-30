@@ -1,5 +1,5 @@
 import { Hono, type Context } from "hono";
-import type { Lang } from "@mawah/shared";
+import { loc, type Lang } from "@mawah/shared";
 import type { AppEnv } from "../env";
 import { all, first } from "../lib/db";
 import { HttpError } from "../lib/http";
@@ -27,14 +27,15 @@ import { liveBanners } from "../services/banners";
 import { faqsForClass, siteFaqs } from "../services/faqs";
 import { galleryFor } from "../services/gallery";
 import { includedIn } from "../services/materials";
-import { certificateByCode } from "../services/learning";
+import { CERT_PREFIX, certificateByCode } from "../services/learning";
 import { landingBySlug, landingData, readBlocks } from "../services/landing";
 import { CoursesPage } from "../views/pages/courses";
 import { ProductPage, ShopPage, ShopSoonPage } from "../views/pages/shop";
 import { SHOP_SORTS, productReviews, relatedProducts, shopCategories, shopProduct, shopProducts, type ShopSort } from "../services/shop";
 import { CoursePage, RelatedFragment, ReviewList } from "../views/pages/course";
 import { FaqPage } from "../views/pages/faq";
-import { HomePage } from "../views/pages/home";
+import type { CertArtData } from "../views/certificate";
+import { HomePage, type HomeVideo } from "../views/pages/home";
 import { LandingPage } from "../views/pages/landing";
 import {
   AboutPage,
@@ -64,7 +65,7 @@ export function pageRoutes(lang: Lang) {
     const flash = flashOf(c);
     return cachedPage(c, { ttl: 120, bypass: !!flash }, async () => {
       const ctx = await pageCtxFor(c, lang, "/");
-      const [feat, beginners, instructors, counts, minRow, reviews, posts, banners, faqs] = await Promise.all([
+      const [feat, beginners, instructors, counts, minRow, reviews, posts, banners, faqs, videos] = await Promise.all([
         listCourses(c.env, { featuredOnly: true, perPage: 9 }),
         listCourses(c.env, { level: "beginner", perPage: 4 }),
         listInstructors(c.env),
@@ -80,6 +81,8 @@ export function pageRoutes(lang: Lang) {
         all<PostRow>(c.env.DB, `SELECT ${POST_COLS} FROM blog_posts WHERE status = 'published' AND deleted_at IS NULL ORDER BY published_at DESC LIMIT 3`),
         liveBanners(c.env, "hero", 8),
         siteFaqs(c.env, { featuredOnly: true, limit: 6 }),
+        // the owner's videos that are switched on (Admin → Home videos), in their order
+        all<HomeVideo>(c.env.DB, "SELECT id, url, title_bn, title_en FROM home_videos WHERE active = 1 AND deleted_at IS NULL ORDER BY sort, id LIMIT 12"),
       ]);
       let featured = feat.items;
       if (featured.length === 0) featured = (await listCourses(c.env, { perPage: 9 })).items;
@@ -91,6 +94,7 @@ export function pageRoutes(lang: Lang) {
           data={{
             banners,
             faqs,
+            videos,
             featured,
             beginners: beginners.items,
             instructors: instructors.slice(0, 3),
@@ -281,6 +285,24 @@ export function pageRoutes(lang: Lang) {
   r.get("/verify", (c) => verify(c, c.req.query("code")));
   r.get("/verify/:code", (c) => verify(c, c.req.param("code")));
 
+  /* A sample of the certificate's design (Admin → Certificates, a class page's "See a sample"): marked SAMPLE across it, with a code that
+     checks nothing and a QR code that opens the certificate check. ?class=<address> puts that class's name on it. */
+  r.get("/certificate/sample", async (c) => {
+    const ctx = await pageCtxFor(c, lang, "/certificate/sample");
+    const slug = (c.req.query("class") ?? "").trim().slice(0, 120);
+    const course = slug
+      ? await first<{ title_bn: string; title_en: string }>(c.env.DB, "SELECT title_bn, title_en FROM courses WHERE slug = ? AND status IN ('published','coming_soon') AND deleted_at IS NULL", slug)
+      : null;
+    const sample: CertArtData = {
+      name: ctx.t("cert.sampleName"),
+      course: course ? loc(course, "title", lang) : ctx.t("cert.sampleCourse"),
+      issuedAt: new Date().toISOString(),
+      code: `${CERT_PREFIX}-0000-0000-0000`,
+      verifyUrl: ctx.abs("/verify"),
+    };
+    return renderHtml(c, ctx, <CertificatePage ctx={ctx} cert={sample} sample />);
+  });
+
   r.get("/certificate/:code", async (c) => {
     const code = c.req.param("code");
     if (!(await checkRateLimit(c.env, "RL_FORM", `RL_FORM:cert:${c.get("ip")}`))) throw new HttpError(429, "rate_limited");
@@ -288,7 +310,14 @@ export function pageRoutes(lang: Lang) {
     ctx.track = NO_TRACKING; // the page carries the student's name and its address is the credential: never measured, no referrer passed on
     const cert = await certificateByCode(c.env, code);
     if (!cert || cert.revoked_at) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404, noReferrer: true });
-    return renderHtml(c, ctx, <CertificatePage ctx={ctx} cert={cert} />, { noReferrer: true });
+    const art: CertArtData = {
+      name: cert.student_name,
+      course: loc({ title_bn: cert.course_title_bn, title_en: cert.course_title_en }, "title", lang),
+      issuedAt: cert.issued_at,
+      code: cert.code,
+      verifyUrl: ctx.abs(`/verify/${cert.code}`),
+    };
+    return renderHtml(c, ctx, <CertificatePage ctx={ctx} cert={art} />, { noReferrer: true });
   });
 
   return r;

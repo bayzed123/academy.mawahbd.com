@@ -137,6 +137,12 @@ export interface CourseDetail extends CourseCardDTO {
   launch_at: string | null;
   updated_at: string;
   instructor: InstructorDTO | null;
+  /** the demo class anyone can watch before enrolling (Admin → Classes → Demo class): a YouTube or Vimeo address, or "" */
+  demo_url: string;
+  demo_title_bn: string;
+  demo_title_en: string;
+  demo_text_bn: string;
+  demo_text_en: string;
 }
 
 /** What students think of an instructor: the average of the approved reviews of their live classes (real data only). */
@@ -197,7 +203,8 @@ export async function getCourseBySlug(env: Env, slug: string, opts: { includeHid
   const row = await first<CardRow & Record<string, unknown>>(
     env.DB,
     `SELECT ${CARD_COLUMNS}, c.long_bn, c.long_en, c.details_url, c.cert_enabled, c.duration_sec, c.seo_title_bn, c.seo_title_en,
-            c.seo_desc_bn, c.seo_desc_en, c.published_at, c.launch_at, c.updated_at, c.instructor_id
+            c.seo_desc_bn, c.seo_desc_en, c.published_at, c.launch_at, c.updated_at, c.instructor_id,
+            c.demo_url, c.demo_title_bn, c.demo_title_en, c.demo_text_bn, c.demo_text_en
      FROM courses c LEFT JOIN categories cat ON cat.id = c.category_id
      WHERE c.slug = ? AND c.deleted_at IS NULL ${opts.includeHidden ? "" : "AND c.status IN ('published','coming_soon')"}`,
     slug,
@@ -221,6 +228,11 @@ export async function getCourseBySlug(env: Env, slug: string, opts: { includeHid
     launch_at: (row.launch_at as string | null) ?? null,
     updated_at: row.updated_at as string,
     instructor: instructor ? (await withRatings(env, [toInstructor(instructor)]))[0] : null,
+    demo_url: (row.demo_url as string | null) ?? "",
+    demo_title_bn: (row.demo_title_bn as string | null) ?? "",
+    demo_title_en: (row.demo_title_en as string | null) ?? "",
+    demo_text_bn: (row.demo_text_bn as string | null) ?? "",
+    demo_text_en: (row.demo_text_en as string | null) ?? "",
   };
 }
 

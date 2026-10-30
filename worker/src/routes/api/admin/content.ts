@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ACCENTS, CLASS_ICONS, COURSE_STATUSES } from "@mawah/shared";
+import { ACCENTS, CLASS_ICONS, COURSE_STATUSES, playsOnPublicPages } from "@mawah/shared";
 import type { Env } from "../../../env";
 import { crudRoutes, type ResourceDef } from "../../../lib/crud";
 import { all, first, nowIso, qs } from "../../../lib/db";
@@ -279,6 +279,12 @@ const courseSchema = z.object({
   seo_desc_en: textSchema(320),
   sort: sortNum,
   launch_at: isoDate,
+  // the demo class anyone can watch on the class page before enrolling (YouTube or Vimeo), with its own title and a few lines
+  demo_url: z.union([z.literal(""), z.string().trim().max(300).refine(playsOnPublicPages, "video_site")]).optional(),
+  demo_title_bn: textSchema(120).optional(),
+  demo_title_en: textSchema(120).optional(),
+  demo_text_bn: textSchema(600).optional(),
+  demo_text_en: textSchema(600).optional(),
 });
 
 export const courses = crudRoutes({

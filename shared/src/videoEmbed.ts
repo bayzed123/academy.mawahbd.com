@@ -80,3 +80,29 @@ export function facebookNeedsOwnAddress(url: string): boolean {
   const host = u.hostname.toLowerCase();
   return (host === "fb.watch" || FACEBOOK_HOST.test(host) || host === "fb.com") && !facebookEmbed(u);
 }
+
+/** A YouTube video's own picture (its thumbnail), from the checked id; null for any other link. The home page and the admin show it. */
+export function videoThumb(url: string): string | null {
+  const v = videoEmbed(url);
+  if (!v || v.site !== "youtube") return null;
+  const id = v.src.slice(v.src.lastIndexOf("/") + 1);
+  return /^[\w-]{11}$/.test(id) ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : null;
+}
+
+/**
+ * A video the public pages can play: YouTube or Vimeo. A Facebook video would need Facebook's player, which the public pages never load
+ * (their policy has no door for it); it plays only in the student app and the admin. Used for the home page's videos and a class's demo.
+ */
+export function playsOnPublicPages(url: string): boolean {
+  const v = videoEmbed(url);
+  return !!v && (v.site === "youtube" || v.site === "vimeo");
+}
+
+/** The address that opens a YouTube or Vimeo video on its own site — where the picture takes a visitor without JavaScript. */
+export function videoWatchUrl(url: string): string | null {
+  const v = videoEmbed(url);
+  if (!v) return null;
+  if (v.site === "youtube") return `https://www.youtube.com/watch?v=${v.src.slice(v.src.lastIndexOf("/") + 1)}`;
+  if (v.site === "vimeo") return v.src.replace("https://player.vimeo.com/video/", "https://vimeo.com/").replace("?h=", "/");
+  return null;
+}
