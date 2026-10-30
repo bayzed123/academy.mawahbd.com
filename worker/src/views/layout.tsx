@@ -3,7 +3,7 @@ import { loc, readSslLogo, SSL_BANNER, waNumber } from "@mawah/shared";
 import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
-import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS, THEME_JS, VIDEO_CSS } from "../generated/assets";
+import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS, THEME_CSS, THEME_JS, VIDEO_CSS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
@@ -233,14 +233,17 @@ export function Layout(props: LayoutProps) {
         {fontPreloads.map((href) => (
           <link rel="preload" href={href} as="font" type="font/woff2" crossorigin="anonymous" />
         ))}
-        {/* the visitor's night or day look, set before anything is drawn (marketing/theme.js); a certificate or an invoice keeps its own paper */}
-        {chrome && <script src={THEME_JS} />}
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         {props.shop && <style dangerouslySetInnerHTML={{ __html: SHOP_CSS }} />}
         {props.landing && <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />}
         {props.videos && <style dangerouslySetInnerHTML={{ __html: VIDEO_CSS }} />}
         {props.course && <style dangerouslySetInnerHTML={{ __html: COURSE_CSS }} />}
         {props.doc && <style dangerouslySetInnerHTML={{ __html: DOC_CSS }} />}
+        {/* the visitor's night or day look, set before anything is drawn (marketing/theme.js); a certificate or an invoice keeps its own paper.
+            The day look's rules (shared/styles/theme.css) are a cached file of their own rather than part of every page: they hold up the page
+            only on a device set to light, and theme.js turns them on for a visitor who chose the day look on a dark device */}
+        {chrome && <link rel="stylesheet" href={THEME_CSS} media="(prefers-color-scheme: light)" id="theme-css" />}
+        {chrome && <script src={THEME_JS} />}
         {(props.jsonLd ?? []).map((data) => (
           <script type="application/ld+json">{jsonLd(data)}</script>
         ))}

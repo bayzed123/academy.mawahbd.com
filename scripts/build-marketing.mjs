@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Builds the public-site assets:
- *   shared/styles/base.css + dark.css + banners.css + help.css (the round corner buttons) + marketing/site.css + theme.css (the day look) -> minified string inlined into every page (worker/src/generated/assets.ts)
+ *   shared/styles/base.css + dark.css + banners.css + help.css (the round corner buttons) + theme-toggle.css + marketing/site.css -> minified string inlined into every page (worker/src/generated/assets.ts)
+ *   shared/styles/theme.css -> dist/static/assets/theme.<hash>.css (the light look: a file of its own, linked by every page — see views/layout.tsx)
  *   marketing/shop.css -> minified string inlined only into the tools shop's pages (SHOP_CSS)
  *   marketing/landing.css -> minified string inlined only into landing pages (LANDING_CSS)
  *   marketing/course.css -> minified string inlined only into the class page (COURSE_CSS)
@@ -39,7 +40,7 @@ mkdirSync(gen, { recursive: true });
 // static public files (fonts, sprite, logo + icons, pattern, manifest, og image …)
 cpSync(resolve(root, "marketing/public"), out, { recursive: true });
 
-const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/dark.css")}\n${read("shared/styles/banners.css")}\n${read("shared/styles/help.css")}\n${read("marketing/site.css")}\n${read("shared/styles/theme.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/dark.css")}\n${read("shared/styles/banners.css")}\n${read("shared/styles/help.css")}\n${read("shared/styles/theme-toggle.css")}\n${read("marketing/site.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 // the decorative background pattern is tiny: inline it once (CSS variable) instead of a cached-for-a-day extra request
 const patternSvg = read("marketing/public/pattern.svg").replace(/\s+/g, " ").replace(/> </g, "><").replace(/"/g, "'").trim();
 const patternUri = `url("data:image/svg+xml,${patternSvg.replace(/</g, "%3C").replace(/>/g, "%3E").replace(/#/g, "%23")}")`;
@@ -79,6 +80,7 @@ const shopJs = (await transform(read("marketing/shop.js"), { loader: "js", minif
 const chatJs = (await transform(read("marketing/chat.js"), { loader: "js", minify: true, target: "es2017" })).code;
 const chatCss = (await transform(read("marketing/chat.css"), { loader: "css", minify: true })).code;
 const themeJs = (await transform(read("marketing/theme.js"), { loader: "js", minify: true, target: "es2017" })).code;
+const themeCss = (await transform(read("shared/styles/theme.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code;
 
 const siteJsName = `site.${hash(js)}.js`;
 writeFileSync(resolve(out, "assets", siteJsName), js);
@@ -95,6 +97,8 @@ writeFileSync(resolve(out, "assets", shopJsName), shopJs);
 writeFileSync(resolve(out, "chat.js"), chatJs);
 writeFileSync(resolve(out, "chat.css"), chatCss);
 writeFileSync(resolve(out, "theme.js"), themeJs);
+const themeCssName = `theme.${hash(themeCss)}.css`;
+writeFileSync(resolve(out, "assets", themeCssName), themeCss);
 
 // the share image (the picture Facebook / WhatsApp show for a link) under a name that changes with the picture: they keep a picture they have
 // fetched once for a long time, so a new picture at the old address could go unseen for weeks — a new address is fetched at once
@@ -122,6 +126,7 @@ writeFileSync(
     `export const SHOP_CSS = ${JSON.stringify(shopCss)};\n` +
     `export const SHOP_JS = ${JSON.stringify(`/assets/${shopJsName}`)};\n` +
     `export const THEME_JS = "/theme.js";\n` +
+    `export const THEME_CSS = ${JSON.stringify(`/assets/${themeCssName}`)};\n` +
     `export const OG_IMAGE = ${JSON.stringify(ogImage)};\n`,
 );
 
