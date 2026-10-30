@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { COURSE_CSS, CSS, DOC_CSS, FONTS_CSS, LANDING_CSS, SHOP_CSS, SITE_FONTS_CSS, VIDEO_CSS } from "../generated/assets";
+import { COURSE_CSS, CSS, DOC_CSS, FONTS_CSS, LANDING_CSS, SHOP_CSS, SITE_FONTS_BN_CSS, SITE_FONTS_EN_CSS, VIDEO_CSS } from "../generated/assets";
 import { isProd, type AppEnv, type Ctx } from "../env";
 import type { PageCtx } from "../views/ctx";
 import { buildCsp, styleHash } from "../middleware/security";
@@ -21,7 +21,7 @@ export async function renderHtml(
   const body = `<!doctype html>${await node.toString()}`;
   const ids = ctx.track;
   const csp = buildCsp({
-    styleHashes: await Promise.all([SITE_FONTS_CSS, FONTS_CSS, CSS, SHOP_CSS, LANDING_CSS, COURSE_CSS, VIDEO_CSS, DOC_CSS].map(styleHash)),
+    styleHashes: await Promise.all([SITE_FONTS_BN_CSS, SITE_FONTS_EN_CSS, FONTS_CSS, CSS, SHOP_CSS, LANDING_CSS, COURSE_CSS, VIDEO_CSS, DOC_CSS].map(styleHash)),
     turnstile: turnstileEnabled(c.env),
     analytics: { ga4: !!ids.ga4, clarity: !!ids.clarity, pixel: !!ids.pixel },
   });
