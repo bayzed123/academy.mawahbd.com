@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { dhakaMinuteMs, formatDateTime, timeLeft } from "@mawah/shared";
-import { COURSE_CSS, DOC_CSS } from "../src/generated/assets";
+import { COURSE_CSS, CSS, DOC_CSS, FONTS_CSS, SITE_FONTS_CSS } from "../src/generated/assets";
 import { SETTING_DEFAULTS, setSetting } from "../src/lib/settings";
 import { styleHash } from "../src/middleware/security";
 import { messengerHref } from "../src/views/topbar";
@@ -9,7 +9,8 @@ import { Client, env, firstCourse, freshState, json, loginStaff } from "./helper
 /*
  * The working parts of the dark look that are more than colours. The announcement bar's countdown is always the owner's own end of the
  * offer: it shows only until then, and its end time and button are checked before they are stored. The Messenger button is for the owner's
- * Facebook page only. The class page and the documents send their own styles, so every other page stays as light as before.
+ * Facebook page only. The class page and the documents send their own styles, so every other page stays as light as before, and the
+ * site's text never jumps when a font comes late.
  */
 const text = async (path: string) => (await new Client().get(path)).text();
 /** What a page shows (its <body>): the inlined styles name every class too. */
@@ -168,6 +169,39 @@ describe("the class page's and the documents' own styles", () => {
       const font = path.startsWith("/en") ? "latin" : "bn";
       expect(page, path).toContain(`<link rel="preload" href="/fonts/hind-${font}-700.woff2" as="font" type="font/woff2" crossorigin="anonymous"/>`);
     }
+  });
+
+  it("never let a late font make the site's text jump, while certificates and invoices wait for every real font", async () => {
+    // how each font file is shown: "optional" = only if it is in by the first drawing, "swap" = drawn in the moment it comes
+    const display = (css: string) => Object.fromEntries([...css.matchAll(/font-display:(\w+);src:url\(\/fonts\/([\w-]+)\.woff2\)/g)].map((m) => [m[2], m[1]]));
+    // the Bangla regular and bold (the big files every Bangla page preloads: its text and headings) never swap in late; the small Latin
+    // files and the semi-bold labels still may
+    expect(display(SITE_FONTS_CSS)).toEqual({
+      "hind-bn-400": "optional",
+      "hind-bn-600": "swap",
+      "hind-bn-700": "optional",
+      "hind-latin-400": "swap",
+      "hind-latin-600": "swap",
+      "hind-latin-700": "swap",
+      "tiro-bn-400": "swap",
+      "playfair-latin-600": "swap",
+    });
+    expect(Object.values(display(FONTS_CSS))).toEqual(Array(8).fill("swap"));
+    // a <style> of their own, before the site's styles (which carry no fonts), allowed by its own hash
+    expect(CSS).not.toContain("@font-face");
+    const course = await firstCourse();
+    for (const path of ["/", `/en/courses/${course.slug}`]) {
+      const res = await new Client().get(path);
+      const html = await res.text();
+      expect(html, path).toContain(`<style>${SITE_FONTS_CSS}</style><style>${CSS}</style>`);
+      expect(html, path).not.toContain(FONTS_CSS);
+      expect(res.headers.get("content-security-policy"), path).toContain(await styleHash(SITE_FONTS_CSS));
+    }
+    const sample = await new Client().get(`/en/certificate/sample?class=${course.slug}`);
+    const doc = await sample.text();
+    expect(doc).toContain(`<style>${FONTS_CSS}</style><style>${CSS}</style>`);
+    expect(doc).not.toContain(SITE_FONTS_CSS);
+    expect(sample.headers.get("content-security-policy")).toContain(await styleHash(FONTS_CSS));
   });
 });
 

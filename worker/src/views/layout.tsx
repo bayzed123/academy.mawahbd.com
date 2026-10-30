@@ -3,7 +3,7 @@ import { loc, readSslLogo, SSL_BANNER, waNumber } from "@mawah/shared";
 import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
-import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS, THEME_CSS, THEME_JS, VIDEO_CSS } from "../generated/assets";
+import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, FONTS_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_FONTS_CSS, SITE_JS, THEME_CSS, THEME_JS, VIDEO_CSS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
@@ -233,6 +233,9 @@ export function Layout(props: LayoutProps) {
         {fontPreloads.map((href) => (
           <link rel="preload" href={href} as="font" type="font/woff2" crossorigin="anonymous" />
         ))}
+        {/* the fonts: on the site's pages the Bangla regular and bold are drawn with only if they are in by the first drawing, so the
+            text never jumps when one comes late; a certificate or an invoice waits for every real font (scripts/build-marketing.mjs) */}
+        <style dangerouslySetInnerHTML={{ __html: chrome ? SITE_FONTS_CSS : FONTS_CSS }} />
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         {props.shop && <style dangerouslySetInnerHTML={{ __html: SHOP_CSS }} />}
         {props.landing && <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />}
