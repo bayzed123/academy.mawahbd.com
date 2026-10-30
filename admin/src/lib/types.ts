@@ -31,6 +31,11 @@ export interface CourseRow {
   featured: number;
   cert_enabled: number;
   cert_template: string;
+  demo_url: string;
+  demo_title_bn: string;
+  demo_title_en: string;
+  demo_text_bn: string;
+  demo_text_en: string;
   seo_title_bn: string;
   seo_title_en: string;
   seo_desc_bn: string;

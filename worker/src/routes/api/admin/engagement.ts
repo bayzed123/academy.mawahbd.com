@@ -10,7 +10,7 @@ import { textSchema } from "../../../lib/schemas";
 import { bumpContentVersion } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
 import { refreshCourseRating } from "../../../services/catalog";
-import { CERT_PREFIX } from "../../../services/learning";
+import { CERT_PREFIX, issueCertificatesFor } from "../../../services/learning";
 
 /** Reviews, lesson Q&A and certificates — the "after the sale" side of the academy. */
 export const engagement = new Hono<AppEnv>();
@@ -194,6 +194,72 @@ engagement.get("/certificates/export.csv", requirePerm("certificates:read"), asy
       { key: "revoked_reason", label: "Reason" },
     ]),
   );
+});
+
+/* Issuing by hand (the academy's own decision): one student, or a whole class at once. A class taught live has no lessons in the app, so
+   nobody could ever "finish" it there — before this, such a class never gave a certificate. */
+const finishedSql = `(SELECT COUNT(*) FROM lessons WHERE course_id = e.course_id) > 0
+  AND (SELECT COUNT(*) FROM lesson_progress lp WHERE lp.student_id = e.student_id AND lp.course_id = e.course_id) >= (SELECT COUNT(*) FROM lessons WHERE course_id = e.course_id)`;
+const withoutCertSql = "NOT EXISTS (SELECT 1 FROM certificates ce WHERE ce.student_id = e.student_id AND ce.course_id = e.course_id)";
+
+/** How a class stands: who is enrolled, who finished every lesson, who already has a certificate — what the Issue form shows before it acts. */
+engagement.get("/certificates/class/:id", requirePerm("certificates:read"), async (c) => {
+  const id = intParam(c, "id");
+  const course = await first<{ id: number; slug: string; title_bn: string; title_en: string; cert_enabled: number }>(
+    c.env.DB,
+    "SELECT id, slug, title_bn, title_en, cert_enabled FROM courses WHERE id = ? AND deleted_at IS NULL",
+    id,
+  );
+  if (!course) throw notFound();
+  const n = await first<{ enrolled: number; lessons: number; with_cert: number; to_all: number; to_finished: number }>(
+    c.env.DB,
+    `SELECT (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = ?1 AND e.status = 'active') AS enrolled,
+            (SELECT COUNT(*) FROM lessons WHERE course_id = ?1) AS lessons,
+            (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = ?1 AND e.status = 'active' AND NOT ${withoutCertSql}) AS with_cert,
+            (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = ?1 AND e.status = 'active' AND ${withoutCertSql}) AS to_all,
+            (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = ?1 AND e.status = 'active' AND ${withoutCertSql} AND ${finishedSql}) AS to_finished`,
+    id,
+  );
+  return ok(c, { course: { ...course, cert_enabled: !!course.cert_enabled }, ...n });
+});
+
+const issueSchema = z.object({
+  course_id: z.number().int().positive(),
+  // one student (from their page), or the class: everyone enrolled, or only those who finished every lesson in the app
+  student_id: z.number().int().positive().optional(),
+  who: z.enum(["all", "finished"]).default("all"),
+});
+const ISSUE_BATCH = 400; // a few statements of 40 each, well inside what one request may ask of the database
+
+engagement.post("/certificates/issue", requirePerm("certificates:write"), async (c) => {
+  const body = await parseBody(c, issueSchema);
+  const course = await first<{ id: number; title_en: string; cert_enabled: number }>(c.env.DB, "SELECT id, title_en, cert_enabled FROM courses WHERE id = ? AND deleted_at IS NULL", body.course_id);
+  if (!course) throw notFound();
+  if (!course.cert_enabled) throw new HttpError(409, "cert_off");
+  const rows = await all<{ id: number }>(
+    c.env.DB,
+    `SELECT e.id FROM enrollments e WHERE e.course_id = ? AND e.status = 'active' AND ${withoutCertSql}
+       ${body.student_id ? "AND e.student_id = ?" : ""} ${!body.student_id && body.who === "finished" ? `AND ${finishedSql}` : ""}
+     ORDER BY e.id LIMIT ?`,
+    ...[body.course_id, ...(body.student_id ? [body.student_id] : []), ISSUE_BATCH + 1],
+  );
+  if (body.student_id && rows.length === 0) {
+    // say why: not in the class, or the student already has one (shown, or taken back — then it is restored, not issued again)
+    const had = await first<{ revoked_at: string | null }>(c.env.DB, "SELECT revoked_at FROM certificates WHERE student_id = ? AND course_id = ?", body.student_id, body.course_id);
+    throw new HttpError(409, had ? (had.revoked_at ? "cert_revoked" : "cert_exists") : "not_enrolled");
+  }
+  const more = rows.length > ISSUE_BATCH;
+  const issued = await issueCertificatesFor(c.env, rows.slice(0, ISSUE_BATCH).map((r) => r.id));
+  if (issued > 0) {
+    await audit(c, {
+      action: "certificate.issued",
+      entity: "course",
+      entityId: course.id,
+      summary: `${issued} × ${course.title_en}`,
+      meta: { who: body.student_id ? "one" : body.who, studentId: body.student_id ?? null },
+    });
+  }
+  return ok(c, { issued, more });
 });
 
 engagement.post("/certificates/:id/revoke", requirePerm("certificates:write"), async (c) => {

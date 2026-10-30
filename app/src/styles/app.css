@@ -1,5 +1,6 @@
 @import "../../../shared/styles/base.css";
 @import "../../../shared/styles/dark.css";
+@import "../../../shared/styles/help.css";
 @import "../../../shared/styles/theme.css";
 
 /* ==========================================================================================
@@ -306,8 +307,8 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .inline-icon{display:inline-block;vertical-align:-3px;width:1.1em;height:1.1em}
 .status-hero .row{justify-content:center}
 @media (max-width:899px){
-  /* the site-wide chat launcher must clear the bottom tab bar */
-  body .mc-launch{bottom:calc(74px + env(safe-area-inset-bottom))}
+  /* the talk-to-us button (built by marketing/chat.js) must clear the bottom tab bar */
+  body.has-tabbar .floats{bottom:calc(74px + env(safe-area-inset-bottom))}
 }
 
 /* ===================================================================== the tools shop: cart, checkout, order, wishlist */

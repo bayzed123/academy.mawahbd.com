@@ -1,4 +1,4 @@
-import { SHOP_PER_PAGE, formatMoney, formatNumber, loc, percentOff, type ShopCardDTO, type ShopCategoryDTO, type ShopProductDTO, type ShopReviewDTO } from "@mawah/shared";
+import { SHOP_PER_PAGE, formatMoney, formatNumber, loc, percentOff, waNumber, type ShopCardDTO, type ShopCategoryDTO, type ShopProductDTO, type ShopReviewDTO } from "@mawah/shared";
 import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
 import { SHOP_SORTS, type ShopSort } from "../../services/shop";
 import type { PageCtx } from "../ctx";
@@ -328,7 +328,7 @@ export function ShopPage({ ctx, data }: { ctx: PageCtx; data: ShopListData }) {
  */
 export function ShopSoonPage({ ctx }: { ctx: PageCtx }) {
   const { t } = ctx;
-  const wa = ctx.settings.contact.whatsapp.replace(/\D/g, "");
+  const wa = waNumber(ctx.settings.contact.whatsapp); // with its country code: WhatsApp's links need it
   return (
     <Layout ctx={ctx} title={`${t("shop.title")} — ${t("brand.name")}`} description={t("shop.soon.text")} noindex>
       <section class="page-hero shop-soon">

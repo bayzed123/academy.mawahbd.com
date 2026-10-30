@@ -138,11 +138,14 @@ describe("the Messenger button", () => {
     for (const [url, want] of cases) expect(messengerHref(url), url).toBe(want);
   });
 
-  it("floats with WhatsApp on every page once the Facebook page is set, opening in a new tab, in both languages", async () => {
-    expect(await body("/en")).not.toContain("fab-ms");
+  it("is one of the ways in the talk-to-us card on every page once the Facebook page is set, opening in a new tab, in both languages", async () => {
+    expect(await body("/en")).not.toContain("help-ms");
     await setFacebook("https://www.facebook.com/mawahacademy");
-    expect(await text("/en")).toContain('<a class="fab fab-ms" href="https://m.me/mawahacademy" rel="noopener noreferrer" target="_blank" aria-label="Chat on Messenger" title="Chat on Messenger">');
-    expect(await text("/")).toContain('aria-label="মেসেঞ্জারে কথা বলুন"');
+    // the assistant is on too (its default), so the corner button opens the card with both ways (worker/test/help.test.ts has the rest)
+    const en = await body("/en");
+    expect(en).toContain('<a class="help-opt help-ms" href="https://m.me/mawahacademy" rel="noopener noreferrer" target="_blank">');
+    expect(en).toContain('<b>Messenger<span class="vh"> (opens in a new tab)</span></b>');
+    expect(await body("/")).toContain('<b>মেসেঞ্জার<span class="vh"> (নতুন ট্যাবে খুলবে)</span></b>');
   });
 });
 

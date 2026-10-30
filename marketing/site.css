@@ -25,7 +25,7 @@ html.has-topbar{scroll-padding-top:150px}
 .brand-text{display:flex;align-items:center;min-height:34px;padding-left:.85rem;border-left:1px solid rgba(255,255,255,.16)}
 .brand-name{font-family:var(--font-display);font-weight:700;font-size:.8rem;letter-spacing:.36em;color:var(--o-200);text-transform:uppercase}
 html[lang=bn] .brand-name{font-weight:600;letter-spacing:.02em;font-size:1.12rem;text-transform:none}
-.nav-links{display:none;gap:clamp(12px,2vw,26px);list-style:none;margin:0;padding:0}
+.nav-links{display:none;gap:clamp(12px,1.7vw,22px);list-style:none;margin:0;padding:0}
 .nav-links a{color:#d4d4d4;text-decoration:none;font-weight:600;font-size:.98rem;padding:.4rem .1rem;border-bottom:2px solid transparent;white-space:nowrap;transition:color .3s,border-color .3s}
 .nav-links a:hover,.nav-links a[aria-current=page]{color:#fff;border-color:var(--o-500)}
 .nav-actions{display:flex;align-items:center;gap:8px}
@@ -201,19 +201,9 @@ html[lang=bn] .step::before{content:counter(step,bengali)}
 .foot-choice button{background:none;border:0;padding:4px 0;min-height:24px;font:inherit;color:var(--o-300);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .foot-choice button:hover{color:#fff}
 
-/* ---------- floating helpers: WhatsApp, Messenger and the assistant, bottom right, above everything. Flat colour, a small crisp shadow,
-   no animation. ---------- */
-.floats{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:80;display:grid;gap:12px;justify-items:end}
+/* ---------- floating helpers, bottom right, above everything: "back to the top" over the talk-to-us button (its card, and the round
+   buttons' own look, are in shared/styles/help.css — the student app has the same) ---------- */
 body.has-buybar .floats{bottom:calc(86px + env(safe-area-inset-bottom))}
-.fab{position:relative;isolation:isolate;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;border:0;padding:0;background:transparent;color:#fff;cursor:pointer;text-decoration:none}
-.fab::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:50%;background:var(--fab);box-shadow:0 6px 16px rgba(0,0,0,.55);transition:transform .2s var(--ease-out)}
-.fab .icon{width:27px;height:27px}
-.fab-wa{--fab:#1fa855}
-.fab-ms{--fab:#0084ff}
-.fab-chat{--fab:#121212;color:var(--o-300)}
-.fab-chat::before{border:1px solid rgba(255,255,255,.18)}
-.fab:hover{color:#fff}
-.fab:hover::before{transform:scale(1.06)}
 /* "back to the top": white, ringed in orange, above the others; it appears once the visitor is well down the page (site.js) */
 .fab-top{--fab:#fff;width:48px;height:48px;justify-self:center;color:var(--red-900);opacity:0;visibility:hidden;transform:translateY(10px);transition:opacity .25s var(--ease-out),transform .25s var(--ease-out),visibility 0s linear .25s}
 .fab-top::before{border:2px solid var(--o-500)}
@@ -228,10 +218,14 @@ body.has-buybar .floats{bottom:calc(86px + env(safe-area-inset-bottom))}
 @media (min-width:640px){
   .news{grid-template-columns:1.1fr 1fr}
 }
-/* the full menu in the header needs about 1180px (Bangla labels are longer): below that the menu button holds every link, so no label ever wraps */
+/* the full menu in the header needs about 1180px (Bangla labels are longer): below that the menu button holds every link, so no label ever wraps.
+   Beside the full menu the logo stands alone (it says MAWAH itself): with the "Academy" label too, the Bangla menu, the night / day button and
+   the language button no longer fit the 1180px row, and the label slid under the first link. The logo never shrinks. */
 @media (min-width:1180px){
   .nav-links{display:flex}
   .menu{display:none}
+  .site-header .brand{flex:none}
+  .site-header .brand-text,.lang-toggle .icon{display:none}
 }
 @media (max-width:699px){
   /* one scrollable row of category chips: when the web font swaps in, nothing below can jump (CLS) */

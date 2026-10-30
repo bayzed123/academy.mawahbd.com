@@ -18,6 +18,9 @@
     var next = theme === "light" ? "light" : "dark";
     root.setAttribute("data-theme", next);
     root.style.colorScheme = next;
+    // the phone's address bar takes the page's own background (shared/styles/theme.css: ivory by day)
+    var bar = document.querySelector('meta[name="theme-color"]');
+    if (bar) bar.setAttribute("content", next === "light" ? "#fbf7ee" : "#000000");
     if (persist) {
       try { window.localStorage.setItem(KEY, next); } catch (e) { /* private mode */ }
     }

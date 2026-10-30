@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { BANNERS_JS } from "../worker/src/generated/assets";
+import { openAssistant } from "./helpers";
 
 test("offer popup opens smoothly and yields to the chatbot", async ({ page }) => {
   await page.goto("/en");
@@ -32,7 +33,7 @@ test("offer popup opens smoothly and yields to the chatbot", async ({ page }) =>
   await expect(offer).toBeHidden();
   await expect(page.locator("html")).not.toHaveClass(/offer-open/);
 
-  await page.locator("[data-chat-open]").first().click();
+  await openAssistant(page);
   const dialog = page.getByRole("dialog", { name: "MAWAH Assistant" });
   await expect(dialog).toBeVisible();
 

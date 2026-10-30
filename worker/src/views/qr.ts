@@ -1,7 +1,10 @@
 import qrcode from "qrcode-generator";
 
-/** Render `text` as a compact inline SVG QR code (one <path>, crisp at any size). Used on certificates. */
-export function qrSvg(text: string, opts: { cls?: string; label?: string } = {}): string {
+/**
+ * Render `text` as a compact inline SVG QR code (one <path>, crisp at any size). Used on certificates. `at` places it inside another
+ * drawing (the certificate's own SVG): its corner and its size there.
+ */
+export function qrSvg(text: string, opts: { cls?: string; label?: string; at?: { x: number; y: number; size: number } } = {}): string {
   const qr = qrcode(0, "M");
   qr.addData(text);
   qr.make();
@@ -21,5 +24,6 @@ export function qrSvg(text: string, opts: { cls?: string; label?: string } = {})
   }
   const size = n + quiet * 2;
   const label = (opts.label ?? "QR code").replace(/[<>&"]/g, "");
-  return `<svg class="${opts.cls ?? ""}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${label}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="#fff"/><path d="${d}" fill="#070304"/></svg>`;
+  const at = opts.at ? ` x="${opts.at.x}" y="${opts.at.y}" width="${opts.at.size}" height="${opts.at.size}"` : "";
+  return `<svg class="${opts.cls ?? ""}"${at} viewBox="0 0 ${size} ${size}" role="img" aria-label="${label}" shape-rendering="crispEdges"><rect width="${size}" height="${size}" fill="#fff"/><path d="${d}" fill="#070304"/></svg>`;
 }

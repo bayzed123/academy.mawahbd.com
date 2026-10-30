@@ -1,0 +1,26 @@
+/* MAWAH Academy — a video shown as its picture with an orange play button (the home page's videos, a class's demo class). Only pages
+   that show one carry it (scripts/build-marketing.mjs → VIDEO_CSS): every other page stays lighter. */
+/* ---------- the home page's videos (Admin → Home videos): each one a picture with an orange play button. Pressed, YouTube's (or Vimeo's)
+   own player takes the picture's place and plays right here on the page (marketing/site.js) — never a link away; without JavaScript the
+   picture opens the video on YouTube. Three to a row on a computer (one wide, or two, when there are fewer), a sliding row on a phone. ---------- */
+.vids{display:grid;gap:clamp(14px,2vw,22px);list-style:none;margin:0;padding:0}
+.vids.n1{max-width:900px;margin-inline:auto}
+@media (min-width:760px){
+  .vids.n2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vids.n3{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:759px){
+  .vids.n2,.vids.n3{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;margin-inline:-16px;padding:2px 16px 8px}
+  .vids.n2::-webkit-scrollbar,.vids.n3::-webkit-scrollbar{display:none}
+  .vids.n2>li,.vids.n3>li{flex:0 0 86%;scroll-snap-align:start}
+}
+.vid{position:relative;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:#121212;border:1px solid var(--line)}
+.vid iframe,.vid-play,.vid img{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vid img{object-fit:cover;transition:transform .5s var(--ease-out)}
+.vid-play{display:grid;place-items:center;color:var(--on-accent);text-decoration:none}
+.vid-play:hover{color:var(--on-accent)}
+.vid-play:hover img{transform:scale(1.04)}
+.vid-btn{position:relative;display:grid;place-items:center;width:68px;height:68px;border-radius:50%;background:var(--o-500);box-shadow:0 8px 24px rgba(0,0,0,.45);transition:transform .2s var(--ease-out)}
+.vid-play:hover .vid-btn,.vid-play:focus-visible .vid-btn{transform:scale(1.08)}
+.vid-btn .icon{width:30px;height:30px;margin-inline-start:3px}
+.vid-title{margin:.7rem 0 0;font-weight:700;line-height:1.45}

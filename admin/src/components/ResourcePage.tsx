@@ -105,6 +105,8 @@ export function ResourcePage<T extends { id: number; deleted_at?: string | null 
     }
   };
 
+  // the form's live preview (a banner as visitors will see it, a video's player …); nothing to show, no empty box above the form
+  const pv = preview?.(values);
   return (
     <>
       <PageHeader
@@ -181,7 +183,7 @@ export function ResourcePage<T extends { id: number; deleted_at?: string | null 
           </div>
         }
       >
-        {preview && <div className="pv-sticky">{preview(values)}</div>}
+        {pv != null && <div className="pv-sticky">{pv}</div>}
         <form
           onSubmit={(e) => {
             e.preventDefault();

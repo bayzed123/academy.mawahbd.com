@@ -1,12 +1,12 @@
 import { raw } from "hono/html";
-import { formatDate, formatMoney, loc, type CourseCardDTO, type OrderDTO } from "@mawah/shared";
+import { formatDate, formatMoney, loc, waNumber, type CourseCardDTO, type OrderDTO } from "@mawah/shared";
 import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
 import type { InstructorDTO, InstructorReview } from "../../services/catalog";
 import type { CertRow } from "../../services/learning";
 import type { PageKind } from "../../content/pageTexts";
 import type { PageCtx } from "../ctx";
 import { Layout } from "../layout";
-import { qrSvg } from "../qr";
+import { CertificateArt, type CertArtData } from "../certificate";
 import { ReviewList } from "./course";
 import { articleLd, breadcrumbLd, personLd } from "../seo";
 import { CourseCard, Crumbs, Flash, Icon, InstructorBadges, LogoImg, SectionHead } from "../ui";
@@ -248,7 +248,7 @@ export function AboutPage({ ctx }: { ctx: PageCtx }) {
 export function ContactPage({ ctx, flash }: { ctx: PageCtx; flash?: string }) {
   const { t, lang } = ctx;
   const c = ctx.settings.contact;
-  const wa = c.whatsapp.replace(/\D/g, "");
+  const wa = waNumber(c.whatsapp); // with its country code: WhatsApp's links need it
   const channels = [
     wa && { icon: "whatsapp", label: t("contact.whatsapp"), href: `https://wa.me/${wa}?text=${encodeURIComponent(t("wa.prefill"))}` },
     /^https?:\/\//.test(c.facebook) && { icon: "facebook", label: t("contact.facebook"), href: c.facebook },
@@ -330,7 +330,7 @@ function ContactBox({ ctx, big }: { ctx: PageCtx; big?: boolean }) {
   const { t } = ctx;
   const c = ctx.settings.contact;
   const tel = c.phone.replace(/[^\d+]/g, "");
-  const wa = c.whatsapp.replace(/\D/g, "");
+  const wa = waNumber(c.whatsapp); // with its country code: WhatsApp's links need it
   if (!tel && !wa && !c.email) return null;
   return (
     <aside class={big ? "page-contact big" : "page-contact"} aria-labelledby="page-contact-h">
@@ -468,53 +468,38 @@ export function VerifyPage({ ctx, code, cert }: { ctx: PageCtx; code?: string; c
 }
 
 /* ================================================================================ certificate (print) */
-export function CertificatePage({ ctx, cert }: { ctx: PageCtx; cert: CertRow }) {
-  const { t, lang } = ctx;
-  const verifyUrl = ctx.abs(`/verify/${cert.code}`);
-  const course = loc({ title_bn: cert.course_title_bn, title_en: cert.course_title_en }, "title", lang);
+/**
+ * A student's certificate (or a sample of the design): the drawing (views/certificate.tsx) with "Download PDF" — the browser's own Save as PDF
+ * — and "Download picture", which marketing/cert.js makes from the same drawing. The student app's buttons open this page with ?print=1 or
+ * ?download=png, and it does that as soon as it is ready.
+ */
+export function CertificatePage({ ctx, cert, sample = false }: { ctx: PageCtx; cert: CertArtData; sample?: boolean }) {
+  const { t } = ctx;
   return (
-    <Layout
-      ctx={ctx}
-      chrome={false}
-      title={`${t("cert.heading")} — ${cert.student_name}`}
-      description={`${cert.student_name} · ${course}`}
-      noindex
-      doc
-      bodyClass="doc"
-    >
+    <Layout ctx={ctx} chrome={false} title={`${t("cert.heading")} — ${cert.name}`} description={`${cert.name} · ${cert.course}`} noindex doc bodyClass="doc" cert>
       <div class="doc-bar">
         <button class="btn btn-primary" type="button" data-print>
           <Icon name="download" />
-          {t("btn.print")}
+          {t("cert.pdf")}
         </button>
-        <a class="btn btn-outline" href={ctx.href(`/verify/${cert.code}`)}>
-          {t("nav.verify")}
-        </a>
+        <button class="btn btn-primary" type="button" data-cert-png data-file={`MAWAH-certificate-${cert.code}.png`} data-making={t("cert.making")} data-fail={t("cert.pngFail")} hidden>
+          <Icon name="image" />
+          {t("cert.png")}
+        </button>
+        {!sample && (
+          <a class="btn btn-outline" href={ctx.href(`/verify/${cert.code}`)}>
+            {t("nav.verify")}
+          </a>
+        )}
         <a class="btn btn-outline" href={ctx.altHref}>
           {t("lang.switch")}
         </a>
       </div>
+      <p class="doc-hint">{t("cert.pdfHint")}</p>
+      <p class="doc-status" role="status" data-cert-status />
+      {sample && <p class="doc-note">{t("cert.sampleNote")}</p>}
       <div class="cert">
-        <div class="cert-border" />
-        <div class="cert-in">
-          <LogoImg class="cert-logo" ctx={ctx} />
-          <div class="cert-brand">{t("brand.academy")}</div>
-          <h1>{t("cert.heading")}</h1>
-          <p class="small">{t("cert.presented")}</p>
-          <div class="cert-name">{cert.student_name}</div>
-          <p class="small">{t("cert.for")}</p>
-          <div class="cert-course">{course}</div>
-          <div class="cert-foot">
-            <div>
-              <span>{t("cert.issued")}</span>
-              <b>{formatDate(cert.issued_at, lang)}</b>
-              <span>{t("verify.code")}</span>
-              <b class="cert-code">{cert.code}</b>
-            </div>
-            <div>{raw(qrSvg(verifyUrl, { cls: "cert-qr", label: t("cert.scan") }))}</div>
-          </div>
-          <p class="small">{t("cert.scan")} · {ctx.abs("/verify")}</p>
-        </div>
+        <CertificateArt ctx={ctx} data={{ ...cert, sample }} />
       </div>
     </Layout>
   );

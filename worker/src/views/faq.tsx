@@ -1,5 +1,5 @@
 import { raw } from "hono/html";
-import { loc } from "@mawah/shared";
+import { loc, waNumber } from "@mawah/shared";
 import { renderMarkdown } from "../lib/markdown";
 import type { FaqDTO } from "../services/faqs";
 import { bannerHref } from "./banners";
@@ -38,7 +38,7 @@ export function FaqItems({ ctx, items }: { ctx: PageCtx; items: FaqDTO[] }) {
 /** "Still have a question?" — the way to reach a person: WhatsApp when the owner has set a number, always the contact page. */
 export function FaqCta({ ctx, dark }: { ctx: PageCtx; dark?: boolean }) {
   const { t } = ctx;
-  const wa = ctx.settings.contact.whatsapp.replace(/\D/g, "");
+  const wa = waNumber(ctx.settings.contact.whatsapp); // with its country code: WhatsApp's links need it
   return (
     <div class={`faq-cta${dark ? " dark" : ""}`}>
       <span class="faq-cta-ico">

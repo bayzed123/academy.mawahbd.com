@@ -52,7 +52,7 @@ describe("home & navigation", () => {
       expect(html.match(/class="brand-logo" src="\/logo-sm\.webp"/g)?.length, path).toBe(2);
       expect(html, path).toContain(`<span class="brand-name">${label}</span>`);
       expect(html, path).toMatch(/<a class="brand" href="[^"]*" aria-label="[^"]+">/);
-      expect(html, path).toContain('<meta name="theme-color" content="#070304"');
+      expect(html, path).toContain('<meta name="theme-color" content="#000000"/>'); // the page's own pitch black (marketing/theme.js: ivory by day)
       expect(html, path).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png"');
       expect(html, path).toContain('href="/favicon-32.png"');
       expect(html, path).not.toContain("favicon.svg"); // the drawn monogram is gone

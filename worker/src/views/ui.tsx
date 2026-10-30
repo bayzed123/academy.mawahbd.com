@@ -128,6 +128,7 @@ export const SectionHead = ({
   hl,
   sub,
   center,
+  id,
 }: {
   eyebrow?: string;
   title: string;
@@ -135,10 +136,12 @@ export const SectionHead = ({
   hl?: string;
   sub?: string;
   center?: boolean;
+  /** the heading's id, for a section labelled by it */
+  id?: string;
 }) => (
   <header class={`sec-head${center ? " center" : ""}`}>
     {eyebrow && <span class="eyebrow">{eyebrow}</span>}
-    <h2>
+    <h2 id={id}>
       <Highlight text={title} hl={hl} />
     </h2>
     {sub && <p>{sub}</p>}

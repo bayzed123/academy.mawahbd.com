@@ -20,7 +20,9 @@ declare global {
   }
 }
 
-function ThemeToggle({ lang }: { lang: "bn" | "en" }) {
+/** The night / day switch (marketing/theme.js keeps the choice and sets it before the page is drawn; the site's header has the same one). */
+function ThemeToggle() {
+  const { t } = useI18n();
   const [theme, setTheme] = useState<Theme>(() => (document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark"));
   useEffect(() => {
     const onTheme = (event: Event) => {
@@ -31,13 +33,11 @@ function ThemeToggle({ lang }: { lang: "bn" | "en" }) {
     return () => document.removeEventListener("mawah:theme", onTheme);
   }, []);
   const light = theme === "light";
-  const label = light
-    ? (lang === "bn" ? "ডার্ক মোড চালু করুন" : "Switch to dark mode")
-    : (lang === "bn" ? "লাইট মোড চালু করুন" : "Switch to light mode");
+  const label = t(light ? "app.theme.toDark" : "app.theme.toLight");
   return (
     <button type="button" className="theme-toggle" data-theme-toggle aria-label={label} aria-pressed={light} onClick={() => window.MawahTheme?.toggle()}>
       <span className="theme-icon" aria-hidden="true">{light ? "☀" : "◐"}</span>
-      <span className="theme-label">{lang === "bn" ? "থিম" : "Theme"}</span>
+      <span className="theme-label">{t("app.theme.label")}</span>
     </button>
   );
 }
@@ -52,6 +52,13 @@ export function Shell() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [pathname]);
+
+  // while the bottom tab bar shows (a signed-in student), the round talk-to-us button in the corner sits above it (app.css)
+  const signedIn = !!student;
+  useEffect(() => {
+    document.body.classList.toggle("has-tabbar", signedIn);
+    return () => document.body.classList.remove("has-tabbar");
+  }, [signedIn]);
 
   // keep the saved preference in step with the toggle for signed-in students (best effort)
   const switchLang = () => {
@@ -104,7 +111,7 @@ export function Shell() {
           <button type="button" className="lang-btn" onClick={switchLang} lang={lang === "bn" ? "en" : "bn"}>
             {t("lang.switch")}
           </button>
-          <ThemeToggle lang={lang} />
+          <ThemeToggle />
           {student ? (
             <details className="user-menu">
               <summary aria-label={t("app.nav.profile")}>

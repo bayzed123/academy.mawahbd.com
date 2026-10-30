@@ -1,0 +1,45 @@
+/* MAWAH Academy — "talk to us": one round orange button at the bottom right of the public site and the student app. Pressed, it opens a
+   small card with the ways to reach the academy — WhatsApp, Messenger and the AI assistant — and the visitor picks one. On the site it is a
+   native <details> (views/layout.tsx), so it opens without JavaScript too; marketing/site.js closes it with Escape, a click elsewhere, or
+   once a way is chosen. In the student app marketing/chat.js builds the same markup. With one way only, that way's own button stands there
+   instead (no card to open). It keeps its night look in the day look too, like the assistant's window. */
+/* the corner they sit in, and a round button's look: flat colour, a small crisp shadow (the student app lifts the corner over its tab bar) */
+.floats{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:80;display:grid;gap:12px;justify-items:end}
+.fab{position:relative;isolation:isolate;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;border:0;padding:0;background:transparent;color:#fff;cursor:pointer;text-decoration:none}
+.fab::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:50%;background:var(--fab);box-shadow:0 6px 16px rgba(0,0,0,.55);transition:transform .2s cubic-bezier(0,0,.2,1)}
+.fab .icon{width:27px;height:27px}
+.fab:hover{color:#fff}
+.fab:hover::before{transform:scale(1.06)}
+/* one way only: its own colour (the assistant alone is orange, like the talk-to-us button) */
+.fab-wa{--fab:#1fa855}
+.fab-ms{--fab:#0084ff}
+.fab-chat{--fab:var(--o-500);color:var(--on-accent)}
+.fab-chat:hover{color:var(--on-accent)}
+
+.help{position:relative;display:grid;justify-items:end}
+.help>summary{list-style:none}
+.help>summary::-webkit-details-marker{display:none}
+.fab-help{--fab:var(--o-500);color:var(--on-accent)}
+.fab-help:hover{color:var(--on-accent)}
+.fab-help .icon,.fab-help svg{width:28px;height:28px}
+.fab-help .x,.help[open]>.fab-help .chat{display:none}
+.help[open]>.fab-help .x{display:block}
+.help-pop{position:absolute;right:0;bottom:calc(100% + 12px);z-index:1;width:min(330px,calc(100vw - 32px));padding:16px;border-radius:20px;background:#121212;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 60px rgba(0,0,0,.6);color:#f5f5f5;text-align:left;transform-origin:bottom right}
+.help[open] .help-pop{animation:help-in .2s cubic-bezier(0,0,.2,1)}
+@keyframes help-in{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+.help-h{margin:0;font-weight:700;font-size:1.06rem;line-height:1.35;color:#fff}
+.help-sub{margin:.15rem 0 .85rem;font-size:.9rem;line-height:1.45;color:#cccccc}
+.help-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.help-opt{display:flex;align-items:center;gap:12px;width:100%;min-height:62px;padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,.09);background:#1a1a1a;color:#f5f5f5;text-decoration:none;text-align:left;font:inherit;cursor:pointer;transition:border-color .2s,background-color .2s}
+.help-opt:hover{border-color:var(--o-500);background:#1f1f1f;color:#fff}
+.help-ico{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;flex:none;color:#fff}
+.help-ico .icon,.help-ico svg{width:22px;height:22px}
+.help-wa .help-ico{background:#1fa855}
+.help-ms .help-ico{background:#0084ff}
+.help-ai .help-ico{background:var(--o-500);color:var(--on-accent)}
+.help-txt{display:grid;gap:1px;min-width:0}
+.help-txt b{font-weight:700;line-height:1.3}
+.help-txt small{font-size:.82rem;line-height:1.35;color:#a3a3a3}
+.help-go{margin-inline-start:auto;width:18px;height:18px;flex:none;color:#a3a3a3}
+/* while the assistant's window is open, the round buttons step aside (they sat on top of its Send button) */
+html.chat-open .floats,html.chat-open .mc-floats{visibility:hidden}

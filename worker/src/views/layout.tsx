@@ -1,13 +1,13 @@
 import { raw } from "hono/html";
-import { loc, readSslLogo, SSL_BANNER } from "@mawah/shared";
+import { loc, readSslLogo, SSL_BANNER, waNumber } from "@mawah/shared";
 import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
-import { ANALYTICS_JS, BANNERS_JS, COURSE_CSS, CSS, DOC_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS, THEME_JS } from "../generated/assets";
+import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS, THEME_JS, VIDEO_CSS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
-import { messengerHref, TopBar, topBar } from "./topbar";
+import { messengerOf, TopBar, topBar } from "./topbar";
 import { Brand, Icon, jsonLd, shopOf } from "./ui";
 
 export interface LayoutProps {
@@ -32,8 +32,12 @@ export interface LayoutProps {
   landing?: boolean;
   /** the class page: send its own CSS (marketing/course.css) */
   course?: boolean;
+  /** a video shown as a picture to play (the home page's videos, a class's demo): send its CSS (marketing/video.css) */
+  videos?: boolean;
   /** a certificate, an invoice or the certificate check: send the documents' CSS (marketing/doc.css) */
   doc?: boolean;
+  /** a certificate: load the script that fits its long lines and makes its picture (marketing/cert.js) */
+  cert?: boolean;
   /** shows/hides the site chrome (certificate & invoice documents print without it) */
   chrome?: boolean;
   /** what the analytics script needs to know about this page (the class on show …); written into the page only when measuring is on */
@@ -41,8 +45,103 @@ export interface LayoutProps {
   children?: unknown;
 }
 
-const digits = (s: string) => s.replace(/\D/g, "");
 const httpUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : "");
+
+/**
+ * "Talk to us", bottom right: with two or three ways to reach the academy, one round orange button that opens a small card with them —
+ * WhatsApp, Messenger, the AI assistant — and the visitor picks one (a native <details>: it works without JavaScript; marketing/site.js
+ * closes it with Escape, a click elsewhere or once a way is chosen). With one way only, that way's own button. Its look:
+ * shared/styles/help.css (the student app builds the same in marketing/chat.js).
+ */
+export function TalkToUs({ ctx, wa, ms, ai }: { ctx: PageCtx; wa: string; ms: string | null; ai: boolean }) {
+  const { t } = ctx;
+  const ways = [wa && "wa", ms && "ms", ai && "ai"].filter(Boolean);
+  if (ways.length === 0) return null;
+  if (ways.length === 1) {
+    if (wa)
+      return (
+        <a class="fab fab-wa" href={wa} rel="noopener noreferrer" target="_blank" aria-label={t("wa.label")} title={t("wa.label")}>
+          <Icon name="whatsapp" />
+        </a>
+      );
+    if (ms)
+      return (
+        <a class="fab fab-ms" href={ms} rel="noopener noreferrer" target="_blank" aria-label={t("ms.label")} title={t("ms.label")}>
+          <Icon name="messenger" />
+        </a>
+      );
+    return (
+      <button class="fab fab-chat" type="button" data-chat-open aria-label={t("chat.open")} title={t("chat.open")}>
+        <Icon name="chat" />
+      </button>
+    );
+  }
+  const opens = <span class="vh"> ({t("shop.opens")})</span>;
+  return (
+    <details class="help" data-help>
+      <summary class="fab fab-help" aria-label={t("help.open")} title={t("help.open")}>
+        <Icon name="chat" class="chat" />
+        <Icon name="x" class="x" />
+      </summary>
+      <div class="help-pop" role="group" aria-labelledby="help-h">
+        <p class="help-h" id="help-h">
+          {t("help.title")}
+        </p>
+        <p class="help-sub">{t("help.sub")}</p>
+        <ul class="help-list">
+          {wa && (
+            <li>
+              <a class="help-opt help-wa" href={wa} rel="noopener noreferrer" target="_blank">
+                <span class="help-ico">
+                  <Icon name="whatsapp" />
+                </span>
+                <span class="help-txt">
+                  <b>
+                    {t("help.wa")}
+                    {opens}
+                  </b>
+                  <small>{t("help.wa.sub")}</small>
+                </span>
+                <Icon name="arrow" class="help-go" />
+              </a>
+            </li>
+          )}
+          {ms && (
+            <li>
+              <a class="help-opt help-ms" href={ms} rel="noopener noreferrer" target="_blank">
+                <span class="help-ico">
+                  <Icon name="messenger" />
+                </span>
+                <span class="help-txt">
+                  <b>
+                    {t("help.ms")}
+                    {opens}
+                  </b>
+                  <small>{t("help.ms.sub")}</small>
+                </span>
+                <Icon name="arrow" class="help-go" />
+              </a>
+            </li>
+          )}
+          {ai && (
+            <li>
+              <button class="help-opt help-ai" type="button" data-chat-open>
+                <span class="help-ico">
+                  <Icon name="bot" />
+                </span>
+                <span class="help-txt">
+                  <b>{t("help.ai")}</b>
+                  <small>{t("help.ai.sub")}</small>
+                </span>
+                <Icon name="arrow" class="help-go" />
+              </button>
+            </li>
+          )}
+        </ul>
+      </div>
+    </details>
+  );
+}
 
 export function Layout(props: LayoutProps) {
   const { ctx } = props;
@@ -57,11 +156,12 @@ export function Layout(props: LayoutProps) {
   // the announcement bar (with a countdown to the end of the offer and a button, when the owner set them): see views/topbar.tsx
   const bar = chrome ? topBar(ctx) : null;
   const counting = bar !== null && bar.end !== null;
-  const wa = digits(settings.contact.whatsapp);
+  // with its country code (a number written the local way, 01…, gets 880): WhatsApp's links need it
+  const wa = waNumber(settings.contact.whatsapp);
   const waHref = wa ? `https://wa.me/${wa}?text=${encodeURIComponent(t("wa.prefill"))}` : "";
   const fb = httpUrl(settings.contact.facebook);
-  // the Messenger chat of the owner's Facebook page, when the address is a page's
-  const ms = fb ? messengerHref(fb) : null;
+  // the Messenger chat of the owner's page: the m.me address given for it, else worked out from the page's own Facebook address
+  const ms = messengerOf(settings.contact);
   const yt = httpUrl(settings.contact.youtube);
   const ig = httpUrl(settings.contact.instagram);
   // the registered address and trade licence number (SSLCommerz asks for them on every page)
@@ -103,7 +203,7 @@ export function Layout(props: LayoutProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{props.title}</title>
         <meta name="description" content={props.description} />
-        <meta name="theme-color" content="#070304" />
+        <meta name="theme-color" content="#000000" />
         {props.noindex ? <meta name="robots" content="noindex, follow" /> : <meta name="robots" content="index, follow, max-image-preview:large" />}
         <link rel="canonical" href={canonical} />
         <link rel="alternate" hreflang="bn" href={ctx.abs(localizedPath("bn", ctx.path))} />
@@ -133,10 +233,12 @@ export function Layout(props: LayoutProps) {
         {fontPreloads.map((href) => (
           <link rel="preload" href={href} as="font" type="font/woff2" crossorigin="anonymous" />
         ))}
-        <script src={THEME_JS} />
+        {/* the visitor's night or day look, set before anything is drawn (marketing/theme.js); a certificate or an invoice keeps its own paper */}
+        {chrome && <script src={THEME_JS} />}
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         {props.shop && <style dangerouslySetInnerHTML={{ __html: SHOP_CSS }} />}
         {props.landing && <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />}
+        {props.videos && <style dangerouslySetInnerHTML={{ __html: VIDEO_CSS }} />}
         {props.course && <style dangerouslySetInnerHTML={{ __html: COURSE_CSS }} />}
         {props.doc && <style dangerouslySetInnerHTML={{ __html: DOC_CSS }} />}
         {(props.jsonLd ?? []).map((data) => (
@@ -183,11 +285,11 @@ export function Layout(props: LayoutProps) {
                       type="button"
                       data-theme-toggle
                       aria-pressed="false"
-                      data-light-label={lang === "bn" ? "লাইট মোড চালু করুন" : "Switch to light mode"}
-                      data-dark-label={lang === "bn" ? "ডার্ক মোড চালু করুন" : "Switch to dark mode"}
+                      data-light-label={t("theme.toLight")}
+                      data-dark-label={t("theme.toDark")}
                     >
                       <span class="theme-icon" aria-hidden="true">◐</span>
-                      <span class="theme-label">{lang === "bn" ? "থিম" : "Theme"}</span>
+                      <span class="theme-label">{t("theme.label")}</span>
                     </button>
                     <a class="btn btn-gold btn-sm" data-guest href="/app/login">
                       {t("btn.login")}
@@ -419,21 +521,7 @@ export function Layout(props: LayoutProps) {
               <a class="fab fab-top" href="#top" data-to-top aria-label={t("top.label")} title={t("top.label")}>
                 <Icon name="up" />
               </a>
-              {waHref && (
-                <a class="fab fab-wa" href={waHref} rel="noopener noreferrer" target="_blank" aria-label={t("wa.label")} title={t("wa.label")}>
-                  <Icon name="whatsapp" />
-                </a>
-              )}
-              {ms && (
-                <a class="fab fab-ms" href={ms} rel="noopener noreferrer" target="_blank" aria-label={t("ms.label")} title={t("ms.label")}>
-                  <Icon name="messenger" />
-                </a>
-              )}
-              {settings.chatbot.enabled && (
-                <button class="fab fab-chat" type="button" data-chat-open aria-label={t("chat.open")} title={t("chat.open")}>
-                  <Icon name="chat" />
-                </button>
-              )}
+              <TalkToUs ctx={ctx} wa={waHref} ms={ms} ai={settings.chatbot.enabled} />
             </div>
           </>
         )}
@@ -443,6 +531,7 @@ export function Layout(props: LayoutProps) {
         {measuring && <script src={ANALYTICS_JS} defer />}
         {props.gallery && <script src={GALLERY_JS} defer />}
         {props.shop && <script src={SHOP_JS} defer />}
+        {props.cert && <script src={CERT_JS} defer />}
       </body>
     </html>
   );

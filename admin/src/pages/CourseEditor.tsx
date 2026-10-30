@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { COURSE_STATUSES } from "@mawah/shared";
+import { COURSE_STATUSES, facebookNeedsOwnAddress, videoEmbed } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -11,6 +11,7 @@ import { CurriculumBuilder } from "../components/Curriculum";
 import { FormFields, initialValues, toPayload, type FieldDef, type Values } from "../components/Form";
 import { CourseStateChip } from "../components/CourseState";
 import { Button, Chip, ErrorState, Icon, PageHeader, Panel, Spinner, Tabs, useConfirm, useFieldErrors, useToast } from "../components/ui";
+import { VideoLinkHelp } from "../components/VideoLinkHelp";
 import { useCategoryOptions, useInstructorOptions } from "./Courses";
 
 type Tab = "details" | "curriculum" | "pictures" | "seo";
@@ -19,6 +20,7 @@ const DEFAULTS: Values = {
   title_bn: "", title_en: "", short_bn: "", short_en: "", long_bn: "", long_en: "", banner_key: null, icon: "cake", category_id: null, instructor_id: null,
   level: null, price: 0, status: "draft", details_url: "", featured: false, cert_enabled: true, cert_template: "classic",
   seo_title_bn: "", seo_title_en: "", seo_desc_bn: "", seo_desc_en: "", sort: 100, launch_at: null,
+  demo_url: "", demo_title_bn: "", demo_title_en: "", demo_text_bn: "", demo_text_en: "",
 };
 
 export function CourseEditor() {
@@ -61,6 +63,14 @@ export function CourseEditor() {
     { type: "icon", key: "icon", label: t("adm.f.icon"), hint: t("adm.f.iconHint") },
     { type: "markdown", key: "long_bn", label: t("adm.f.longBn"), rows: 10 },
     { type: "markdown", key: "long_en", label: t("adm.f.longEn"), rows: 10 },
+    // the demo class anyone can watch on the class page before enrolling: shown under the description, played right there
+    { type: "section", key: "s0", label: t("adm.f.demoSection") },
+    { type: "url", key: "demo_url", label: t("adm.f.demoUrl"), hint: t("adm.f.demoUrlHint"), maxLength: 300, placeholder: "https://www.youtube.com/watch?v=…" },
+    { type: "custom", key: "demo_play", render: (v) => (videoEmbed(String(v.demo_url ?? "")) || facebookNeedsOwnAddress(String(v.demo_url ?? "")) ? <VideoLinkHelp url={String(v.demo_url ?? "")} /> : null) },
+    { type: "text", key: "demo_title_bn", label: t("adm.f.demoTitleBn"), half: true, maxLength: 120 },
+    { type: "text", key: "demo_title_en", label: t("adm.f.demoTitleEn"), half: true, maxLength: 120 },
+    { type: "textarea", key: "demo_text_bn", label: t("adm.f.demoTextBn"), half: true, maxLength: 600 },
+    { type: "textarea", key: "demo_text_en", label: t("adm.f.demoTextEn"), half: true, maxLength: 600, hint: t("adm.f.demoTextHint") },
     { type: "section", key: "s1", label: t("adm.f.sellingSection") },
     { type: "number", key: "price", label: t("adm.f.coursePrice"), half: true, min: 0, suffix: "৳", hint: t("adm.f.coursePriceHint") },
     { type: "select", key: "status", label: t("adm.course.visibility"), half: true, options: COURSE_STATUSES.map((s) => ({ value: s, label: t(`adm.course.vis.${s}` as "adm.course.vis.draft") })), hint: t(`adm.status.hint.${"draft"}` as "adm.status.hint.draft") },
@@ -118,8 +128,9 @@ export function CourseEditor() {
   });
 
   const onSave = async () => {
-    // publishing a class without lessons is allowed, but never by accident: students who pay would find it empty
-    if (values.status === "published" && (course.data?.lesson_count ?? 0) === 0) {
+    // publishing a class without lessons is allowed, but never by accident: students who pay would find it empty. Asked when it is being
+    // published — not again at every later save of a class already on sale (a class taught live has no lessons in the app at all)
+    if (values.status === "published" && course.data?.status !== "published" && (course.data?.lesson_count ?? 0) === 0) {
       const res = await confirm({ title: t("adm.course.publishEmptyTitle"), body: t("adm.course.publishEmptyBody"), confirmLabel: t("adm.course.publishAnyway") });
       if (!res.ok) return;
     }

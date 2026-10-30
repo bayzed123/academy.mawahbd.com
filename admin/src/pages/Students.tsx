@@ -44,6 +44,7 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
   const [editing, setEditing] = useState(false);
   const [granting, setGranting] = useState(false);
   const canWrite = can("students:write");
+  const canCert = can("certificates:write");
 
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ["student-detail", id] });
@@ -144,6 +145,18 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
                   {e.done}/{e.total} {e.certificate_code ? `· ${t("label.certificate")}: ${e.certificate_code}` : ""}
                 </small>
               </div>
+              {canCert && e.status === "active" && !e.certificate_code && (
+                <Button
+                  className="btn-outline"
+                  onClick={async () => {
+                    // a class taught live has no lessons to finish in the app: the academy decides, and the student has it at once
+                    const r = await confirm({ title: t("adm.student.certTitle", { name: s.name }), body: t("adm.student.certBody", { name: s.name, course: pick(e, "title") }), confirmLabel: t("adm.student.cert") });
+                    if (r.ok) act.mutate({ run: () => adm("/certificates/issue", { json: { course_id: e.course_id, student_id: id } }), ok: t("adm.student.certDone") });
+                  }}
+                >
+                  <Icon name="award" /> {t("adm.student.cert")}
+                </Button>
+              )}
               {canWrite && e.status === "active" && (
                 <Button
                   className="btn-ghost"

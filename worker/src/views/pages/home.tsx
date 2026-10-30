@@ -1,4 +1,4 @@
-import { formatMoney, formatNumber, loc, type CategoryDTO, type CourseCardDTO } from "@mawah/shared";
+import { formatMoney, formatNumber, loc, playsOnPublicPages, videoEmbed, videoThumb, videoWatchUrl, type CategoryDTO, type CourseCardDTO } from "@mawah/shared";
 import type { InstructorDTO, PublicReview } from "../../services/catalog";
 import { stripMarkdown } from "../../lib/markdown";
 import type { PageCtx } from "../ctx";
@@ -11,11 +11,21 @@ import type { FaqDTO } from "../../services/faqs";
 import { BannerSlider } from "../banners";
 import { HomeFaq } from "../faq";
 
+/** One of the owner's home-page videos (Admin → Home videos): a YouTube or Vimeo address and its title. */
+export interface HomeVideo {
+  id: number;
+  url: string;
+  title_bn: string;
+  title_en: string;
+}
+
 export interface HomeData {
   /** the owner's slider banners (Admin → Banners); empty = the page opens with the built-in welcome */
   banners: BannerDTO[];
   /** the owner's home-page questions (Admin → FAQ → "show on the home page"); none = no section */
   faqs: FaqDTO[];
+  /** the owner's videos that are switched on (Admin → Home videos), in their order; none = no section */
+  videos: HomeVideo[];
   featured: CourseCardDTO[];
   beginners: CourseCardDTO[];
   instructors: InstructorDTO[];
@@ -44,6 +54,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
       description={t("meta.home.desc")}
       jsonLd={[organizationLd(ctx), websiteLd(ctx)]}
       slider={data.banners.length > 0}
+      videos={data.videos.some((v) => playsOnPublicPages(v.url))}
     >
       {data.banners.length > 0 && <BannerSlider ctx={ctx} banners={data.banners} />}
       <section class={`hero${data.banners.length > 0 ? " has-banners" : ""}`}>
@@ -124,6 +135,8 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
           </p>
         </div>
       </section>
+
+      <HomeVideos ctx={ctx} videos={data.videos} />
 
       {data.beginners.length > 0 && (
         <section class="section band" id="beginners">
@@ -278,5 +291,41 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
         </div>
       </section>
     </Layout>
+  );
+}
+
+/**
+ * The owner's videos: each one its picture with an orange play button; pressed, the video site's own player takes the picture's place and
+ * plays right here (marketing/site.js). The player's address is rebuilt from the checked video id (shared/src/videoEmbed.ts). A video whose
+ * address no longer plays here is left out. Without JavaScript the picture opens the video on its own site.
+ */
+export function HomeVideos({ ctx, videos }: { ctx: PageCtx; videos: HomeVideo[] }) {
+  const { t, lang } = ctx;
+  const items = videos
+    .map((v) => ({ v, embed: videoEmbed(v.url), watch: videoWatchUrl(v.url), thumb: videoThumb(v.url), title: loc(v, "title", lang) }))
+    .filter((x) => x.embed && x.watch && x.embed.site !== "facebook");
+  if (!items.length) return null;
+  const n = Math.min(items.length, 3);
+  return (
+    <section class="section" id="videos" aria-labelledby="videos-h">
+      <div class="wrap">
+        <SectionHead eyebrow={t("vid.eyebrow")} title={t("vid.title")} hl={t("vid.title.hl")} sub={t("vid.sub")} id="videos-h" />
+        <ul class={`vids n${n}`}>
+          {items.map(({ embed, watch, thumb, title }) => (
+            <li>
+              <div class="vid" data-player={`${embed!.src}${embed!.src.includes("?") ? "&" : "?"}autoplay=1`} data-title={title || t("vid.untitled")}>
+                <a class="vid-play" href={watch!} target="_blank" rel="noopener noreferrer" aria-label={`${t("vid.play")}: ${title || t("vid.untitled")}`}>
+                  {thumb && <img src={thumb} alt="" loading="lazy" decoding="async" width={480} height={360} />}
+                  <span class="vid-btn" aria-hidden="true">
+                    <Icon name="play" />
+                  </span>
+                </a>
+              </div>
+              {title && <p class="vid-title">{title}</p>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }

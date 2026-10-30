@@ -87,17 +87,18 @@ import { inView, stagger } from "framer-motion/dom";
     $$('[data-theme-toggle]').forEach(function (btn) { syncThemeButton(btn, e.detail && e.detail.theme); });
   });
 
-  /* 4. AI assistant: the widget script is fetched only when someone asks for it */
+  /* 4. AI assistant: the widget script is fetched only when someone asks for it. It is told which button was pressed, so the focus can come
+     back to it (or to the talk-to-us button, when the assistant was chosen in its card) once the window closes. */
   var chatLoading;
   $$("[data-chat-open]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      if (window.MawahChat) return window.MawahChat.open();
+      if (window.MawahChat) return window.MawahChat.open(btn);
       if (chatLoading) return;
       chatLoading = true;
       var s = d.createElement("script");
       s.src = "/chat.js";
       s.async = true;
-      s.onload = function () { if (window.MawahChat) window.MawahChat.open(); };
+      s.onload = function () { if (window.MawahChat) window.MawahChat.open(btn); };
       d.head.appendChild(s);
     });
   });
@@ -242,8 +243,8 @@ import { inView, stagger } from "framer-motion/dom";
     track.addEventListener("dragstart", function (e) { e.preventDefault(); });
   });
 
-  /* 9. "back to the top": the round button above WhatsApp appears once the visitor is a screen and a half down the page, and takes them
-     back up (smoothly, unless they asked for less motion). From the keyboard, the focus goes back to the top too. */
+  /* 9. "back to the top": the round button above the talk-to-us button appears once the visitor is a screen and a half down the page, and
+     takes them back up (smoothly, unless they asked for less motion). From the keyboard, the focus goes back to the top too. */
   var toTop = $("[data-to-top]");
   if (toTop) {
     var shown = false, ticking = false;
@@ -261,4 +262,53 @@ import { inView, stagger } from "framer-motion/dom";
       if (home) home.focus({ preventScroll: true });
     });
   }
+
+  /* 10. talk to us: the round orange button bottom right opens a small card with the ways to reach the academy — WhatsApp, Messenger and
+     the assistant (shared/styles/help.css). It is a native <details>, so it opens without this script; here it also closes with Escape
+     (the focus goes back to the button), with a click anywhere else, and as soon as a way is chosen (the assistant's then opens, 4.). */
+  var help = $("[data-help]");
+  if (help) {
+    var helpBtn = $("summary", help);
+    var helpClose = function (focus) { if (!help.open) return; help.open = false; if (focus && helpBtn) helpBtn.focus(); };
+    d.addEventListener("keydown", function (e) { if (e.key === "Escape") helpClose(true); });
+    d.addEventListener("click", function (e) { if (help.open && !help.contains(e.target)) helpClose(false); });
+    $$(".help-opt", help).forEach(function (o) { o.addEventListener("click", function () { helpClose(false); }); });
+  }
+
+  /* 11. videos (the home page's, and a class's demo): pressing the picture puts the video site's own player in its place and starts it —
+     on this page, never a link away. The player's address is the server's (data-player), never anything the page was given. */
+  $$("[data-player]").forEach(function (box) {
+    var play = $(".vid-play", box);
+    if (!play) return;
+    // a picture that cannot be fetched (the video removed, YouTube out of reach) leaves the play button on its own, not a broken-picture mark
+    var pic = $("img", box);
+    if (pic) {
+      var drop = function () { pic.remove(); };
+      if (pic.complete && pic.naturalWidth === 0 && pic.currentSrc) drop(); else pic.addEventListener("error", drop);
+    }
+    play.addEventListener("click", function (e) {
+      e.preventDefault();
+      var f = d.createElement("iframe");
+      f.src = box.getAttribute("data-player");
+      f.title = box.getAttribute("data-title") || "";
+      f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      f.setAttribute("allowfullscreen", "");
+      f.referrerPolicy = "strict-origin-when-cross-origin";
+      box.replaceChildren(f);
+      f.focus();
+    });
+  });
+
+  /* 12. "Watch the demo class" in a class page's price box: down to the demo and it starts — one press, not two. Without this script (or a
+     demo), the link is a plain jump to the video. */
+  $$("[data-play-demo]").forEach(function (link) {
+    link.addEventListener("click", function (e) {
+      var box = $("#demo"), play = box && $(".vid-play", box);
+      if (!play) return;
+      e.preventDefault();
+      var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+      box.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "center" });
+      play.click();
+    });
+  });
 })();

@@ -118,7 +118,7 @@ test("the dark look keeps WCAG AA contrast: text, buttons, form fields and the g
  * and no stylesheet of the dark look uses a brown (a dull warm colour — dark orange, tan, cream). Orange is a light there: buttons, icons,
  * lines and glows. (Problems stay red, and the owner's own banner designs and the paper certificates keep their colours: not checked.)
  */
-const DARK_SHEETS = ["shared/styles/dark.css", "marketing/site.css", "marketing/course.css", "marketing/shop.css", "marketing/landing.css", "marketing/chat.css", "app/src/styles/app.css"];
+const DARK_SHEETS = ["shared/styles/dark.css", "shared/styles/help.css", "marketing/site.css", "marketing/video.css", "marketing/course.css", "marketing/shop.css", "marketing/landing.css", "marketing/chat.css", "app/src/styles/app.css"];
 const brownish = (hex) => {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
   const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
@@ -307,11 +307,15 @@ test("the share image's address is SITE_URL's host without www., and the comment
 
 test("the web manifest and the page heads only reference files that exist", () => {
   const manifest = JSON.parse(read("marketing/public/manifest.webmanifest"));
-  assert.equal(manifest.theme_color, "#070304");
+  // the browser's bar and an installed app's splash screen are the page's own pitch black (the night look), not the logo's warm black
+  assert.equal(manifest.theme_color, "#000000");
+  assert.equal(manifest.background_color, "#000000");
   for (const icon of manifest.icons) assert.ok(existsSync(join(root, "marketing/public", icon.src.replace(/^\//, ""))), `manifest icon ${icon.src} is missing`);
   for (const html of ["worker/src/views/layout.tsx", "app/index.html", "admin/index.html"]) {
     const text = read(html);
     for (const [, href] of text.matchAll(/href="(\/(?:favicon|apple-touch-icon|icon)[^"]*)"/g)) assert.ok(existsSync(join(root, "marketing/public", href.replace(/^\//, ""))), `${html} links ${href}, which does not exist`);
-    assert.match(text, /content="#070304"/, `${html} theme-color`);
+    assert.match(text, /<meta name="theme-color" content="#000000" \/>/, `${html} theme-color`);
   }
+  // the day look gives the bar the page's ivory (marketing/theme.js, before the page is drawn and when switched)
+  assert.match(read("marketing/theme.js"), /next === "light" \? "#fbf7ee" : "#000000"/);
 });

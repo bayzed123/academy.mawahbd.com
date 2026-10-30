@@ -117,3 +117,11 @@ body.has-buybar{padding-bottom:78px}
 .inc-list .icon{flex:none;width:1.15em;height:1.15em;color:var(--red-600)}
 .inc-note{margin:.8rem 0 0;font-size:.92rem}
 
+/* ---------- the demo class (Admin → Classes → Demo class): a few words, then the video, played right here (marketing/site.js 12, 13) ---------- */
+.demo{scroll-margin-top:96px}
+.has-topbar .demo{scroll-margin-top:158px}
+.demo-text{margin:.15rem 0 1rem;max-width:62ch;color:var(--ink-2);line-height:1.7}
+.demo .vid{border-radius:22px}
+.demo .vid-btn{width:80px;height:80px}
+.demo .vid-btn .icon{width:34px;height:34px}
+.vid-tag{position:absolute;top:14px;left:14px;padding:.3rem .8rem;border-radius:999px;background:rgba(0,0,0,.74);color:#fff;font-size:.82rem;font-weight:700;line-height:1.4}

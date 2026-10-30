@@ -104,3 +104,28 @@ export function messengerHref(facebook: string): string | null {
   if (/^(groups|events|watch|share|sharer|story\.php|permalink\.php|photo|photos|reel|reels|hashtag|marketplace|gaming|login|home\.php|help|policies)$/i.test(first)) return null;
   return `https://m.me/${first}`;
 }
+
+/**
+ * A Messenger address the owner gave (Settings → Contact → Messenger): m.me/<page> or messenger.com/t/<page>, as m.me/<page>; else null. It
+ * is how a page whose saved Facebook address is a share link (facebook.com/share/…, which names no page) still gets its Messenger button.
+ */
+export function messengerUrl(value: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(value.trim());
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:") return null;
+  const host = u.hostname.toLowerCase().replace(/^www\./, "");
+  const parts = u.pathname.split("/").filter(Boolean);
+  const name = host === "m.me" ? parts[0] : host === "messenger.com" && parts[0] === "t" ? parts[1] : undefined;
+  return name && /^[A-Za-z0-9.]{3,60}$/.test(name) ? `https://m.me/${name}` : null;
+}
+
+/** The Messenger chat of the owner's page: the address given for it, else the one worked out from the page's own Facebook address. */
+export function messengerOf(contact: { messenger?: string; facebook: string }): string | null {
+  const own = contact.messenger ? messengerUrl(contact.messenger) : null;
+  if (own) return own;
+  return /^https?:\/\//i.test(contact.facebook) ? messengerHref(contact.facebook) : null;
+}

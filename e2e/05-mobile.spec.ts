@@ -48,8 +48,11 @@ test("student app on a phone: bottom tab bar, no overlap with the chat button, n
   await expect(page.locator(".tabbar")).toBeVisible();
   await noSidewaysScroll(page, "/app/");
   const bar = (await page.locator(".tabbar").boundingBox())!;
-  const launcher = await page.locator(".mc-launch").boundingBox();
-  if (launcher) expect(launcher.y + launcher.height, "chat launcher overlaps the tab bar").toBeLessThanOrEqual(bar.y + 1);
+  // the talk-to-us button (built by marketing/chat.js) sits above the tab bar
+  const corner = page.locator(".mc-floats .fab");
+  await expect(corner).toBeVisible();
+  const launcher = (await corner.boundingBox())!;
+  expect(launcher.y + launcher.height, "the talk-to-us button overlaps the tab bar").toBeLessThanOrEqual(bar.y + 1);
   for (const path of ["/app/orders", "/app/profile", "/app/certificates", "/app/checkout?c=beginners-baking-class"]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");

@@ -1,5 +1,5 @@
 import { raw } from "hono/html";
-import { formatDate, formatDuration, formatNumber, loc, MATERIAL_KINDS, type CourseCardDTO, type CurriculumModuleDTO, type MaterialKind } from "@mawah/shared";
+import { formatDate, formatDuration, formatNumber, loc, MATERIAL_KINDS, playsOnPublicPages, videoEmbed, videoThumb, videoWatchUrl, waNumber, type CourseCardDTO, type CurriculumModuleDTO, type MaterialKind } from "@mawah/shared";
 import { renderMarkdown } from "../../lib/markdown";
 import type { CourseDetail, PublicReview, ReviewSummary } from "../../services/catalog";
 import type { FaqDTO } from "../../services/faqs";
@@ -10,7 +10,7 @@ import { ClassFaq } from "../faq";
 import { gaItem, gaListAttr } from "../ga";
 import { Layout } from "../layout";
 import { breadcrumbLd, courseLd, faqLd, personLd } from "../seo";
-import { avgLabel, CourseCard, Crumbs, Flash, Icon, InstructorBadges, NotifyForm, numLabel, priceLabel, reviewsLabel, Stars } from "../ui";
+import { avgLabel, CourseCard, Crumbs, Flash, Highlight, Icon, InstructorBadges, NotifyForm, numLabel, priceLabel, reviewsLabel, Stars } from "../ui";
 
 export interface CourseData {
   course: CourseDetail;
@@ -30,6 +30,49 @@ const materialIcon: Record<MaterialKind, string> = { video: "video", pdf: "file"
 
 const lessonIcon = { video: "play", external: "play", text: "book", resource: "download" } as const;
 
+/**
+ * The demo class (Admin → Classes → Demo class): a few words, then the video as a picture with a play button. Pressed, the video site's own
+ * player takes the picture's place and starts — on this page (marketing/site.js), never a link away; without JavaScript the picture opens
+ * the video on its own site. Only YouTube and Vimeo: the public pages load no other player.
+ */
+export function DemoClass({ ctx, course, title }: { ctx: PageCtx; course: CourseDetail; title: string }) {
+  const { t, lang } = ctx;
+  const embed = playsOnPublicPages(course.demo_url) ? videoEmbed(course.demo_url) : null;
+  const watch = videoWatchUrl(course.demo_url);
+  if (!embed || !watch) return null;
+  const name = loc(course, "demo_title", lang) || `${t("course.demo.title")}: ${title}`;
+  const words = loc(course, "demo_text", lang) || t("course.demo.sub");
+  const thumb = videoThumb(course.demo_url);
+  return (
+    <section class="demo" id="demo" aria-labelledby="demo-h">
+      <h2 id="demo-h">
+        <Highlight text={t("course.demo.title")} hl={t("course.demo.hl")} />
+      </h2>
+      <p class="demo-text">{words}</p>
+      <div class="vid" data-player={`${embed.src}${embed.src.includes("?") ? "&" : "?"}autoplay=1`} data-title={name}>
+        <a class="vid-play" href={watch} target="_blank" rel="noopener noreferrer" aria-label={`${t("course.demo.play")}: ${name}`}>
+          {thumb && <img src={thumb} alt="" loading="lazy" decoding="async" width={480} height={360} />}
+          <span class="vid-tag" aria-hidden="true">
+            {t("course.demo.free")}
+          </span>
+          <span class="vid-btn" aria-hidden="true">
+            <Icon name="play" />
+          </span>
+        </a>
+      </div>
+      <p class="vid-title">{name}</p>
+    </section>
+  );
+}
+
+/** "Watch the demo class", in the price box: down to the video, which starts playing (marketing/site.js; without it, a plain jump). */
+const DemoButton = ({ ctx }: { ctx: PageCtx }) => (
+  <a class="btn btn-outline btn-block" href="#demo" data-play-demo>
+    <Icon name="play" />
+    {ctx.t("course.demo.cta")}
+  </a>
+);
+
 export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
   const { t, lang } = ctx;
   const { course } = data;
@@ -37,7 +80,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
   const title = loc(course, "title", lang);
   const num = (v: number) => (lang === "bn" ? formatNumber(v, "bn") : String(v));
   const longMd = loc(course, "long", lang);
-  const wa = ctx.settings.contact.whatsapp.replace(/\D/g, "");
+  const wa = waNumber(ctx.settings.contact.whatsapp); // with its country code: WhatsApp's links need it
   const seoTitle = loc(course, "seo_title", lang) || `${title} — ${t("brand.name")}`;
   const seoDesc = loc(course, "seo_desc", lang) || loc(course, "short", lang) || title;
   const cat = course.category;
@@ -46,6 +89,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
   const checkout = `/app/checkout?c=${encodeURIComponent(course.slug)}`;
   const reviewHref = `/app/review/${encodeURIComponent(course.slug)}`;
   const preview = data.curriculum.flatMap((m) => m.lessons).find((l) => l.is_preview);
+  const hasDemo = playsOnPublicPages(course.demo_url);
   const inc = data.included;
   // one line per kind the owner really added ("2 PDFs to download", "A private community group" …) — nothing if they added none
   const materialLines = MATERIAL_KINDS.filter((k) => (inc.counts[k] ?? 0) > 0).map((k) => t(`course.inc.m.${k}${inc.counts[k] === 1 ? "" : ".n"}` as "course.inc.m.pdf", { n: num(inc.counts[k] ?? 0) }));
@@ -65,6 +109,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
       image={course.banner_key ? ctx.abs(`/media/${course.banner_key}`) : undefined}
       hasBuybar
       course
+      videos={hasDemo}
       ga={{ item: gaItem(course) }}
       gallery={pics.length > 0}
       jsonLd={[
@@ -204,6 +249,8 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
               </p>
             )}
           </section>
+
+          <DemoClass ctx={ctx} course={course} title={title} />
 
           <section aria-labelledby="inc-h">
             <h2 id="inc-h">{t("course.includes")}</h2>
@@ -347,6 +394,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
               <h3 class="mt">{t("course.notify_title")}</h3>
               <p class="muted">{t("course.notify_desc")}</p>
               <NotifyForm ctx={ctx} slug={course.slug} />
+              {hasDemo && <DemoButton ctx={ctx} />}
             </>
           ) : (
             <>
@@ -359,6 +407,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
                 {t("btn.enrollNow")}
                 <Icon name="arrow" />
               </a>
+              {hasDemo && <DemoButton ctx={ctx} />}
               {preview && (
                 <a class="btn btn-outline btn-block" href={`/app/preview/${preview.id}?c=${encodeURIComponent(course.slug)}`}>
                   <Icon name="play" />
@@ -377,7 +426,12 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
                 {course.cert_enabled && (
                   <li>
                     <Icon name="award" />
-                    {t("course.cert_desc")}
+                    <span>
+                      {t("course.cert_desc")}{" "}
+                      <a class="link" href={ctx.href(`/certificate/sample?class=${encodeURIComponent(course.slug)}`)}>
+                        {t("course.certSample")}
+                      </a>
+                    </span>
                   </li>
                 )}
               </ul>

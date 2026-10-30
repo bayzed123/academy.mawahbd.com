@@ -21,6 +21,29 @@ export async function drawWholePage(page: Page) {
   await page.evaluate(() => document.querySelectorAll<HTMLElement>("main>section").forEach((s) => s.style.setProperty("content-visibility", "visible")));
 }
 
+/**
+ * The banners spec leaves an offer pop-up on the home page: a second after arrival it covers the page (as it should) and the page stops
+ * scrolling. These tests look at what is under it, so a visitor here has already answered it, the way the pop-up itself remembers.
+ */
+export async function offerAnswered(ctx: BrowserContext) {
+  const html = await (await ctx.request.get("/en")).text();
+  const tag = /<div class="offer"[^>]*>/.exec(html)?.[0];
+  if (!tag) return;
+  const attr = (name: string) => new RegExp(`${name}="([^"]*)"`).exec(tag)?.[1] ?? "";
+  const [id, v, days] = [attr("data-id"), attr("data-v"), attr("data-days")];
+  expect(id, "the pop-up names itself").toMatch(/^\d+$/);
+  await ctx.addInitScript(
+    ([key, value, persist]) => {
+      try {
+        (persist ? localStorage : sessionStorage).setItem(key, value);
+      } catch {
+        /* no storage: the pop-up simply shows */
+      }
+    },
+    [`mawah_offer_${id}`, JSON.stringify({ v, t: Date.now() }), Number(days) > 0] as const,
+  );
+}
+
 export async function useLang(ctx: BrowserContext, lang: "bn" | "en") {
   await ctx.addInitScript((l) => {
     try {
@@ -160,4 +183,14 @@ export const apiPost = (page: Page, path: string, json: unknown) => apiSend(page
 
 export async function apiGet<T = unknown>(page: Page, path: string): Promise<T> {
   return page.evaluate(async (p) => (await fetch(`/api${p}`)).json(), path) as Promise<T>;
+}
+
+/**
+ * Opens the AI assistant's window the way a visitor does: its own round button when it is the only way to talk to us, else the
+ * assistant's choice in the talk-to-us card (views/layout.tsx).
+ */
+export async function openAssistant(page: Page) {
+  const card = page.locator(".floats summary.fab-help");
+  if (await card.isVisible()) await card.click();
+  await page.locator(".floats [data-chat-open]").first().click();
 }
