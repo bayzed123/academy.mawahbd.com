@@ -190,7 +190,7 @@ test("the talk-to-us button opens a card with WhatsApp, Messenger and the assist
   const ms = card.getByRole("link", { name: /^Messenger/ });
   await expect(ms).toHaveAttribute("href", "https://m.me/mawahacademy");
   await expect(ms).toHaveAttribute("target", "_blank");
-  await expect(card.getByRole("link", { name: /^WhatsApp/ })).toHaveAttribute("href", /^https:\/\/wa\.me\/01711000000\?text=/);
+  await expect(card.getByRole("link", { name: /^WhatsApp/ })).toHaveAttribute("href", /^https:\/\/wa\.me\/8801711000000\?text=/); // typed 017…: WhatsApp needs the country code
   await expect(card.getByRole("button", { name: /^AI assistant/ })).toBeVisible();
   // the card stays inside the screen, above its button
   const [c, b] = await Promise.all([card.boundingBox(), open.boundingBox()]);

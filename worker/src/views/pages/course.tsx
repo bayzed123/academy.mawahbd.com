@@ -1,5 +1,5 @@
 import { raw } from "hono/html";
-import { formatDate, formatDuration, formatNumber, loc, MATERIAL_KINDS, playsOnPublicPages, videoEmbed, videoThumb, videoWatchUrl, type CourseCardDTO, type CurriculumModuleDTO, type MaterialKind } from "@mawah/shared";
+import { formatDate, formatDuration, formatNumber, loc, MATERIAL_KINDS, playsOnPublicPages, videoEmbed, videoThumb, videoWatchUrl, waNumber, type CourseCardDTO, type CurriculumModuleDTO, type MaterialKind } from "@mawah/shared";
 import { renderMarkdown } from "../../lib/markdown";
 import type { CourseDetail, PublicReview, ReviewSummary } from "../../services/catalog";
 import type { FaqDTO } from "../../services/faqs";
@@ -80,7 +80,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
   const title = loc(course, "title", lang);
   const num = (v: number) => (lang === "bn" ? formatNumber(v, "bn") : String(v));
   const longMd = loc(course, "long", lang);
-  const wa = ctx.settings.contact.whatsapp.replace(/\D/g, "");
+  const wa = waNumber(ctx.settings.contact.whatsapp); // with its country code: WhatsApp's links need it
   const seoTitle = loc(course, "seo_title", lang) || `${title} — ${t("brand.name")}`;
   const seoDesc = loc(course, "seo_desc", lang) || loc(course, "short", lang) || title;
   const cat = course.category;
@@ -109,6 +109,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
       image={course.banner_key ? ctx.abs(`/media/${course.banner_key}`) : undefined}
       hasBuybar
       course
+      videos={hasDemo}
       ga={{ item: gaItem(course) }}
       gallery={pics.length > 0}
       jsonLd={[

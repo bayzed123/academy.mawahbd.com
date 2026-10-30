@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { videoEmbed, videoThumb, videoWatchUrl } from "@mawah/shared";
+import { VIDEO_CSS } from "../src/generated/assets";
+import { styleHash } from "../src/middleware/security";
 import { Client, env, json, loginStaff } from "./helpers";
 
 /*
@@ -55,6 +57,8 @@ describe("Admin → Home videos", () => {
 describe("the home page's videos", () => {
   it("are not on the page while none is switched on", async () => {
     expect(section(await body("/en"))).toBeNull();
+    // nor are their styles (marketing/video.css): only a page that shows a video carries them
+    expect(await (await new Client().get("/en")).text()).not.toContain(VIDEO_CSS);
     const admin = (await loginStaff("super_admin")).client;
     await add(admin, { url: `https://youtu.be/${YT}`, active: false });
     expect(section(await body("/en"))).toBeNull();
@@ -67,7 +71,12 @@ describe("the home page's videos", () => {
     await add(admin, { url: "https://vimeo.com/123456789/abcdef1234", title_en: "A student's cake", title_bn: "", sort: 1 });
     await add(admin, { url: "https://youtu.be/aaaaaaaaaaa", title_en: "Switched off", active: false, sort: 0 });
 
-    const en = section(await body("/en")) ?? "";
+    const res = await new Client().get("/en");
+    const page = await res.text();
+    // the section's own styles come with it, allowed by their hash
+    expect(page).toContain(`<style>${VIDEO_CSS}</style>`);
+    expect(res.headers.get("content-security-policy")).toContain(await styleHash(VIDEO_CSS));
+    const en = section(page.slice(page.indexOf("<body"))) ?? "";
     expect(en, "the section is on the page").not.toBe("");
     expect(en).toContain('<h2 id="videos-h">Watch our <span class="hl">videos</span></h2>');
     expect(en).toContain('<ul class="vids n2">');

@@ -29,8 +29,3 @@
 .lp-wa-btn{background:#15803d;border-color:#15803d;color:#fff;display:inline-flex;align-items:center;gap:10px}
 .lp-wa-btn:hover,.lp-wa-btn:focus-visible{background:#166534;border-color:#166534;color:#fff}
 .lp-wa-btn .icon{width:22px;height:22px}
-
-/* ---------- the day look (shared/styles/light.css): a hero with a picture stays dark (its words sit on the picture); a plain one turns light ---------- */
-html[data-theme=light] .lp-hero:not(.has-img){background:#fafafa;color:#171717;border-bottom-color:rgba(0,0,0,.07)}
-html[data-theme=light] .lp-hero:not(.has-img) h1,html[data-theme=light] .lp-hero:not(.has-img) h2{color:#0a0a0a}
-html[data-theme=light] .lp-hero:not(.has-img) .lp-lead{color:#404040}

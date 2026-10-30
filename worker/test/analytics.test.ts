@@ -1,5 +1,5 @@
 import { env, exports } from "cloudflare:workers";
-import { GA_EVENTS, GA_EVENT_GROUPS, GA_FUNNEL, THEME_BOOT } from "@mawah/shared";
+import { GA_EVENTS, GA_EVENT_GROUPS, GA_FUNNEL } from "@mawah/shared";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { generateCertificateCode } from "../src/lib/crypto";
 import { checkConnection, classify, forgetPass, parseServiceAccount, scrub, serviceAccountEmail, signedNote } from "../src/lib/ga4";
@@ -291,9 +291,8 @@ describe("pages of the real site", () => {
       expect(csp).toContain("https://*.google-analytics.com");
       expect(csp).not.toContain("'unsafe-inline'");
       expect(csp).not.toContain("'unsafe-eval'");
-      // no inline script but the night/day one (allowed by its own hash): every other script element with content is a data block like the
-      // one above (type application/json — never run)
-      for (const m of html.matchAll(/<script(?![^>]*\bsrc=)([^>]*)>([\s\S]*?)<\/script>/g)) if (m[2] !== THEME_BOOT) expect(m[1], "an inline script").toMatch(/application\/(ld\+)?json/);
+      // no inline script: the only script element with content is the data block above (type application/json — never run)
+      for (const m of html.matchAll(/<script(?![^>]*\bsrc=)([^>]*)>/g)) expect(m[1], "an inline script").toMatch(/application\/(ld\+)?json/);
     });
   });
 
@@ -407,8 +406,6 @@ describe("pages of the real site", () => {
 
 describe("the student app and the admin", () => {
   const SHELL = '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Student</title><script type="module" src="/app/assets/index-abc.js"></script></head><body><div id="root"></div></body></html>';
-  /** The student app as the Worker sends it: with the few words that set the visitor's night or day look (the admin has one look). */
-  const APP = SHELL.replace("</head>", `<script>${THEME_BOOT}</script></head>`);
 
   /** The built apps are not part of the unit tests; a one-page stand-in for the asset layer is enough to see what the Worker adds. */
   async function withShell<T>(fn: () => Promise<T>): Promise<T> {
@@ -445,13 +442,13 @@ describe("the student app and the admin", () => {
     await measured(() =>
       withShell(async () => {
         const res = await new Client().get("/app/");
-        expect(await res.text()).toBe(APP);
+        expect(await res.text()).toBe(SHELL);
         expect(res.headers.get("content-security-policy")).not.toContain("google");
       }),
     );
     await setOwnId(OWN_ID);
     await withShell(async () => {
-      expect(await (await new Client().get("/app/")).text()).toBe(APP); // a test machine that was not asked to count
+      expect(await (await new Client().get("/app/")).text()).toBe(SHELL); // a test machine that was not asked to count
     });
   });
 
@@ -460,7 +457,7 @@ describe("the student app and the admin", () => {
     await measured(() =>
       withShell(async () => {
         const link = await new Client().get("/app/reset/a-one-time-secret-token");
-        expect(await link.text()).toBe(APP);
+        expect(await link.text()).toBe(SHELL);
         expect(link.headers.get("content-security-policy")).not.toContain("google");
         expect(link.headers.get("referrer-policy")).toBe("no-referrer");
         // …while the rest of the student app is counted and keeps the usual policy

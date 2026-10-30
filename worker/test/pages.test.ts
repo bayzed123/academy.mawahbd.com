@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { THEME_BOOT } from "@mawah/shared";
-import { inlineHash } from "../src/middleware/security";
 import { VERIFICATION_FILES } from "../src/generated/verification";
 import { verificationRoutes } from "../src/routes/seo";
 import { mockSignature } from "../src/services/payments";
@@ -54,7 +52,7 @@ describe("home & navigation", () => {
       expect(html.match(/class="brand-logo" src="\/logo-sm\.webp"/g)?.length, path).toBe(2);
       expect(html, path).toContain(`<span class="brand-name">${label}</span>`);
       expect(html, path).toMatch(/<a class="brand" href="[^"]*" aria-label="[^"]+">/);
-      expect(html, path).toContain('<meta name="theme-color" content="#000000"/>'); // the page's own pitch black (the day look turns it white)
+      expect(html, path).toContain('<meta name="theme-color" content="#000000"/>'); // the page's own pitch black (marketing/theme.js: ivory by day)
       expect(html, path).toContain('<link rel="apple-touch-icon" href="/apple-touch-icon.png"');
       expect(html, path).toContain('href="/favicon-32.png"');
       expect(html, path).not.toContain("favicon.svg"); // the drawn monogram is gone
@@ -76,19 +74,13 @@ describe("home & navigation", () => {
 
   it("never ships inline style attributes or inline scripts (CSP-safe markup)", async () => {
     const soon = await course(`soon-${Date.now()}`, "Soon Course", { status: "coming_soon" });
-    const boot = await inlineHash(THEME_BOOT); // 'sha256-…', quoted as the policy writes it
     for (const path of ["/", "/en", "/courses", "/courses/beginners-baking-class", "/contact", "/about", "/verify", "/blog", "/policies/refund"]) {
-      const res = await new Client().get(path);
-      const html = await text(res);
+      const html = await text(await new Client().get(path));
       expect(html, path).not.toMatch(/\sstyle="/);
       expect(html, path).not.toMatch(/\son[a-z]+="/); // onclick=, onerror= …
-      // the only <script> tags are external src=… or JSON-LD data blocks — and the few words that set the visitor's night or day look
-      // before the page is drawn, which the policy allows by their own hash (any other inline script would not run)
-      const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)];
-      for (const [, attrs, body] of scripts) if (body !== THEME_BOOT) expect(attrs, path).toMatch(/src=|application\/ld\+json/);
-      expect(scripts.filter(([, , body]) => body === THEME_BOOT), path).toHaveLength(1);
-      const scriptSrc = /script-src ([^;]+)/.exec(res.headers.get("content-security-policy") ?? "")?.[1] ?? "";
-      expect(scriptSrc.split(" "), path).toEqual(["'self'", boot]);
+      // the only <script> tags are external src=… or JSON-LD data blocks
+      const scripts = [...html.matchAll(/<script([^>]*)>/g)].map((m) => m[1]);
+      for (const attrs of scripts) expect(attrs, path).toMatch(/src=|application\/ld\+json/);
     }
     expect(soon).toBeGreaterThan(0);
   });

@@ -1,5 +1,5 @@
 import { raw } from "hono/html";
-import { formatDate, formatMoney, loc, type CourseCardDTO, type OrderDTO } from "@mawah/shared";
+import { formatDate, formatMoney, loc, waNumber, type CourseCardDTO, type OrderDTO } from "@mawah/shared";
 import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
 import type { InstructorDTO, InstructorReview } from "../../services/catalog";
 import type { CertRow } from "../../services/learning";
@@ -248,7 +248,7 @@ export function AboutPage({ ctx }: { ctx: PageCtx }) {
 export function ContactPage({ ctx, flash }: { ctx: PageCtx; flash?: string }) {
   const { t, lang } = ctx;
   const c = ctx.settings.contact;
-  const wa = c.whatsapp.replace(/\D/g, "");
+  const wa = waNumber(c.whatsapp); // with its country code: WhatsApp's links need it
   const channels = [
     wa && { icon: "whatsapp", label: t("contact.whatsapp"), href: `https://wa.me/${wa}?text=${encodeURIComponent(t("wa.prefill"))}` },
     /^https?:\/\//.test(c.facebook) && { icon: "facebook", label: t("contact.facebook"), href: c.facebook },
@@ -330,7 +330,7 @@ function ContactBox({ ctx, big }: { ctx: PageCtx; big?: boolean }) {
   const { t } = ctx;
   const c = ctx.settings.contact;
   const tel = c.phone.replace(/[^\d+]/g, "");
-  const wa = c.whatsapp.replace(/\D/g, "");
+  const wa = waNumber(c.whatsapp); // with its country code: WhatsApp's links need it
   if (!tel && !wa && !c.email) return null;
   return (
     <aside class={big ? "page-contact big" : "page-contact"} aria-labelledby="page-contact-h">

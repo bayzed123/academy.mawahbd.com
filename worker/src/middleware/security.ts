@@ -29,8 +29,6 @@ export const baseSecurity: MiddlewareHandler<AppEnv> = async (c, next) => {
 export interface CspOptions {
   /** `'sha256-…'` entries for inline <style> blocks */
   styleHashes?: string[];
-  /** `'sha256-…'` entries for inline <script> blocks: only the night/day switch's few words (THEME_BOOT, shared/src/theme.ts) */
-  scriptHashes?: string[];
   turnstile?: boolean;
   analytics?: { ga4?: boolean; clarity?: boolean; pixel?: boolean };
   /** React apps talk to Stream for playback and upload.videodelivery.net for admin video uploads */
@@ -43,7 +41,7 @@ export function buildCsp(opts: CspOptions = {}): string {
   const script = ["'self'"];
   const connect = ["'self'"];
   // SSLCommerz's own logo (Admin → Settings → Payments) is shown from SSLCommerz's server, as SSLCommerz asks
-  // … and a YouTube video's own picture on the home page (Admin → Home videos; the player itself comes only when pressed)
+  // … and a YouTube video's own picture on the home page and a class's demo (the player itself comes only when pressed)
   const img = ["'self'", "data:", STREAM, "https://sslcommerz.com", "https://*.sslcommerz.com", "https://i.ytimg.com"];
   // the video players a lesson or a material may show: Cloudflare Stream, YouTube (privacy-enhanced), Vimeo — and, only in the student app
   // and the admin where lessons and materials play, Facebook's video plugin (no public page, certificate or invoice ever names Facebook)
@@ -78,8 +76,7 @@ export function buildCsp(opts: CspOptions = {}): string {
 
   return [
     "default-src 'none'",
-    // an inline script is allowed by its own hash only (the night/day switch before the page is drawn), named after the hosts
-    `script-src ${[...script, ...(opts.scriptHashes ?? [])].join(" ")}`,
+    `script-src ${script.join(" ")}`,
     `style-src ${style.join(" ")}`,
     `img-src ${img.join(" ")}`,
     "font-src 'self'",
@@ -97,18 +94,17 @@ export function buildCsp(opts: CspOptions = {}): string {
 
 const hashCache = new Map<string, string>();
 
-/** CSP source expression for an inline <style> or <script> block, so pages need no 'unsafe-inline'. */
-export async function inlineHash(text: string): Promise<string> {
-  const cached = hashCache.get(text);
+/** CSP source expression for an inline <style> block, so pages need no 'unsafe-inline'. */
+export async function styleHash(css: string): Promise<string> {
+  const cached = hashCache.get(css);
   if (cached) return cached;
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(css));
   let bin = "";
   for (const b of new Uint8Array(digest)) bin += String.fromCharCode(b);
   const value = `'sha256-${btoa(bin)}'`;
-  hashCache.set(text, value);
+  hashCache.set(css, value);
   return value;
 }
-export const styleHash = inlineHash;
 
 export { sha256Hex };
 

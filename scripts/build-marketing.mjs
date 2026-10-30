@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
  * Builds the public-site assets:
- *   shared/styles/base.css + dark.css + banners.css + help.css (the round corner buttons) + marketing/site.css + light.css (the day look) -> minified string inlined into every page (worker/src/generated/assets.ts)
+ *   shared/styles/base.css + dark.css + banners.css + help.css (the round corner buttons) + marketing/site.css + theme.css (the day look) -> minified string inlined into every page (worker/src/generated/assets.ts)
  *   marketing/shop.css -> minified string inlined only into the tools shop's pages (SHOP_CSS)
  *   marketing/landing.css -> minified string inlined only into landing pages (LANDING_CSS)
  *   marketing/course.css -> minified string inlined only into the class page (COURSE_CSS)
+ *   marketing/video.css -> minified string inlined only into pages that show a video: the home page's, a class's demo (VIDEO_CSS)
  *   marketing/doc.css -> minified string inlined only into certificates, invoices and the certificate check (DOC_CSS)
  *   marketing/site.js       -> dist/static/assets/site.<hash>.js          (immutable, 1 year cache)
  *   marketing/analytics.js  -> dist/static/assets/analytics.<hash>.js     (only on pages that carry a measurement ID; also injected into the student app)
@@ -12,6 +13,7 @@
  *   marketing/gallery.js    -> dist/static/assets/gallery.<hash>.js       (only on class pages with more than one picture)
  *   marketing/cert.js       -> dist/static/assets/cert.<hash>.js          (only on certificates: fits their long lines, makes their picture)
  *   marketing/chat.{js,css} -> dist/static/chat.{js,css}                  (small, 1 hour cache)
+ *   marketing/theme.js -> dist/static/theme.js                            (first-paint theme state, 1 hour cache)
  *   marketing/public/**     -> dist/static/**                             (fonts, sprite, icons, manifest)
  *   marketing/public/og-default.jpg -> dist/static/assets/og.<hash>.jpg   (the share image, under a name that changes with the picture)
  *   marketing/verification/* -> worker/src/generated/verification.ts      (proof-of-ownership files for Meta / Google / Bing …, answered by the Worker at the root)
@@ -37,7 +39,7 @@ mkdirSync(gen, { recursive: true });
 // static public files (fonts, sprite, logo + icons, pattern, manifest, og image …)
 cpSync(resolve(root, "marketing/public"), out, { recursive: true });
 
-const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/dark.css")}\n${read("shared/styles/banners.css")}\n${read("shared/styles/help.css")}\n${read("marketing/site.css")}\n${read("shared/styles/light.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/dark.css")}\n${read("shared/styles/banners.css")}\n${read("shared/styles/help.css")}\n${read("marketing/site.css")}\n${read("shared/styles/theme.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 // the decorative background pattern is tiny: inline it once (CSS variable) instead of a cached-for-a-day extra request
 const patternSvg = read("marketing/public/pattern.svg").replace(/\s+/g, " ").replace(/> </g, "><").replace(/"/g, "'").trim();
 const patternUri = `url("data:image/svg+xml,${patternSvg.replace(/</g, "%3C").replace(/>/g, "%3E").replace(/#/g, "%23")}")`;
@@ -46,6 +48,7 @@ const css = minifiedCss.replace("--pattern:url(/pattern.svg)", `--pattern:${patt
 // the landing pages' look: inlined only into a landing page (a second <style>, allowed by its own hash)
 const landingCss = (await transform(read("marketing/landing.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 // the class page's look, and the documents' (certificates, invoices, the certificate check): inlined only into those pages, the same way
+const videoCss = (await transform(read("marketing/video.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 const courseCss = (await transform(read("marketing/course.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 const docCss = (await transform(read("marketing/doc.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 // site.js is bundled with the parts of Framer Motion it imports (framer-motion, MIT: its notice is kept at the top of the file)
@@ -75,6 +78,7 @@ const shopCss = (await transform(read("marketing/shop.css"), { loader: "css", mi
 const shopJs = (await transform(read("marketing/shop.js"), { loader: "js", minify: true, target: "es2017" })).code;
 const chatJs = (await transform(read("marketing/chat.js"), { loader: "js", minify: true, target: "es2017" })).code;
 const chatCss = (await transform(read("marketing/chat.css"), { loader: "css", minify: true })).code;
+const themeJs = (await transform(read("marketing/theme.js"), { loader: "js", minify: true, target: "es2017" })).code;
 
 const siteJsName = `site.${hash(js)}.js`;
 writeFileSync(resolve(out, "assets", siteJsName), js);
@@ -90,6 +94,7 @@ const shopJsName = `shop.${hash(shopJs)}.js`;
 writeFileSync(resolve(out, "assets", shopJsName), shopJs);
 writeFileSync(resolve(out, "chat.js"), chatJs);
 writeFileSync(resolve(out, "chat.css"), chatCss);
+writeFileSync(resolve(out, "theme.js"), themeJs);
 
 // the share image (the picture Facebook / WhatsApp show for a link) under a name that changes with the picture: they keep a picture they have
 // fetched once for a long time, so a new picture at the old address could go unseen for weeks — a new address is fetched at once
@@ -112,9 +117,11 @@ writeFileSync(
     `export const CERT_JS = ${JSON.stringify(`/assets/${certJsName}`)};\n` +
     `export const LANDING_CSS = ${JSON.stringify(landingCss)};\n` +
     `export const COURSE_CSS = ${JSON.stringify(courseCss)};\n` +
+    `export const VIDEO_CSS = ${JSON.stringify(videoCss)};\n` +
     `export const DOC_CSS = ${JSON.stringify(docCss)};\n` +
     `export const SHOP_CSS = ${JSON.stringify(shopCss)};\n` +
     `export const SHOP_JS = ${JSON.stringify(`/assets/${shopJsName}`)};\n` +
+    `export const THEME_JS = "/theme.js";\n` +
     `export const OG_IMAGE = ${JSON.stringify(ogImage)};\n`,
 );
 
@@ -154,6 +161,8 @@ writeFileSync(
 /chat.js
   Cache-Control: public, max-age=3600
 /chat.css
+  Cache-Control: public, max-age=3600
+/theme.js
   Cache-Control: public, max-age=3600
 /manifest.webmanifest
   Cache-Control: public, max-age=86400

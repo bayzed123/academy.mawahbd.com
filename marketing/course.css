@@ -125,9 +125,3 @@ body.has-buybar{padding-bottom:78px}
 .demo .vid-btn{width:80px;height:80px}
 .demo .vid-btn .icon{width:34px;height:34px}
 .vid-tag{position:absolute;top:14px;left:14px;padding:.3rem .8rem;border-radius:999px;background:rgba(0,0,0,.74);color:#fff;font-size:.82rem;font-weight:700;line-height:1.4}
-
-/* ---------- the day look (shared/styles/light.css); the picture viewer stays dark in both looks ---------- */
-html[data-theme=light] .buy{border-color:rgba(0,0,0,.12)}
-html[data-theme=light] .facts{color:#404040}
-html[data-theme=light] .buybar{background:#fff;border-top-color:rgba(0,0,0,.12);box-shadow:0 -6px 20px rgba(0,0,0,.08)}
-html[data-theme=light] .buybar b{color:#0a0a0a}

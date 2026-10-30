@@ -101,9 +101,3 @@ html[lang=bn] .bn-title{line-height:1.35}
 .offer-card[class*="bn-t-"]{background:var(--bn-bg);border-color:var(--bn-a)}
 .offer-card[class*="bn-t-"] .offer-title{color:var(--bn-ink)}
 .offer-card[class*="bn-t-"] .offer-text,.offer-card[class*="bn-t-"] .offer-no{color:var(--bn-ink2)}
-
-/* ---------- the day look (shared/styles/light.css): a banner with no design chosen turns light with the page — a white card, dark words,
-   the deeper orange; the owner's ruby, gold and ivory designs keep their own colours in both looks ---------- */
-html[data-theme=light] .bn-slide,html[data-theme=light] .bn-t-dark{--bn-bg:#fff;--bn-ink:#0a0a0a;--bn-ink2:#404040;--bn-a:#c2410c;--bn-shade:255,255,255;--bn-s1:.92;--bn-s2:.7;--focus:#c2410c}
-html[data-theme=light] .bn-slide{background:#f5f5f5}
-html[data-theme=light] .bn-cap .bn-copy{border-top-color:rgba(0,0,0,.08)}

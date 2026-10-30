@@ -66,20 +66,39 @@ import { inView, stagger } from "framer-motion/dom";
         })
         .catch(function () { if (status) { status.className = "status-line err"; status.textContent = form.getAttribute("data-err"); } })
         .then(function () { if (btn) btn.disabled = false; });
-    });
+      });
   });
 
-  /* 4. AI assistant: the widget script is fetched only when someone asks for it */
+  /* 3b. day/night theme: theme.js applies the choice before paint; these controls update its state after the DOM exists. */
+  function syncThemeButton(btn, theme) {
+    var isLight = theme === "light";
+    btn.setAttribute("aria-pressed", isLight ? "true" : "false");
+    btn.setAttribute("aria-label", isLight ? btn.getAttribute("data-dark-label") : btn.getAttribute("data-light-label"));
+    var icon = $(".theme-icon", btn);
+    if (icon) icon.textContent = isLight ? "☀" : "◐";
+  }
+  $$('[data-theme-toggle]').forEach(function (btn) {
+    syncThemeButton(btn, d.documentElement.getAttribute("data-theme") || "dark");
+    btn.addEventListener("click", function () {
+      if (window.MawahTheme) window.MawahTheme.toggle();
+    });
+  });
+  d.addEventListener("mawah:theme", function (e) {
+    $$('[data-theme-toggle]').forEach(function (btn) { syncThemeButton(btn, e.detail && e.detail.theme); });
+  });
+
+  /* 4. AI assistant: the widget script is fetched only when someone asks for it. It is told which button was pressed, so the focus can come
+     back to it (or to the talk-to-us button, when the assistant was chosen in its card) once the window closes. */
   var chatLoading;
   $$("[data-chat-open]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      if (window.MawahChat) return window.MawahChat.open();
+      if (window.MawahChat) return window.MawahChat.open(btn);
       if (chatLoading) return;
       chatLoading = true;
       var s = d.createElement("script");
       s.src = "/chat.js";
       s.async = true;
-      s.onload = function () { if (window.MawahChat) window.MawahChat.open(); };
+      s.onload = function () { if (window.MawahChat) window.MawahChat.open(btn); };
       d.head.appendChild(s);
     });
   });
@@ -224,8 +243,8 @@ import { inView, stagger } from "framer-motion/dom";
     track.addEventListener("dragstart", function (e) { e.preventDefault(); });
   });
 
-  /* 9. "back to the top": the round button above WhatsApp appears once the visitor is a screen and a half down the page, and takes them
-     back up (smoothly, unless they asked for less motion). From the keyboard, the focus goes back to the top too. */
+  /* 9. "back to the top": the round button above the talk-to-us button appears once the visitor is a screen and a half down the page, and
+     takes them back up (smoothly, unless they asked for less motion). From the keyboard, the focus goes back to the top too. */
   var toTop = $("[data-to-top]");
   if (toTop) {
     var shown = false, ticking = false;
@@ -244,33 +263,7 @@ import { inView, stagger } from "framer-motion/dom";
     });
   }
 
-  /* 10. night and day: the sun / moon button in the header switches the look, and the choice is kept in this browser (shared/src/theme.ts
-     sets it again before the next page is drawn). A change made in another tab follows here too. */
-  var root = d.documentElement;
-  var themeBtns = $$("[data-theme-toggle]");
-  var themeSync = function () {
-    var light = root.getAttribute("data-theme") === "light";
-    themeBtns.forEach(function (b) { b.setAttribute("aria-pressed", light ? "true" : "false"); });
-    var tc = $('meta[name="theme-color"]'), cs = $('meta[name="color-scheme"]');
-    if (tc) tc.setAttribute("content", light ? "#ffffff" : "#000000");
-    if (cs) cs.setAttribute("content", light ? "light" : "dark");
-  };
-  var themeSet = function (light) {
-    if (light) root.setAttribute("data-theme", "light"); else root.removeAttribute("data-theme");
-    themeSync();
-  };
-  themeBtns.forEach(function (b) {
-    b.hidden = false;
-    b.addEventListener("click", function () {
-      var light = root.getAttribute("data-theme") !== "light";
-      themeSet(light);
-      try { localStorage.setItem("mawah_theme", light ? "light" : "dark"); } catch (e) { /* private mode: this page only */ }
-    });
-  });
-  themeSync();
-  window.addEventListener("storage", function (e) { if (e.key === "mawah_theme") themeSet(e.newValue === "light"); });
-
-  /* 11. talk to us: the round orange button bottom right opens a small card with the ways to reach the academy — WhatsApp, Messenger and
+  /* 10. talk to us: the round orange button bottom right opens a small card with the ways to reach the academy — WhatsApp, Messenger and
      the assistant (shared/styles/help.css). It is a native <details>, so it opens without this script; here it also closes with Escape
      (the focus goes back to the button), with a click anywhere else, and as soon as a way is chosen (the assistant's then opens, 4.). */
   var help = $("[data-help]");
@@ -282,7 +275,7 @@ import { inView, stagger } from "framer-motion/dom";
     $$(".help-opt", help).forEach(function (o) { o.addEventListener("click", function () { helpClose(false); }); });
   }
 
-  /* 12. videos (the home page's, and a class's demo): pressing the picture puts the video site's own player in its place and starts it —
+  /* 11. videos (the home page's, and a class's demo): pressing the picture puts the video site's own player in its place and starts it —
      on this page, never a link away. The player's address is the server's (data-player), never anything the page was given. */
   $$("[data-player]").forEach(function (box) {
     var play = $(".vid-play", box);
@@ -306,7 +299,7 @@ import { inView, stagger } from "framer-motion/dom";
     });
   });
 
-  /* 13. "Watch the demo class" in a class page's price box: down to the demo and it starts — one press, not two. Without this script (or a
+  /* 12. "Watch the demo class" in a class page's price box: down to the demo and it starts — one press, not two. Without this script (or a
      demo), the link is a plain jump to the video. */
   $$("[data-play-demo]").forEach(function (link) {
     link.addEventListener("click", function (e) {

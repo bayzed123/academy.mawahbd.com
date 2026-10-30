@@ -42,7 +42,8 @@ describe("the talk-to-us button", () => {
   it("is that way's own button when there is one way only: WhatsApp, Messenger or the assistant", async () => {
     await setWays({ whatsapp: "01712345678" });
     let c = corner(await body("/en"));
-    expect(c).toMatch(/<a class="fab fab-wa" href="https:\/\/wa\.me\/01712345678\?text=[^"]+" rel="noopener noreferrer" target="_blank" aria-label="Chat on WhatsApp" title="Chat on WhatsApp">/);
+    // the number as the owner typed it (017…), with the country code WhatsApp's links need
+    expect(c).toMatch(/<a class="fab fab-wa" href="https:\/\/wa\.me\/8801712345678\?text=[^"]+" rel="noopener noreferrer" target="_blank" aria-label="Chat on WhatsApp" title="Chat on WhatsApp">/);
     expect(c).not.toContain("data-help");
 
     await setWays({ messenger: "https://m.me/mawahacademy" });
@@ -62,7 +63,7 @@ describe("the talk-to-us button", () => {
     expect(en).toContain('<details class="help" data-help="true"><summary class="fab fab-help" aria-label="Talk to us: WhatsApp, Messenger or our assistant" title="Talk to us: WhatsApp, Messenger or our assistant">');
     // the card is named by its heading, so a screen reader says what the group of choices is
     expect(en).toContain('<div class="help-pop" role="group" aria-labelledby="help-h"><p class="help-h" id="help-h">Talk to us</p><p class="help-sub">Choose how you would like to talk to us.</p>');
-    const wa = en.indexOf('<a class="help-opt help-wa" href="https://wa.me/01712345678?text=');
+    const wa = en.indexOf('<a class="help-opt help-wa" href="https://wa.me/8801712345678?text='); // the number as typed (017…), with its country code
     const ms = en.indexOf('<a class="help-opt help-ms" href="https://m.me/mawahacademy" rel="noopener noreferrer" target="_blank">');
     const ai = en.indexOf('<button class="help-opt help-ai" type="button" data-chat-open="true">');
     expect(wa).toBeGreaterThan(0);
@@ -117,6 +118,12 @@ describe("the Messenger way", () => {
     freshState();
     const site = (await json(await new Client().get("/api/site"))).site;
     expect(site.contact.messenger).toBe("https://m.me/mawahacademy");
+    // the WhatsApp number comes ready for a wa.me link: typed the local way, it gets its country code; typed with it, it stays
+    for (const [typed, sent] of [["01712-345678", "8801712345678"], ["+880 1712 345678", "8801712345678"], ["", ""]]) {
+      expect((await admin.put("/api/admin/settings/contact", { ...base, messenger: "https://m.me/mawahacademy", whatsapp: typed })).status, typed).toBe(200);
+      freshState();
+      expect((await json(await new Client().get("/api/site"))).site.contact.whatsapp, typed).toBe(sent);
+    }
     // an empty box is fine: no Messenger way, unless the Facebook page gives one
     expect((await admin.put("/api/admin/settings/contact", { ...base, messenger: "" })).status).toBe(200);
     freshState();

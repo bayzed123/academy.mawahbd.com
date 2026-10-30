@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { VIDEO_CSS } from "../src/generated/assets";
 import { Client, env, json, loginStaff } from "./helpers";
 
 /*
@@ -38,9 +39,11 @@ describe("a class's demo class", () => {
     expect(ok.status).toBe(200);
     expect((await json(ok)).item).toMatchObject({ demo_url: "https://youtu.be/dQw4w9WgXcQ", demo_title_en: "Demo: the sponge base" });
     expect(demoOf(await page(`/en/courses/${c.slug}`))).not.toBeNull();
-    // emptied: gone from the page
+    expect(await (await new Client().get(`/en/courses/${c.slug}`)).text()).toContain(`<style>${VIDEO_CSS}</style>`); // the player's styles come with it
+    // emptied: gone from the page, and its styles with it
     expect((await admin.patch(`/api/admin/courses/${c.id}`, { demo_url: "" })).status).toBe(200);
     expect(demoOf(await page(`/en/courses/${c.slug}`))).toBeNull();
+    expect(await (await new Client().get(`/en/courses/${c.slug}`)).text()).not.toContain(VIDEO_CSS);
     // only those who may edit classes
     const support = (await loginStaff("support")).client;
     expect((await support.patch(`/api/admin/courses/${c.id}`, { demo_url: "https://youtu.be/dQw4w9WgXcQ" })).status).toBe(403);

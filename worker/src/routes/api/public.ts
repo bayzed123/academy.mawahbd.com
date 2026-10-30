@@ -1,4 +1,5 @@
 import { Hono, type Context } from "hono";
+import { waNumber } from "@mawah/shared";
 import { z } from "zod";
 import type { AppEnv } from "../../env";
 import { all, first, run } from "../../lib/db";
@@ -31,8 +32,9 @@ publicRoutes.get("/site", async (c) => {
   cacheable(c, 30);
   return ok(c, {
     site: {
-      // messenger: the page's Messenger chat (m.me/…), worked out on the server — the student app's talk-to-us button offers it
-      contact: { whatsapp: s.contact.whatsapp, phone: s.contact.phone, email: s.contact.email, facebook: s.contact.facebook, messenger: messengerOf(s.contact) ?? "" },
+      // whatsapp: with its country code, ready for a wa.me link (a number written the local way, 01…, gets 880); messenger: the page's
+      // Messenger chat (m.me/…), worked out on the server — the student app's talk-to-us button and the assistant's window offer both
+      contact: { whatsapp: waNumber(s.contact.whatsapp), phone: s.contact.phone, email: s.contact.email, facebook: s.contact.facebook, messenger: messengerOf(s.contact) ?? "" },
       announcement: s.announcement,
       // the menus' Shop item (menuShop): the Equipment Shop here, or the owner's other shop — null when the item is switched off
       shop: shopLink(s),

@@ -154,7 +154,7 @@
 * শিক্ষার্থীর কাছে একটি **পেমেন্ট রেফারেন্স কোড** (অর্ডার নম্বরের প্রথম ৮ অক্ষর) দেখানো হয় — টাকা পাঠানোর রেফারেন্স ঘরে লিখতে বলা হয়, যাতে আপনি সহজে মেলাতে পারেন।
 * প্রমাণ এলে আপনার **যোগাযোগের ইমেইলে** একটি বার্তা যায় (ইমেইল সংযুক্ত থাকলে) এবং *অর্ডার* মেনুর লাল সংখ্যা বাড়ে।
 * হোয়াটসঅ্যাপে লিখে জানালেও (ফর্ম পূরণ না করলেও) আপনি **অপেক্ষমাণ অর্ডারটি খুলে সরাসরি অনুমোদন** দিতে পারেন।
-* হোয়াটসঅ্যাপ বোতামটি **সেটিংস → যোগাযোগ ও ঘোষণা**-য় দেওয়া হোয়াটসঅ্যাপ নম্বরে যায় — সেটি না বসালে বোতামটি দেখা যায় না।
+* হোয়াটসঅ্যাপ বোতামটি **সেটিংস → যোগাযোগ ও ঘোষণা**-য় দেওয়া হোয়াটসঅ্যাপ নম্বরে যায় — সেটি না বসালে বোতামটি দেখা যায় না। নম্বরটি সাধারণভাবে লিখলেই হবে (যেমন 01712345678); হোয়াটসঅ্যাপের লিংকে ওয়েবসাইট নিজেই দেশের কোড (880) যোগ করে নেয়।
 * স্ক্রিনশট **গোপনে** রাখা হয় এবং অর্ডার চূড়ান্ত হওয়ার **৯০ দিন পরে মুছে যায়** (তাতে ব্যালেন্স ও ফোন নম্বর থাকতে পারে)।
 
 **ইনভয়েস:** প্রতিটি অর্ডারের ইনভয়েস নম্বর যেমন `INV-MWH-20261014-0001` (তারিখ + ক্রমিক নম্বর, মাঝে ফাঁক পড়ে না)। শিক্ষার্থী “আমার অর্ডার”-এ ইনভয়েস খুলে **প্রিন্ট / PDF হিসেবে সংরক্ষণ** করতে পারেন।
@@ -450,7 +450,7 @@
 
 ## ২৯. দিন/রাতের মোড, “আমাদের সাথে কথা বলুন”, হোম ভিডিও, ডেমো ক্লাস ও সার্টিফিকেট
 
-* **রাত ও দিনের মোড** — ওয়েবসাইট ও স্টুডেন্ট অ্যাপের উপরের সারিতে চাঁদ/সূর্যের গোল বোতাম। চাপলে পুরো সাইট সাদা “দিনের” রূপে যায়, আবার চাপলে কালো। পছন্দটি ওই ব্রাউজারে মনে থাকে, অ্যাপেও একই থাকে। আপনার কিছু করার নেই; অ্যাডমিন আগের মতোই থাকে।
+* **রাত ও দিনের মোড** — ওয়েবসাইট ও স্টুডেন্ট অ্যাপের উপরের সারিতে “থিম” বোতাম। চাপলে পুরো সাইট হালকা (আইভরি) “লাইট মোডে” যায়, আবার চাপলে কালো “ডার্ক মোডে”। যিনি এখনো বেছে নেননি, তিনি তাঁর ফোন বা কম্পিউটারের নিজের সেটিং অনুযায়ী দেখেন (ফোন লাইট মোডে থাকলে সাইটও লাইট)। পছন্দটি ওই ব্রাউজারে মনে থাকে, অ্যাপেও একই থাকে। সার্টিফিকেট ও ইনভয়েস সবসময় নিজের কাগজের রূপে থাকে। আপনার কিছু করার নেই; অ্যাডমিন আগের মতোই থাকে।
 * **“আমাদের সাথে কথা বলুন” বোতাম** — ডানদিকে নিচে একটি কমলা গোল বোতাম। চাপলে ছোট একটি কার্ড খোলে: **হোয়াটসঅ্যাপ, মেসেঞ্জার ও এআই সহকারী** — দর্শক যেটা চান বেছে নেন। একটি মাত্র উপায় চালু থাকলে সেটির নিজের বোতামই থাকে।
   1. *সেটিংস → যোগাযোগ → WhatsApp* — আপনার নম্বর।
   2. *সেটিংস → যোগাযোগ → Messenger* — আপনার পেজের মেসেঞ্জার লিংক, যেমন `https://m.me/mawahacademy`। ফেসবুকের “share” লিংক (`facebook.com/share/…`) থেকে মেসেঞ্জার খোলা যায় না, তাই এই ঘরটি আলাদা।
@@ -614,7 +614,7 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 * The student is shown a **payment reference** (the first 8 characters of the order number) to type into the send-money reference box, so you can match it quickly.
 * When proof arrives you get an **e-mail at your contact address** (if e-mail is set up) and the red number next to *Orders* goes up.
 * If the student only wrote to you on WhatsApp, you can still open their *waiting* order and **approve it directly**.
-* The WhatsApp button goes to the **WhatsApp number in Settings → Contact & announcement** — without one the button is not shown.
+* The WhatsApp button goes to the **WhatsApp number in Settings → Contact & announcement** — without one the button is not shown. Type the number the usual way (like 01712345678): the website adds the country code (880) that WhatsApp's links need.
 * Screenshots are stored **privately** and are deleted **90 days** after the order is settled (they can show balances and phone numbers).
 
 **Invoices:** every order gets a number like `INV-MWH-20261014-0001` (date + running number, no gaps). Students open the invoice in *My Orders* and use **Print / Save as PDF**.
@@ -908,7 +908,7 @@ The whole website and the students' app are now on a clean, flat black — no pa
 
 ## 29. Night and day, “Talk to us”, home videos, demo classes and certificates
 
-* **Night and day** — a round moon / sun button in the header of the website and the student app. Pressed, the whole site turns to a white “day” look; pressed again, back to black. The choice is kept in that browser, and the app follows it. Nothing for you to do; the admin stays as it is.
+* **Night and day** — a “Theme” button in the header of the website and the student app. Pressed, the whole site turns to a light (ivory) look; pressed again, back to black. A visitor who has not chosen yet sees the look their phone or computer is set to (a phone in light mode opens the light site). The choice is kept in that browser, and the app follows it. Certificates and invoices always keep their own paper look. Nothing for you to do; the admin stays as it is.
 * **The “Talk to us” button** — one round orange button bottom right. Pressed, it opens a small card: **WhatsApp, Messenger and the AI assistant** — the visitor picks one. With only one way switched on, that way's own button stands there instead.
   1. *Settings → Contact → WhatsApp* — your number.
   2. *Settings → Contact → Messenger* — your page's Messenger link, like `https://m.me/mawahacademy`. A Facebook “share” link (`facebook.com/share/…`) cannot open Messenger, which is why this box is separate.

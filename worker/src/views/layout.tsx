@@ -1,9 +1,9 @@
 import { raw } from "hono/html";
-import { loc, readSslLogo, SSL_BANNER, THEME_BOOT, THEME_COLOR } from "@mawah/shared";
+import { loc, readSslLogo, SSL_BANNER, waNumber } from "@mawah/shared";
 import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
-import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS } from "../generated/assets";
+import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_JS, THEME_JS, VIDEO_CSS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
@@ -32,6 +32,8 @@ export interface LayoutProps {
   landing?: boolean;
   /** the class page: send its own CSS (marketing/course.css) */
   course?: boolean;
+  /** a video shown as a picture to play (the home page's videos, a class's demo): send its CSS (marketing/video.css) */
+  videos?: boolean;
   /** a certificate, an invoice or the certificate check: send the documents' CSS (marketing/doc.css) */
   doc?: boolean;
   /** a certificate: load the script that fits its long lines and makes its picture (marketing/cert.js) */
@@ -43,27 +45,7 @@ export interface LayoutProps {
   children?: unknown;
 }
 
-const digits = (s: string) => s.replace(/\D/g, "");
 const httpUrl = (u: string) => (/^https?:\/\//i.test(u) ? u : "");
-
-/**
- * The night / day switch: a moon in the night look, a sun in the day look (shared/styles/light.css). Pressed = the day look. It does nothing
- * without JavaScript, so it stays hidden until marketing/site.js wires it up.
- */
-export function ThemeToggle({ ctx }: { ctx: PageCtx }) {
-  const label = ctx.t("theme.day");
-  return (
-    <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label={label} title={label} hidden>
-      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-        <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z" />
-      </svg>
-      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false">
-        <circle cx="12" cy="12" r="4.2" />
-        <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6" />
-      </svg>
-    </button>
-  );
-}
 
 /**
  * "Talk to us", bottom right: with two or three ways to reach the academy, one round orange button that opens a small card with them —
@@ -174,7 +156,8 @@ export function Layout(props: LayoutProps) {
   // the announcement bar (with a countdown to the end of the offer and a button, when the owner set them): see views/topbar.tsx
   const bar = chrome ? topBar(ctx) : null;
   const counting = bar !== null && bar.end !== null;
-  const wa = digits(settings.contact.whatsapp);
+  // with its country code (a number written the local way, 01…, gets 880): WhatsApp's links need it
+  const wa = waNumber(settings.contact.whatsapp);
   const waHref = wa ? `https://wa.me/${wa}?text=${encodeURIComponent(t("wa.prefill"))}` : "";
   const fb = httpUrl(settings.contact.facebook);
   // the Messenger chat of the owner's page: the m.me address given for it, else worked out from the page's own Facebook address
@@ -220,10 +203,7 @@ export function Layout(props: LayoutProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{props.title}</title>
         <meta name="description" content={props.description} />
-        <meta name="theme-color" content={THEME_COLOR.dark} />
-        {chrome && <meta name="color-scheme" content="dark" />}
-        {/* the visitor's own look, night or day, before anything is drawn (shared/src/theme.ts; allowed by its hash in the CSP) */}
-        {chrome && <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />}
+        <meta name="theme-color" content="#000000" />
         {props.noindex ? <meta name="robots" content="noindex, follow" /> : <meta name="robots" content="index, follow, max-image-preview:large" />}
         <link rel="canonical" href={canonical} />
         <link rel="alternate" hreflang="bn" href={ctx.abs(localizedPath("bn", ctx.path))} />
@@ -253,9 +233,12 @@ export function Layout(props: LayoutProps) {
         {fontPreloads.map((href) => (
           <link rel="preload" href={href} as="font" type="font/woff2" crossorigin="anonymous" />
         ))}
+        {/* the visitor's night or day look, set before anything is drawn (marketing/theme.js); a certificate or an invoice keeps its own paper */}
+        {chrome && <script src={THEME_JS} />}
         <style dangerouslySetInnerHTML={{ __html: CSS }} />
         {props.shop && <style dangerouslySetInnerHTML={{ __html: SHOP_CSS }} />}
         {props.landing && <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />}
+        {props.videos && <style dangerouslySetInnerHTML={{ __html: VIDEO_CSS }} />}
         {props.course && <style dangerouslySetInnerHTML={{ __html: COURSE_CSS }} />}
         {props.doc && <style dangerouslySetInnerHTML={{ __html: DOC_CSS }} />}
         {(props.jsonLd ?? []).map((data) => (
@@ -293,11 +276,21 @@ export function Layout(props: LayoutProps) {
                     )}
                   </ul>
                   <div class="nav-actions">
-                    <ThemeToggle ctx={ctx} />
                     <a class="lang-toggle" href={ctx.altHref} hreflang={lang === "bn" ? "en" : "bn"} lang={lang === "bn" ? "en" : "bn"} title={t("lang.switch")}>
                       <Icon name="globe" />
                       {t("lang.switch")}
                     </a>
+                    <button
+                      class="theme-toggle"
+                      type="button"
+                      data-theme-toggle
+                      aria-pressed="false"
+                      data-light-label={t("theme.toLight")}
+                      data-dark-label={t("theme.toDark")}
+                    >
+                      <span class="theme-icon" aria-hidden="true">◐</span>
+                      <span class="theme-label">{t("theme.label")}</span>
+                    </button>
                     <a class="btn btn-gold btn-sm" data-guest href="/app/login">
                       {t("btn.login")}
                     </a>

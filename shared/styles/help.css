@@ -2,7 +2,7 @@
    small card with the ways to reach the academy — WhatsApp, Messenger and the AI assistant — and the visitor picks one. On the site it is a
    native <details> (views/layout.tsx), so it opens without JavaScript too; marketing/site.js closes it with Escape, a click elsewhere, or
    once a way is chosen. In the student app marketing/chat.js builds the same markup. With one way only, that way's own button stands there
-   instead (no card to open). The night look; the day look is at the end. */
+   instead (no card to open). It keeps its night look in the day look too, like the assistant's window. */
 /* the corner they sit in, and a round button's look: flat colour, a small crisp shadow (the student app lifts the corner over its tab bar) */
 .floats{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:80;display:grid;gap:12px;justify-items:end}
 .fab{position:relative;isolation:isolate;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;border:0;padding:0;background:transparent;color:#fff;cursor:pointer;text-decoration:none}
@@ -43,11 +43,3 @@
 .help-go{margin-inline-start:auto;width:18px;height:18px;flex:none;color:#a3a3a3}
 /* while the assistant's window is open, the round buttons step aside (they sat on top of its Send button) */
 html.chat-open .floats,html.chat-open .mc-floats{visibility:hidden}
-
-/* ---------- the day look ---------- */
-html[data-theme=light] .help-pop{background:#fff;border-color:rgba(0,0,0,.1);box-shadow:0 24px 60px rgba(0,0,0,.18);color:#171717}
-html[data-theme=light] .help-h{color:#0a0a0a}
-html[data-theme=light] .help-sub{color:#404040}
-html[data-theme=light] .help-opt{background:#f5f5f5;border-color:rgba(0,0,0,.08);color:#171717}
-html[data-theme=light] .help-opt:hover{background:#fff;color:#0a0a0a}
-html[data-theme=light] .help-txt small,html[data-theme=light] .help-go{color:#5c5c5c}

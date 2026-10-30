@@ -1,10 +1,9 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
 import { useSite } from "../lib/hooks";
 import { useI18n } from "../lib/i18n";
-import { ThemeToggle } from "./ThemeToggle";
 import { Icon, Spinner } from "./ui";
 
 const TABS = [
@@ -13,6 +12,35 @@ const TABS = [
   { to: "/certificates", end: false, icon: "award", key: "app.nav.certificates" },
   { to: "/profile", end: false, icon: "user", key: "app.nav.profile" },
 ] as const;
+
+type Theme = "light" | "dark";
+declare global {
+  interface Window {
+    MawahTheme?: { get: () => Theme; toggle: () => Theme };
+  }
+}
+
+/** The night / day switch (marketing/theme.js keeps the choice and sets it before the page is drawn; the site's header has the same one). */
+function ThemeToggle() {
+  const { t } = useI18n();
+  const [theme, setTheme] = useState<Theme>(() => (document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark"));
+  useEffect(() => {
+    const onTheme = (event: Event) => {
+      const next = (event as CustomEvent<{ theme?: Theme }>).detail?.theme;
+      if (next === "light" || next === "dark") setTheme(next);
+    };
+    document.addEventListener("mawah:theme", onTheme);
+    return () => document.removeEventListener("mawah:theme", onTheme);
+  }, []);
+  const light = theme === "light";
+  const label = t(light ? "app.theme.toDark" : "app.theme.toLight");
+  return (
+    <button type="button" className="theme-toggle" data-theme-toggle aria-label={label} aria-pressed={light} onClick={() => window.MawahTheme?.toggle()}>
+      <span className="theme-icon" aria-hidden="true">{light ? "☀" : "◐"}</span>
+      <span className="theme-label">{t("app.theme.label")}</span>
+    </button>
+  );
+}
 
 export function Shell() {
   const { t, lang, setLang } = useI18n();
@@ -80,10 +108,10 @@ export function Shell() {
               </a>
             )}
           </nav>
-          <ThemeToggle />
           <button type="button" className="lang-btn" onClick={switchLang} lang={lang === "bn" ? "en" : "bn"}>
             {t("lang.switch")}
           </button>
+          <ThemeToggle />
           {student ? (
             <details className="user-menu">
               <summary aria-label={t("app.nav.profile")}>

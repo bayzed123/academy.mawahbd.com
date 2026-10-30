@@ -1,0 +1,183 @@
+/* MAWAH Academy — visitor theme layer. Dark remains the default; light is opt-in via html[data-theme="light"]. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --k-950: #070304;
+  --k-900: #0f0708;
+  --k-800: #1b0f10;
+  --k-700: #2c1b1d;
+  --k-600: #43292c;
+  --red-900: #5c070a;
+  --red-800: #8c0b0e;
+  --red-700: #b50f12;
+  --red-600: #db1718;
+  --red-500: #ea3d3b;
+  --red-300: #f59a97;
+  --red-100: #fcdcda;
+  --red-50: #fef3f1;
+  --g-900: #453a0d;
+  --g-800: #665613;
+  --g-700: #816f1c;
+  --g-600: #9a8627;
+  --g-500: #c4b14a;
+  --g-400: #d9cd69;
+  --g-300: #e6dc8c;
+  --g-100: #f8f3d9;
+  --bad-50: #fef3f1;
+  --bad-100: #fcdcda;
+  --bad-600: #db1718;
+  --bad-700: #b50f12;
+  --bad-800: #8c0b0e;
+  --ok-50: #ecf8f1;
+  --ok-100: #d6eedf;
+  --ok-600: #238a52;
+  --ok-700: #1b6b40;
+  --ok-800: #145a34;
+  --snack: #db1718;
+  --cake: #9a8627;
+  --dessert: #8c0b0e;
+  --cook: #43292c;
+  --sweet: #816f1c;
+  --frozen: #6d5f60;
+  --ivory: #fbf7ee;
+  --ivory-2: #f4eddc;
+  --paper: #fffdf8;
+  --field: #ffffff;
+  --raised: #f1eadc;
+  --ink: #1b1213;
+  --ink-2: #4a3d3e;
+  --ink-3: #6d5f60;
+  --line: #e7dfca;
+  --line-2: #d9cfb4;
+  --edge: #9a8627;
+  --edge-a: rgba(69, 58, 13, .32);
+  --heading: #0f0708;
+  --band: #fbf7ee;
+  --card: #fffdf8;
+  --focus: #8c0b0e;
+  --on-accent: #ffffff;
+  --sh-1: 0 1px 2px rgba(27,18,19,.06), 0 4px 14px rgba(27,18,19,.08);
+  --sh-2: 0 2px 4px rgba(27,18,19,.06), 0 18px 44px rgba(27,18,19,.18);
+  --o-600: #b50f12;
+  --o-500: #db1718;
+  --o-400: #c2410c;
+  --o-300: #b50f12;
+  --o-200: #8c0b0e;
+}
+
+:root[data-theme="light"] body { background: var(--ivory); color: var(--ink); }
+:root[data-theme="light"] a { color: var(--red-700); }
+:root[data-theme="light"] a:hover { color: var(--red-800); }
+:root[data-theme="light"] .site-header,
+:root[data-theme="light"] .site-footer,
+:root[data-theme="light"] .app-header,
+:root[data-theme="light"] .tabbar {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--line);
+}
+:root[data-theme="light"] .site-header { box-shadow: 0 1px 0 rgba(27,18,19,.06); }
+:root[data-theme="light"] .site-header a,
+:root[data-theme="light"] .nav-links a,
+:root[data-theme="light"] .menu-panel a,
+:root[data-theme="light"] .app-header .nav-links a,
+:root[data-theme="light"] .brand,
+:root[data-theme="light"] .brand:hover { color: var(--ink); }
+:root[data-theme="light"] .nav-links a:hover,
+:root[data-theme="light"] .nav-links a[aria-current="page"] { color: var(--red-700); border-color: var(--red-700); }
+:root[data-theme="light"] .lang-toggle,
+:root[data-theme="light"] .theme-toggle,
+:root[data-theme="light"] .lang-btn,
+:root[data-theme="light"] .user-menu>summary { color: var(--ink); border-color: var(--line-2); background: transparent; }
+:root[data-theme="light"] .lang-toggle:hover,
+:root[data-theme="light"] .theme-toggle:hover,
+:root[data-theme="light"] .lang-btn:hover,
+:root[data-theme="light"] .user-menu>summary:hover { color: var(--red-700); background: var(--ivory-2); border-color: var(--red-700); }
+:root[data-theme="light"] .menu-panel,
+:root[data-theme="light"] .menu-pop { background: var(--paper); border-color: var(--line); box-shadow: var(--sh-2); }
+:root[data-theme="light"] .menu-panel a:hover,
+:root[data-theme="light"] .menu-pop a:hover,
+:root[data-theme="light"] .menu-pop button:hover { background: var(--ivory-2); }
+:root[data-theme="light"] .hero,
+:root[data-theme="light"] .page-hero { background: var(--ivory); color: var(--ink); border-color: var(--line); }
+:root[data-theme="light"] .hero h1,
+:root[data-theme="light"] .page-hero h1,
+:root[data-theme="light"] .band-dark h2 { color: var(--heading); }
+:root[data-theme="light"] .hero-sub,
+:root[data-theme="light"] .page-hero p { color: var(--ink-2); }
+:root[data-theme="light"] .hero .eyebrow,
+:root[data-theme="light"] .sec-head .eyebrow { background: var(--paper); color: var(--red-700); border-color: var(--line-2); }
+:root[data-theme="light"] .chips li,
+:root[data-theme="light"] .band-dark,
+:root[data-theme="light"] .band-dark .wrap { background: var(--ivory-2); color: var(--ink); }
+:root[data-theme="light"] .chips li { border-color: var(--line); }
+:root[data-theme="light"] .band-light { background: #f4eddc; color: var(--ink); border-color: var(--line); }
+:root[data-theme="light"] .band-dark .muted,
+:root[data-theme="light"] .band-dark p { color: var(--ink-2); }
+:root[data-theme="light"] .crumbs { color: var(--ink-3); }
+:root[data-theme="light"] .crumbs a { color: var(--ink-2); }
+:root[data-theme="light"] .pill,
+:root[data-theme="light"] .input,
+:root[data-theme="light"] select.input,
+:root[data-theme="light"] textarea.input { background: var(--field); color: var(--ink); border-color: var(--line-2); }
+:root[data-theme="light"] .pill:hover { color: var(--red-700); border-color: var(--red-700); }
+:root[data-theme="light"] .card,
+:root[data-theme="light"] .panel,
+:root[data-theme="light"] .tile,
+:root[data-theme="light"] .trust-item,
+:root[data-theme="light"] .faq-item,
+:root[data-theme="light"] .auth-card,
+:root[data-theme="light"] .mat-card { background: var(--card); color: var(--ink); border-color: var(--line); box-shadow: var(--sh-1); }
+:root[data-theme="light"] .tile { color: var(--ink); }
+:root[data-theme="light"] .tile-ico,
+:root[data-theme="light"] .mat-ico { background: var(--ivory-2); border-color: var(--line); color: var(--red-700); }
+:root[data-theme="light"] .card-foot,
+:root[data-theme="light"] .app-foot { border-color: var(--line); color: var(--ink-3); }
+:root[data-theme="light"] .app-main { background: var(--ivory); }
+:root[data-theme="light"] .app-header .brand-name { color: var(--red-700); }
+:root[data-theme="light"] .avatar-sm { background: var(--ivory-2); color: var(--red-700); border-color: var(--line-2); }
+:root[data-theme="light"] .tabbar a { color: var(--ink-3); }
+:root[data-theme="light"] .tabbar a[aria-current="page"] { color: var(--red-700); }
+:root[data-theme="light"] .notice { background: #f8f3d9; color: #665613; border-color: #e6dc8c; }
+:root[data-theme="light"] .notice p { color: var(--ink-2); }
+:root[data-theme="light"] .skeleton { background: linear-gradient(90deg, #f4eddc 25%, #fffdf8 50%, #f4eddc 75%); background-size: 200% 100%; }
+:root[data-theme="light"] .offer-card { background: var(--paper); color: var(--ink); border-color: var(--line); }
+:root[data-theme="light"] .offer-x { background: rgba(255,255,255,.88); color: var(--ink); border: 1px solid var(--line); }
+:root[data-theme="light"] .offer-x:hover { background: var(--ivory-2); }
+:root[data-theme="light"] .faq-item>summary { color: var(--ink); }
+:root[data-theme="light"] .faq-item>summary:hover { background: var(--ivory-2); }
+:root[data-theme="light"] :is(a.btn-primary,a.btn-gold) { color: var(--on-accent); }
+:root[data-theme="light"] a.btn-dark { color: #fff; }
+:root[data-theme="light"] a.btn-outline { color: var(--k-900); }
+
+.theme-toggle { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 44px; min-width: 44px; padding: .3rem .8rem; border: 1.5px solid rgba(255,255,255,.24); border-radius: 999px; background: transparent; color: #f5f5f5; font: inherit; font-weight: 600; cursor: pointer; transition: transform .18s var(--ease-out), background-color .18s var(--ease-out), border-color .18s var(--ease-out), color .18s var(--ease-out); }
+.theme-toggle:hover { border-color: var(--o-500); background: rgba(255,255,255,.06); }
+.theme-toggle:active { transform: scale(.97); }
+.theme-toggle .theme-icon { display: inline-grid; place-items: center; width: 1.1em; height: 1.1em; font-size: 1.05em; }
+.theme-toggle .theme-label { white-space: nowrap; }
+@media (max-width: 760px) { .theme-toggle .theme-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
+@media (prefers-reduced-motion: reduce) { .theme-toggle { transition: none; } }
+
+/* ---------- parts the light layer had left in their night colours (round five's audit, found by the light look's accessibility scan and
+   a look at every page): white words on white, dark words on black ---------- */
+/* the menu button that holds every link on a phone, and the dark buttons ("View all", "See all questions", Save) */
+:root[data-theme="light"] .menu>summary { color: var(--ink); border-color: var(--line-2); }
+:root[data-theme="light"] .menu[open]>summary { color: var(--red-700); border-color: var(--red-700); }
+:root[data-theme="light"] .btn-dark { background: var(--k-900); border-color: var(--k-900); color: #fff; }
+:root[data-theme="light"] .btn-dark:hover { background: var(--k-700); border-color: var(--k-700); color: #fff; }
+/* the black bands between sections ("New to cooking?", the home page's questions, related classes) turn light like the others */
+:root[data-theme="light"] .band { background: var(--ivory-2); border-color: var(--line); }
+/* the categories' names, a class page's facts, the badge on a page's header, the footer's registered address */
+:root[data-theme="light"] .tile b { color: var(--heading); }
+:root[data-theme="light"] .facts { color: var(--ink-2); }
+:root[data-theme="light"] .page-hero .badge-plain { background: var(--paper); color: var(--ink-2); border-color: var(--line-2); }
+:root[data-theme="light"] .site-footer .foot-legal { color: var(--ink-3); }
+/* links and buttons that turned white under the pointer */
+:root[data-theme="light"] .foot-credit a:hover,
+:root[data-theme="light"] .foot-choice button:hover,
+:root[data-theme="light"] a.rating-badge:hover,
+:root[data-theme="light"] .facts .fact-rating a:hover,
+:root[data-theme="light"] .cat-list a:hover,
+:root[data-theme="light"] .pager-num a:hover { color: var(--red-800); }
+:root[data-theme="light"] .cat-list a:hover { background: var(--ivory-2); }
+/* "still have a question?" stays a dark card in both looks: its outlined button keeps light words there */
+:root[data-theme="light"] .faq-cta a.btn-outline { color: #fff; border-color: rgba(255,255,255,.4); }

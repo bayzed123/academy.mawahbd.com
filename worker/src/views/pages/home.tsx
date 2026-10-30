@@ -1,4 +1,4 @@
-import { formatMoney, formatNumber, loc, videoEmbed, videoThumb, videoWatchUrl, type CategoryDTO, type CourseCardDTO } from "@mawah/shared";
+import { formatMoney, formatNumber, loc, playsOnPublicPages, videoEmbed, videoThumb, videoWatchUrl, type CategoryDTO, type CourseCardDTO } from "@mawah/shared";
 import type { InstructorDTO, PublicReview } from "../../services/catalog";
 import { stripMarkdown } from "../../lib/markdown";
 import type { PageCtx } from "../ctx";
@@ -54,6 +54,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
       description={t("meta.home.desc")}
       jsonLd={[organizationLd(ctx), websiteLd(ctx)]}
       slider={data.banners.length > 0}
+      videos={data.videos.some((v) => playsOnPublicPages(v.url))}
     >
       {data.banners.length > 0 && <BannerSlider ctx={ctx} banners={data.banners} />}
       <section class={`hero${data.banners.length > 0 ? " has-banners" : ""}`}>

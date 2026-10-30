@@ -1,7 +1,7 @@
 @import "../../../shared/styles/base.css";
 @import "../../../shared/styles/dark.css";
 @import "../../../shared/styles/help.css";
-@import "../../../shared/styles/light.css";
+@import "../../../shared/styles/theme.css";
 
 /* ==========================================================================================
    MAWAH Academy — student app. Builds on the shared base (tokens, buttons, cards, banners, forms).
@@ -372,26 +372,3 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
   .confetti{display:none}
   .toast:not(.bad) .icon{animation:none}
 }
-
-/* ---------- the day look (shared/styles/light.css has its tokens and the shared parts): the app's own fixed night colours, turned around ---------- */
-html[data-theme=light] .app-header{background:#fff;border-bottom-color:rgba(0,0,0,.09);color:#171717}
-html[data-theme=light] .brand,html[data-theme=light] .brand:hover{color:#0a0a0a}
-html[data-theme=light] .brand-text{border-left-color:rgba(0,0,0,.14)}
-html[data-theme=light] .nav-links a{color:#404040}
-html[data-theme=light] .nav-links a:hover,html[data-theme=light] .nav-links a[aria-current=page]{color:#0a0a0a}
-html[data-theme=light] .nav-links a.nav-shop:hover{background:rgba(0,0,0,.04);color:#0a0a0a}
-html[data-theme=light] .lang-btn,html[data-theme=light] .user-menu>summary{border-color:rgba(0,0,0,.22);color:#171717}
-html[data-theme=light] .lang-btn:hover{color:#0a0a0a;background:rgba(0,0,0,.04)}
-html[data-theme=light] .avatar-sm{background:#f5f5f5}
-html[data-theme=light] .menu-pop a:hover,html[data-theme=light] .menu-pop button:hover{background:#f5f5f5}
-html[data-theme=light] .tabbar{background:#fff;border-top-color:rgba(0,0,0,.1);box-shadow:0 -6px 20px rgba(0,0,0,.08)}
-html[data-theme=light] .mat-ico,html[data-theme=light] .pay-ico{background:#f5f5f5;border-color:rgba(0,0,0,.08)}
-html[data-theme=light] .skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e5e5e5 50%,#f0f0f0 75%);background-size:200% 100%}
-html[data-theme=light] .course-head{background:#fff;color:#404040;border-color:rgba(0,0,0,.1)}
-html[data-theme=light] .course-head h1{color:#0a0a0a}
-html[data-theme=light] .course-head .progress{background:#f0f0f0;border-color:rgba(0,0,0,.1)}
-html[data-theme=light] .course-head .prog-line{color:#404040}
-html[data-theme=light] .celebrate{background:#fff;color:#171717;border-color:var(--o-500)}
-html[data-theme=light] .toast{background:#fff;color:#171717;border-color:var(--o-500)}
-html[data-theme=light] .toast.bad{background:var(--bad-50);border-color:var(--bad-600);color:var(--bad-800)}
-html[data-theme=light] .auth-card{border-color:rgba(0,0,0,.1)}

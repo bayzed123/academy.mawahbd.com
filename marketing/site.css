@@ -325,12 +325,15 @@ a.rating-badge:hover{border-color:var(--g-600);color:#fff}
 .offer{position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.72);overflow:auto}
 .offer[hidden]{display:none}
 html.offer-open{overflow:hidden}
-.offer-card{position:relative;display:grid;width:min(100%,480px);max-height:calc(100dvh - 32px);overflow:auto;border-radius:18px;background:#121212;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 60px rgba(0,0,0,.75)}
+.offer-card{position:relative;display:grid;width:min(100%,480px);max-height:calc(100dvh - 32px);overflow:auto;border-radius:18px;background:#121212;border:1px solid rgba(255,255,255,.12);box-shadow:0 24px 60px rgba(0,0,0,.75);opacity:0;transform:translateY(12px) scale(.985);transition:opacity .22s var(--ease-out),transform .22s var(--ease-out)}
+.offer.is-open .offer-card{opacity:1;transform:none}
+.offer[hidden] .offer-card{transition:none}
 .offer-x{position:absolute;top:10px;right:10px;z-index:2;display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:rgba(10,10,10,.78);color:#fff;cursor:pointer}
 .offer-x:hover{background:#0a0a0a}
+@media (prefers-reduced-motion:reduce){.offer-card{transition:none;transform:none}}
 @media (max-width:560px){
-  .offer{place-items:end center;padding:0}
-  .offer-card{width:100%;border-radius:20px 20px 0 0;border-inline:0;border-bottom:0}
+  .offer{place-items:center;padding:16px}
+  .offer-card{width:min(100%,480px);border-radius:18px;border:1px solid rgba(255,255,255,.12)}
 }
 
 /* ---------- FAQ: questions and answers (Admin -> FAQ) ---------- */
@@ -386,33 +389,6 @@ html.offer-open{overflow:hidden}
 .faq-sec{margin-top:clamp(28px,4vw,44px);scroll-margin-top:96px}
 .faq-sec h2{margin-bottom:.8rem}
 
-/* ---------- the home page's videos (Admin → Home videos): each one a picture with an orange play button. Pressed, YouTube's (or Vimeo's)
-   own player takes the picture's place and plays right here on the page (marketing/site.js) — never a link away; without JavaScript the
-   picture opens the video on YouTube. Three to a row on a computer (one wide, or two, when there are fewer), a sliding row on a phone. ---------- */
-.vids{display:grid;gap:clamp(14px,2vw,22px);list-style:none;margin:0;padding:0}
-.vids.n1{max-width:900px;margin-inline:auto}
-@media (min-width:760px){
-  .vids.n2{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .vids.n3{grid-template-columns:repeat(3,minmax(0,1fr))}
-}
-@media (max-width:759px){
-  .vids.n2,.vids.n3{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;margin-inline:-16px;padding:2px 16px 8px}
-  .vids.n2::-webkit-scrollbar,.vids.n3::-webkit-scrollbar{display:none}
-  .vids.n2>li,.vids.n3>li{flex:0 0 86%;scroll-snap-align:start}
-}
-.vid{position:relative;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:#121212;border:1px solid var(--line)}
-.vid iframe,.vid-play,.vid img{position:absolute;inset:0;width:100%;height:100%;border:0}
-.vid img{object-fit:cover;transition:transform .5s var(--ease-out)}
-.vid-play{display:grid;place-items:center;color:var(--on-accent);text-decoration:none}
-.vid-play:hover{color:var(--on-accent)}
-.vid-play:hover img{transform:scale(1.04)}
-.vid-btn{position:relative;display:grid;place-items:center;width:68px;height:68px;border-radius:50%;background:var(--o-500);box-shadow:0 8px 24px rgba(0,0,0,.45);transition:transform .2s var(--ease-out)}
-.vid-play:hover .vid-btn,.vid-play:focus-visible .vid-btn{transform:scale(1.08)}
-.vid-btn .icon{width:30px;height:30px;margin-inline-start:3px}
-.vid-title{margin:.7rem 0 0;font-weight:700;line-height:1.45}
-html[data-theme=light] .vid{background:#f5f5f5;border-color:rgba(0,0,0,.1)}
-html[data-theme=light] .vid-btn{box-shadow:0 8px 24px rgba(0,0,0,.22)}
-
 /* ---------- rendering performance ---------- */
 /* off-screen sections are not laid out or painted until they are near the viewport (much less work on first load) */
 main>section:nth-of-type(n+3){content-visibility:auto;contain-intrinsic-size:auto 640px}
@@ -459,72 +435,3 @@ main>section:nth-of-type(n+3){content-visibility:auto;contain-intrinsic-size:aut
 .page-contact.big{margin:0 0 26px;padding:22px}
 .page-contact.big h2{font-size:1.25rem}
 .page-contact.big .btn{font-size:1.05rem;padding:14px 18px}
-
-/* ---------- the day look (shared/styles/light.css has its tokens): the parts this file paints in fixed night colours, turned around.
-   The announcement and countdown bar stay black in both looks, like a printed band across the top. ---------- */
-html[data-theme=light] .site-header{background:#fff;border-bottom-color:rgba(0,0,0,.09);color:#171717}
-html[data-theme=light] .brand,html[data-theme=light] .brand:hover{color:#0a0a0a}
-html[data-theme=light] .brand-text{border-left-color:rgba(0,0,0,.14)}
-html[data-theme=light] .nav-links a{color:#404040}
-html[data-theme=light] .nav-links a:hover,html[data-theme=light] .nav-links a[aria-current=page]{color:#0a0a0a}
-html[data-theme=light] .lang-toggle,html[data-theme=light] .menu>summary{border-color:rgba(0,0,0,.22);color:#171717}
-html[data-theme=light] .lang-toggle:hover{border-color:rgba(0,0,0,.5);color:#0a0a0a;background:rgba(0,0,0,.04)}
-html[data-theme=light] .menu[open]>summary{border-color:var(--o-600);color:#0a0a0a}
-html[data-theme=light] .menu-panel{background:#fff;border-color:rgba(0,0,0,.1);box-shadow:0 16px 40px rgba(0,0,0,.16)}
-html[data-theme=light] .menu-panel a{color:#171717}
-html[data-theme=light] .menu-panel a:hover{background:#f5f5f5;color:#0a0a0a}
-html[data-theme=light] .menu-panel .menu-login{border-top-color:rgba(0,0,0,.12)}
-html[data-theme=light] .nav-links .nav-shop a:hover{background:rgba(0,0,0,.04);color:#0a0a0a}
-html[data-theme=light] .hero,html[data-theme=light] .page-hero{background:#fafafa;color:#404040;border-bottom-color:rgba(0,0,0,.07)}
-html[data-theme=light] .hero h1,html[data-theme=light] .page-hero h1{color:#0a0a0a}
-html[data-theme=light] .hero-sub,html[data-theme=light] .page-hero p{color:#404040}
-html[data-theme=light] .hl{color:var(--hl)}
-html[data-theme=light] .band-light .hl{color:var(--red-900)}
-html[data-theme=light] .hero .eyebrow,html[data-theme=light] .sec-head .eyebrow{background:#fff;border-color:rgba(0,0,0,.12);color:var(--o-300)}
-html[data-theme=light] .hero .hero-cta .btn-primary .icon{background:rgba(0,0,0,.1)}
-html[data-theme=light] .chips li{background:#fff;border-color:rgba(0,0,0,.1);color:#262626}
-html[data-theme=light] .pill-badge{border-color:rgba(0,0,0,.14)}
-html[data-theme=light] .crumbs{color:#5c5c5c}
-html[data-theme=light] .crumbs a{color:#262626}
-html[data-theme=light] .pill:hover{border-color:rgba(0,0,0,.45);color:#0a0a0a}
-html[data-theme=light] .tile:hover{border-color:var(--o-500)}
-html[data-theme=light] .tile-ico{background:#f5f5f5;border-color:rgba(0,0,0,.08)}
-html[data-theme=light] .tile b{color:#0a0a0a}
-html[data-theme=light] .step:hover,html[data-theme=light] .person:hover,html[data-theme=light] .review:hover{border-color:rgba(0,0,0,.2)}
-html[data-theme=light] .band{background:#fff;border-block-color:rgba(0,0,0,.06)}
-html[data-theme=light] .band-dark{background:#f5f5f5;color:#262626;border-top-color:rgba(0,0,0,.07)}
-html[data-theme=light] .band-dark h2{color:#0a0a0a}
-html[data-theme=light] .avatar{background:#f5f5f5}
-html[data-theme=light] .review::before{color:rgba(0,0,0,.08)}
-html[data-theme=light] .site-footer{background:#f5f5f5;color:#404040;border-top-color:rgba(0,0,0,.08)}
-html[data-theme=light] .site-footer a{color:#171717}
-html[data-theme=light] .site-footer a:hover{color:var(--o-300)}
-html[data-theme=light] .site-footer .foot-legal{color:#5c5c5c}
-html[data-theme=light] .social a{border-color:rgba(0,0,0,.14);color:var(--o-300)}
-html[data-theme=light] .social a:hover{color:#0a0a0a}
-html[data-theme=light] .pay-logos li,html[data-theme=light] .ssl-logo img{box-shadow:0 0 0 1px rgba(0,0,0,.1)}
-html[data-theme=light] .foot-bottom{border-top-color:rgba(0,0,0,.08)}
-html[data-theme=light] .foot-credit a:hover,html[data-theme=light] .foot-choice button:hover{color:#0a0a0a}
-html[data-theme=light] a.rating-badge:hover{color:#0a0a0a}
-html[data-theme=light] .page-hero .badge-plain{background:#fff;color:#262626;border-color:rgba(0,0,0,.2)}
-html[data-theme=light] .facts .fact-rating a{border-bottom-color:rgba(0,0,0,.3)}
-html[data-theme=light] .facts .fact-rating a:hover{color:#0a0a0a}
-html[data-theme=light] .bn-band{background:#fff}
-html[data-theme=light] .bn-track{border-color:rgba(0,0,0,.1)}
-html[data-theme=light] .bn-btn{border-color:rgba(0,0,0,.2);color:#262626}
-html[data-theme=light] .bn-btn:hover{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.5)}
-html[data-theme=light] .bn-dots button::before{background:rgba(0,0,0,.25)}
-html[data-theme=light] .bn-dots button[aria-current=true]::before{background:var(--o-500)}
-html[data-theme=light] .offer-card{background:#fff;border-color:rgba(0,0,0,.1)}
-html[data-theme=light] .faq-item{background:#fff;border-color:rgba(0,0,0,.1)}
-html[data-theme=light] .faq-item:hover{border-color:rgba(0,0,0,.22)}
-html[data-theme=light] .faq-item[open]{border-color:var(--o-500)}
-html[data-theme=light] .faq-item>summary{color:#0a0a0a}
-html[data-theme=light] .faq-item>summary:hover{background:rgba(0,0,0,.02)}
-html[data-theme=light] .faq-cta{background:#fff;color:#404040;border-color:rgba(0,0,0,.1)}
-html[data-theme=light] .faq-cta h3{color:#0a0a0a}
-html[data-theme=light] .faq-cta p{color:#404040}
-html[data-theme=light] .faq-cta-ico{background:#f5f5f5;border-color:rgba(0,0,0,.08)}
-html[data-theme=light] .car-btn,html[data-theme=light] .car-btn:disabled{border-color:rgba(0,0,0,.22);color:#171717}
-html[data-theme=light] .car-btn:hover:not(:disabled){color:#0a0a0a}
-html[data-theme=light] .fab-top{--fab:#fff}

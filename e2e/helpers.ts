@@ -184,3 +184,13 @@ export const apiPost = (page: Page, path: string, json: unknown) => apiSend(page
 export async function apiGet<T = unknown>(page: Page, path: string): Promise<T> {
   return page.evaluate(async (p) => (await fetch(`/api${p}`)).json(), path) as Promise<T>;
 }
+
+/**
+ * Opens the AI assistant's window the way a visitor does: its own round button when it is the only way to talk to us, else the
+ * assistant's choice in the talk-to-us card (views/layout.tsx).
+ */
+export async function openAssistant(page: Page) {
+  const card = page.locator(".floats summary.fab-help");
+  if (await card.isVisible()) await card.click();
+  await page.locator(".floats [data-chat-open]").first().click();
+}
