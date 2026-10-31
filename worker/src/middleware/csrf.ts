@@ -3,8 +3,8 @@ import type { AppEnv } from "../env";
 import { HttpError } from "../lib/http";
 
 /** Server-to-server callbacks and gateway redirects arrive cross-site by design — they are authenticated
- *  by re-verifying with the gateway, never by cookies. */
-const EXEMPT_PREFIXES = ["/api/payments/"];
+ *  by re-verifying with the gateway (or, for the couriers' webhooks, by the secret the owner gave the courier), never by cookies. */
+const EXEMPT_PREFIXES = ["/api/payments/", "/api/courier/"];
 
 /**
  * CSRF defence for cookie-authenticated, state-changing requests (defence in depth on top of SameSite):

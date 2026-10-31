@@ -353,7 +353,7 @@ describe("Settings → E-mail: who is told and what about", () => {
     expect((await admin.put("/api/admin/settings/notifications", { emails: ["not-an-address"], off: [] })).status).toBe(422);
     expect((await admin.put("/api/admin/settings/notifications", { emails: Array.from({ length: 6 }, (_, i) => `a${i}@example.test`), off: [] })).status).toBe(422);
     expect((await admin.put("/api/admin/settings/notifications", { emails: [], off: ["everything"] })).status).toBe(422);
-    expect(NOTIFY_KINDS.length).toBe(13);
+    expect(NOTIFY_KINDS.length).toBe(14);
   });
 
   it("'send a test notification' sends one sample to every address and says what became of it; a few an hour", async () => {

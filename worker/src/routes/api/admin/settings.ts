@@ -143,6 +143,13 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
       // a charge switched on that would add nothing: the owner meant a percent or an amount
       if (v.cod_charge && v.cod_pct <= 0 && v.cod_min <= 0) ctx.addIssue({ code: "custom", path: ["cod_pct"], message: "required" });
     }),
+  // the Pathao store is one of the stores Pathao lists for these keys (the screen offers only those); the weight is Pathao's 0.5–10 kg
+  courier: z.object({
+    pathao_store: z.number().int().min(0).max(1_000_000_000),
+    pathao_store_name: textSchema(120),
+    pathao_delivery: z.union([z.literal(48), z.literal(12)]),
+    weight: z.number().min(0.5).max(10),
+  }),
   notifications: z.object({
     emails: z.array(emailSchema).max(5, "too_long").transform((a) => [...new Set(a)]),
     off: z.array(z.enum(NOTIFY_KINDS)).max(NOTIFY_KINDS.length).transform((a) => [...new Set(a)]),

@@ -7,9 +7,10 @@ import { crudRoutes, type ResourceDef } from "../../../lib/crud";
 import { all, first, likeEscape, nowIso, pageInfo, pageParams, qs, run } from "../../../lib/db";
 import { HttpError, conflict, intParam, notFound, ok, parseBody } from "../../../lib/http";
 import { slugSchema, textSchema } from "../../../lib/schemas";
-import { bumpContentVersion } from "../../../lib/settings";
+import { bumpContentVersion, getSettings } from "../../../lib/settings";
 import { uniqueSlug } from "../../../lib/slug";
 import { requirePerm } from "../../../middleware/auth";
+import { courierEvents, hasKeys, pathaoBook, pathaoStores, steadfastBalance, steadfastBook, type Parcel } from "../../../services/courier";
 import { restockOrder, shopOrderDTO, shopOrderRow } from "../../../services/shop";
 
 /**
@@ -266,11 +267,24 @@ shopOrdersAdmin.get("/shop/orders", requirePerm("shop:orders"), async (c) => {
   return ok(c, { items, page: pageInfo(page, per_page, total?.n ?? 0), counts: Object.fromEntries(counts.map((r) => [r.status, r.n])) });
 });
 
-shopOrdersAdmin.get("/shop/orders/:code", requirePerm("shop:orders"), async (c) => {
-  const row = await shopOrderRow(c.env, c.req.param("code"));
+/** An order as staff see it: the buyer's view, the team's note, the gateway's number, the allowed next steps and the courier's own words. */
+async function staffOrder(c: Ctx, code: string) {
+  const row = await shopOrderRow(c.env, code);
   if (!row) throw notFound();
-  return ok(c, { order: { ...(await shopOrderDTO(c.env, row)), id: row.id, staff_note: row.staff_note, gateway_txn: row.gateway_txn, next: SHOP_NEXT[row.status] } });
-});
+  return {
+    ...(await shopOrderDTO(c.env, row)),
+    id: row.id,
+    staff_note: row.staff_note,
+    gateway_txn: row.gateway_txn,
+    next: SHOP_NEXT[row.status],
+    courier_cid: row.courier_cid === "booking" ? "" : row.courier_cid,
+    courier_status: row.courier_status,
+    courier_at: row.courier_at,
+    courier_events: await courierEvents(c.env, row.id),
+  };
+}
+
+shopOrdersAdmin.get("/shop/orders/:code", requirePerm("shop:orders"), async (c) => ok(c, { order: await staffOrder(c, c.req.param("code")) }));
 
 const STAMP: Partial<Record<ShopOrderStatus, string>> = { shipped: "shipped_at", delivered: "delivered_at", cancelled: "cancelled_at" };
 
@@ -298,8 +312,82 @@ shopOrdersAdmin.post("/shop/orders/:code/status", requirePerm("shop:orders_write
   if (!res.meta.changes) throw conflict("bad_step");
   if (body.status === "cancelled") await restockOrder(c.env, row.id);
   await audit(c, { action: `shop_orders.${status}`, entity: "shop_order", entityId: row.id, summary: row.public_id });
-  const fresh = (await shopOrderRow(c.env, row.public_id))!;
-  return ok(c, { order: { ...(await shopOrderDTO(c.env, fresh)), id: fresh.id, staff_note: fresh.staff_note, gateway_txn: fresh.gateway_txn, next: SHOP_NEXT[fresh.status] } });
+  return ok(c, { order: await staffOrder(c, row.public_id) });
+});
+
+/* --------------------------------------------------------------------------------------------------------------- the couriers */
+
+/** Which couriers can take a parcel now (their keys are on the Worker) and how a parcel is booked — for the order screen. */
+shopOrdersAdmin.get("/shop/couriers", requirePerm("shop:orders"), async (c) => {
+  const s = (await getSettings(c.env)).courier;
+  return ok(c, { steadfast: hasKeys(c.env, "steadfast"), pathao: hasKeys(c.env, "pathao"), pathao_store: s.pathao_store, pathao_store_name: s.pathao_store_name, weight: s.weight });
+});
+
+/** "Check the couriers": Steadfast's balance and Pathao's stores — each courier's answer, or its own words for why not. */
+shopOrdersAdmin.post("/shop/couriers/check", requirePerm("settings:write"), async (c) => {
+  const [steadfast, pathao] = await Promise.all([steadfastBalance(c.env), pathaoStores(c.env)]);
+  return ok(c, { steadfast, pathao });
+});
+
+/**
+ * Send a confirmed order to Steadfast or Pathao: the parcel is booked with the courier's API (cash to collect = the order's total for
+ * cash on delivery, nothing for an order paid online), the courier's numbers are kept and the order is on its way (shipped). The order
+ * is claimed first, so two people pressing at once can never book two parcels; a claim left by a request that never finished frees
+ * itself after two minutes. The courier's refusal comes back in its own words.
+ */
+const BOOKING_HOLD_MS = 2 * 60_000;
+shopOrdersAdmin.post("/shop/orders/:code/courier", requirePerm("shop:orders_write"), async (c) => {
+  const body = await parseBody(c, z.object({ courier: z.enum(["steadfast", "pathao"]), weight: z.number().min(0.5).max(10).optional(), note: textSchema(200).optional() }));
+  const row = await shopOrderRow(c.env, c.req.param("code"));
+  if (!row) throw notFound();
+  if (row.status !== "confirmed") throw conflict("bad_step");
+  if (!hasKeys(c.env, body.courier)) throw new HttpError(409, "courier_no_keys");
+  const now = nowIso();
+  const claim = await run(
+    c.env.DB,
+    "UPDATE shop_orders SET courier = ?, courier_cid = 'booking', courier_at = ? WHERE id = ? AND status = 'confirmed' AND (courier_cid = '' OR (courier_cid = 'booking' AND courier_at < ?))",
+    body.courier,
+    now,
+    row.id,
+    nowIso(new Date(Date.now() - BOOKING_HOLD_MS)),
+  );
+  if (!claim.meta.changes) throw conflict("already_booked");
+  const settings = (await getSettings(c.env)).courier;
+  const items = await all<{ name_en: string; label_en: string; qty: number }>(c.env.DB, "SELECT name_en, label_en, qty FROM shop_order_items WHERE order_id = ? ORDER BY id", row.id);
+  const parcel: Parcel = {
+    code: row.public_id,
+    name: row.name,
+    phone: row.phone,
+    address: `${row.address}, ${row.place}`,
+    cod: row.payment === "cod" ? row.total : 0,
+    items: Math.max(1, items.reduce((n, i) => n + i.qty, 0)),
+    description: items.map((i) => `${i.name_en}${i.label_en ? ` (${i.label_en})` : ""} × ${i.qty}`).join(", "),
+    note: [row.note, body.note ?? ""].filter(Boolean).join(" · "),
+    weight: body.weight ?? settings.weight,
+  };
+  const r = body.courier === "steadfast" ? await steadfastBook(c.env, parcel) : await pathaoBook(c.env, parcel, { store: settings.pathao_store, delivery: settings.pathao_delivery });
+  if (!r.ok) {
+    await run(c.env.DB, "UPDATE shop_orders SET courier = '', courier_cid = '', courier_at = NULL WHERE id = ? AND courier_cid = 'booking'", row.id);
+    await audit(c, { action: "shop_orders.courier_failed", entity: "shop_order", entityId: row.id, summary: `${row.public_id} · ${body.courier}: ${r.problem}`, meta: { problem: r.problem, status: r.status ?? null, said: r.detail ?? "" } });
+    // no answer in time is not a no: the courier may have taken the parcel all the same, so staff look in its panel before sending again
+    const code = r.problem === "unreachable" ? "unanswered" : r.problem;
+    throw new HttpError(r.problem === "unreachable" ? 504 : r.problem === "no_store" ? 409 : 502, `courier_${code}`, undefined, r.detail ? { detail: r.detail } : undefined);
+  }
+  const at = nowIso();
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      "UPDATE shop_orders SET status = 'shipped', shipped_at = ?, courier_cid = ?, courier_ref = ?, courier_status = ?, courier_at = ?, updated_at = ? WHERE id = ? AND courier_cid = 'booking'",
+    ).bind(at, r.data.cid, r.data.tracking || r.data.cid, r.data.status, at, at, row.id),
+    c.env.DB.prepare("INSERT INTO courier_events (order_id, courier, event, status, message, created_at) VALUES (?, ?, 'booked', ?, ?, ?)").bind(
+      row.id,
+      body.courier,
+      r.data.status.slice(0, 60),
+      r.data.fee !== null ? `Delivery fee ${r.data.fee}` : "",
+      at,
+    ),
+  ]);
+  await audit(c, { action: "shop_orders.shipped", entity: "shop_order", entityId: row.id, summary: `${row.public_id} · ${body.courier} ${r.data.cid}` });
+  return ok(c, { order: await staffOrder(c, row.public_id) });
 });
 
 /* ================================================================================================================== reviews */

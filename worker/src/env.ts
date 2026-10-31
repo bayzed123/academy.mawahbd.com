@@ -57,12 +57,31 @@ export interface Env {
    */
   /** the Google service-account key file (a Secret): the file's text, or that text in base64 */
   GOOGLE_SERVICE_ACCOUNT?: string;
+  /**
+   * The couriers (Admin → Shop → Orders → Send to Steadfast / Pathao), all secrets; a courier without its keys is simply not offered.
+   * Steadfast: the API key and secret key from its panel, and the long random token the owner made up and gave Steadfast as its
+   * webhook's "Auth Token (Bearer)". Pathao: the client id and secret from its Developer API page (with the login e-mail and password
+   * when that page asks for them), and the secret the owner gave Pathao for its webhook.
+   */
+  STEADFAST_API_KEY?: string;
+  STEADFAST_SECRET_KEY?: string;
+  STEADFAST_WEBHOOK_TOKEN?: string;
+  PATHAO_CLIENT_ID?: string;
+  PATHAO_CLIENT_SECRET?: string;
+  PATHAO_USERNAME?: string;
+  PATHAO_PASSWORD?: string;
+  PATHAO_WEBHOOK_SECRET?: string;
+  /** what Pathao's check of the webhook wants back in X-Pathao-Merchant-Webhook-Integration-Secret, when its request does not carry it */
+  PATHAO_WEBHOOK_INTEGRATION_SECRET?: string;
   /** Local development / tests only: enables the simulated payment gateway. */
   ALLOW_MOCK_PAYMENTS?: string;
   /** Local development / tests only: lets pages carry the analytics tag (it never does outside the real site otherwise). Ignored in production. */
   ANALYTICS_DEV?: string;
   /** Local development / tests only: where "Google" is (a stand-in served by the dev Worker itself). Ignored in production. */
   GOOGLE_API_BASE?: string;
+  /** Where the couriers' APIs are: their own addresses unless set — Pathao's sandbox for a trial, or a stand-in in local development. */
+  STEADFAST_BASE_URL?: string;
+  PATHAO_BASE_URL?: string;
 }
 
 export type Lang = "bn" | "en";

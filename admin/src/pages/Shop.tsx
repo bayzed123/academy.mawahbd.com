@@ -39,7 +39,12 @@ export function Shop() {
       {tab === "categories" && <Categories />}
       {tab === "orders" && <Orders />}
       {tab === "reviews" && <Reviews />}
-      {tab === "settings" && <StoreSettings />}
+      {tab === "settings" && (
+        <>
+          <StoreSettings />
+          <CourierSettings />
+        </>
+      )}
     </>
   );
 }
@@ -264,7 +269,115 @@ interface OrderRow {
   place: string;
   created_at: string;
 }
-type OrderDetail = ShopOrderDTO & { id: number; staff_note: string; gateway_txn: string | null; next: ShopOrderStatus[] };
+type OrderDetail = ShopOrderDTO & {
+  id: number;
+  staff_note: string;
+  gateway_txn: string | null;
+  next: ShopOrderStatus[];
+  courier_cid: string;
+  courier_status: string;
+  courier_at: string | null;
+  courier_events: { courier: Courier; event: string; status: string; message: string; created_at: string }[];
+};
+type Courier = "steadfast" | "pathao";
+const COURIER_NAME: Record<Courier, string> = { steadfast: "Steadfast", pathao: "Pathao" };
+/** Why a courier did not take a parcel, in words of our own (the courier's own sentence follows them). */
+const COURIER_ERRORS = ["no_keys", "no_store", "refused", "unreachable", "unanswered", "bad_step", "already_booked"] as const;
+interface CourierSetup {
+  steadfast: boolean;
+  pathao: boolean;
+  pathao_store: number;
+  pathao_store_name: string;
+  weight: number;
+}
+
+/**
+ * Sending a confirmed order to Steadfast or Pathao (their keys on the website): the cash the courier collects, a line for the rider, the
+ * weight Pathao asks for, and the courier's refusal in its own words. Once booked: which courier has it, its numbers, and every word the
+ * courier sent about the parcel since.
+ */
+function CourierBox({ o, canAct, onBooked }: { o: OrderDetail; canAct: boolean; onBooked: (o: OrderDetail) => void }) {
+  const { t, money, dateTime, err } = useI18n();
+  const toast = useToast();
+  const setup = useQuery({ queryKey: ["shop-couriers"], queryFn: () => adm<CourierSetup>("/shop/couriers"), staleTime: 60_000 });
+  const [note, setNote] = useState("");
+  const [weight, setWeight] = useState("");
+  const [refused, setRefused] = useState("");
+  const book = useMutation({
+    mutationFn: (courier: Courier) =>
+      adm<{ order: OrderDetail }>(`/shop/orders/${o.public_id}/courier`, { json: { courier, note: note.trim() || undefined, weight: weight ? Number(fromBnDigits(weight)) || undefined : undefined } }),
+    onSuccess: (r) => {
+      setRefused("");
+      onBooked(r.order);
+      toast(t("adm.shop.cr.booked", { courier: COURIER_NAME[r.order.courier as Courier] }));
+    },
+    onError: (e) => {
+      const code = e instanceof ApiError ? e.code.replace(/^courier_/, "") : "generic";
+      const said = e instanceof ApiError ? (e.fields?.detail ?? "") : "";
+      const words = (COURIER_ERRORS as readonly string[]).includes(code) ? t(`adm.shop.cr.err.${code}` as "adm.shop.cr.err.refused") : err(code);
+      setRefused(`${words}${said ? ` — “${said}”` : ""}`);
+    },
+  });
+  if (o.courier) {
+    return (
+      <section className="courier-box" aria-label={t("adm.shop.cr.title")}>
+        <p>
+          <b>{t("adm.shop.cr.with", { courier: COURIER_NAME[o.courier] })}</b> · {t("adm.shop.cr.cid", { cid: o.courier_cid })} · {t("adm.shop.cr.tracking", { ref: o.courier_ref })}
+        </p>
+        {o.courier_status && (
+          <p>
+            {t("adm.shop.cr.says", { word: o.courier_status })}
+            {o.courier_at ? ` · ${dateTime(o.courier_at)}` : ""}
+          </p>
+        )}
+        {o.courier_events.length > 0 && (
+          <ol className="courier-log">
+            {o.courier_events.map((ev, i) => (
+              <li key={i}>
+                <span className="muted">{dateTime(ev.created_at)}</span> {ev.status || ev.event}
+                {ev.message ? ` — ${ev.message}` : ""}
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+    );
+  }
+  if (!canAct || o.status !== "confirmed" || !setup.data || !(setup.data.steadfast || setup.data.pathao)) return null;
+  const s = setup.data;
+  return (
+    <fieldset className="courier-box plain-fieldset">
+      <legend>{t("adm.shop.cr.title")}</legend>
+      <p className="hint">{o.payment === "cod" ? t("adm.shop.cr.collect", { amount: money(o.total) }) : t("adm.shop.cr.paid")}</p>
+      <Field id="cr-note" label={t("adm.shop.cr.note")} hint={t("adm.shop.cr.noteHint")}>
+        <TextInput id="cr-note" value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} />
+      </Field>
+      {s.pathao && (
+        <Field id="cr-weight" label={t("adm.shop.cr.weight")} hint={t("adm.shop.cr.weightHint", { kg: String(s.weight) })}>
+          <TextInput id="cr-weight" inputMode="decimal" value={weight} placeholder={String(s.weight)} onChange={(e) => setWeight(e.target.value)} />
+        </Field>
+      )}
+      <div className="row">
+        {s.steadfast && (
+          <Button className="btn-primary" busy={book.isPending && book.variables === "steadfast"} disabled={book.isPending} onClick={() => book.mutate("steadfast")}>
+            {t("adm.shop.cr.send", { courier: "Steadfast" })}
+          </Button>
+        )}
+        {s.pathao && (
+          <Button className="btn-primary" busy={book.isPending && book.variables === "pathao"} disabled={book.isPending || !s.pathao_store} onClick={() => book.mutate("pathao")}>
+            {t("adm.shop.cr.send", { courier: "Pathao" })}
+          </Button>
+        )}
+      </div>
+      {s.pathao && !s.pathao_store && <p className="hint">{t("adm.shop.cr.needStore")}</p>}
+      {refused && (
+        <p className="err-text" role="alert">
+          {refused}
+        </p>
+      )}
+    </fieldset>
+  );
+}
 
 const ORDER_FILTERS = ["open", "placed", "paid", "review", "confirmed", "shipped", "delivered", "pending", "cancelled", "failed", "refunded", ""] as const;
 
@@ -304,7 +417,8 @@ function Orders() {
       ) : list.data.items.length === 0 ? (
         <Empty icon="inbox" title={t("adm.shop.noOrders")} />
       ) : (
-        <div className="table-wrap">
+        // the list scrolls inside its own box on a phone, like every other list in Admin (the page itself never scrolls sideways)
+        <div className="table-wrap table-scroll">
           <table className="table">
             <thead>
               <tr>
@@ -412,7 +526,8 @@ function OrderPanel({ code }: { code: string }) {
           { label: t("adm.shop.payment"), value: `${o.payment === "cod" ? t("adm.shop.cod") : t("adm.shop.online")}${o.gateway_txn ? ` · ${o.gateway_txn}` : ""}` },
         ]}
       />
-      <table className="table">
+      {/* compact: three narrow columns that fit the drawer on a 360 px phone */}
+      <table className="table compact">
         <tbody>
           {o.items.map((i, n) => (
             <tr key={n}>
@@ -420,7 +535,7 @@ function OrderPanel({ code }: { code: string }) {
                 {pick(i, "name")}
                 {pick(i, "label") ? ` · ${pick(i, "label")}` : ""}
               </td>
-              <td className="num">× {i.qty}</td>
+              <td className="num">{`×\u00a0${i.qty}`}</td>
               <td className="num">{money(i.price * i.qty)}</td>
             </tr>
           ))}
@@ -461,8 +576,159 @@ function OrderPanel({ code }: { code: string }) {
           </div>
         </>
       )}
-      {o.courier_ref && !(canAct && o.next.length > 0) && <p>{t("adm.shop.courierIs", { ref: o.courier_ref })}</p>}
+      {o.courier_ref && !o.courier && !(canAct && o.next.length > 0) && <p>{t("adm.shop.courierIs", { ref: o.courier_ref })}</p>}
+      <CourierBox
+        o={o}
+        canAct={canAct}
+        onBooked={(fresh) => {
+          qc.setQueryData(["shop-order", code], fresh);
+          void qc.invalidateQueries({ queryKey: ["shop-orders"] });
+        }}
+      />
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ couriers */
+interface CourierSettingsValue {
+  pathao_store: number;
+  pathao_store_name: string;
+  pathao_delivery: 48 | 12;
+  weight: number;
+}
+type Reply<T> = { ok: true; data: T } | { ok: false; problem: string; status?: number; detail?: string };
+interface CourierCheck {
+  steadfast: Reply<{ balance: number }>;
+  pathao: Reply<{ id: number; name: string; address: string; active: boolean }[]>;
+}
+
+/**
+ * The couriers: whether each one's keys are on the website, a check that asks each courier (Steadfast's balance, Pathao's stores), the
+ * Pathao store parcels are picked up from, Pathao's delivery speed and the usual weight — and the two webhook addresses to give the
+ * couriers, with the names of the GitHub secrets they go with.
+ */
+function CourierSettings() {
+  const { t, money, err } = useI18n();
+  const { can } = useAuth();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const canWrite = can("settings:write");
+  const settings = useQuery({ queryKey: ["settings"], queryFn: () => adm<{ settings: { courier: CourierSettingsValue } }>("/settings") });
+  const setup = useQuery({ queryKey: ["shop-couriers"], queryFn: () => adm<CourierSetup>("/shop/couriers") });
+  const [v, setV] = useState<CourierSettingsValue | null>(null);
+  const [weightText, setWeightText] = useState("");
+  const [result, setResult] = useState<CourierCheck | null>(null);
+  useEffect(() => {
+    if (settings.data && !v) {
+      setV(settings.data.settings.courier);
+      setWeightText(String(settings.data.settings.courier.weight));
+    }
+  }, [settings.data, v]);
+  const check = useMutation({
+    mutationFn: () => adm<CourierCheck>("/shop/couriers/check", { method: "POST", json: {} }),
+    onSuccess: (r) => setResult(r),
+    onError: (e) => toast(err(e instanceof ApiError ? e.code : "generic"), true),
+  });
+  const save = useMutation({
+    mutationFn: () => adm("/settings/courier", { method: "PUT", json: v }),
+    onSuccess: () => {
+      toast(t("adm.saved"));
+      void qc.invalidateQueries({ queryKey: ["settings"] });
+      void qc.invalidateQueries({ queryKey: ["shop-couriers"] });
+    },
+    onError: (e) => toast(err(e instanceof ApiError ? e.code : "generic"), true),
+  });
+  if (!v || !setup.data) return null;
+  const said = (r: Reply<unknown>) => (r.ok ? "" : `${t(`adm.shop.cr.err.${r.problem}` as "adm.shop.cr.err.refused")}${r.detail ? ` — “${r.detail}”` : ""}`);
+  const stores = result?.pathao.ok ? result.pathao.data.filter((x) => x.active || x.id === v.pathao_store) : [];
+  const hook = (c: Courier) => `${window.location.origin}/api/courier/${c}`;
+  return (
+    <section className="panel stack mt" aria-labelledby="cr-h">
+      <h2 id="cr-h">{t("adm.shop.cr.settings")}</h2>
+      <p className="hint">{t("adm.shop.cr.settingsHint")}</p>
+      <ul className="plain-list">
+        {(["steadfast", "pathao"] as const).map((c) => (
+          <li key={c} className="row">
+            <b>{COURIER_NAME[c]}</b>
+            <Chip tone={setup.data[c] ? "ok" : "neutral"}>{setup.data[c] ? t("adm.shop.cr.keysIn") : t("adm.shop.cr.keysOut")}</Chip>
+            <code>{hook(c)}</code>
+          </li>
+        ))}
+      </ul>
+      <p className="hint">{t("adm.shop.cr.secrets")}</p>
+      {canWrite && (
+        <div className="row">
+          <Button className="btn-outline" busy={check.isPending} onClick={() => check.mutate()}>
+            {t("adm.shop.cr.check")}
+          </Button>
+        </div>
+      )}
+      {result && (
+        <ul className="plain-list" role="status">
+          <li>
+            <b>Steadfast:</b> {result.steadfast.ok ? t("adm.shop.cr.balance", { amount: money(result.steadfast.data.balance) }) : said(result.steadfast)}
+          </li>
+          <li>
+            <b>Pathao:</b> {result.pathao.ok ? t("adm.shop.cr.stores", { n: String(result.pathao.data.length) }) : said(result.pathao)}
+          </li>
+        </ul>
+      )}
+      <form
+        className="form-grid"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate();
+        }}
+      >
+        <Field id="cr-store" label={t("adm.shop.cr.store")} hint={stores.length ? t("adm.shop.cr.storeHint") : t("adm.shop.cr.storeFirst")}>
+          <select
+            id="cr-store"
+            className="input"
+            value={v.pathao_store ? String(v.pathao_store) : ""}
+            disabled={!canWrite || !stores.length}
+            onChange={(e) => {
+              const id = Number(e.target.value);
+              setV({ ...v, pathao_store: id, pathao_store_name: stores.find((x) => x.id === id)?.name ?? "" });
+            }}
+          >
+            {/* the chosen store keeps its own option (its name) until "Check the couriers" lists the stores again */}
+            {!v.pathao_store && <option value="">{t("adm.shop.cr.storeNone")}</option>}
+            {v.pathao_store > 0 && !stores.some((x) => x.id === v.pathao_store) && <option value={v.pathao_store}>{v.pathao_store_name || v.pathao_store}</option>}
+            {stores.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.name} — {x.address}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field id="cr-speed" label={t("adm.shop.cr.speed")}>
+          <select id="cr-speed" className="input" value={v.pathao_delivery} disabled={!canWrite} onChange={(e) => setV({ ...v, pathao_delivery: Number(e.target.value) === 12 ? 12 : 48 })}>
+            <option value={48}>{t("adm.shop.cr.speed48")}</option>
+            <option value={12}>{t("adm.shop.cr.speed12")}</option>
+          </select>
+        </Field>
+        <Field id="cr-kg" label={t("adm.shop.cr.weightDefault")} hint={t("adm.shop.cr.weightDefaultHint")}>
+          <TextInput
+            id="cr-kg"
+            inputMode="decimal"
+            value={weightText}
+            disabled={!canWrite}
+            onChange={(e) => {
+              const text = fromBnDigits(e.target.value).replace(",", ".").replace(/[^\d.]/g, "");
+              setWeightText(text);
+              setV({ ...v, weight: Math.min(10, Math.max(0.5, Math.round((Number(text) || 0.5) * 10) / 10)) });
+            }}
+          />
+        </Field>
+        {canWrite && (
+          <div className="row">
+            <Button type="submit" busy={save.isPending}>
+              {t("btn.save")}
+            </Button>
+          </div>
+        )}
+      </form>
+    </section>
   );
 }
 
@@ -610,8 +876,10 @@ function StoreSettings() {
   return (
     <>
       <PageHeader title={t("adm.shop.tab.settings")} sub={t("adm.shop.settings.sub")} />
+      {/* named, since the couriers' card below it has a Save of its own */}
       <form
         className="panel stack"
+        aria-label={t("adm.shop.tab.settings")}
         onSubmit={(e) => {
           e.preventDefault();
           if (v.free_delivery && freeFrom && v.free_over <= 0) {

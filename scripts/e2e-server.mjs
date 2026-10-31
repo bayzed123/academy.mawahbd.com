@@ -44,9 +44,41 @@ const googleKey = JSON.stringify({
   client_id: "1",
 });
 
+// The couriers likewise: made-up keys, and a stand-in for Steadfast and Pathao that the Worker itself serves (worker/src/routes/api/dev-courier.ts)
+const couriers = [
+  `STEADFAST_BASE_URL:http://127.0.0.1:${PORT}/api/dev/courier/steadfast`,
+  "STEADFAST_API_KEY:e2e-steadfast-key",
+  "STEADFAST_SECRET_KEY:e2e-steadfast-secret",
+  "STEADFAST_WEBHOOK_TOKEN:e2e-steadfast-webhook-token",
+  `PATHAO_BASE_URL:http://127.0.0.1:${PORT}/api/dev/courier/pathao`,
+  "PATHAO_CLIENT_ID:e2e-pathao-client",
+  "PATHAO_CLIENT_SECRET:e2e-pathao-client-secret",
+  "PATHAO_WEBHOOK_SECRET:e2e-pathao-webhook-secret",
+].flatMap((v) => ["--var", v]);
+
 const server = spawn(
   "npx",
-  ["wrangler", "dev", "-c", config, "--persist-to", state, "--port", PORT, "--ip", "127.0.0.1", "--inspector-port", "9331", "--var", `GOOGLE_SERVICE_ACCOUNT:${googleKey}`, "--var", `GOOGLE_API_BASE:http://127.0.0.1:${PORT}/api/dev/google`, "--var", "ANALYTICS_DEV:true"],
+  [
+    "wrangler",
+    "dev",
+    "-c",
+    config,
+    "--persist-to",
+    state,
+    "--port",
+    PORT,
+    "--ip",
+    "127.0.0.1",
+    "--inspector-port",
+    "9331",
+    "--var",
+    `GOOGLE_SERVICE_ACCOUNT:${googleKey}`,
+    "--var",
+    `GOOGLE_API_BASE:http://127.0.0.1:${PORT}/api/dev/google`,
+    "--var",
+    "ANALYTICS_DEV:true",
+    ...couriers,
+  ],
   {
     cwd: worker,
     stdio: ["ignore", "ignore", "inherit"],

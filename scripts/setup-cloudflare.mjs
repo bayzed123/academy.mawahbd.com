@@ -95,6 +95,16 @@ const OPTIONAL_SECRETS = [
     normalize: serviceAccountFile,
     hint: "the whole key file (.json) of the Google service account, as it was downloaded — not a part of it, and not the account's e-mail address alone",
   },
+  // the couriers (Admin → Shop → Orders → Send to Steadfast / Pathao): keys from their panels, and the webhook secrets the owner made up
+  { name: "STEADFAST_API_KEY", valid: (v) => /^[\x21-\x7e]{8,200}$/.test(v), hint: "the API Key from the Steadfast panel, with no spaces" },
+  { name: "STEADFAST_SECRET_KEY", valid: (v) => /^[\x21-\x7e]{8,200}$/.test(v), hint: "the Secret Key from the Steadfast panel, with no spaces" },
+  { name: "STEADFAST_WEBHOOK_TOKEN", valid: (v) => /^[\x21-\x7e]{16,200}$/.test(v), hint: "a long random text you made up (at least 16 characters, no spaces) — the same one you give Steadfast as its webhook's Bearer token" },
+  { name: "PATHAO_CLIENT_ID", valid: (v) => /^[\x21-\x7e]{2,200}$/.test(v), hint: "the Client ID from Pathao's Developer API page, with no spaces" },
+  { name: "PATHAO_CLIENT_SECRET", valid: (v) => /^[\x21-\x7e]{8,300}$/.test(v), hint: "the Client Secret from Pathao's Developer API page, with no spaces" },
+  { name: "PATHAO_USERNAME", valid: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), hint: "the e-mail you log in to Pathao Merchant with (only if Pathao's API page asks for it)" },
+  { name: "PATHAO_PASSWORD", valid: (v) => v.length >= 4 && v.length <= 200 && !/[\r\n]/.test(v), hint: "your Pathao Merchant password (only if Pathao's API page asks for it), on one line" },
+  { name: "PATHAO_WEBHOOK_SECRET", valid: (v) => /^[\x21-\x7e]{16,200}$/.test(v), hint: "a long random text you made up (at least 16 characters, no spaces) — the same one you give Pathao as its webhook's secret" },
+  { name: "PATHAO_WEBHOOK_INTEGRATION_SECRET", valid: (v) => /^[\x21-\x7e]{8,200}$/.test(v), hint: "the code Pathao's webhook page tells you to send back (only if its check of your webhook fails without it)" },
 ];
 
 const bold = (s) => `\x1b[1m${s}\x1b[0m`;

@@ -11,6 +11,8 @@ import { adminApi } from "./admin";
 import { authRoutes } from "./auth";
 import { chatRoutes } from "./chat";
 import { checkoutRoutes } from "./checkout";
+import { courierRoutes } from "./courier";
+import { devCourier } from "./dev-courier";
 import { devGoogle } from "./dev-google";
 import { paymentRoutes } from "./payments";
 import { publicRoutes } from "./public";
@@ -32,9 +34,10 @@ const isUpload = (method: string, path: string) =>
   method === "POST" &&
   (path === "/api/admin/media/image" || /^\/api\/admin\/lessons\/\d+\/resources$/.test(path) || /^\/api\/checkout\/[a-z0-9]+\/proof-image$/.test(path));
 api.use("*", (c, next) => (isUpload(c.req.method, new URL(c.req.url).pathname) ? next() : jsonLimit(c, next)));
-// payment gateway callbacks come from the gateway's servers, not a browser: exempt from the per-IP limiter. So are the two video routes: one playing
-// video asks many times (to start, to skip around) and a phone network shows many students as one address — they have limits of their own
-const DOES_ITS_OWN_LIMIT = /^\/api\/(?:payments\/|(?:student|preview)\/lessons\/\d+\/media$)/;
+// payment gateway callbacks and the couriers' webhooks come from those companies' servers, not a browser: exempt from the per-IP limiter.
+// So are the two video routes: one playing video asks many times (to start, to skip around) and a phone network shows many students as
+// one address — they have limits of their own
+const DOES_ITS_OWN_LIMIT = /^\/api\/(?:payments\/|courier\/|(?:student|preview)\/lessons\/\d+\/media$)/;
 api.use("*", async (c, next) => {
   if (DOES_ITS_OWN_LIMIT.test(new URL(c.req.url).pathname)) return next();
   return rateLimit("RL_API")(c, next);
@@ -53,10 +56,13 @@ api.route("/checkout", checkoutRoutes);
 api.route("/payments", paymentRoutes);
 api.route("/chat", chatRoutes);
 api.route("/shop", shopRoutes);
+api.route("/courier", courierRoutes);
 api.route("/", publicRoutes);
 
 // development and tests only: a stand-in for Google, so Admin → Analytics can be exercised without a Google account
 api.route("/dev/google", devGoogle);
+// development and tests only: a stand-in for Steadfast and Pathao, so sending a parcel can be exercised without a courier account
+api.route("/dev/courier", devCourier);
 
 // development only: read e-mails the app "sent" (password-reset links etc.) so flows can be tested end to end
 api.get("/dev/outbox", async (c) => {

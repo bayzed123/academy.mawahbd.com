@@ -220,6 +220,9 @@ p.free-note.is-done{color:var(--ok-700);font-weight:600}
 p.free-note.is-done .icon{color:inherit}
 .free-bar{height:6px;margin-top:.45rem;border-radius:999px;background:var(--line-2);overflow:hidden}
 .free-bar span{display:block;height:100%;border-radius:inherit;background:var(--o-500)}
+/* the courier that has the parcel, its tracking code and the courier's own page */
+.courier-box{display:grid;gap:.4rem;justify-items:start;margin-top:.6rem;padding:12px 14px;border:1px solid var(--line);border-radius:14px}
+.courier-box p{margin:0}
 .pay-ico{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:var(--ivory-2);color:var(--k-800);flex:none}
 .pay-marks{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
 .pay-mark{display:inline-flex;align-items:center;height:26px;padding:0 7px;border-radius:8px;background:#fff;box-shadow:0 0 0 1px var(--line-2)}

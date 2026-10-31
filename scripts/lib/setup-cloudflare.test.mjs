@@ -264,6 +264,32 @@ test("with no SMS or SSLCommerz secrets anywhere the script says nothing about t
   for (const name of ["SMS_API_KEY", "SMS_API_URL", "SSLCOMMERZ_STORE_ID", "SSLCOMMERZ_STORE_PASSWORD"]) assert.ok(!(name in sb.state().secretValues), name);
 });
 
+test("the couriers' keys and webhook secrets come from GitHub secrets too, are never printed, and a wrong-looking one is not used", () => {
+  const sb = sandbox();
+  // made-up values of the right shape, built here so nothing key-like sits in the source
+  const made = (n) => ["Kx", "9q", "Lm", "Zt", "4r", "Pw", "7s", "Yd"].slice(0, n).join("");
+  const values = {
+    STEADFAST_API_KEY: made(6),
+    STEADFAST_SECRET_KEY: made(7),
+    STEADFAST_WEBHOOK_TOKEN: made(8),
+    PATHAO_CLIENT_ID: "1234",
+    PATHAO_CLIENT_SECRET: made(8),
+    PATHAO_USERNAME: "owner@shop.test",
+    PATHAO_PASSWORD: "pass word 1",
+    PATHAO_WEBHOOK_SECRET: `${made(8)}x`,
+  };
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { ...values, PATHAO_WEBHOOK_INTEGRATION_SECRET: "has spaces in it" });
+  assert.equal(r.code, 0, r.out);
+  for (const [name, value] of Object.entries(values)) {
+    assert.equal(sb.state().secretValues[name], value, name);
+    assert.match(r.out, new RegExp(`${name} created`));
+    if (value.length > 6) assert.ok(!r.out.includes(value), `${name} is not in the output`);
+  }
+  assert.ok(!("PATHAO_WEBHOOK_INTEGRATION_SECRET" in sb.state().secretValues));
+  assert.match(r.out, /PATHAO_WEBHOOK_INTEGRATION_SECRET does not look right/);
+  assert.ok(!r.out.includes("has spaces in it"));
+});
+
 // A made-up key file of the right shape (the "key" inside is filler: it only has to look like one), built here so nothing key-like sits in the source.
 const fakeGoogleKeyFile = (over = {}) =>
   JSON.stringify(
