@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
+import { THEME_ICON } from "@mawah/shared";
 import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
 import { useSite } from "../lib/hooks";
@@ -36,7 +37,11 @@ function ThemeToggle() {
   const label = t(light ? "app.theme.toDark" : "app.theme.toLight");
   return (
     <button type="button" className="theme-toggle" data-theme-toggle aria-label={label} aria-pressed={light} onClick={() => window.MawahTheme?.toggle()}>
-      <span className="theme-icon" aria-hidden="true">{light ? "☀" : "◐"}</span>
+      <span className="theme-icon" aria-hidden="true">
+        <svg className="icon" viewBox="0 0 24 24">
+          <path d={light ? THEME_ICON.sun : THEME_ICON.moon} />
+        </svg>
+      </span>
       <span className="theme-label">{t("app.theme.label")}</span>
     </button>
   );

@@ -4,12 +4,12 @@ import { adminLogin, agree, apiGet, apiSend, offerAnswered, TEST_ADDRESS, unique
 
 /*
  * The dark look's working parts, in a real browser. The owner sets a countdown in Settings → Announcement bar. Visitors see it tick at the
- * top in both languages, press its Join button, and see the bar go away at the end. The look is flat and still: no glow, pulse or
- * bounce anywhere. For visitors who have not asked for less motion, sections, headings and cards rise 20px and fade in as they come into
- * view (Framer Motion), and a card lifts under the pointer with an orange edge; once everything is in, the page passes the accessibility
- * scan. The class slider moves with its arrows and a mouse drag, and a drag opens nothing. The talk-to-us button opens a card with
- * WhatsApp, Messenger and the assistant, and a "back to the top" button above it appears down the page. A paid order gets its check mark
- * and confetti, and in My Learning the class's card rises in (Framer Motion).
+ * top in both languages, press its Join button, and see the bar go away at the end; the owner can switch it off and on again. The look
+ * is flat and still: no glow, pulse or bounce anywhere. For visitors who have not asked for less motion, sections, headings and cards
+ * rise 20px and fade in as they come into view (Framer Motion), and a card lifts under the pointer with an orange edge; once everything
+ * is in, the page passes the accessibility scan. The class slider moves with its arrows and a mouse drag, and a drag opens nothing. The
+ * talk-to-us button opens a card with WhatsApp, Messenger and the assistant, and a "back to the top" button above it appears down the
+ * page. A paid order gets its check mark and confetti, and in My Learning the class's card rises in (Framer Motion).
  * The other specs run with reduced motion (playwright.config.ts); these turn it on where they need it. Runs after the admin spec (the owner exists).
  */
 test.describe.configure({ mode: "serial" });
@@ -76,7 +76,8 @@ test("the owner sets a countdown; visitors see it tick at the top, press Join no
   await expect(page.locator("html")).not.toHaveClass(/has-topbar/);
   await ctx.close();
 
-  // Bangla, on a 360 px phone: Bangla digits, the timer and its button on one row, nothing wider than the screen
+  // Bangla, on a 360 px phone: Bangla digits; the owner's words above the timer and its button, which share one row; all of it centred;
+  // nothing wider than the screen
   const bn = await browser.newContext({ locale: "bn-BD", viewport: { width: 360, height: 760 } });
   await useLang(bn, "bn");
   await offerAnswered(bn);
@@ -88,9 +89,69 @@ test("the owner sets a countdown; visitors see it tick at the top, press Join no
   await expect(join).toHaveAttribute("href", "/courses");
   const [a, b] = await Promise.all([bnTimer.boundingBox(), join.boundingBox()]);
   expect(Math.abs(a!.y + a!.height / 2 - (b!.y + b!.height / 2))).toBeLessThan(8);
+  const words = phone.locator(".topbar-text");
+  await expect(words).toHaveText("ঈদ অফার: সব ক্লাসে বিশেষ দাম");
+  const [w, row] = await Promise.all([words.boundingBox(), phone.locator(".cd-row").boundingBox()]);
+  expect(w!.y + w!.height).toBeLessThanOrEqual(row!.y + 1);
+  for (const box of [w!, row!]) expect(Math.abs(box.x + box.width / 2 - 180)).toBeLessThan(3);
+  // a jump to a part of a class page (its reviews) lands just below the sticky top, however tall the bar is on this phone
+  const slug = (await apiGet<{ courses: { slug: string }[] }>(phone, "/courses")).courses[0].slug;
+  await phone.goto(`/courses/${slug}`);
+  await expect.poll(() => phone.evaluate(() => document.documentElement.style.getPropertyValue("--top-h"))).toMatch(/^\d+px$/);
+  const landing = await phone.evaluate(() => {
+    document.documentElement.style.scrollBehavior = "auto";
+    document.body.append(Object.assign(document.createElement("div"), { style: "height:2000px" })); // room below, whatever the page's length
+    document.getElementById("reviews")!.scrollIntoView();
+    return document.getElementById("reviews")!.getBoundingClientRect().top - document.querySelector(".top")!.getBoundingClientRect().bottom;
+  });
+  expect(landing).toBeGreaterThanOrEqual(0);
+  expect(landing).toBeLessThan(24);
   expect(await phone.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   await axe(phone, ".top");
   await bn.close();
+});
+
+test("the owner switches the countdown bar off and on again in Settings (Active / Inactive); its words and time stay for next time", async ({ browser }) => {
+  const words = "Eid offer: a special price on every class";
+  expect((await apiSend(admin, "PUT", "/admin/settings/announcement", { bn: "ঈদ অফার: সব ক্লাসে বিশেষ দাম", en: words, ends_at: dhakaLocal(Date.now() + 2 * 24 * 3600_000), link: "/courses" })).status).toBe(200);
+  await admin.goto("/admin/settings");
+  const form = admin.locator("form").filter({ has: admin.getByLabel("Countdown to (Bangladesh time)") });
+  const on = form.getByRole("switch", { name: "Show the bar on the website" });
+  const save = () =>
+    Promise.all([
+      admin.waitForResponse((r) => r.url().endsWith("/api/admin/settings/announcement") && r.request().method() === "PUT" && r.ok()),
+      form.getByRole("button", { name: "Save" }).click(),
+    ]);
+  await expect(on).toBeChecked();
+  await expect(form.getByText("Active", { exact: true })).toBeVisible();
+  await on.locator("xpath=ancestor::label").click();
+  await expect(on).not.toBeChecked();
+  await expect(form.getByText("Inactive", { exact: true })).toBeVisible();
+  await save();
+
+  // visitors: no bar at all
+  const ctx = await browser.newContext({ locale: "en-US" });
+  await useLang(ctx, "en");
+  await offerAnswered(ctx);
+  const page = await ctx.newPage();
+  await page.goto("/en");
+  await expect(page.locator(".site-header")).toBeVisible();
+  await expect(page.locator(".topbar, .announce")).toHaveCount(0);
+  await expect(page.locator("html")).not.toHaveClass(/has-topbar/);
+  // the words and the time are still there for next time
+  await admin.reload();
+  await expect(form.getByLabel("Announcement (English)")).toHaveValue(words);
+  await expect(form.getByLabel("Countdown to (Bangladesh time)")).not.toHaveValue("");
+  await expect(on).not.toBeChecked();
+
+  // on again: the same bar, ticking
+  await on.locator("xpath=ancestor::label").click();
+  await expect(form.getByText("Active", { exact: true })).toBeVisible();
+  await save();
+  await page.reload();
+  await expect(page.getByRole("timer", { name: /^The offer ends / })).toBeVisible();
+  await expect(page.locator(".topbar-text")).toHaveText(words);
+  await ctx.close();
 });
 
 test("with motion on, sections and cards rise in as they come into view, buttons stay still and flat, a card lifts under the pointer, and the page passes the scan", async ({ browser }) => {

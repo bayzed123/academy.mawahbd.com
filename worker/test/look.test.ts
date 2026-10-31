@@ -8,7 +8,7 @@ import { Client, env, firstCourse, freshState, json, loginStaff } from "./helper
 
 /*
  * The working parts of the dark look that are more than colours. The announcement bar's countdown is always the owner's own end of the
- * offer: it shows only until then, and its end time and button are checked before they are stored. The Messenger button is for the owner's
+ * offer: it shows only until then, the owner can switch it off and on, and its end time and button are checked before they are stored. The Messenger button is for the owner's
  * Facebook page only. The class page and the documents send their own styles, so every other page stays as light as before, and the
  * site's text never jumps when a font comes late.
  */
@@ -48,7 +48,8 @@ describe("the announcement bar's countdown", () => {
     const bar = topOf(en);
     expect(bar, "the bar sits in the sticky top, before the header").not.toBeNull();
     expect(bar![1]).toBe(iso);
-    expect(bar![2]).toContain('<p class="topbar-text">Eid offer is on</p>');
+    // the owner's words after a small clock, then the time and the button side by side (centred together: marketing/site.css)
+    expect(bar![2]).toContain('<p class="topbar-text"><svg class="icon" aria-hidden="true" focusable="false"><use href="/sprite.svg#i-clock"></use></svg>Eid offer is on</p><div class="cd-row"><div class="cd" role="timer"');
     // the timer's name is the end time itself (screen readers, and anyone without the script)
     expect(bar![2]).toContain(`role="timer" aria-label="The offer ends ${formatDateTime(iso, "en")}"`);
     expect(bar![2]).toMatch(/<b data-cd="d">03<\/b><small>Days<\/small>/);
@@ -56,11 +57,11 @@ describe("the announcement bar's countdown", () => {
     expect(bar![2]).toMatch(/<b data-cd="m">\d\d<\/b><small>Mins<\/small>/);
     expect(bar![2]).toMatch(/<b data-cd="s">\d\d<\/b><small>Secs<\/small>/);
     // no words for the button: the usual "Join now", to the page in the visitor's language
-    expect(bar![2]).toContain('<a class="btn btn-primary btn-sm" href="/en/courses">Join now</a>');
+    expect(bar![2]).toMatch(/<\/div><a class="btn btn-primary btn-sm" href="\/en\/courses">Join now<\/a><\/div><\/div><\/div>$/);
 
     const bn = await text("/");
     const bnBar = topOf(bn);
-    expect(bnBar![2]).toContain('<p class="topbar-text">ঈদ অফার চলছে</p>');
+    expect(bnBar![2]).toContain('<p class="topbar-text"><svg class="icon" aria-hidden="true" focusable="false"><use href="/sprite.svg#i-clock"></use></svg>ঈদ অফার চলছে</p>');
     expect(bnBar![2]).toContain(`aria-label="অফার শেষ হবে ${formatDateTime(iso, "bn")}"`);
     expect(bnBar![2]).toMatch(/<b data-cd="d">০৩<\/b><small>দিন<\/small>/);
     expect(bnBar![2]).toContain('<a class="btn btn-primary btn-sm" href="/courses">এখনই ভর্তি হোন</a>');
@@ -88,6 +89,41 @@ describe("the announcement bar's countdown", () => {
     await setBar({});
     const none = await body("/en");
     for (const trace of ["topbar", 'class="announce"']) expect(none, trace).not.toContain(trace);
+  });
+
+  it("the owner can switch the bar off and on again (Active / Inactive) without losing its words, time or button", async () => {
+    const end = dhakaLocal(Date.now() + 2 * 24 * 3600_000);
+    const { client: admin } = await loginStaff();
+    const put = (body: Record<string, unknown>) => admin.put("/api/admin/settings/announcement", body);
+    const offer = { bn: "ঈদ অফার চলছে", en: "Eid offer is on", ends_at: end, button_bn: "", button_en: "Grab it", link: "/courses" };
+
+    const off = await put({ ...offer, enabled: false });
+    expect(off.status).toBe(200);
+    expect((await json(off)).settings.announcement).toEqual({ ...offer, enabled: false });
+    freshState();
+    expect(await text("/en")).toContain('<html lang="en">');
+    for (const path of ["/en", "/", "/en/faq"]) {
+      const page = await body(path);
+      for (const trace of ["topbar", "data-countdown", 'class="announce"', "Eid offer is on", "ঈদ অফার চলছে"]) expect(page, `${path}: ${trace}`).not.toContain(trace);
+    }
+    // a bar without a countdown (the words alone) goes too
+    await setBar({ enabled: false, en: "New classes every month" });
+    expect(await body("/en")).not.toContain('class="announce"');
+
+    // on again: everything as it was
+    const on = await put({ ...offer, enabled: true });
+    expect((await json(on)).settings.announcement).toEqual({ ...offer, enabled: true });
+    freshState();
+    expect(topOf(await text("/en"))![2]).toContain('href="/en/courses">Grab it</a>');
+    // a screen from before the switch sends none: the bar stays on, and so does one stored before the switch existed
+    expect((await json(await put(offer))).settings.announcement.enabled).toBe(true);
+    await setSetting(env, "announcement", offer, null);
+    freshState();
+    expect(topOf(await text("/en"))).not.toBeNull();
+    // anything but true or false is refused
+    const bad = await put({ ...offer, enabled: "no" });
+    expect(bad.status).toBe(422);
+    expect((await json(bad)).error.fields).toMatchObject({ enabled: expect.any(String) });
   });
 
   it("an end time and a button are checked before they are stored; the old form (words only) still saves", async () => {

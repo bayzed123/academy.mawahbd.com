@@ -236,7 +236,8 @@ function* files(dir, exts) {
 
 test("every CSS variable a stylesheet or component uses is defined, and the old green scale is gone", () => {
   const sources = [...files(join(root, "shared"), [".css"]), ...files(join(root, "marketing"), [".css"]), ...files(join(root, "app/src"), [".css", ".tsx", ".ts"]), ...files(join(root, "admin/src"), [".css", ".tsx", ".ts"]), ...files(join(root, "worker/src"), [".tsx", ".ts"])];
-  const defined = new Set(["--p"]); // --p (a progress bar's width) is set while the page runs
+  // set while the page runs: --p (a progress bar's width), --top-h (the sticky top's height with the countdown bar: marketing/site.js 7)
+  const defined = new Set(["--p", "--top-h"]);
   const used = new Map();
   for (const file of sources) {
     const text = readFileSync(file, "utf8");

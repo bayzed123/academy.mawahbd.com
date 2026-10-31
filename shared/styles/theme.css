@@ -92,6 +92,9 @@
 :root[data-theme="light"] .theme-toggle:hover,
 :root[data-theme="light"] .lang-btn:hover,
 :root[data-theme="light"] .user-menu>summary:hover { color: var(--red-700); background: var(--ivory-2); border-color: var(--red-700); }
+/* the Theme button shows a sun by day (shared/styles/theme-toggle.css: the moon by night) */
+:root[data-theme="light"] .theme-toggle .theme-icon .i-moon { display: none; }
+:root[data-theme="light"] .theme-toggle .theme-icon .i-sun { display: block; }
 :root[data-theme="light"] .menu-panel,
 :root[data-theme="light"] .menu-pop { background: var(--paper); border-color: var(--line); box-shadow: var(--sh-2); }
 :root[data-theme="light"] .menu-panel a:hover,
@@ -181,3 +184,7 @@
 :root[data-theme="light"] .mc-support-choice:hover { color: #f5f5f5; }
 :root[data-theme="light"] .mc-msg a { color: #ff7b45; }
 :root[data-theme="light"] .mc-user a { color: #0a0a0a; }
+/* the countdown bar by day: the red band keeps its white words; the time and the button sit on white */
+:root[data-theme="light"] .topbar { --tb-box: #ffffff; --tb-digit: #0f0708; --tb-unit: #b50f12; }
+:root[data-theme="light"] .topbar a.btn-primary,
+:root[data-theme="light"] .topbar a.btn-primary:hover { background: #ffffff; border-color: #ffffff; color: #0f0708; }

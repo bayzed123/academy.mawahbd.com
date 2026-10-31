@@ -5,14 +5,14 @@ import { dhakaMinuteMs, formatDateTime, readSslLogo, SSL_BANNER, SSL_LOGO_MAX } 
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
-import { Button, ErrorState, Field, Icon, PageHeader, Panel, Spinner, Switch, Tabs, TextArea, TextInput, useFieldErrors, useToast } from "../components/ui";
+import { Button, Chip, ErrorState, Field, Icon, PageHeader, Panel, Spinner, Switch, Tabs, TextArea, TextInput, useFieldErrors, useToast } from "../components/ui";
 import { EmailPanel } from "./EmailPanel";
 import { PaymentCheck } from "./PaymentCheck";
 import { SmsPanel } from "./SmsPanel";
 
 interface S {
   contact: { whatsapp: string; phone: string; email: string; facebook: string; messenger: string; youtube: string; instagram: string; address_bn: string; address_en: string; trade_license: string };
-  announcement: { bn: string; en: string; ends_at: string; button_bn: string; button_en: string; link: string };
+  announcement: { enabled: boolean; bn: string; en: string; ends_at: string; button_bn: string; button_en: string; link: string };
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
   payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number; ssl_logo: string; manual_link: string };
   policies: {
@@ -88,6 +88,18 @@ function CountdownState({ endsAt }: { endsAt: string }) {
       <p className={end > Date.now() ? "hint" : "err-text"}>{end > Date.now() ? t("adm.settings.countdownOn", { date }) : t("adm.settings.countdownOver", { date })}</p>
     </div>
   );
+}
+
+/**
+ * Whether the announcement bar is on the website now: switched off (Inactive), its countdown over (Ended — the website hides it then),
+ * or showing (Active). With nothing written and no time set there is nothing to show, so it reads Inactive too.
+ */
+function BarState({ v }: { v: S["announcement"] }) {
+  const { t, lang } = useI18n();
+  const end = v.ends_at ? dhakaMinuteMs(v.ends_at) : null;
+  if (v.enabled && end !== null && end <= Date.now()) return <Chip tone="warn">{t("adm.settings.barEnded", { date: formatDateTime(new Date(end).toISOString(), lang) })}</Chip>;
+  const shows = v.enabled && (!!(v.bn.trim() || v.en.trim()) || end !== null);
+  return <Chip tone={shows ? "ok" : "neutral"}>{shows ? t("adm.settings.barActive") : t("adm.settings.barInactive")}</Chip>;
 }
 
 /** One settings group: local edits, one Save button, server-side validation errors shown per field. */
@@ -211,6 +223,13 @@ export function Settings() {
             <Group name="announcement" data={s.announcement} canWrite={canWrite}>
               {(v, set, e) => (
                 <div className="form-grid">
+                  <div className="field wide">
+                    <div className="row bar-switch">
+                      <Switch id="an-on" checked={v.enabled !== false} disabled={!canWrite} onChange={(x) => set({ enabled: x })} label={t("adm.settings.barOn")} />
+                      <BarState v={{ ...v, enabled: v.enabled !== false }} />
+                    </div>
+                    <p className="hint">{t("adm.settings.barOnHint")}</p>
+                  </div>
                   <Field id="an-bn" label={t("adm.settings.announcementBn")} hint={t("adm.settings.announcementHint")} error={e.bn}>
                     <TextInput id="an-bn" value={v.bn} maxLength={200} error={e.bn} disabled={!canWrite} onChange={(x) => set({ bn: x.target.value })} />
                   </Field>
