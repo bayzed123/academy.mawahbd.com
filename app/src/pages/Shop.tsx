@@ -574,6 +574,9 @@ export function ShopCheckout() {
 
 /* ----------------------------------------------------------------------------------------------------------------- the order */
 const STEPS = ["placed", "confirmed", "shipped", "delivered"] as const;
+/** The couriers the shop books with from Admin, and the page of each where a buyer can follow a parcel by its code. */
+const COURIER_NAME = { steadfast: "Steadfast", pathao: "Pathao" } as const;
+const COURIER_SITE = { steadfast: "https://steadfast.com.bd/", pathao: "https://merchant.pathao.com/" } as const;
 
 export function ShopOrder() {
   const { t, lang, money, pick } = useI18n();
@@ -617,7 +620,17 @@ export function ShopOrder() {
             ))}
           </ol>
         )}
-        {o.courier_ref && <p>{t("app.shop.courier", { ref: o.courier_ref })}</p>}
+        {o.courier_ref && o.courier ? (
+          <div className="courier-box">
+            <p>{t("app.shop.courierBy", { courier: COURIER_NAME[o.courier], ref: o.courier_ref })}</p>
+            <p className="hint">{t(`app.shop.courierHow.${o.courier}` as "app.shop.courierHow.steadfast")}</p>
+            <a className="btn btn-outline btn-sm" href={COURIER_SITE[o.courier]} target="_blank" rel="noopener noreferrer">
+              <Icon name="truck" /> {t("app.shop.courierTrack", { courier: COURIER_NAME[o.courier] })}
+            </a>
+          </div>
+        ) : (
+          o.courier_ref && <p>{t("app.shop.courier", { ref: o.courier_ref })}</p>
+        )}
         {closed && (
           <Link className="btn btn-outline" to="/shop/cart">
             {t("app.shop.backToCart")}

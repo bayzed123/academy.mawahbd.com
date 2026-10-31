@@ -164,6 +164,8 @@ export interface ShopOrderDTO {
   address: string;
   note: string;
   courier_ref: string;
+  /** the courier the shop booked the parcel with from Admin ("" = none, or a tracking number typed by hand) */
+  courier: "" | "steadfast" | "pathao";
   created_at: string;
   paid_at: string | null;
   shipped_at: string | null;

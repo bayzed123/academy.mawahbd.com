@@ -149,9 +149,9 @@ test.describe("Settings → E-mail → Notifications to you", () => {
     await expect(panel().getByRole("heading", { name: "Notifications to you" })).toBeVisible();
     await expect(panel().getByText(`Now going to: ${OWNER_INBOX}`)).toBeVisible();
 
-    // all thirteen kinds (the tools shop's two included) are switched on, each with a sentence that says what it is
+    // all fourteen kinds (the tools shop's three included: a new order, a review to approve, a courier's word about a parcel) are switched on, each with a sentence that says what it is
     const switches = panel().getByRole("switch");
-    await expect(switches).toHaveCount(13);
+    await expect(switches).toHaveCount(14);
     for (const sw of await switches.all()) await expect(sw).toBeChecked();
     await expect(panel().getByRole("switch", { name: "a payment needs my check" })).toBeChecked();
     await expect(panel().getByText("A student sent a TrxID or a screenshot for a send-money payment.")).toBeVisible();
@@ -194,12 +194,12 @@ test.describe("Settings → E-mail → Notifications to you", () => {
     await expect(panel().getByRole("switch", { name: "someone sends a message" })).not.toBeChecked();
     await admin.reload();
     await expect(panel().getByRole("switch", { name: "someone sends a message" })).not.toBeChecked();
-    await expect(panel().getByRole("switch", { checked: true })).toHaveCount(12);
+    await expect(panel().getByRole("switch", { checked: true })).toHaveCount(13);
     expect((await apiGet<{ notify: { off: string[] } }>(admin, "/admin/settings/email")).notify.off).toEqual(["contact_message"]);
 
     // …and back on; an empty list means "use the shop's Gmail again"
     await panel().locator("label.switch", { hasText: "someone sends a message" }).click();
-    await expect(panel().getByRole("switch", { checked: true })).toHaveCount(13);
+    await expect(panel().getByRole("switch", { checked: true })).toHaveCount(14);
     await panel().getByLabel("Send notifications to").fill("");
     await panel().getByRole("button", { name: "Save the addresses" }).click();
     await expect(panel().getByText(`Now going to: ${OWNER_INBOX}`)).toBeVisible();
