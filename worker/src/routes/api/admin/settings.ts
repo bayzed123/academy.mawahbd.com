@@ -111,7 +111,8 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
   }),
   chatbot: z.object({ enabled: z.boolean(), greeting_bn: textSchema(300), greeting_en: textSchema(300), faq_bn: long(6000), faq_en: long(6000) }),
   shop: z.object({ enabled: z.boolean(), url: urlOrEmpty, label_bn: textSchema(24), label_en: textSchema(24) }),
-  // the tools shop: it opens only with the delivery charges set (or free delivery chosen) — no made-up price is ever shown to a buyer
+  // the tools shop: it opens only with the delivery charges set (or free delivery for every order, with no last day, chosen) — no made-up
+  // price is ever shown to a buyer, and an offer that ends never leaves the shop without its charges
   store: z
     .object({
       enabled: z.boolean(),
@@ -122,13 +123,25 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
       fee_other: z.number().int().min(0).max(5000),
       free_over: z.number().int().min(0).max(500000),
       free_delivery: z.boolean(),
+      free_until: z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "invalid_date").refine((d) => !Number.isNaN(Date.parse(d)), "invalid_date")]),
+      cod_charge: z.boolean(),
+      // a percent in tenths at most (1 or 1.5), and never more than a tenth of the order
+      cod_pct: z
+        .number()
+        .min(0)
+        .max(10)
+        .refine((p) => Math.abs(p * 10 - Math.round(p * 10)) < 1e-9, "invalid"),
+      cod_min: z.number().int().min(0).max(1000),
       delivery_bn: textSchema(200),
       delivery_en: textSchema(200),
     })
     .superRefine((v, ctx) => {
-      if (v.enabled && !v.free_delivery && v.fee_home <= 0) ctx.addIssue({ code: "custom", path: ["fee_home"], message: "required" });
-      if (v.enabled && !v.free_delivery && v.fee_other <= 0) ctx.addIssue({ code: "custom", path: ["fee_other"], message: "required" });
+      const alwaysFree = v.free_delivery && v.free_over === 0 && !v.free_until;
+      if (v.enabled && !alwaysFree && v.fee_home <= 0) ctx.addIssue({ code: "custom", path: ["fee_home"], message: "required" });
+      if (v.enabled && !alwaysFree && v.fee_other <= 0) ctx.addIssue({ code: "custom", path: ["fee_other"], message: "required" });
       if (v.enabled && !v.cod && !v.online) ctx.addIssue({ code: "custom", path: ["cod"], message: "store_no_payment" });
+      // a charge switched on that would add nothing: the owner meant a percent or an amount
+      if (v.cod_charge && v.cod_pct <= 0 && v.cod_min <= 0) ctx.addIssue({ code: "custom", path: ["cod_pct"], message: "required" });
     }),
   notifications: z.object({
     emails: z.array(emailSchema).max(5, "too_long").transform((a) => [...new Set(a)]),

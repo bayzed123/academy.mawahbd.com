@@ -140,8 +140,8 @@ export const ADMIN_NAV = [
   { key: "help", path: "help", perm: "dashboard:read" },
 ] as const satisfies readonly { key: string; path: string; perm: Permission }[];
 
-/** Where a banner is shown: the slider at the top of the home page, or the offer pop-up. */
-export const BANNER_PLACEMENTS = ["hero", "popup"] as const;
+/** Where a banner is shown: the slider at the top of the home page, the offer pop-up, or the slider at the top of the shop's pages. */
+export const BANNER_PLACEMENTS = ["hero", "popup", "shop"] as const;
 export type BannerPlacement = (typeof BANNER_PLACEMENTS)[number];
 
 /** How a banner is laid out: the words on the left over the picture, in the middle, or in their own panel beside the picture. */

@@ -81,6 +81,15 @@ html[lang=bn] .pcard-title{line-height:1.5}
 .shop-policies{margin:28px 0 0;text-align:center;color:var(--ink-3)}
 /* the shop's title band: a slim bar, like a shop's category page, so the products come up sooner */
 .shop-hero .wrap{padding-block:clamp(22px,3.6vw,40px)}
+/* the shop's promises under its title: the free-delivery offer while it runs (it stands out), cash on delivery, how long delivery takes */
+.offer-strip{background:var(--card);border-bottom:1px solid var(--line)}
+.offer-strip ul{list-style:none;margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:.35rem 1.4rem;padding-block:10px;font-size:.92rem;color:var(--ink-2)}
+.offer-strip li{display:flex;align-items:center;gap:.45rem;min-width:0}
+.offer-strip .icon{width:18px;height:18px;flex:none;color:var(--ink-3)}
+.offer-strip .is-offer,.product-facts .is-offer{color:var(--heading)}
+.offer-strip .is-offer .icon,.product-facts .is-offer .icon{color:var(--o-500)}
+/* the owner's shop banners: the home page's slider, on the page's own background (day or night) and a little closer to the grid */
+.offer-strip+.bn-band,.shop-hero+.bn-band{background:transparent;padding-top:clamp(12px,2vw,20px)}
 .shop-hero h1{font-size:clamp(1.7rem,3.6vw,2.5rem);margin-bottom:.15em}
 .shop-policies a{color:var(--ink-2)}
 /* numbered pages */

@@ -15,6 +15,7 @@ import { clearCap, rememberCap, rememberSsl, sslInit } from "../../services/paym
 import {
   closeShopOrder,
   createShopOrder,
+  freeOffer,
   productReviews,
   quoteCart,
   relatedProducts,
@@ -36,16 +37,19 @@ export const shopRoutes = new Hono<AppEnv>();
 
 const cache = (c: { header: (k: string, v: string) => void }, s = 60) => c.header("Cache-Control", `public, max-age=${s}, s-maxage=${s * 2}`);
 
-/** Whether the shop takes orders, how buyers can pay and what delivery costs — for the cart and the checkout. */
+/**
+ * Whether the shop takes orders, what delivery costs, the free-delivery offer running today and the cash-on-delivery charge — for the
+ * cart and the checkout.
+ */
 shopRoutes.get("/config", async (c) => {
   const s = (await getSettings(c.env)).store;
   return ok(c, {
     open: storeOpen(s, c.env),
     home_district: s.home_district,
-    fee_home: s.free_delivery ? 0 : s.fee_home,
-    fee_other: s.free_delivery ? 0 : s.fee_other,
-    free_over: s.free_delivery ? 0 : s.free_over,
-    free_delivery: s.free_delivery,
+    fee_home: s.fee_home,
+    fee_other: s.fee_other,
+    free: freeOffer(s),
+    cod_charge: s.cod && s.cod_charge ? { pct: s.cod_pct, min: s.cod_min } : null,
     delivery_bn: s.delivery_bn,
     delivery_en: s.delivery_en,
   });
@@ -157,7 +161,8 @@ shopRoutes.post("/orders", rateLimit("RL_FORM"), async (c) => {
     payment: body.payment,
   });
   if (!order) throw new HttpError(409, "cart_changed");
-  const total = quote.subtotal + (quote.delivery_fee ?? 0);
+  // what the buyer pays: paying on delivery adds its charge, an online payment does not
+  const total = quote.subtotal + (quote.delivery_fee ?? 0) + (body.payment === "cod" ? (quote.cod_fee ?? 0) : 0);
   await audit(c, { action: "shop.order_placed", entity: "shop_order", entityId: order.id, summary: `${order.public_id} · ${body.payment}` });
   const link = `/app/shop/orders/${order.public_id}?k=${order.access_key}`;
   const notice = notices.shopOrder({ code: order.public_id, name: body.name, phone: body.phone, total, payment: body.payment, place: `${body.address}, ${place.en}`, items: quote.lines.map((l) => ({ name: `${l.name_en}${l.label_en ? ` (${l.label_en})` : ""}`, qty: l.qty })) });

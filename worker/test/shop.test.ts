@@ -7,6 +7,8 @@ import { runScheduled } from "../src/cron";
 import { SSL_CAP_KEY } from "../src/services/payments/sslcommerz";
 import { geoChildren, geoPlace } from "../src/services/geo";
 import { DISTRICTS, DIVISIONS, UNIONS, UPAZILAS } from "../src/data/bd-geo";
+import { dhakaToday, resetBannerCache } from "../src/services/banners";
+import { codCharge } from "@mawah/shared";
 import { Client, json, loginStaff, uniqueEmail } from "./helpers";
 
 /*
@@ -17,7 +19,22 @@ import { Client, json, loginStaff, uniqueEmail } from "./helpers";
  */
 
 const CHATTOGRAM = { division_id: 1, district_id: 8 };
-const STORE = { enabled: true, cod: true, online: true, home_district: 8, fee_home: 80, fee_other: 150, free_over: 0, free_delivery: false, delivery_bn: "২–৩ দিন", delivery_en: "2–3 days" };
+const STORE = {
+  enabled: true,
+  cod: true,
+  online: true,
+  home_district: 8,
+  fee_home: 80,
+  fee_other: 150,
+  free_over: 0,
+  free_delivery: false,
+  free_until: "",
+  cod_charge: false,
+  cod_pct: 1,
+  cod_min: 0,
+  delivery_bn: "২–৩ দিন",
+  delivery_en: "2–3 days",
+};
 
 const owner = async () => (await loginStaff("super_admin")).client;
 const mailsTo = async (to: string) => (await json(await new Client().get(`/api/dev/outbox?to=${encodeURIComponent(to)}`))).messages as { subject: string; text: string }[];
@@ -240,7 +257,7 @@ describe("the cart", () => {
     expect(q).toMatchObject({ subtotal: 2900, delivery_fee: null, total: 2900, payments: ["cod", "sslcommerz"] });
     expect((await quote([{ variant_id: p.small.id, qty: 1 }], 8)).delivery_fee).toBe(80); // inside Chattogram
     expect((await quote([{ variant_id: p.small.id, qty: 1 }], 47)).delivery_fee).toBe(150); // Dhaka
-    await setSetting(env, "store", { ...STORE, free_over: 1000 }, null);
+    await setSetting(env, "store", { ...STORE, free_delivery: true, free_over: 1000 }, null);
     expect((await quote([{ variant_id: p.small.id, qty: 3 }], 47)).delivery_fee).toBe(0);
     // a price sent by the browser is never read
     expect((await quote([{ variant_id: p.small.id, qty: 1, price: 1 }], 8)).total).toBe(480);
@@ -289,6 +306,138 @@ describe("cash on delivery", () => {
     expect((await order({ items: [{ variant_id: p.big.id, qty: 3 }] })).status).toBe(201);
     expect((await json(await order({ items: [{ variant_id: p.big.id, qty: 1 }] }))).error.code).toBe("cart_changed");
     expect((await env.DB.prepare("SELECT stock FROM shop_variants WHERE id = ?").bind(p.big.id).first<{ stock: number }>())!.stock).toBe(0);
+  });
+});
+
+const dayOffset = (n: number) => new Date(Date.parse(`${dhakaToday()}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
+describe("the shop's offers: free delivery, the cash-on-delivery charge, its banners", () => {
+  it("works the cash-on-delivery charge out like the couriers: a percent of the cash, rounded up to whole taka, at least the minimum", () => {
+    expect(codCharge(1080, 1, 0)).toBe(11); // 10.80 → 11
+    expect(codCharge(1000, 1.1, 0)).toBe(11); // never 12 from 11.000000000000002
+    expect(codCharge(2999, 1.5, 0)).toBe(45); // 44.985 → 45
+    expect(codCharge(500, 1, 10)).toBe(10);
+    expect(codCharge(800, 0, 20)).toBe(20); // a flat charge
+    expect(codCharge(0, 1, 10)).toBe(0);
+  });
+
+  it("the settings: an offer that ends or starts from an amount still needs the charges; a charge switched on must add something", async () => {
+    const admin = await owner();
+    const save = (over: Record<string, unknown>) => admin.put("/api/admin/settings/store", { ...STORE, ...over });
+    expect((await save({ fee_home: 0, fee_other: 0, free_delivery: true })).status).toBe(200);
+    expect((await json(await save({ fee_home: 0, fee_other: 0, free_delivery: true, free_over: 1000 }))).error.fields).toMatchObject({ fee_home: "required", fee_other: "required" });
+    expect((await json(await save({ fee_home: 0, fee_other: 0, free_delivery: true, free_until: dayOffset(5) }))).error.fields).toMatchObject({ fee_home: "required" });
+    expect((await json(await save({ free_until: "2026-13-45" }))).error.fields).toMatchObject({ free_until: "invalid_date" });
+    expect((await json(await save({ cod_charge: true, cod_pct: 0, cod_min: 0 }))).error.fields).toMatchObject({ cod_pct: "required" });
+    expect((await save({ cod_pct: 1.25 })).status).toBe(422);
+    expect((await save({ cod_pct: 11 })).status).toBe(422);
+    expect((await save({ cod_charge: true, cod_pct: 1.5, cod_min: 10, free_delivery: true, free_over: 1500, free_until: dayOffset(3) })).status).toBe(200);
+  });
+
+  it("free delivery: for every order or from an amount, until its last day — said on the shop's pages, priced by the Worker", async () => {
+    const admin = await owner();
+    const p = await makeProduct(admin);
+    const quote = async (qty: number, district_id = 47) => (await json(await new Client().post("/api/shop/quote", { items: [{ variant_id: p.small.id, qty }], district_id }))).quote;
+    // off: the charges, and nothing said
+    expect(await quote(5)).toMatchObject({ delivery_fee: 150, free: null });
+    expect(await (await new Client().get("/en/shop")).text()).not.toContain("Free delivery on");
+
+    await setSetting(env, "store", { ...STORE, free_delivery: true, free_over: 1000, free_until: dayOffset(2) }, null);
+    expect(await quote(2)).toMatchObject({ subtotal: 800, delivery_fee: 150, free: { from: 1000, until: dayOffset(2) } });
+    expect(await quote(3)).toMatchObject({ subtotal: 1200, delivery_fee: 0, total: 1200 });
+    const shop = await (await new Client().get("/en/shop")).text();
+    expect(shop).toContain('class="offer-strip"');
+    expect(shop).toContain("Free delivery on orders of ৳1,000 or more");
+    expect(shop).toContain("Cash on delivery");
+    expect(shop).toContain("Delivery: 2–3 days");
+    expect(await (await new Client().get(`/shop/p/${p.slug}`)).text()).toContain("৳১,০০০ বা তার বেশি অর্ডারে ফ্রি ডেলিভারি");
+    const order = await json(await new Client().post("/api/shop/orders", { items: [{ variant_id: p.small.id, qty: 3 }], ...address, district_id: 47, division_id: 6, payment: "cod" }));
+    expect(order.order).toMatchObject({ status: "placed", total: 1200 });
+
+    // every order, with no last day: free everywhere, and the shop may even have no charges
+    await setSetting(env, "store", { ...STORE, fee_home: 0, fee_other: 0, free_delivery: true }, null);
+    expect(await quote(1)).toMatchObject({ delivery_fee: 0, free: { from: 0, until: "" } });
+    expect(await (await new Client().get("/en/shop")).text()).toContain("Free delivery on every order");
+
+    // past its last day: the charges are back by themselves, and the pages stop saying so
+    await setSetting(env, "store", { ...STORE, free_delivery: true, free_over: 0, free_until: dayOffset(-1) }, null);
+    expect(await quote(5)).toMatchObject({ delivery_fee: 150, free: null });
+    expect(await (await new Client().get("/en/shop")).text()).not.toContain("Free delivery on");
+    expect((await json(await new Client().get("/api/shop/config"))).free).toBeNull();
+  });
+
+  it("the cash-on-delivery charge: added to an order paid on delivery and stored with it; an online payment never pays it", async () => {
+    await setSetting(env, "store", { ...STORE, cod_charge: true, cod_pct: 1, cod_min: 10 }, null);
+    const admin = await owner();
+    const p = await makeProduct(admin);
+    const items = [{ variant_id: p.small.id, qty: 2 }, { variant_id: p.big.id, qty: 1 }];
+    const before = await json(await new Client().post("/api/shop/quote", { items }));
+    expect(before.quote).toMatchObject({ delivery_fee: null, cod_fee: null });
+    const q = (await json(await new Client().post("/api/shop/quote", { items, district_id: 8 }))).quote;
+    // ৳1,500 of goods + ৳80 delivery = ৳1,580 the courier collects: 1% is ৳15.80, so ৳16
+    expect(q).toMatchObject({ subtotal: 1500, delivery_fee: 80, cod_fee: 16, total: 1580 });
+    expect((await json(await new Client().get("/api/shop/config"))).cod_charge).toEqual({ pct: 1, min: 10 });
+
+    const res = await new Client().post("/api/shop/orders", { items, ...address, payment: "cod" });
+    expect(res.status, await res.clone().text()).toBe(201);
+    const body = await json(res);
+    expect(body.order).toMatchObject({ status: "placed", total: 1596 });
+    const key = new URL(`https://x${body.link}`).searchParams.get("k")!;
+    const mine = await json(await new Client().get(`/api/shop/orders/${body.order.public_id}?k=${key}`));
+    expect(mine.order).toMatchObject({ subtotal: 1500, delivery_fee: 80, cod_fee: 16, total: 1596 });
+    const row = await env.DB.prepare("SELECT cod_fee, total FROM shop_orders WHERE public_id = ?").bind(body.order.public_id).first<{ cod_fee: number; total: number }>();
+    expect(row).toEqual({ cod_fee: 16, total: 1596 });
+    // a later change of the rate never changes an order already placed
+    await setSetting(env, "store", { ...STORE, cod_charge: true, cod_pct: 3, cod_min: 10 }, null);
+    expect((await json(await new Client().get(`/api/shop/orders/${body.order.public_id}?k=${key}`))).order.total).toBe(1596);
+
+    // switched off, or cash on delivery itself off: nothing is added
+    await setSetting(env, "store", { ...STORE, cod_charge: false }, null);
+    expect((await json(await new Client().post("/api/shop/quote", { items, district_id: 8 }))).quote.cod_fee).toBe(0);
+    await setSetting(env, "store", { ...STORE, cod: false, cod_charge: true }, null);
+    expect((await json(await new Client().post("/api/shop/quote", { items, district_id: 8 }))).quote).toMatchObject({ cod_fee: 0, payments: ["sslcommerz"] });
+    expect((await json(await new Client().get("/api/shop/config"))).cod_charge).toBeNull();
+  });
+
+  it("the shop's banners: on the shop's first page (not a later page, a search or the home page), and the home's banners not in the shop", async () => {
+    await env.DB.prepare("DELETE FROM banners").run();
+    resetBannerCache();
+    const admin = await owner();
+    const banner = (placement: string, title: string) =>
+      admin.post("/api/admin/banners", {
+        placement,
+        title_bn: title,
+        title_en: title,
+        text_bn: "",
+        text_en: "",
+        image_key: `banners/${"c3".repeat(16)}.webp`,
+        mobile_image_key: null,
+        alt_bn: "",
+        alt_en: "",
+        button_bn: "",
+        button_en: "",
+        link_url: "/shop",
+        new_tab: false,
+        active: true,
+        starts_at: null,
+        ends_at: null,
+        sort: 100,
+        popup_delay_sec: 6,
+        popup_repeat_days: 1,
+        popup_pages: "home",
+      });
+    expect((await banner("shop", "Eid baking sale")).status).toBe(201);
+    expect((await banner("hero", "New class this month")).status).toBe(201);
+    resetBannerCache();
+    const shop = await (await new Client().get("/en/shop")).text();
+    expect(shop).toContain("Eid baking sale");
+    expect(shop).not.toContain("New class this month");
+    expect(shop).toContain("data-slider");
+    expect(await (await new Client().get("/en/shop?q=mould")).text()).not.toContain("Eid baking sale");
+    const home = await (await new Client().get("/en")).text();
+    expect(home).toContain("New class this month");
+    expect(home).not.toContain("Eid baking sale");
+    expect((await banner("sidebar", "Nowhere")).status).toBe(422);
   });
 });
 

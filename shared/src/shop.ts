@@ -30,6 +30,22 @@ export const SHOP_NEXT: Record<ShopOrderStatus, readonly ShopOrderStatus[]> = {
   refunded: [],
 };
 
+/**
+ * The cash-on-delivery charge on the cash a courier collects (the goods and the delivery): `pct` percent of it, rounded up to whole taka,
+ * and at least `min` taka. Steadfast and Pathao keep 1% of what they collect; a shop passes it on to the buyer who pays on delivery.
+ * The percent counts in tenths (1.5% is allowed), worked out in whole numbers so 1.1% of ৳1,000 is ৳11, never ৳12.
+ */
+export function codCharge(amount: number, pct: number, min: number): number {
+  if (amount <= 0) return 0;
+  return Math.max(0, Math.floor(min), Math.ceil((amount * Math.round(pct * 10)) / 1000));
+}
+
+/** The free-delivery offer as buyers see it: from what order amount (0 = every order), and the last day it runs ("" = until switched off). */
+export interface ShopFreeOffer {
+  from: number;
+  until: string;
+}
+
 /** "-20%" when the usual price is above the price (rounded down, never 0%); null otherwise. */
 export function percentOff(price: number, listPrice: number): number | null {
   if (!(listPrice > price) || price <= 0) return null;
@@ -122,11 +138,14 @@ export interface ShopQuoteDTO {
   subtotal: number;
   /** null until a district is chosen */
   delivery_fee: number | null;
+  /** what paying on delivery adds (0 = nothing); null until a district is chosen, since it counts the delivery too */
+  cod_fee: number | null;
+  /** the goods and the delivery: what an online payment pays (paying on delivery adds `cod_fee`) */
   total: number;
   /** the ways to pay this order can use */
   payments: ShopPayment[];
-  /** free delivery from this much (0 = never) */
-  free_over: number;
+  /** the free-delivery offer running today; null = none */
+  free: ShopFreeOffer | null;
 }
 
 export interface ShopOrderDTO {
@@ -135,6 +154,8 @@ export interface ShopOrderDTO {
   payment: ShopPayment;
   subtotal: number;
   delivery_fee: number;
+  /** the cash-on-delivery charge (0 = none) */
+  cod_fee: number;
   total: number;
   name: string;
   phone: string;
