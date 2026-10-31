@@ -118,8 +118,6 @@ body.has-buybar{padding-bottom:78px}
 .inc-note{margin:.8rem 0 0;font-size:.92rem}
 
 /* ---------- the demo class (Admin → Classes → Demo class): a few words, then the video, played right here (marketing/site.js 12, 13) ---------- */
-.demo{scroll-margin-top:96px}
-.has-topbar .demo{scroll-margin-top:158px}
 .demo-text{margin:.15rem 0 1rem;max-width:62ch;color:var(--ink-2);line-height:1.7}
 .demo .vid{border-radius:22px}
 .demo .vid-btn{width:80px;height:80px}

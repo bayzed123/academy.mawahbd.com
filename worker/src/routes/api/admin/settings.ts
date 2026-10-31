@@ -42,6 +42,8 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
   }),
   announcement: z
     .object({
+      // Active / Inactive: off hides the bar on the website and keeps its words, time and button for next time (older screens send none)
+      enabled: z.boolean().default(true),
       bn: textSchema(200),
       en: textSchema(200),
       // the end of the offer the bar counts down to: a minute of Bangladesh time ("2026-10-31T23:59"); empty = no countdown

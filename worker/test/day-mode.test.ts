@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { THEME_ICON } from "@mawah/shared";
 import THEME_SRC from "../../marketing/theme.js?raw";
 import APP_HTML from "../../app/index.html?raw";
 import ADMIN_HTML from "../../admin/index.html?raw";
@@ -56,7 +57,11 @@ describe("the night / day switch on the site", () => {
     const en = await (await new Client().get("/en")).text();
     const button = (html: string) => html.slice(html.indexOf('<button class="theme-toggle"'), html.indexOf("</button>", html.indexOf('<button class="theme-toggle"')) + 9);
     expect(button(en)).toBe(
-      '<button class="theme-toggle" type="button" data-theme-toggle="true" aria-pressed="false" data-light-label="Switch to light mode" data-dark-label="Switch to dark mode"><span class="theme-icon" aria-hidden="true">◐</span><span class="theme-label">Theme</span></button>',
+      '<button class="theme-toggle" type="button" data-theme-toggle="true" aria-pressed="false" data-light-label="Switch to light mode" data-dark-label="Switch to dark mode"><span class="theme-icon" aria-hidden="true">' +
+        // a drawn moon and sun written into the button (never a text symbol, never the sprite a browser may keep for a day)
+        `<svg class="icon i-moon" viewBox="0 0 24 24"><path d="${THEME_ICON.moon}"></path></svg>` +
+        `<svg class="icon i-sun" viewBox="0 0 24 24"><path d="${THEME_ICON.sun}"></path></svg>` +
+        '</span><span class="theme-label">Theme</span></button>',
     );
     expect(en.indexOf('<button class="theme-toggle"')).toBeGreaterThan(en.indexOf('<a class="lang-toggle"'));
     const bn = await (await new Client().get("/")).text();

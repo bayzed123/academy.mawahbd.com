@@ -3,7 +3,11 @@
 .theme-toggle { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 44px; min-width: 44px; padding: .3rem .8rem; border: 1.5px solid rgba(255,255,255,.24); border-radius: 999px; background: transparent; color: #f5f5f5; font: inherit; font-weight: 600; cursor: pointer; transition: transform .18s var(--ease-out), background-color .18s var(--ease-out), border-color .18s var(--ease-out), color .18s var(--ease-out); }
 .theme-toggle:hover { border-color: var(--o-500); background: rgba(255,255,255,.06); }
 .theme-toggle:active { transform: scale(.97); }
-.theme-toggle .theme-icon { display: inline-grid; place-items: center; width: 1.1em; height: 1.1em; font-size: 1.05em; }
+.theme-toggle .theme-icon { display: inline-grid; place-items: center; width: 1.15em; height: 1.15em; }
+/* a drawn moon by night and a sun by day (shared/src/themeIcons.ts; the sun's rule is in theme.css): a text symbol such as ◐ is drawn
+   by whichever font the device has, so its size and place vary */
+.theme-toggle .theme-icon .icon { width: 100%; height: 100%; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle .theme-icon .i-sun { display: none; }
 .theme-toggle .theme-label { white-space: nowrap; }
 @media (max-width: 760px) { .theme-toggle .theme-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
 @media (prefers-reduced-motion: reduce) { .theme-toggle { transition: none; } }

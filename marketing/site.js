@@ -74,8 +74,6 @@ import { inView, stagger } from "framer-motion/dom";
     var isLight = theme === "light";
     btn.setAttribute("aria-pressed", isLight ? "true" : "false");
     btn.setAttribute("aria-label", isLight ? btn.getAttribute("data-dark-label") : btn.getAttribute("data-light-label"));
-    var icon = $(".theme-icon", btn);
-    if (icon) icon.textContent = isLight ? "☀" : "◐";
   }
   $$('[data-theme-toggle]').forEach(function (btn) {
     syncThemeButton(btn, d.documentElement.getAttribute("data-theme") || "dark");
@@ -184,6 +182,10 @@ import { inView, stagger } from "framer-motion/dom";
       return true;
     };
     if (tick()) var cdTimer = setInterval(function () { if (!tick()) clearInterval(cdTimer); }, 1000);
+    // the sticky top's real height (on a phone the words above the time take one line or two; the bar goes at zero), so that a jump to a
+    // part of the page (#demo, #reviews …) lands just below it (marketing/site.css: html.has-topbar)
+    var sticky = cd.parentElement;
+    if (sticky && window.ResizeObserver) new ResizeObserver(function () { d.documentElement.style.setProperty("--top-h", sticky.offsetHeight + "px"); }).observe(sticky);
   }
 
   /* 8. sliders: the arrows, and dragging with a mouse (a finger scrolls them by itself); the click that ends a drag opens nothing */

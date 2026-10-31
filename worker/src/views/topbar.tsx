@@ -1,11 +1,13 @@
 import { dhakaMinuteMs, formatDateTime, timeLeft, toBnDigits } from "@mawah/shared";
 import { bannerHref } from "./banners";
 import type { PageCtx } from "./ctx";
+import { Icon } from "./ui";
 
 /**
  * The bar at the very top of every page (Admin → Settings → Announcement bar): the owner's words and, when the owner sets them, a live
- * countdown to the end of the offer and a button ("Join now"). The countdown is always the owner's own end time — never a made-up one —
- * and once that time has passed the bar is gone. marketing/site.js moves the numbers every second and hides the bar at zero (a cached page
+ * countdown to the end of the offer and a button ("Join now"). The owner can switch the bar off (and on again) without losing its words.
+ * The countdown is always the owner's own end time — never a made-up one, never one that starts again by itself — and once that time
+ * has passed the bar is gone. marketing/site.js moves the numbers every second and hides the bar at zero (a cached page
  * may still carry it a little longer); without the script the numbers are those of when the page was made, and the end time itself is
  * the countdown's name for screen readers.
  */
@@ -19,6 +21,7 @@ export interface TopBarData {
 
 export function topBar(ctx: PageCtx, now: number = Date.now()): TopBarData | null {
   const a = ctx.settings.announcement;
+  if (a.enabled === false) return null;
   const text = (ctx.lang === "bn" ? a.bn || a.en : a.en || a.bn).trim();
   const end = a.ends_at ? dhakaMinuteMs(a.ends_at) : null;
   // the offer is over: the bar goes away with it
@@ -55,23 +58,31 @@ export function TopBar({ ctx, bar, now = Date.now() }: { ctx: PageCtx; bar: TopB
   return (
     <div class="topbar has-cd" data-countdown={new Date(bar.end!).toISOString()}>
       <div class="wrap topbar-in">
-        {bar.text && <p class="topbar-text">{bar.text}</p>}
-        <div class="cd" role="timer" aria-label={t("bar.ends", { date: formatDateTime(new Date(bar.end!).toISOString(), lang) })}>
-          {UNITS.map((u, i) => (
-            <>
-              {i > 0 && <i aria-hidden="true">:</i>}
-              <span class="cd-u">
-                <b data-cd={u}>{two(left[u])}</b>
-                <small>{t(`bar.${u}` as "bar.d")}</small>
-              </span>
-            </>
-          ))}
-        </div>
-        {bar.href && (
-          <a class="btn btn-primary btn-sm" href={bar.href}>
-            {bar.label}
-          </a>
+        {bar.text && (
+          <p class="topbar-text">
+            <Icon name="clock" />
+            {bar.text}
+          </p>
         )}
+        {/* the time and the button are centred together, under the words on a phone and beside them on a wider screen */}
+        <div class="cd-row">
+          <div class="cd" role="timer" aria-label={t("bar.ends", { date: formatDateTime(new Date(bar.end!).toISOString(), lang) })}>
+            {UNITS.map((u, i) => (
+              <>
+                {i > 0 && <i aria-hidden="true">:</i>}
+                <span class="cd-u">
+                  <b data-cd={u}>{two(left[u])}</b>
+                  <small>{t(`bar.${u}` as "bar.d")}</small>
+                </span>
+              </>
+            ))}
+          </div>
+          {bar.href && (
+            <a class="btn btn-primary btn-sm" href={bar.href}>
+              {bar.label}
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

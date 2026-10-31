@@ -1,5 +1,5 @@
 import { raw } from "hono/html";
-import { loc, readSslLogo, SSL_BANNER, waNumber } from "@mawah/shared";
+import { loc, readSslLogo, SSL_BANNER, THEME_ICON, waNumber } from "@mawah/shared";
 import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
@@ -295,7 +295,15 @@ export function Layout(props: LayoutProps) {
                       data-light-label={t("theme.toLight")}
                       data-dark-label={t("theme.toDark")}
                     >
-                      <span class="theme-icon" aria-hidden="true">◐</span>
+                      {/* both drawn icons are sent; the page's look (data-theme on <html>) shows the moon by night and the sun by day */}
+                      <span class="theme-icon" aria-hidden="true">
+                        <svg class="icon i-moon" viewBox="0 0 24 24">
+                          <path d={THEME_ICON.moon} />
+                        </svg>
+                        <svg class="icon i-sun" viewBox="0 0 24 24">
+                          <path d={THEME_ICON.sun} />
+                        </svg>
+                      </span>
                       <span class="theme-label">{t("theme.label")}</span>
                     </button>
                     <a class="btn btn-gold btn-sm" data-guest href="/app/login">

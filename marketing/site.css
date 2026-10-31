@@ -6,17 +6,24 @@
 .announce{background:#000;color:#fff;text-align:center;font-size:.92rem;padding:.55rem 1rem;line-height:1.5;border-bottom:1px solid rgba(255,255,255,.1)}
 .announce a{color:#fff;text-decoration:underline}
 .top{position:sticky;top:0;z-index:50}
-/* with the countdown in the sticky top, a jump to a part of the page (#reviews …) lands below it */
-html.has-topbar{scroll-padding-top:150px}
-.topbar{position:relative;background:#0a0a0a;border-bottom:1px solid rgba(255,255,255,.1);color:#fff;--focus:var(--o-200)}
-.topbar-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 18px;min-height:56px;padding-block:6px}
-.topbar-text{margin:0;font-weight:600;font-size:.98rem;line-height:1.35;text-align:center}
+/* with the countdown in the sticky top, a jump to a part of the page (#reviews …) lands below it: --top-h is the top's measured height
+   (marketing/site.js 7), as the words above the time take one line or two on a phone */
+html.has-topbar{scroll-padding-top:calc(var(--top-h,138px) + 12px)}
+/* the countdown bar: the owner's offer on a band of the site's own accent (orange at night, red by day — theme.css), the time left in
+   solid boxes and one button in the same colours, all centred; on a phone the words sit above the time and the button */
+.topbar{position:relative;background:var(--o-500);color:var(--on-accent);--focus:var(--on-accent);--tb-box:#0a0a0a;--tb-digit:#fff;--tb-unit:#ffb38f}
+.topbar-in{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 18px;min-height:58px;padding-block:7px}
+.topbar-text{display:flex;align-items:center;gap:8px;margin:0;font-weight:700;font-size:1rem;line-height:1.3;text-align:center}
+.topbar-text .icon{flex:none;width:1.15em;height:1.15em}
+.cd-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 14px}
 .cd{display:flex;align-items:center;gap:4px;margin:0;font-variant-numeric:tabular-nums}
-.cd-u{display:grid;justify-items:center;min-width:2.8rem;padding:3px 6px 2px;border-radius:8px;background:#121212;border:1px solid rgba(255,255,255,.12)}
-.cd-u b{font-size:1.1rem;line-height:1.15;font-weight:700;color:#fff}
-.cd-u small{font-size:.68rem;line-height:1.1;color:var(--o-200)}
-.cd>i{font-style:normal;font-weight:700;color:var(--o-500)}
-.topbar .btn{min-height:42px;padding:.35rem 1.1rem;font-size:.95rem}
+.cd-u{display:grid;justify-items:center;min-width:2.9rem;padding:4px 6px 3px;border-radius:9px;background:var(--tb-box)}
+.cd-u b{font-size:1.15rem;line-height:1.1;font-weight:800;color:var(--tb-digit)}
+.cd-u small{font-size:.66rem;line-height:1.15;font-weight:600;color:var(--tb-unit)}
+.cd>i{font-style:normal;font-weight:800;color:var(--on-accent)}
+.topbar .btn{min-height:42px;padding:.35rem 1.15rem;font-size:.95rem;background:var(--tb-box);border-color:var(--tb-box);color:var(--tb-digit);box-shadow:none}
+/* (its colours win over .btn-primary:hover by coming later; the lift is the usual one) */
+.topbar .btn:hover{box-shadow:0 6px 14px -8px rgba(0,0,0,.6)}
 .site-header{position:relative;background:#000;border-bottom:1px solid rgba(255,255,255,.09);color:#f5f5f5}
 .nav{display:flex;align-items:center;gap:clamp(8px,2vw,24px);min-height:76px}
 .brand{display:flex;align-items:center;gap:.85rem;text-decoration:none;color:#fff;margin-right:auto}
@@ -233,10 +240,15 @@ body.has-buybar .floats{bottom:calc(86px + env(safe-area-inset-bottom))}
   .pills{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;margin-inline:-16px;padding:2px 16px 6px;-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent)}
   .pills::-webkit-scrollbar{display:none}
   .pill{flex:0 0 auto;white-space:nowrap}
-  /* the countdown bar keeps one row on a phone: the words stay for screen readers */
-  .topbar.has-cd .topbar-text{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-  .topbar-in{gap:8px 12px;min-height:52px}
-  .cd-u{min-width:2.5rem}
+  /* the countdown bar on a phone: the owner's words (two lines at most), then the time and the button side by side, all centred */
+  .topbar-in{flex-direction:column;gap:6px;min-height:0;padding-block:7px 8px}
+  .topbar-text{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;max-width:100%;font-size:.92rem}
+  .topbar-text .icon{display:inline-block;vertical-align:-.17em;margin-inline-end:6px}
+  .cd-row{gap:6px 10px}
+  .cd-u{min-width:2.55rem;padding:3px 4px 2px}
+  .cd-u b{font-size:1.02rem}
+  .cd-u small{font-size:.6rem}
+  .topbar .btn{min-height:40px;padding:.3rem .95rem;font-size:.9rem}
 }
 @media (max-width:560px){
   .brand-text{display:none} /* the logo already says MAWAH; the "Academy" label returns on wider screens */
@@ -244,14 +256,11 @@ body.has-buybar .floats{bottom:calc(86px + env(safe-area-inset-bottom))}
 @media (max-width:420px){
   .brand-logo{height:50px}
   .nav{min-height:66px}
-  /* the countdown and its button share one row on a small phone */
-  .topbar-in{flex-wrap:nowrap;justify-content:space-between;gap:8px}
+  /* a small phone: the boxes a little narrower, so the time and the button still share their row */
   .cd{gap:2px}
-  .cd-u{min-width:2.15rem;padding:2px 3px}
-  .cd-u b{font-size:.95rem}
-  .cd-u small{font-size:.58rem}
-  .cd>i{font-size:.8rem}
-  .topbar .btn{min-height:40px;padding:.3rem .7rem;font-size:.86rem}
+  .cd-u{min-width:2.3rem}
+  .cd>i{font-size:.85rem}
+  .topbar .btn{padding-inline:.8rem}
   .lang-toggle .icon{display:none}
   .lang-toggle{padding-inline:.9rem}
   .card-foot .btn{flex:1 1 100%}
@@ -382,11 +391,10 @@ html.offer-open{overflow:hidden}
 .faq-topics{display:flex;flex-wrap:wrap;gap:8px}
 .faq-topics .chip{display:inline-flex;align-items:center;min-height:44px;padding:.4rem 1rem;border-radius:999px;border:1.5px solid var(--line-2);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:600;font-size:.95rem}
 .faq-topics .chip:hover{border-color:var(--o-500);background:var(--raised)}
-.faq-group{scroll-margin-top:96px}
 .faq-group h2{font-size:1.35rem;margin:0 0 .75rem}
 
 /* a class page: after the reviews */
-.faq-sec{margin-top:clamp(28px,4vw,44px);scroll-margin-top:96px}
+.faq-sec{margin-top:clamp(28px,4vw,44px)}
 .faq-sec h2{margin-bottom:.8rem}
 
 /* ---------- rendering performance ---------- */
