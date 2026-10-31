@@ -118,7 +118,7 @@ test("the dark look keeps WCAG AA contrast: text, buttons, form fields and the g
  * and no stylesheet of the dark look uses a brown (a dull warm colour — dark orange, tan, cream). Orange is a light there: buttons, icons,
  * lines and glows. (Problems stay red, and the owner's own banner designs and the paper certificates keep their colours: not checked.)
  */
-const DARK_SHEETS = ["shared/styles/dark.css", "shared/styles/help.css", "marketing/site.css", "marketing/video.css", "marketing/course.css", "marketing/shop.css", "marketing/landing.css", "marketing/chat.css", "app/src/styles/app.css"];
+const DARK_SHEETS = ["shared/styles/dark.css", "shared/styles/help.css", "shared/styles/theme-toggle.css", "marketing/site.css", "marketing/video.css", "marketing/course.css", "marketing/shop.css", "marketing/landing.css", "marketing/chat.css", "app/src/styles/app.css"];
 const brownish = (hex) => {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
   const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
@@ -303,6 +303,16 @@ test("the share image's address is SITE_URL's host without www., and the comment
   assert.deepEqual(jpegComments(stamped), ["site=example.com"]);
   assert.deepEqual([...stamped.subarray(0, 8)], [...jpeg.subarray(0, 8)], "the JFIF header stays straight after the start marker");
   assert.deepEqual([...stamped.subarray(-6)], [...jpeg.subarray(-6)], "the image itself is untouched");
+});
+
+test("the day look's file holds only rules for the day look, so a device that loads it in the night look sees no change", () => {
+  // shared/styles/theme.css is linked by every public page for a device set to light, and switched on by marketing/theme.js
+  const rules = read("shared/styles/theme.css").replace(/\/\*[\s\S]*?\*\//g, "").match(/[^{}]+(?=\{)/g) ?? [];
+  assert.ok(rules.length > 50, `only ${rules.length} rules`);
+  // (a comma inside :is(…) separates no selectors)
+  for (const sel of rules) for (const one of sel.split(/,(?![^()]*\))/)) assert.match(one.trim(), /^:root\[data-theme="light"\]/, one.trim());
+  // the Theme button's own look is in every page instead
+  assert.match(read("shared/styles/theme-toggle.css"), /\.theme-toggle \{/);
 });
 
 test("the web manifest and the page heads only reference files that exist", () => {

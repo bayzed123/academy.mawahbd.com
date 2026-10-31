@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import THEME_SRC from "../../marketing/theme.js?raw";
 import APP_HTML from "../../app/index.html?raw";
 import ADMIN_HTML from "../../admin/index.html?raw";
-import { CSS, THEME_JS } from "../src/generated/assets";
+import { CSS, THEME_CSS, THEME_JS } from "../src/generated/assets";
 import { generateCertificateCode } from "../src/lib/crypto";
 import { Client, env, firstCourse, registerStudent } from "./helpers";
 
@@ -10,23 +10,25 @@ import { Client, env, firstCourse, registerStudent } from "./helpers";
  * Night and day (the owner's fifth round). The night look is the site's own; the "Theme" button in the header switches to the day look
  * (shared/styles/theme.css) and back. marketing/theme.js keeps the choice in this browser (localStorage) — without one it follows the
  * device's own setting — and sets it on <html> before the page is drawn, so a page never flashes in the other look first and every visitor
- * still gets the same cached page. It is a file of the site's own: the policy runs no inline script. The admin keeps its one look;
- * certificates and invoices their paper.
+ * still gets the same cached page. It is a file of the site's own: the policy runs no inline script. The day look's rules are a cached
+ * file of their own too, so a page in the night look does not carry them. The admin keeps its one look; certificates and invoices their paper.
  */
 const scriptSrc = (res: Response) => (/script-src ([^;]+)/.exec(res.headers.get("content-security-policy") ?? "")?.[1] ?? "").split(" ");
 
 describe("the night / day switch on the site", () => {
-  it("sets the visitor's look in <head>, before the page's styles are drawn, from a file the policy allows — no inline script", async () => {
+  it("sets the visitor's look in <head>, before anything is drawn, from files the policy allows — no inline script", async () => {
     for (const path of ["/", "/en", "/en/courses", "/en/faq", "/contact"]) {
       const res = await new Client().get(path);
       const html = await res.text();
       const head = html.slice(0, html.indexOf("</head>"));
       // the phone's bar starts in the night look's pitch black (the script turns it ivory by day)
       expect(head, path).toContain('<meta name="theme-color" content="#000000"/>');
+      // after the page's own styles, the day look's file — holding up the page only on a device set to light — then the plain (blocking)
+      // script that sets the look and switches that file on for a visitor who chose the day look: all before anything is painted
+      const link = head.indexOf(`<link rel="stylesheet" href="${THEME_CSS}" media="(prefers-color-scheme: light)" id="theme-css"/>`);
       const boot = head.indexOf(`<script src="${THEME_JS}"></script>`);
-      expect(boot, path).toBeGreaterThan(0);
-      // a plain (blocking) script before the page's own styles: the look is set before anything is painted
-      expect(boot, path).toBeLessThan(head.indexOf("<style>"));
+      expect(link, path).toBeGreaterThan(head.lastIndexOf("</style>"));
+      expect(boot, path).toBeGreaterThan(link);
       expect(scriptSrc(res)[0], path).toBe("'self'");
       expect(res.headers.get("content-security-policy"), path).not.toContain("unsafe-inline");
     }
@@ -42,6 +44,7 @@ describe("the night / day switch on the site", () => {
     expect(THEME_SRC.match(/try \{/g)?.length).toBe(2);
     expect(THEME_SRC).toContain('root.setAttribute("data-theme", next);');
     expect(THEME_SRC).toContain('next === "light" ? "#fbf7ee" : "#000000"');
+    expect(THEME_SRC).toContain('if (css && next === "light") css.media = "all";');
     // the site's buttons and the student app follow one switch
     expect(THEME_SRC).toContain('new CustomEvent("mawah:theme"');
     expect(THEME_SRC).toContain("window.MawahTheme = {");
@@ -61,10 +64,11 @@ describe("the night / day switch on the site", () => {
     expect(button(bn)).toContain('<span class="theme-label">থিম</span>');
   });
 
-  it("ships the day look with every page, after the night rules it turns around", () => {
-    expect(CSS).toContain(":root[data-theme=light]{color-scheme:light;");
-    expect(CSS.indexOf(":root[data-theme=light]{")).toBeGreaterThan(CSS.indexOf(".site-header{"));
+  it("keeps the day look's rules in a cached file of their own, while every page carries the Theme button's look", () => {
+    expect(THEME_CSS).toMatch(/^\/assets\/theme\.[0-9a-f]{10}\.css$/);
+    expect(CSS).not.toContain("data-theme=light");
     expect(CSS).toContain(".theme-toggle{");
+    // (that the file holds only day-look rules, so it changes nothing in the night look: scripts/lib/brand.test.mjs)
   });
 
   it("leaves certificates and invoices on their own paper: no switch and no script", async () => {
@@ -81,6 +85,7 @@ describe("the night / day switch on the site", () => {
     // (the site's inlined styles name the switch too: what counts is what the page shows and runs)
     expect(html.slice(html.indexOf("<body"))).not.toContain("theme-toggle");
     expect(html).not.toContain(THEME_JS);
+    expect(html).not.toContain(THEME_CSS);
   });
 });
 

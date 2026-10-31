@@ -18,6 +18,9 @@
     var next = theme === "light" ? "light" : "dark";
     root.setAttribute("data-theme", next);
     root.style.colorScheme = next;
+    // the day look's rules are a file of their own (views/layout.tsx), linked for a device set to light: on for whoever has the day look
+    var css = document.getElementById("theme-css");
+    if (css && next === "light") css.media = "all";
     // the phone's address bar takes the page's own background (shared/styles/theme.css: ivory by day)
     var bar = document.querySelector('meta[name="theme-color"]');
     if (bar) bar.setAttribute("content", next === "light" ? "#fbf7ee" : "#000000");

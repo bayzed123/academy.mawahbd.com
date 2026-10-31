@@ -104,6 +104,7 @@ test.describe("day/night theme", () => {
     await page.goto("/en");
     await expect(page.locator(".site-header").getByRole("button", { name: "Switch to dark mode" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await drawWholePage(page);
     expect(await axe(page)).toEqual([]);
     await ctx.close();
   });

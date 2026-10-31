@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { adminLogin, apiGet, apiSend, offerAnswered, openAssistant } from "./helpers";
 
@@ -83,5 +84,26 @@ test("offers only the ways the owner has: without a Messenger address, WhatsApp 
   await expect(dialog.getByRole("link", { name: /Messenger/ })).toHaveCount(0);
   const [row, one] = await Promise.all([dialog.locator(".mc-support-grid").boundingBox(), wa.boundingBox()]);
   expect(one!.width).toBeGreaterThan(row!.width / 2 - 10); // half the row each, no empty third column
+  await context.close();
+});
+
+test("in the light look the talk-to-us card and the assistant's window stay readable: the accessibility scan with each open", async ({ browser }) => {
+  await apiSend(admin, "PUT", "/admin/settings/contact", { ...contact, whatsapp: "01711000000", facebook: "https://www.facebook.com/mawahacademy", messenger: "" });
+  const context = await browser.newContext({ locale: "en-US", viewport: { width: 390, height: 844 } });
+  await offerAnswered(context);
+  await context.addInitScript(() => localStorage.setItem("mawah_theme", "light"));
+  const page = await context.newPage();
+  await page.goto("/en");
+  const scan = async (where: string) => {
+    const r = await new AxeBuilder({ page }).include(where).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    return r.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`);
+  };
+  await page.locator(".floats summary.fab-help").click();
+  await expect(page.getByRole("group", { name: "Talk to us" })).toBeVisible();
+  expect(await scan(".floats")).toEqual([]);
+  await page.getByRole("group", { name: "Talk to us" }).getByRole("button", { name: /^AI assistant/ }).click();
+  const dialog = page.getByRole("dialog", { name: "MAWAH Assistant" });
+  await expect(dialog.getByRole("link", { name: /Messenger/ })).toBeVisible();
+  expect(await scan(".mc-panel")).toEqual([]);
   await context.close();
 });

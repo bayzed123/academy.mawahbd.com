@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
  * Builds the public-site assets:
- *   shared/styles/base.css + dark.css + banners.css + help.css (the round corner buttons) + marketing/site.css + theme.css (the day look) -> minified string inlined into every page (worker/src/generated/assets.ts)
+ *   shared/styles/base.css + dark.css + banners.css + help.css (the round corner buttons) + theme-toggle.css + marketing/site.css -> minified string inlined into every page (worker/src/generated/assets.ts)
+ *   base.css's @font-face rules -> a <style> of their own on every page: SITE_FONTS_BN_CSS / SITE_FONTS_EN_CSS on the site's pages, FONTS_CSS on certificates and invoices
+ *   shared/styles/theme.css -> dist/static/assets/theme.<hash>.css (the light look: a file of its own, linked by every page — see views/layout.tsx)
  *   marketing/shop.css -> minified string inlined only into the tools shop's pages (SHOP_CSS)
  *   marketing/landing.css -> minified string inlined only into landing pages (LANDING_CSS)
  *   marketing/course.css -> minified string inlined only into the class page (COURSE_CSS)
@@ -39,7 +41,28 @@ mkdirSync(gen, { recursive: true });
 // static public files (fonts, sprite, logo + icons, pattern, manifest, og image …)
 cpSync(resolve(root, "marketing/public"), out, { recursive: true });
 
-const minifiedCss = (await transform(`${read("shared/styles/base.css")}\n${read("shared/styles/dark.css")}\n${read("shared/styles/banners.css")}\n${read("shared/styles/help.css")}\n${read("marketing/site.css")}\n${read("shared/styles/theme.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+// The fonts (base.css's @font-face rules) leave the inlined styles for a <style> of their own (views/layout.tsx), in three versions.
+// The site's pages, in both languages: the Bangla regular and bold — the two files every Bangla page preloads, for its text and its
+// headings — are "optional": the browser waits a moment for them before it first draws the page, then keeps whichever font it drew with,
+// so the text never jumps when one of these big files comes late. The other files are small or set only labels, and still swap in.
+// The Bangla pages: their Bangla text also takes its spaces from the Bangla files (which hold a space as wide as the Latin file's).
+// Otherwise every space waited for the Latin file, drawn meanwhile in whatever font the device has, and the page jumped when it came:
+// Lighthouse measured 0.235 on a class page where that stand-in font was far from Hind. Where ranges overlap the last @font-face wins,
+// so there the Bangla ones come after the Latin ones; an English page keeps the Latin spaces (it does not fetch the Bangla files).
+// Certificates and invoices keep every font as written ("swap"): they are printed and turned into pictures, which wait for the real fonts.
+const baseCss = read("shared/styles/base.css");
+const fontFaces = baseCss.match(/@font-face\{[^}]*\}/g) ?? [];
+const banglaHind = (face) => /\/fonts\/hind-bn-\d+\.woff2/.test(face);
+const banglaRegularOrBold = (face) => /\/fonts\/hind-bn-(400|700)\.woff2/.test(face);
+if (fontFaces.filter(banglaHind).length !== 3 || !fontFaces.filter(banglaRegularOrBold).every((f) => f.includes("font-display:swap")) || !fontFaces.filter(banglaHind).every((f) => f.includes("unicode-range:")))
+  throw new Error("build-marketing: base.css should hold Hind Siliguri's three Bangla files, each with a unicode-range, the regular and bold with font-display:swap");
+const minifyCss = async (source) => (await transform(source, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+const neverLate = (f) => (banglaRegularOrBold(f) ? f.replace("font-display:swap", "font-display:optional") : f);
+const withSpace = (f) => f.replace("unicode-range:", "unicode-range:U+0020,");
+const fontsCss = await minifyCss(fontFaces.join("\n"));
+const siteFontsEnCss = await minifyCss(fontFaces.map(neverLate).join("\n"));
+const siteFontsBnCss = await minifyCss([...fontFaces.filter((f) => !banglaHind(f)), ...fontFaces.filter(banglaHind).map((f) => withSpace(neverLate(f)))].join("\n"));
+const minifiedCss = (await transform(`${baseCss.replace(/@font-face\{[^}]*\}\n?/g, "")}\n${read("shared/styles/dark.css")}\n${read("shared/styles/banners.css")}\n${read("shared/styles/help.css")}\n${read("shared/styles/theme-toggle.css")}\n${read("marketing/site.css")}`, { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 // the decorative background pattern is tiny: inline it once (CSS variable) instead of a cached-for-a-day extra request
 const patternSvg = read("marketing/public/pattern.svg").replace(/\s+/g, " ").replace(/> </g, "><").replace(/"/g, "'").trim();
 const patternUri = `url("data:image/svg+xml,${patternSvg.replace(/</g, "%3C").replace(/>/g, "%3E").replace(/#/g, "%23")}")`;
@@ -79,6 +102,7 @@ const shopJs = (await transform(read("marketing/shop.js"), { loader: "js", minif
 const chatJs = (await transform(read("marketing/chat.js"), { loader: "js", minify: true, target: "es2017" })).code;
 const chatCss = (await transform(read("marketing/chat.css"), { loader: "css", minify: true })).code;
 const themeJs = (await transform(read("marketing/theme.js"), { loader: "js", minify: true, target: "es2017" })).code;
+const themeCss = (await transform(read("shared/styles/theme.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code;
 
 const siteJsName = `site.${hash(js)}.js`;
 writeFileSync(resolve(out, "assets", siteJsName), js);
@@ -95,6 +119,8 @@ writeFileSync(resolve(out, "assets", shopJsName), shopJs);
 writeFileSync(resolve(out, "chat.js"), chatJs);
 writeFileSync(resolve(out, "chat.css"), chatCss);
 writeFileSync(resolve(out, "theme.js"), themeJs);
+const themeCssName = `theme.${hash(themeCss)}.css`;
+writeFileSync(resolve(out, "assets", themeCssName), themeCss);
 
 // the share image (the picture Facebook / WhatsApp show for a link) under a name that changes with the picture: they keep a picture they have
 // fetched once for a long time, so a new picture at the old address could go unseen for weeks — a new address is fetched at once
@@ -110,6 +136,9 @@ writeFileSync(
   resolve(gen, "assets.ts"),
   `// AUTO-GENERATED by scripts/build-marketing.mjs — do not edit.\n` +
     `export const CSS = ${JSON.stringify(css)};\n` +
+    `export const SITE_FONTS_BN_CSS = ${JSON.stringify(siteFontsBnCss)};\n` +
+    `export const SITE_FONTS_EN_CSS = ${JSON.stringify(siteFontsEnCss)};\n` +
+    `export const FONTS_CSS = ${JSON.stringify(fontsCss)};\n` +
     `export const SITE_JS = ${JSON.stringify(`/assets/${siteJsName}`)};\n` +
     `export const BANNERS_JS = ${JSON.stringify(`/assets/${bannersJsName}`)};\n` +
     `export const ANALYTICS_JS = ${JSON.stringify(`/assets/${analyticsJsName}`)};\n` +
@@ -122,6 +151,7 @@ writeFileSync(
     `export const SHOP_CSS = ${JSON.stringify(shopCss)};\n` +
     `export const SHOP_JS = ${JSON.stringify(`/assets/${shopJsName}`)};\n` +
     `export const THEME_JS = "/theme.js";\n` +
+    `export const THEME_CSS = ${JSON.stringify(`/assets/${themeCssName}`)};\n` +
     `export const OG_IMAGE = ${JSON.stringify(ogImage)};\n`,
 );
 
@@ -173,4 +203,4 @@ writeFileSync(
 );
 
 const kb = (n) => (n / 1024).toFixed(1);
-console.log(`marketing assets built: css ${kb(css.length)} KB (inline), shop css ${kb(shopCss.length)} KB (inline on the shop's pages), landing css ${kb(landingCss.length)} KB (inline on landing pages), class page css ${kb(courseCss.length)} KB, documents css ${kb(docCss.length)} KB, ${siteJsName} ${kb(js.length)} KB, ${bannersJsName} ${kb(bannersJs.length)} KB, ${galleryJsName} ${kb(galleryJs.length)} KB, ${certJsName} ${kb(certJs.length)} KB, ${shopJsName} ${kb(shopJs.length)} KB, ${analyticsJsName} ${kb(analyticsJs.length)} KB, chat.js ${kb(chatJs.length)} KB, ${Object.keys(verification).length} verification file(s)`);
+console.log(`marketing assets built: css ${kb(css.length)} KB (inline), fonts css ${kb(siteFontsBnCss.length)} KB (inline), shop css ${kb(shopCss.length)} KB (inline on the shop's pages), landing css ${kb(landingCss.length)} KB (inline on landing pages), class page css ${kb(courseCss.length)} KB, documents css ${kb(docCss.length)} KB, ${siteJsName} ${kb(js.length)} KB, ${bannersJsName} ${kb(bannersJs.length)} KB, ${galleryJsName} ${kb(galleryJs.length)} KB, ${certJsName} ${kb(certJs.length)} KB, ${shopJsName} ${kb(shopJs.length)} KB, ${analyticsJsName} ${kb(analyticsJs.length)} KB, chat.js ${kb(chatJs.length)} KB, ${Object.keys(verification).length} verification file(s)`);
