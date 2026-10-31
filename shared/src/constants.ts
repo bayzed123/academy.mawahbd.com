@@ -18,7 +18,7 @@ export const PAYMENT_METHODS = ["bkash", "nagad", "rocket", "card", "manual", "f
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 /** Everything the owner can be told about by e-mail the moment it happens (Admin → Settings → E-mail → Notifications). */
-export const NOTIFY_KINDS = ["order_paid", "payment_waiting", "payment_failed", "contact_message", "new_student", "course_question", "review_pending", "chat_handoff", "group_request", "notify_me", "newsletter", "shop_order", "shop_review"] as const;
+export const NOTIFY_KINDS = ["order_paid", "payment_waiting", "payment_failed", "contact_message", "new_student", "course_question", "review_pending", "chat_handoff", "group_request", "notify_me", "newsletter", "shop_order", "shop_review", "shop_courier"] as const;
 export type NotifyKind = (typeof NOTIFY_KINDS)[number];
 
 /** Where a student account came from: they registered, they were made at checkout for a buyer who did not register, staff added them, or an old list was imported. */

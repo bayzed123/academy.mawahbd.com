@@ -99,6 +99,12 @@ export interface Settings {
     delivery_bn: string;
     delivery_en: string;
   };
+  /**
+   * the couriers (Admin → Shop → Shop settings → Couriers): the Pathao store a parcel is picked up from (chosen from the stores Pathao
+   * lists once its keys are in; 0 = none chosen yet) and its name as Pathao gave it, Pathao's delivery (48 = normal, 12 = on demand), and
+   * the weight a parcel is booked with unless staff type another (kilograms). Steadfast needs nothing here: its keys are enough.
+   */
+  courier: { pathao_store: number; pathao_store_name: string; pathao_delivery: 48 | 12; weight: number };
   /** who is e-mailed about what happens on the site (payments, messages, questions …); no addresses = the default one from NOTIFY_EMAIL */
   notifications: { emails: string[]; off: NotifyKind[] };
   /** text messages to students (Admin → Settings → SMS): the sender name the SMS company approved, and when messages go out */
@@ -169,6 +175,7 @@ export const SETTING_DEFAULTS: Settings = {
     delivery_bn: "",
     delivery_en: "",
   },
+  courier: { pathao_store: 0, pathao_store_name: "", pathao_delivery: 48, weight: 0.5 },
   notifications: { emails: [], off: [] },
   sms: { enabled: true, sender_id: "", with_email: true },
   onboarding: { dismissed: false },

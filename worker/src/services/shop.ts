@@ -463,6 +463,10 @@ interface OrderRow {
   address: string;
   note: string;
   courier_ref: string;
+  courier: "" | "steadfast" | "pathao";
+  courier_cid: string;
+  courier_status: string;
+  courier_at: string | null;
   staff_note: string;
   gateway_txn: string | null;
   created_at: string;
@@ -497,6 +501,7 @@ export async function shopOrderDTO(env: Env, row: OrderRow): Promise<ShopOrderDT
     address: row.address,
     note: row.note,
     courier_ref: row.courier_ref,
+    courier: row.courier_cid && row.courier_cid !== "booking" ? row.courier : "",
     created_at: row.created_at,
     paid_at: row.paid_at,
     shipped_at: row.shipped_at,

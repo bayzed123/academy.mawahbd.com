@@ -125,8 +125,9 @@ jobs:
       # name (optional) — an existing APP_SECRET or SETUP_TOKEN is never replaced. RESEND_API_KEY (the e-mail key) is the exception: when
       # the repository secret of that name looks like a Resend key it is set on the Worker at every deploy, so changing or rotating the
       # key is one edit of the GitHub secret and one run of Deploy. With no such GitHub secret, a key set in Cloudflare is left alone.
-      # The same goes for SMS_API_KEY / SMS_API_URL (the SMS company), SSLCOMMERZ_STORE_ID / SSLCOMMERZ_STORE_PASSWORD (online payments) and
-      # GOOGLE_SERVICE_ACCOUNT (the whole key file of the Google service account that reads the Analytics numbers for Admin → Analytics).
+      # The same goes for SMS_API_KEY / SMS_API_URL (the SMS company), SSLCOMMERZ_STORE_ID / SSLCOMMERZ_STORE_PASSWORD (online payments),
+      # GOOGLE_SERVICE_ACCOUNT (the whole key file of the Google service account that reads the Analytics numbers for Admin → Analytics) and
+      # the couriers' keys and webhook secrets (STEADFAST_* and PATHAO_*: Admin → Shop → Orders → Send to Steadfast / Pathao).
       - name: Give the Worker its secrets
         env:
           SETUP_TOKEN: ${{ secrets.SETUP_TOKEN }}
@@ -136,6 +137,15 @@ jobs:
           SSLCOMMERZ_STORE_ID: ${{ secrets.SSLCOMMERZ_STORE_ID }}
           SSLCOMMERZ_STORE_PASSWORD: ${{ secrets.SSLCOMMERZ_STORE_PASSWORD }}
           GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+          STEADFAST_API_KEY: ${{ secrets.STEADFAST_API_KEY }}
+          STEADFAST_SECRET_KEY: ${{ secrets.STEADFAST_SECRET_KEY }}
+          STEADFAST_WEBHOOK_TOKEN: ${{ secrets.STEADFAST_WEBHOOK_TOKEN }}
+          PATHAO_CLIENT_ID: ${{ secrets.PATHAO_CLIENT_ID }}
+          PATHAO_CLIENT_SECRET: ${{ secrets.PATHAO_CLIENT_SECRET }}
+          PATHAO_USERNAME: ${{ secrets.PATHAO_USERNAME }}
+          PATHAO_PASSWORD: ${{ secrets.PATHAO_PASSWORD }}
+          PATHAO_WEBHOOK_SECRET: ${{ secrets.PATHAO_WEBHOOK_SECRET }}
+          PATHAO_WEBHOOK_INTEGRATION_SECRET: ${{ secrets.PATHAO_WEBHOOK_INTEGRATION_SECRET }}
         run: node scripts/setup-cloudflare.mjs --ci --no-resources --secrets
 
       # The free workers.dev address answers as soon as the code is published, whatever state the custom domain is in.

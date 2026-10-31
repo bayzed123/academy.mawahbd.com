@@ -19,6 +19,13 @@ export default defineConfig(async () => {
             ANALYTICS_DEV: "false", // counting visits is switched on by the tests that exercise it, never by a developer's own .dev.vars
             SSLCOMMERZ_STORE_ID: "test-store",
             SSLCOMMERZ_STORE_PASSWORD: "test-store-password",
+            // the couriers, stood in for by test/courier.test.ts (nothing ever leaves the machine)
+            STEADFAST_API_KEY: "test-steadfast-key",
+            STEADFAST_SECRET_KEY: "test-steadfast-secret",
+            STEADFAST_WEBHOOK_TOKEN: "test-steadfast-webhook-token",
+            PATHAO_CLIENT_ID: "test-pathao-client",
+            PATHAO_CLIENT_SECRET: "test-pathao-client-secret",
+            PATHAO_WEBHOOK_SECRET: "test-pathao-webhook-secret",
           },
         },
       }),

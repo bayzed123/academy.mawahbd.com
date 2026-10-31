@@ -22,6 +22,8 @@ let orderUrl = "";
 let orderCode = "";
 
 const drawer = () => admin.getByRole("dialog");
+// the shop settings form (the couriers' card under it has a Save of its own)
+const storeForm = () => admin.getByRole("form", { name: "Shop settings" });
 const noSideScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
 async function axe(page: Page) {
   const r = await new AxeBuilder({ page }).include("main").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
@@ -59,13 +61,13 @@ test("the owner opens the shop: delivery charges, a category, and a product with
   await expect(admin.getByRole("tab", { name: "Shop settings" })).toHaveAttribute("aria-selected", "true");
   await setShopOpen(true);
   // opened with no delivery charge set: the owner is told what is missing
-  await admin.getByRole("button", { name: "Save" }).click();
+  await storeForm().getByRole("button", { name: "Save" }).click();
   await expect(admin.getByText("This field is required.").first()).toBeVisible();
   await admin.getByLabel("Your district", { exact: true }).selectOption({ label: "Comilla" });
   await admin.getByLabel("Charge inside your district (৳)").fill("60");
   await admin.getByLabel("Charge everywhere else (৳)").fill("120");
   await admin.getByLabel("How long delivery takes (English)").fill("1–2 days in Comilla, 3–5 days elsewhere");
-  await admin.getByRole("button", { name: "Save" }).click();
+  await storeForm().getByRole("button", { name: "Save" }).click();
   await expect(admin.getByText("Saved.")).toBeVisible();
 
   // the two offers: a cash-on-delivery charge at the couriers' 1% (at least ৳10), and free delivery from ৳2,000
@@ -83,7 +85,7 @@ test("the owner opens the shop: delivery charges, a category, and a product with
   await admin.getByLabel("Orders of a certain amount or more").check();
   await admin.getByLabel("Orders of this much or more (৳)").fill("2000");
   await expect(admin.getByText("Buyers see: Free delivery on orders of ৳2,000 or more")).toBeVisible();
-  await admin.getByRole("button", { name: "Save" }).click();
+  await storeForm().getByRole("button", { name: "Save" }).click();
   await expect.poll(async () => (await (await admin.request.get("/api/shop/config")).json()).free).toEqual({ from: 2000, until: "" });
   expect((await (await admin.request.get("/api/shop/config")).json()).cod_charge).toEqual({ pct: 1, min: 10 });
 
@@ -315,7 +317,7 @@ test("in Bangla on a 360 px phone the shop, the product page and the checkout fi
 test("closed again, the shop's pages are gone and nothing more can be ordered", async ({ request }) => {
   await admin.goto("/admin/shop?tab=settings");
   await setShopOpen(false);
-  await admin.getByRole("button", { name: "Save" }).click();
+  await storeForm().getByRole("button", { name: "Save" }).click();
   await expect(admin.getByText("Saved.")).toBeVisible();
   expect(await (await request.get("/shop")).text()).toContain("শীঘ্রই আসছে");
   expect((await request.get(productUrl)).status()).toBe(404);

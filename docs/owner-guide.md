@@ -257,14 +257,14 @@
 
 **মেনুর “ইকুইপমেন্ট শপ”:** মেনু, মোবাইল মেনু, ফুটার, ক্লাসের তালিকা, হোম পাতা ও স্টুডেন্ট অ্যাপে **ইকুইপমেন্ট শপ** দেখা যায় — এটি এই ওয়েবসাইটেরই নিজের শপ (অধ্যায় ২৬), একই ট্যাবে খোলে। শপ খোলার আগে এতে একটি **“শীঘ্রই আসছে”** পাতা দেখায় (আপনার হোয়াটসঅ্যাপ বোতাম ও ক্লাসের লিংকসহ)। *সেটিংস → যোগাযোগ, ঘোষণা ও শপ → মেনুতে শপ* অংশে নাম (বাংলা ও English) বদলানো যায় ও এক ক্লিকে বন্ধ করা যায়। চাইলে **অন্য একটি শপের ঠিকানা** দিতে পারেন — তখন নিজের শপ না খোলা পর্যন্ত লিংকটি সেই শপ **নতুন ট্যাবে** খোলে; নিজের শপ খুললে সবসময় নিজের শপই দেখায়।
 
-## ১৭. ব্যানার — হোম পেজের স্লাইডার ও অফার পপ-আপ
+## ১৭. ব্যানার — হোম পেজের স্লাইডার, শপের স্লাইডার ও অফার পপ-আপ
 
 বাঁ মেনুর **ব্যানার** খুলে **+ যোগ করুন** চাপুন। যা বদলাবেন সাথে সাথে ওয়েবসাইটে লাইভ হয়।
 
 * **এক ক্লিকে শুরুর ব্যানার:** ব্যানার পাতার **শুরুর ব্যানার বানান** বোতাম চাপলে আপনার প্রকাশিত ক্লাস থেকে সর্বোচ্চ ৫টি স্লাইডার-ব্যানার তৈরি হয় — প্রতিটিতে ক্লাসের নিজের নাম, ছোট বিবরণ ও ক্যাটাগরি, আলাদা রং ও একটি আঁকা ছবি এবং সেই ক্লাসের “এখনই ভর্তি হন” বোতাম থাকে। কোনো দাম বা ছাড় লেখা হয় না। দ্বিতীয়বার চাপলে কিছু বাড়ে না। প্রতিটি আপনি বদলাতে, নিজের ছবি দিতে, বন্ধ করতে বা মুছতে পারবেন।
 * **চেহারা:** *রং* (গাঢ়, লাল, সোনালি, আইভরি), *লেখা কোথায় থাকবে* (বাঁ দিকে / মাঝখানে / ছবির পাশে আলাদা প্যানেলে), *বড় আঁকা ছবি* (ছবি না থাকলে), *ছবির কোন অংশ থাকবে* (উপরের বা নিচের অংশ — লম্বা ছবি কেটে গেলে কাজে লাগে) এবং শিরোনামের উপরের **ছোট লাইন**। ফর্মের উপরের **“দেখতে যেমন হবে”** অংশে কম্পিউটার ও ফোনের প্রিভিউ (বাংলা বা English) লেখার সাথে সাথে বদলায় — সংরক্ষণের আগেই দেখে নিন। কিছু না বাছলে ব্যানার আগের মতোই থাকে।
 
-* **কোথায় দেখাবে:** *হোম পেজ স্লাইডার* — হোম পেজের উপরে বড় ছবি (দুই বা তার বেশি হলে নিজে নিজে সরে; সর্বোচ্চ ৮টি)। অথবা *অফার পপ-আপ* — কেউ ঢোকার কয়েক সেকেন্ড পরে ভেসে ওঠা একটি কার্ড।
+* **কোথায় দেখাবে:** *হোম পেজ স্লাইডার* — হোম পেজের উপরে বড় ছবি (দুই বা তার বেশি হলে নিজে নিজে সরে; সর্বোচ্চ ৮টি)। *শপ পেজ স্লাইডার* — একই রকম, ইকুইপমেন্ট শপের উপরে (শপের প্রথম পাতা ও ক্যাটাগরির পাতায়), শপের নিজের অফারের জন্য: ঈদের সেল, নতুন পণ্য, ফ্রি ডেলিভারি। অথবা *অফার পপ-আপ* — কেউ ঢোকার কয়েক সেকেন্ড পরে ভেসে ওঠা একটি কার্ড।
 * **ছবি:** চওড়া ছবি ঠিক **১৬০০ × ৬০০ পিক্সেল** বানান — তাহলে ছবিটি পুরোটা, কোথাও না কেটে দেখায়, চারপাশে গোল কোণ। চাইলে ফোনের জন্য আলাদা ছবি (**১০০০ × ৭৫০**, অর্থাৎ ৪:৩) দিন — না দিলে ফোনেও চওড়া ছবিটিই দেখাবে (ছোট করে)। অন্য মাপের ছবি দিলে কিছু অংশ কাটা পড়তে পারে। শুধু লেখার ব্যানারও হয় (ছবি ছাড়া শিরোনাম দিলেই)।
 * **লেখা:** শিরোনাম ও ছোট লাইন (বাংলা ও English)। ছবিওয়ালা ব্যানারে এগুলো বোতামসহ **ছবির নিচে একটি গাঢ় পট্টিতে** বসে — ছবির ওপরে কখনো নয়, তাই ছবি পরিষ্কার থাকে। লেখা ছবির ভেতরে আগে থেকেই থাকলে এগুলো ফাঁকা রাখতে পারেন — তবে **“ছবিতে কী আছে”** লিখে দিন, এটি দৃষ্টিহীন দর্শকদের জন্য ও গুগলের জন্য দরকারি।
 * **বোতাম ও লিংক:** বোতামের লেখা (বাংলা ও English) এবং **কোথায় নিয়ে যাবে** — এই সাইটের কোনো পেজ (যেমন `/courses/beginners-baking-class`), অথবা `https://…` ঠিকানা, অথবা ফোন `tel:+8801700000000`। অন্য সাইটে নিতে চাইলে **নতুন ট্যাবে খুলুন** সুইচ চালু করুন। বোতাম না দিলে ছবিতে ক্লিক করলেই লিংকে যায়।
@@ -403,13 +403,15 @@
 ## ২৬. ইকুইপমেন্ট শপ — বেকিংয়ের সরঞ্জাম বিক্রি, সারা দেশে ডেলিভারি
 
 ওয়েবসাইটের নিজের শপ: **mawahacademy.com/shop** — একটি সাধারণ অনলাইন দোকানের ক্যাটাগরি পাতার মতো সাজানো: বাঁ দিকে ক্যাটাগরির তালিকা (প্রতিটিতে কয়টি পণ্য), **দাম** ও **শুধু স্টকে থাকা পণ্য** ফিল্টার, “২০টি ফলাফলের ১–১২ দেখানো হচ্ছে” লেখা, **সাজানো** (জনপ্রিয়, রেটিং, নতুন, কম দাম থেকে, বেশি দাম থেকে), বড় পর্দায় এক সারিতে ৪টি পণ্য, প্রতিটি কার্ডে ক্যাটাগরির নাম, আর নিচে পাতার নম্বর (১, ২, ৩ …)। এছাড়া খোঁজা, প্রতিটি পণ্যের পাতা (ছবি, ওজন বা মাপ অনুযায়ী দাম, কেটে দেখানো স্বাভাবিক দাম ও **% ছাড়**, ছোট ও পুরো বর্ণনা, রিভিউ, মিল আছে এমন পণ্য), পছন্দের তালিকা (হার্ট), কার্ট ও চেকআউট। কেনার জন্য অ্যাকাউন্ট লাগে না।
-1. **আগে সেটিংস:** *অ্যাডমিন → শপ → শপের সেটিংস* — আপনার জেলা, **নিজের জেলায় ডেলিভারি চার্জ** ও **বাকি সব জায়গার চার্জ** (অথবা **সব জায়গায় ফ্রি ডেলিভারি**), চাইলে “এত টাকার বেশি অর্ডারে ফ্রি”, আর ডেলিভারিতে কত দিন লাগে (দুই ভাষায়)। পেমেন্টের উপায়: **ক্যাশ অন ডেলিভারি** এবং/অথবা **অনলাইনে SSLCommerz** (কমপক্ষে একটি চালু রাখতে হয়)।
+1. **আগে সেটিংস:** *অ্যাডমিন → শপ → শপের সেটিংস* — আপনার জেলা, **নিজের জেলায় ডেলিভারি চার্জ** ও **বাকি সব জায়গার চার্জ**, আর ডেলিভারিতে কত দিন লাগে (দুই ভাষায়)। পেমেন্টের উপায়: **ক্যাশ অন ডেলিভারি** এবং/অথবা **অনলাইনে SSLCommerz** (কমপক্ষে একটি চালু রাখতে হয়)। দুটি অফার, প্রতিটির নিজের **চালু / বন্ধ** সুইচ:
+   * **ফ্রি ডেলিভারি অফার** — **ফ্রি ডেলিভারি দিন** চালু করুন, তারপর **সব অর্ডারে** বা **নির্দিষ্ট টাকা বা তার বেশি অর্ডারে** (যেমন ৳২,০০০) বেছে নিন, আর চাইলে **অফারের শেষ দিন**। সেই দিনের পরে ডেলিভারি চার্জ নিজে থেকেই আবার চালু হয়। ক্রেতারা ঠিক কী লেখা দেখবেন, ফর্মেই দেখায়। অফার চলার সময় শপের পাতা, প্রতিটি পণ্যের পাতা, কার্ট (“আর ৳৪০০ কিনলেই ডেলিভারি ফ্রি।”, একটি দাগসহ) ও চেকআউটে তা লেখা থাকে। বন্ধ করলে আপনার চার্জ আবার চলে; পরিমাণ ও দিন পরের বারের জন্য থেকে যায়। অফারে পরিমাণ বা শেষ দিন থাকলে ডেলিভারি চার্জ দুটি দিতেই হয়।
+   * **ক্যাশ অন ডেলিভারি চার্জ** — স্টেডফাস্ট ও পাঠাও যে টাকা সংগ্রহ করে তার **১%** রেখে দেয়। **ক্রেতা ডেলিভারিতে টাকা দিলে চার্জ যোগ করুন** চালু করুন, হার **১** রাখুন (১.৫-ও দেওয়া যায়), আর চাইলে সর্বনিম্ন, যেমন ৳১০। চেকআউট প্রতিটি অর্ডারে নিজেই হিসাব করে: পণ্য ও ডেলিভারি মিলিয়ে ১%, পুরো টাকায় উপরের দিকে গোল করে। এটি আলাদা একটি লাইনে দেখায়, আর ক্রেতা বেছে নেওয়ার আগেই ক্যাশ অন ডেলিভারির ঘরে। অনলাইনে পেমেন্ট করলে কখনো লাগে না। ফর্মে একটি উদাহরণ দেখায়, আর প্রতিটি অর্ডার যে চার্জে দেওয়া হয়েছিল সেটিই রাখে — পরে হার বদলালেও।
 2. **ক্যাটাগরি** ট্যাবে ক্যাটাগরি যোগ করুন (যেমন ছাঁচ, প্যাকেজিং, সরঞ্জাম)।
 3. **পণ্য** ট্যাব → **+ যোগ করুন**: দুই ভাষায় নাম, ক্যাটাগরি, **ওজন / মাপ ও দাম** (প্রতিটি ওজনের জন্য একটি সারি: দাম, স্বাভাবিক দাম — বেশি হলে ক্রেতা “−২০%” দেখেন — আর স্টক; স্টক খালি রাখলে গোনা হয় না, ০ মানে শেষ), ছোট ও পুরো বর্ণনা। অবস্থা **প্রকাশিত** করলে শপে দেখা যায়। ছবির বোতাম (সারির ডানে) দিয়ে ছবি দিন — প্রথম ছবিটি কার্ডের ছবি।
 4. সব ঠিক হলে **শপ খোলা** চালু করে **সংরক্ষণ করুন**। বন্ধ থাকলে মেনুর **ইকুইপমেন্ট শপ** একটি **“শীঘ্রই আসছে”** পাতা দেখায় (অধ্যায় ১৬)।
 5. **শপের নীতি:** *সেটিংস → নীতিমালা*-তে **শপের শর্তাবলি** ও **রিটার্ন ও রিফান্ড নীতি** — চেকআউটে ক্রেতা টিক দিয়ে মেনে নেন। লেখায় দেওয়া “৩ দিনের মধ্যে জানাতে হবে” আর “৭–১০ কার্যদিবসে টাকা ফেরত” শুধু প্রস্তাব — **আপনার নিয়ম অনুযায়ী বদলে নিন**।
 
-**অর্ডার (প্রতিদিনের কাজ):** *অ্যাডমিন → শপ → অর্ডার* — “বাকি কাজ” তালিকায় নতুন অর্ডার। খুললে ক্রেতার নাম, নম্বর, পুরো ঠিকানা (বিভাগ, জেলা, উপজেলা, ইউনিয়ন — বাংলাদেশের সরকারি তালিকা থেকে বেছে নেওয়া), পণ্য ও মোট টাকা। ধাপে ধাপে: **অর্ডার নিশ্চিত করুন** → (কুরিয়ারের ট্র্যাকিং নম্বর লিখে) **পাঠানো হয়েছে** → **পৌঁছে গেছে**। ক্রেতা নিজের অর্ডারের লিংকে প্রতিটি ধাপ দেখেন। বাতিল করলে স্টক ফেরত যায়; অনলাইনে পেমেন্ট করা অর্ডার বাতিল করলে “বাতিল — টাকা ফেরত দিতে হবে” দেখায়।
+**অর্ডার (প্রতিদিনের কাজ):** *অ্যাডমিন → শপ → অর্ডার* — “বাকি কাজ” তালিকায় নতুন অর্ডার। খুললে ক্রেতার নাম, নম্বর, পুরো ঠিকানা (বিভাগ, জেলা, উপজেলা, ইউনিয়ন — বাংলাদেশের সরকারি তালিকা থেকে বেছে নেওয়া), পণ্য ও মোট টাকা। ধাপে ধাপে: **অর্ডার নিশ্চিত করুন** → (কুরিয়ারের ট্র্যাকিং নম্বর লিখে) **পাঠানো হয়েছে** → **পৌঁছে গেছে** — অথবা নিশ্চিত করার পরে এক ক্লিকে **স্টেডফাস্ট বা পাঠাওতে পাঠান** (অধ্যায় ৩০)। ক্রেতা নিজের অর্ডারের লিংকে প্রতিটি ধাপ দেখেন। বাতিল করলে স্টক ফেরত যায়; অনলাইনে পেমেন্ট করা অর্ডার বাতিল করলে “বাতিল — টাকা ফেরত দিতে হবে” দেখায়।
 * অনলাইনে পেমেন্ট: SSLCommerz-এর পেমেন্ট নিশ্চিত হলেই অর্ডার “অনলাইনে পেমেন্ট হয়েছে” হয় এবং আপনি ইমেইল পান। SSLCommerz কোনো পেমেন্টকে ঝুঁকিপূর্ণ বললে “পেমেন্ট হয়েছে — আগে দেখে নিন” দেখায়: SSLCommerz প্যানেলে মিলিয়ে নিন। ২৪ ঘণ্টায় পেমেন্ট না হলে অর্ডার নিজে থেকে বন্ধ হয়, স্টক ফেরত যায়।
 * **রিভিউ:** ক্রেতারা পণ্যের পাতায় রিভিউ লেখেন; *শপ → রিভিউ*-তে **অনুমোদন** দিলে দেখা যায়। যে নম্বরে পণ্যটি পৌঁছেছে সেই নম্বর দিলে “যাচাইকৃত ক্রেতা” লেখা থাকে। নম্বর কখনো দেখানো হয় না।
 * **জেনে রাখুন:** শপের অনলাইন পেমেন্টেও SSLCommerz-এর প্রতি পেমেন্টের সীমা খাটে (অধ্যায় ৫); সীমা না তোলা পর্যন্ত ক্যাশ অন ডেলিভারি চালু রাখুন।
@@ -468,6 +470,35 @@
   * **লাইভ ক্লাস (অ্যাপে লেসন নেই):** *সার্টিফিকেট → সার্টিফিকেট ইস্যু করুন* → ক্লাস বেছে নিন → “ভর্তি থাকা সবাই, যাদের এখনো নেই” → **ইস্যু করুন**। একজনকে দিতে: *শিক্ষার্থী → শিক্ষার্থী খুলুন → ক্লাসের সারিতে “সার্টিফিকেট ইস্যু করুন”*।
   * শিক্ষার্থী সঙ্গে সঙ্গে অ্যাপের *আমার সার্টিফিকেট*-এ পান: **PDF** (প্রিন্টের জানালা খোলে — সেখানে “Save as PDF” বেছে নিন) বা **ছবি** (PNG) ডাউনলোড করতে পারেন।
   * ক্লাসের সেটিংসে “সার্টিফিকেট” বন্ধ থাকলে সেই ক্লাসে ইস্যু হয় না — আগে চালু করুন।
+
+## ৩০. কুরিয়ার — এক ক্লিকে স্টেডফাস্ট বা পাঠাওতে পার্সেল
+
+কনফার্ম করা অর্ডার অ্যাডমিন থেকেই সরাসরি **স্টেডফাস্ট** বা **পাঠাও**-তে পাঠানো যায় — কুরিয়ারের প্যানেলে নাম-ঠিকানা আবার লিখতে হয় না। পরে কুরিয়ার নিজেই ওয়েবসাইটকে জানায় পার্সেলের কী হলো; “ডেলিভারি হয়েছে” জানালে অর্ডারটি নিজে থেকেই **পৌঁছে গেছে** হয়।
+
+**একবারের সেটআপ (যে কুরিয়ার ব্যবহার করবেন, তার জন্য):**
+1. **কী নিন** — কুরিয়ারের মার্চেন্ট প্যানেলের API পাতা থেকে। স্টেডফাস্ট: *API Key* ও *Secret Key*। পাঠাও: *Client ID* ও *Client Secret* (পাঠাওয়ের API পাতা চাইলে আপনার পাঠাও লগইনের ইমেইল ও পাসওয়ার্ডও)।
+2. **নিজে একটি লম্বা এলোমেলো লেখা বানান** (৩২ অক্ষরের মতো, অন্তত ১৬, ফাঁকা জায়গা ছাড়া; পাসওয়ার্ড ম্যানেজার দিয়ে বানানো সবচেয়ে ভালো), প্রতিটি কুরিয়ারের জন্য আলাদা। এটি ওয়েবহুকের তালা: কুরিয়ার এই লেখা দেখালে তবেই ওয়েবসাইট তার খবর মানে।
+3. **GitHub-এ রাখুন** — *GitHub → Settings → Secrets and variables → Actions → New repository secret*, ঠিক এই নামে:
+   * স্টেডফাস্ট: `STEADFAST_API_KEY`, `STEADFAST_SECRET_KEY`, `STEADFAST_WEBHOOK_TOKEN` (ধাপ ২-এর লেখা)
+   * পাঠাও: `PATHAO_CLIENT_ID`, `PATHAO_CLIENT_SECRET`, `PATHAO_WEBHOOK_SECRET` (ধাপ ২-এর লেখা), আর দরকার হলে `PATHAO_USERNAME` ও `PATHAO_PASSWORD`
+
+   তারপর *Actions → Deploy → Run workflow* চালান। **কোনো কী কখনো চ্যাটে, ইমেইলে বা স্ক্রিনশটে দেবেন না।**
+4. **কুরিয়ারকে ওয়েবসাইটের ঠিকানা দিন (ওয়েবহুক)** — *অ্যাডমিন → শপ → শপের সেটিংস → কুরিয়ার (স্টেডফাস্ট, পাঠাও)*-এ প্রতিটি নামের পাশে ঠিকানাটি দেখায়:
+   * স্টেডফাস্ট: `https://mawahacademy.com/api/courier/steadfast` — প্যানেলের ওয়েবহুক সেটিংসে এই ঠিকানা (Callback URL), আর *Auth Token (Bearer)* ঘরে ধাপ ২-এর স্টেডফাস্টের লেখা।
+   * পাঠাও: `https://mawahacademy.com/api/courier/pathao` — প্যানেলের ওয়েবহুক সেটিংসে এই ঠিকানা, আর *Secret* ঘরে ধাপ ২-এর পাঠাওয়ের লেখা। সংরক্ষণের সময় পাঠাও ঠিকানাটি একবার পরীক্ষা করে; ওয়েবসাইট নিজেই উত্তর দেয়। তবু পাঠাও “ব্যর্থ” বললে: পাঠাওয়ের ওয়েবহুক পাতায় যে *integration secret* দেখায় সেটি GitHub secret `PATHAO_WEBHOOK_INTEGRATION_SECRET`-এ রাখুন, Deploy চালান, তারপর পাঠাওতে আবার সংরক্ষণ করুন।
+5. **পরীক্ষা ও স্টোর** — একই কার্ডে **কুরিয়ার পরীক্ষা করুন** চাপুন: স্টেডফাস্টের পাশে “যুক্ত · ব্যালান্স …”, পাঠাওয়ের পাশে আপনার স্টোরের সংখ্যা দেখায়। **পাঠাও স্টোর (যেখান থেকে পার্সেল নেওয়া হয়)** বেছে নিন, **পাঠাও ডেলিভারি** (সাধারণ বা অন-ডিমান্ড) আর **সাধারণ পার্সেলের ওজন (কেজি)** দিন → **সংরক্ষণ করুন**। কোনো কুরিয়ার রাজি না হলে পাশে তাদের নিজের কথাই দেখায়।
+
+**প্রতিদিন:**
+* *শপ → অর্ডার* → অর্ডার খুলুন → **অর্ডার নিশ্চিত করুন**। তখন **কুরিয়ারে পাঠান** অংশে লেখা থাকে কুরিয়ার ক্রেতার কাছ থেকে কত টাকা নেবে (ক্যাশ অন ডেলিভারি হলে পুরো মোট, অনলাইনে পরিশোধিত হলে কিছুই না)। চাইলে **রাইডারের জন্য নোট** লিখুন (ক্রেতার নিজের নোটও যায়), পাঠাওয়ের জন্য ওজন বদলান, তারপর **Steadfast-এ পাঠান** বা **Pathao-এ পাঠান** চাপুন।
+* পাঠানো হলে অর্ডারটি **পাঠানো হয়েছে** হয়; অর্ডারে কুরিয়ারের কনসাইনমেন্ট নম্বর, ট্র্যাকিং কোড আর কুরিয়ারের প্রতিটি খবর (পিকআপ, হাবে, পথে, ডেলিভারি) সময়সহ জমা হয়।
+* ক্রেতা নিজের অর্ডারের পাতায় দেখেন কোন কুরিয়ারে গেছে, ট্র্যাকিং কোড, আর কুরিয়ারের ওয়েবসাইটের লিংক।
+* পার্সেল **ফেরত এলে, বাতিল হলে, ডেলিভারি না হলে, আটকে থাকলে বা আংশিক ডেলিভারি হলে** আপনি সঙ্গে সঙ্গে ইমেইল পান (*সেটিংস → ইমেইল → আপনার কাছে নোটিফিকেশন*-এ বন্ধ করা যায়)। অর্ডারটি তখনো **পাঠানো হয়েছে** থাকে — কী হবে আপনি ঠিক করুন (যেমন বাতিল করলে স্টক ফেরত যায়)।
+
+**জেনে রাখুন:**
+* কী না দেওয়া পর্যন্ত কিছুই বদলায় না: ট্র্যাকিং নম্বর হাতে লিখে **পাঠানো হয়েছে চিহ্নিত করুন** আগের মতোই চলে।
+* কুরিয়ার সময়মতো উত্তর না দিলে স্ক্রিনে লেখা আসে “কুরিয়ার সময়মতো উত্তর দেয়নি”। আবার পাঠানোর আগে কুরিয়ারের প্যানেলে দেখুন: পার্সেলটি সেখানে থাকলে তার ট্র্যাকিং কোড হাতে লিখে **পাঠানো হয়েছে চিহ্নিত করুন** চাপুন, যাতে একই পার্সেল দুবার বুক না হয়।
+* কুরিয়ারের প্যানেলে হাতে বানানো পার্সেলের খবর ওয়েবসাইট রাখে না — শুধু এখান থেকে পাঠানো পার্সেলের।
+* স্টেডফাস্ট ও পাঠাও যে টাকা সংগ্রহ করে তার ১% রাখে; ক্রেতার কাছ থেকে তা নিতে চাইলে **ক্যাশ অন ডেলিভারি চার্জ** চালু করুন (অধ্যায় ২৬)।
 
 # English
 
@@ -869,7 +900,7 @@ The website's own shop: **mawahacademy.com/en/shop** — laid out like a regular
 4. When everything is ready, switch on **The shop is open** and **Save**. While it is closed, the menus' **Equipment Shop** shows an **“Opening soon”** page (section 16).
 5. **The shop's policies:** in *Settings → Policies*, **Shop terms** and **Return & refund policy** — buyers tick to agree at checkout. The "tell us within 3 days" and "refund within 7–10 working days" in the text are proposals only — **change them to your own rules**.
 
-**Orders (a daily job):** *Admin → Shop → Orders* — new orders are in "To do". An order shows the buyer's name, number, full address (division, district, upazila, union — chosen from Bangladesh's official lists), the products and the total. Step by step: **Confirm order** → (type the courier's tracking number) **Mark as shipped** → **Mark as delivered**. The buyer sees each step on their order's link. Cancelling puts the stock back; cancelling an order paid online shows "Cancelled — refund due".
+**Orders (a daily job):** *Admin → Shop → Orders* — new orders are in "To do". An order shows the buyer's name, number, full address (division, district, upazila, union — chosen from Bangladesh's official lists), the products and the total. Step by step: **Confirm order** → (type the courier's tracking number) **Mark as shipped** → **Mark as delivered** — or, once it is confirmed, **send it to Steadfast or Pathao** in one click (section 30). The buyer sees each step on their order's link. Cancelling puts the stock back; cancelling an order paid online shows "Cancelled — refund due".
 * Online payment: an order becomes "Paid online" (and you get an e-mail) only once SSLCommerz confirms the payment. If SSLCommerz marks a payment as risky it shows "Paid — check first": check it in the SSLCommerz panel. An order not paid within 24 hours closes by itself and its stock goes back.
 * **Reviews:** buyers write them on the product page; they show once you **Approve** them in *Shop → Reviews*. A review with the number the product was delivered to says "Verified buyer". The number is never shown.
 * **Please know:** SSLCommerz's limit per payment (section 5) applies to the shop's online payment too; keep cash on delivery on until SSLCommerz lifts it.
@@ -928,3 +959,32 @@ The whole website and the students' app are now on a clean, flat black — no pa
   * **Classes taught live (no lessons in the app):** *Certificates → Issue certificates* → choose the class → “Everyone enrolled who has none yet” → **Issue**. For one student: *Students → open the student → “Issue certificate” on the class's row*.
   * The student has it at once in the app's *My certificates*, and can download it as a **PDF** (the print window opens — choose “Save as PDF”) or a **Picture** (PNG).
   * A class whose “Certificate” switch is off gives none — switch it on first.
+
+## 30. Couriers — send a parcel to Steadfast or Pathao in one click
+
+A confirmed order can go straight from Admin to **Steadfast** or **Pathao** — nobody types the name and address again in the courier's panel. Afterwards the courier itself tells the website what happens to the parcel; when it says "delivered", the order becomes **Delivered** by itself.
+
+**One-time setup (for each courier you use):**
+1. **Get the keys** — from the API page of the courier's merchant panel. Steadfast: the *API Key* and the *Secret Key*. Pathao: the *Client ID* and the *Client Secret* (and your Pathao login e-mail and password, if Pathao's API page asks for them).
+2. **Make up a long random text** (about 32 characters, at least 16, no spaces; a password manager makes a good one), a different one for each courier. It is the webhook's lock: the website believes a courier's news only when it shows this text.
+3. **Put them in GitHub** — *GitHub → Settings → Secrets and variables → Actions → New repository secret*, with exactly these names:
+   * Steadfast: `STEADFAST_API_KEY`, `STEADFAST_SECRET_KEY`, `STEADFAST_WEBHOOK_TOKEN` (the text from step 2)
+   * Pathao: `PATHAO_CLIENT_ID`, `PATHAO_CLIENT_SECRET`, `PATHAO_WEBHOOK_SECRET` (the text from step 2), and if needed `PATHAO_USERNAME` and `PATHAO_PASSWORD`
+
+   Then run *Actions → Deploy → Run workflow*. **Never put a key in a chat, an e-mail or a screenshot.**
+4. **Give each courier the website's address (the webhook)** — *Admin → Shop → Shop settings → Couriers (Steadfast, Pathao)* shows it beside each name:
+   * Steadfast: `https://mawahacademy.com/api/courier/steadfast` — this address in the panel's webhook settings (the Callback URL), and Steadfast's text from step 2 as the *Auth Token (Bearer)*.
+   * Pathao: `https://mawahacademy.com/api/courier/pathao` — this address in the panel's webhook settings, and Pathao's text from step 2 as the *Secret*. Pathao tests the address once when you save it; the website answers it by itself. If Pathao still says it failed: put the *integration secret* Pathao's webhook page shows into the GitHub secret `PATHAO_WEBHOOK_INTEGRATION_SECRET`, run Deploy, then save in Pathao again.
+5. **Check, and choose the store** — on the same card press **Check the couriers**: Steadfast shows "connected · balance …", Pathao the number of your stores. Choose the **Pathao store (where parcels are picked up)**, the **Pathao delivery** (normal or on-demand) and the **Usual parcel weight (kg)** → **Save**. If a courier says no, its own words show beside its name.
+
+**Every day:**
+* *Shop → Orders* → open the order → **Confirm order**. The **Send with a courier** box then says how much the courier collects from the buyer (the whole total for cash on delivery, nothing for an order paid online). Optionally type a **Note for the rider** (the buyer's own note goes too), change the weight for Pathao, and press **Send to Steadfast** or **Send to Pathao**.
+* Once sent, the order is **Shipped**; it keeps the courier's consignment number, the tracking code and each piece of the courier's news (picked up, at the hub, on the way, delivered) with its time.
+* The buyer sees on their order's page which courier has the parcel, its tracking code, and a link to the courier's website.
+* When a parcel **comes back, is cancelled, cannot be delivered, is on hold or is only partly delivered** you get an e-mail at once (switch it off in *Settings → E-mail → Notifications to you*). The order stays **Shipped** — you decide what happens to it (cancelling it puts the stock back, for example).
+
+**Please know:**
+* Nothing changes until the keys are in: typing the tracking number and pressing **Mark as shipped** works as before.
+* If a courier does not answer in time, the screen says "The courier did not answer in time". Look in the courier's panel before sending it again: if the parcel is there, type its tracking code and press **Mark as shipped**, so the same parcel is never booked twice.
+* News about a parcel made by hand in the courier's panel is not kept — only about parcels sent from here.
+* Steadfast and Pathao keep 1% of the cash they collect; to pass it on to the buyer, switch on the **Cash on delivery charge** (section 26).

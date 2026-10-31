@@ -33,6 +33,7 @@ const TITLE: Record<NotifyKind, { en: string; bn: string }> = {
   newsletter: { en: "A new newsletter subscriber", bn: "নিউজলেটারে নতুন সাবস্ক্রাইবার" },
   shop_order: { en: "New order in the Equipment Shop", bn: "ইকুইপমেন্ট শপে নতুন অর্ডার" },
   shop_review: { en: "A product review is waiting for your approval", bn: "একটি পণ্যের রিভিউ আপনার অনুমোদনের অপেক্ষায়" },
+  shop_courier: { en: "A courier says a parcel needs you", bn: "কুরিয়ার জানাচ্ছে একটি পার্সেলে আপনার নজর দরকার" },
 };
 
 /** The admin page each note links to. */
@@ -50,6 +51,7 @@ const OPEN: Record<NotifyKind, { path: string; en: string; bn: string }> = {
   newsletter: { path: "/admin/signups", en: "Open Sign-ups", bn: "সাইন-আপ খুলুন" },
   shop_order: { path: "/admin/shop/orders", en: "Open Shop → Orders", bn: "শপ → অর্ডার খুলুন" },
   shop_review: { path: "/admin/shop/reviews", en: "Open Shop → Reviews", bn: "শপ → রিভিউ খুলুন" },
+  shop_courier: { path: "/admin/shop?tab=orders", en: "Open Shop → Orders", bn: "শপ → অর্ডার খুলুন" },
 };
 
 /** At most this many notes of one kind per hour — a burst (or someone hammering a form) cannot fill the inbox; the admin pages still show everything. */
@@ -68,6 +70,7 @@ const HOURLY_CAP: Record<NotifyKind, number> = {
   newsletter: 30,
   shop_order: 200,
   shop_review: 40,
+  shop_courier: 100,
 };
 
 /** The short, plain version of each way the online gateway can say no (the long one, with the steps, is in Settings → Payments). */
@@ -214,6 +217,23 @@ export const notices = {
   },
   shopReview(d: { product: string; name: string; rating: number; body: string }): Notice {
     return { kind: "shop_review", headline: `${"★".repeat(d.rating)} · ${d.product}`, facts: [fact("Product", "পণ্য", d.product), fact("From", "যিনি লিখেছেন", d.name), fact("Rating", "রেটিং", `${d.rating}/5`)], note: d.body };
+  },
+  /** A courier says a parcel came back, was cancelled, could not be delivered, is on hold or was only partly delivered: the owner decides. */
+  courierWord(d: { code: string; courier: "steadfast" | "pathao"; said: string; message: string; name: string; phone: string; total: number; payment: string }): Notice {
+    const courier = d.courier === "steadfast" ? "Steadfast" : "Pathao";
+    return {
+      kind: "shop_courier",
+      headline: `${courier}: ${d.said} · ${d.code}`,
+      facts: [
+        fact("Order", "অর্ডার", d.code),
+        fact("Courier", "কুরিয়ার", courier),
+        fact("The courier says", "কুরিয়ার বলছে", d.said),
+        fact("Customer", "ক্রেতা", d.name),
+        fact("Mobile", "মোবাইল", d.phone),
+        fact("Total", "মোট", `${formatMoney(d.total, "en")} · ${d.payment === "cod" ? "cash on delivery · ক্যাশ অন ডেলিভারি" : "paid online · অনলাইনে পরিশোধিত"}`),
+      ],
+      note: d.message || undefined,
+    };
   },
   newsletter(d: { email: string; lang: string }): Notice {
     return { kind: "newsletter", headline: d.email, facts: [fact("E-mail", "ইমেইল", d.email), fact("Language", "ভাষা", d.lang === "bn" ? "বাংলা" : "English")] };
