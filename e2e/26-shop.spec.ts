@@ -68,6 +68,25 @@ test("the owner opens the shop: delivery charges, a category, and a product with
   await admin.getByRole("button", { name: "Save" }).click();
   await expect(admin.getByText("Saved.")).toBeVisible();
 
+  // the two offers: a cash-on-delivery charge at the couriers' 1% (at least ৳10), and free delivery from ৳2,000
+  const codCharge = admin.getByRole("switch", { name: "Add a charge when the buyer pays on delivery" });
+  await admin.locator("label.switch", { has: codCharge }).click();
+  await expect(codCharge).toBeChecked();
+  await admin.getByLabel("Percent of the cash collected (%)").fill("1");
+  await admin.getByLabel("At least (৳, optional)").fill("10");
+  await expect(admin.getByText("For example, an order of ৳1,000 with ৳120 delivery: paying on delivery adds ৳12.")).toBeVisible();
+  const free = admin.locator("fieldset.offer-box", { hasText: "Free delivery offer" });
+  await expect(free.getByText("Inactive", { exact: true })).toBeVisible();
+  const freeSwitch = admin.getByRole("switch", { name: "Give free delivery" });
+  await admin.locator("label.switch", { has: freeSwitch }).click();
+  await expect(free.getByText("Active", { exact: true })).toBeVisible();
+  await admin.getByLabel("Orders of a certain amount or more").check();
+  await admin.getByLabel("Orders of this much or more (৳)").fill("2000");
+  await expect(admin.getByText("Buyers see: Free delivery on orders of ৳2,000 or more")).toBeVisible();
+  await admin.getByRole("button", { name: "Save" }).click();
+  await expect.poll(async () => (await (await admin.request.get("/api/shop/config")).json()).free).toEqual({ from: 2000, until: "" });
+  expect((await (await admin.request.get("/api/shop/config")).json()).cod_charge).toEqual({ pct: 1, min: 10 });
+
   await admin.getByRole("tab", { name: "Categories" }).click();
   await admin.getByRole("button", { name: "+ Add" }).click();
   await drawer().getByLabel(/^Name \(Bangla\)/).fill(`ছাঁচ ${TAG}`);
@@ -112,6 +131,7 @@ test("a visitor finds it, chooses a weight, keeps it on the wishlist and adds tw
   const page = await ctx.newPage();
   await page.goto("/en/shop");
   await expect(page.getByRole("heading", { level: 1, name: "Equipment Shop" })).toBeVisible();
+  await expect(page.locator(".offer-strip")).toContainText("Free delivery on orders of ৳2,000 or more");
   await expect(page.locator(".shop-count")).toHaveText(/^Showing (the single result|all \d+ results)$/); // a retry may have added one
   const card = page.locator("article.pcard", { hasText: PRODUCT });
   await expect(card).toContainText("From ৳450");
@@ -152,6 +172,9 @@ test("a visitor finds it, chooses a weight, keeps it on the wishlist and adds tw
   await expect(line.getByRole("link", { name: PRODUCT, exact: true })).toBeVisible();
   await expect(line).toContainText("1 kg");
   await expect(line.getByRole("group", { name: `Quantity of ${PRODUCT}` })).toContainText("2");
+  // ৳1,600 in the cart: ৳400 short of the free-delivery offer
+  await expect(page.getByText("Add ৳400 more for free delivery.")).toBeVisible();
+  await expect(page.getByRole("progressbar", { name: "On the way to free delivery" })).toHaveAttribute("aria-valuenow", "1600");
   await page.getByRole("link", { name: "Go to checkout" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Checkout" })).toBeVisible();
 
@@ -165,19 +188,23 @@ test("a visitor finds it, chooses a weight, keeps it on the wishlist and adds tw
   await page.getByLabel("Union (optional)").selectOption({ label: "Barkamta" });
   await page.getByLabel(/^House, road, area or village/).fill("Bari 4, near the primary school");
   await expect(page.getByText("1–2 days in Comilla, 3–5 days elsewhere")).toBeVisible();
-  // inside the owner's district: ৳1,600 for the two moulds and ৳60 delivery
-  await expect(page.locator(".sum-row.total")).toContainText("৳1,660");
+  // inside the owner's district: ৳1,600 for the two moulds and ৳60 delivery; paying on delivery adds 1% of ৳1,660, rounded up: ৳17
   await expect(page.getByRole("radio", { name: /^Cash on delivery/ })).toBeChecked();
+  await expect(page.locator("label.pay-opt", { hasText: "Cash on delivery" })).toContainText("+৳17 cash on delivery charge");
+  await expect(page.locator(".sum-row", { hasText: "Cash on delivery charge" })).toContainText("৳17");
+  await expect(page.locator(".sum-row.total")).toContainText("৳1,677");
   await expect(page.getByRole("link", { name: "Return & refund policy" })).toHaveAttribute("href", "/en/policies/shop-returns");
 
   // nothing is sent before the box is ticked
-  await page.getByRole("button", { name: "Place order · ৳1,660" }).click();
+  await page.getByRole("button", { name: "Place order · ৳1,677" }).click();
   await expect(page.getByText("Please tick the box to agree before you continue.")).toBeVisible();
   await agree(page);
-  await page.getByRole("button", { name: "Place order · ৳1,660" }).click();
+  await page.getByRole("button", { name: "Place order · ৳1,677" }).click();
   await expect(page).toHaveURL(/\/app\/shop\/orders\/SH[0-9A-Z]{10}\?k=/);
   await expect(page.getByRole("heading", { name: "Order placed" })).toBeVisible();
   await expect(page.getByText("Debidwar")).toBeVisible();
+  await expect(page.locator(".sum-row", { hasText: "Cash on delivery charge" })).toContainText("৳17");
+  await expect(page.locator(".sum-row.total")).toContainText("৳1,677");
   orderUrl = page.url();
   orderCode = /orders\/(SH[0-9A-Z]{10})/.exec(orderUrl)![1];
   // the cart is empty again
@@ -195,6 +222,8 @@ test("staff take the order from new to delivered, and the buyer's page follows",
   const panel = drawer();
   await expect(panel).toContainText("Bari 4, near the primary school, Barkamta, Debidwar, Comilla, Chattagram");
   await expect(panel).toContainText("৳60");
+  await expect(panel.getByRole("row", { name: /Cash on delivery charge/ })).toContainText("৳17");
+  await expect(panel.getByRole("row", { name: /Total/ })).toContainText("৳1,677");
   await panel.getByRole("button", { name: "Confirm order" }).click();
   await expect(admin.getByText("Saved.")).toBeVisible();
   await panel.getByLabel("Courier tracking number").fill("STEADFAST-77812");

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { BANNER_FOCUS, BANNER_LAYOUTS, BANNER_PLACEMENTS, BANNER_THEMES } from "@mawah/shared";
+import { BANNER_FOCUS, BANNER_LAYOUTS, BANNER_PLACEMENTS, BANNER_THEMES, type BannerPlacement } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -10,7 +10,7 @@ import { Button, Chip, Icon, Switch, useConfirm, useToast } from "../components/
 
 interface Banner {
   id: number;
-  placement: "hero" | "popup";
+  placement: BannerPlacement;
   title_bn: string;
   title_en: string;
   image_key: string | null;
@@ -161,7 +161,7 @@ export function Banners() {
             </span>
           ),
         },
-        { key: "placement", label: t("adm.banners.where"), sort: "placement", desktopOnly: true, render: (r) => <Chip tone={r.placement === "popup" ? "gold" : "info"}>{t(`adm.banners.p.${r.placement}` as "adm.banners.p.hero")}</Chip> },
+        { key: "placement", label: t("adm.banners.where"), sort: "placement", desktopOnly: true, render: (r) => <Chip tone={r.placement === "popup" ? "gold" : r.placement === "shop" ? "ok" : "info"}>{t(`adm.banners.p.${r.placement}` as "adm.banners.p.hero")}</Chip> },
         {
           key: "status",
           label: t("label.status"),

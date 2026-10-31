@@ -31,7 +31,7 @@ import { CERT_PREFIX, certificateByCode } from "../services/learning";
 import { landingBySlug, landingData, readBlocks } from "../services/landing";
 import { CoursesPage } from "../views/pages/courses";
 import { ProductPage, ShopPage, ShopSoonPage } from "../views/pages/shop";
-import { SHOP_SORTS, productReviews, relatedProducts, shopCategories, shopProduct, shopProducts, type ShopSort } from "../services/shop";
+import { SHOP_SORTS, freeOffer, productReviews, relatedProducts, shopCategories, shopProduct, shopProducts, storePayments, type ShopSort } from "../services/shop";
 import { CoursePage, RelatedFragment, ReviewList } from "../views/pages/course";
 import { FaqPage } from "../views/pages/faq";
 import type { CertArtData } from "../views/certificate";
@@ -147,8 +147,10 @@ export function pageRoutes(lang: Lang) {
       const categories = await shopCategories(c.env);
       const category = categorySlug ? (categories.find((x) => x.slug === categorySlug) ?? null) : null;
       if (categorySlug && !category) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
-      const list = await shopProducts(c.env, { category: categorySlug, sort, page, q: search, min, max, inStock });
-      return renderHtml(c, ctx, <ShopPage ctx={ctx} data={{ ...list, categories, category, sort, q: search, min, max, inStock }} />);
+      const [list, banners] = await Promise.all([shopProducts(c.env, { category: categorySlug, sort, page, q: search, min, max, inStock }), liveBanners(c.env, "shop", 8)]);
+      const s = ctx.settings.store;
+      const offers = { banners, offer: freeOffer(s), cod: storePayments(s, c.env).includes("cod"), delivery: lang === "bn" ? s.delivery_bn || s.delivery_en : s.delivery_en || s.delivery_bn };
+      return renderHtml(c, ctx, <ShopPage ctx={ctx} data={{ ...list, categories, category, sort, q: search, min, max, inStock, ...offers }} />);
     });
   };
   r.get("/shop", (c) => shopList(c, null));
@@ -164,7 +166,11 @@ export function pageRoutes(lang: Lang) {
       if (!product) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
       const [reviews, related] = await Promise.all([productReviews(c.env, product.id), relatedProducts(c.env, product)]);
       const s = ctx.settings.store;
-      return renderHtml(c, ctx, <ProductPage ctx={ctx} product={product} reviews={reviews} related={related} delivery={lang === "bn" ? s.delivery_bn || s.delivery_en : s.delivery_en || s.delivery_bn} />);
+      return renderHtml(
+        c,
+        ctx,
+        <ProductPage ctx={ctx} product={product} reviews={reviews} related={related} delivery={lang === "bn" ? s.delivery_bn || s.delivery_en : s.delivery_en || s.delivery_bn} offer={freeOffer(s)} />,
+      );
     });
   });
 

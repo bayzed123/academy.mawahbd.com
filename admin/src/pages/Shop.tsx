@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SHOP_MAX_PICTURES, type ShopOrderDTO, type ShopOrderStatus } from "@mawah/shared";
+import { codCharge, fromBnDigits, SHOP_MAX_PICTURES, type ShopOrderDTO, type ShopOrderStatus } from "@mawah/shared";
 import { adm, api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { compressImage } from "../lib/image";
@@ -428,6 +428,12 @@ function OrderPanel({ code }: { code: string }) {
             <td colSpan={2}>{t("adm.shop.delivery")}</td>
             <td className="num">{money(o.delivery_fee)}</td>
           </tr>
+          {o.cod_fee > 0 && (
+            <tr>
+              <td colSpan={2}>{t("adm.shop.codCharge")}</td>
+              <td className="num">{money(o.cod_fee)}</td>
+            </tr>
+          )}
           <tr>
             <td colSpan={2}>
               <b>{t("label.total")}</b>
@@ -543,12 +549,19 @@ interface Store {
   fee_other: number;
   free_over: number;
   free_delivery: boolean;
+  free_until: string;
+  cod_charge: boolean;
+  cod_pct: number;
+  cod_min: number;
   delivery_bn: string;
   delivery_en: string;
 }
 
+/** Today in Bangladesh, as the offer's last day is written (YYYY-MM-DD). */
+const dhakaToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });
+
 function StoreSettings() {
-  const { t, lang, err } = useI18n();
+  const { t, lang, err, money, date } = useI18n();
   const { can } = useAuth();
   const toast = useToast();
   const qc = useQueryClient();
@@ -556,12 +569,20 @@ function StoreSettings() {
   const settings = useQuery({ queryKey: ["settings"], queryFn: () => adm<{ settings: { store: Store } }>("/settings") });
   const districts = useQuery({ queryKey: ["geo-all-districts"], queryFn: async () => (await api<{ items: { id: number; name_en: string; name_bn: string }[] }>("/shop/geo/districts")).items, staleTime: Infinity });
   const [v, setV] = useState<Store | null>(null);
+  // the offer's "who gets it" and the charge's percent as typed ("1." on the way to "1.5"): the form's own, turned into numbers on the way
+  const [freeFrom, setFreeFrom] = useState(false);
+  const [pctText, setPctText] = useState("");
   const [fields, setFields] = useState<Record<string, string>>({});
   useEffect(() => {
-    if (settings.data && !v) setV(settings.data.settings.store);
+    if (settings.data && !v) {
+      const s = settings.data.settings.store;
+      setV(s);
+      setFreeFrom(s.free_over > 0);
+      setPctText(String(s.cod_pct));
+    }
   }, [settings.data, v]);
   const save = useMutation({
-    mutationFn: () => adm(`/settings/store`, { method: "PUT", json: v }),
+    mutationFn: () => adm(`/settings/store`, { method: "PUT", json: { ...v!, free_over: freeFrom ? v!.free_over : 0 } }),
     onSuccess: () => {
       setFields({});
       toast(t("adm.saved"));
@@ -576,7 +597,16 @@ function StoreSettings() {
   if (settings.isPending || !v) return <Spinner />;
   if (settings.isError) return <ErrorState error={settings.error} onRetry={() => settings.refetch()} />;
   const set = <K extends keyof Store>(k: K, val: Store[K]) => setV({ ...v, [k]: val });
-  const money = (s: string) => Math.max(0, Math.floor(Number(s) || 0));
+  const taka = (s: string) => Math.max(0, Math.floor(Number(fromBnDigits(s)) || 0));
+  const ended = v.free_delivery && !!v.free_until && v.free_until < dhakaToday();
+  const offerState = !v.free_delivery ? { tone: "neutral" as const, label: t("adm.shop.offer.inactive") } : ended ? { tone: "warn" as const, label: t("adm.shop.offer.ended", { date: date(v.free_until) }) } : { tone: "ok" as const, label: t("adm.shop.offer.active") };
+  const offerText = () => {
+    const what = freeFrom && v.free_over > 0 ? t("adm.shop.freeText.from", { amount: money(v.free_over) }) : t("adm.shop.freeText.all");
+    return v.free_until ? `${what} · ${t("adm.shop.freeText.until", { date: date(v.free_until) })}` : what;
+  };
+  // the charge on an everyday order, worked out the way the checkout does (shared/src/shop.ts)
+  const example = { goods: 1000, delivery: v.fee_other || 120 };
+  const exampleFee = codCharge(example.goods + example.delivery, v.cod_pct, v.cod_min);
   return (
     <>
       <PageHeader title={t("adm.shop.tab.settings")} sub={t("adm.shop.settings.sub")} />
@@ -584,6 +614,11 @@ function StoreSettings() {
         className="panel stack"
         onSubmit={(e) => {
           e.preventDefault();
+          if (v.free_delivery && freeFrom && v.free_over <= 0) {
+            setFields({ free_over: t("err.required") });
+            document.getElementById("st-free-over")?.focus();
+            return;
+          }
           save.mutate();
         }}
       >
@@ -597,35 +632,93 @@ function StoreSettings() {
         </fieldset>
         <fieldset className="form-grid plain-fieldset">
           <legend>{t("adm.shop.deliveryCharges")}</legend>
-          <Switch id="st-free" label={t("adm.shop.freeDelivery")} checked={v.free_delivery} disabled={!canWrite} onChange={(x) => set("free_delivery", x)} />
-          {!v.free_delivery && (
-            <>
-              <Field id="st-home" label={t("adm.shop.homeDistrict")} hint={t("adm.shop.homeHint")}>
-                <select id="st-home" className="input" value={v.home_district} disabled={!canWrite} onChange={(e) => set("home_district", Number(e.target.value))}>
-                  {(districts.data ?? []).map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {lang === "bn" ? d.name_bn : d.name_en}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field id="st-fee-home" label={t("adm.shop.feeHome")} error={fields.fee_home}>
-                <TextInput id="st-fee-home" inputMode="numeric" value={v.fee_home || ""} disabled={!canWrite} error={fields.fee_home} onChange={(e) => set("fee_home", money(e.target.value))} />
-              </Field>
-              <Field id="st-fee-other" label={t("adm.shop.feeOther")} error={fields.fee_other}>
-                <TextInput id="st-fee-other" inputMode="numeric" value={v.fee_other || ""} disabled={!canWrite} error={fields.fee_other} onChange={(e) => set("fee_other", money(e.target.value))} />
-              </Field>
-              <Field id="st-free-over" label={t("adm.shop.freeOver")} hint={t("adm.shop.freeOverHint")}>
-                <TextInput id="st-free-over" inputMode="numeric" value={v.free_over || ""} disabled={!canWrite} onChange={(e) => set("free_over", money(e.target.value))} />
-              </Field>
-            </>
-          )}
+          <Field id="st-home" label={t("adm.shop.homeDistrict")} hint={t("adm.shop.homeHint")}>
+            <select id="st-home" className="input" value={v.home_district} disabled={!canWrite} onChange={(e) => set("home_district", Number(e.target.value))}>
+              {(districts.data ?? []).map((d) => (
+                <option key={d.id} value={d.id}>
+                  {lang === "bn" ? d.name_bn : d.name_en}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field id="st-fee-home" label={t("adm.shop.feeHome")} error={fields.fee_home}>
+            <TextInput id="st-fee-home" inputMode="numeric" value={v.fee_home || ""} disabled={!canWrite} error={fields.fee_home} onChange={(e) => set("fee_home", taka(e.target.value))} />
+          </Field>
+          <Field id="st-fee-other" label={t("adm.shop.feeOther")} error={fields.fee_other}>
+            <TextInput id="st-fee-other" inputMode="numeric" value={v.fee_other || ""} disabled={!canWrite} error={fields.fee_other} onChange={(e) => set("fee_other", taka(e.target.value))} />
+          </Field>
           <Field id="st-dl-bn" label={t("adm.shop.deliveryBn")} hint={t("adm.shop.deliveryHint")}>
             <TextInput id="st-dl-bn" value={v.delivery_bn} maxLength={200} disabled={!canWrite} onChange={(e) => set("delivery_bn", e.target.value)} />
           </Field>
           <Field id="st-dl-en" label={t("adm.shop.deliveryEn")}>
             <TextInput id="st-dl-en" value={v.delivery_en} maxLength={200} disabled={!canWrite} onChange={(e) => set("delivery_en", e.target.value)} />
           </Field>
+        </fieldset>
+
+        <fieldset className="stack plain-fieldset offer-box">
+          <legend>{t("adm.shop.freeOffer")}</legend>
+          <div className="row">
+            <Switch id="st-free" label={t("adm.shop.freeOn")} checked={v.free_delivery} disabled={!canWrite} onChange={(x) => set("free_delivery", x)} />
+            <Chip tone={offerState.tone}>{offerState.label}</Chip>
+          </div>
+          <p className="hint">{t("adm.shop.freeHint")}</p>
+          {v.free_delivery && (
+            <>
+              <fieldset className="plain-fieldset">
+                <legend>{t("adm.shop.freeWho")}</legend>
+                <label className="check">
+                  <input type="radio" name="st-free-who" checked={!freeFrom} disabled={!canWrite} onChange={() => setFreeFrom(false)} /> {t("adm.shop.freeAll")}
+                </label>
+                <label className="check">
+                  <input type="radio" name="st-free-who" checked={freeFrom} disabled={!canWrite} onChange={() => setFreeFrom(true)} /> {t("adm.shop.freeFrom")}
+                </label>
+              </fieldset>
+              <div className="form-grid">
+                {freeFrom && (
+                  <Field id="st-free-over" label={t("adm.shop.freeOver")} error={fields.free_over}>
+                    <TextInput id="st-free-over" inputMode="numeric" value={v.free_over || ""} disabled={!canWrite} error={fields.free_over} onChange={(e) => set("free_over", taka(e.target.value))} />
+                  </Field>
+                )}
+                <Field id="st-free-until" label={t("adm.shop.freeUntil")} hint={t("adm.shop.freeUntilHint")} error={fields.free_until}>
+                  <TextInput id="st-free-until" type="date" value={v.free_until} disabled={!canWrite} error={fields.free_until} onChange={(e) => set("free_until", e.target.value)} />
+                </Field>
+              </div>
+              <p className="hint">{t("adm.shop.freePreview", { text: offerText() })}</p>
+            </>
+          )}
+        </fieldset>
+
+        <fieldset className="stack plain-fieldset offer-box">
+          <legend>{t("adm.shop.codCharge")}</legend>
+          <div className="row">
+            <Switch id="st-cod-charge" label={t("adm.shop.codChargeOn")} checked={v.cod_charge} disabled={!canWrite || !v.cod} onChange={(x) => set("cod_charge", x)} />
+            <Chip tone={v.cod && v.cod_charge ? "ok" : "neutral"}>{v.cod && v.cod_charge ? t("adm.shop.offer.active") : t("adm.shop.offer.inactive")}</Chip>
+          </div>
+          <p className="hint">{v.cod ? t("adm.shop.codChargeHint") : t("adm.shop.codNeedsCod")}</p>
+          {v.cod && v.cod_charge && (
+            <>
+              <div className="form-grid">
+                <Field id="st-cod-pct" label={t("adm.shop.codPct")} hint={t("adm.shop.codPctHint")} error={fields.cod_pct}>
+                  <TextInput
+                    id="st-cod-pct"
+                    inputMode="decimal"
+                    value={pctText}
+                    disabled={!canWrite}
+                    error={fields.cod_pct}
+                    onChange={(e) => {
+                      const text = fromBnDigits(e.target.value).replace(",", ".").replace(/[^\d.]/g, "");
+                      setPctText(text);
+                      set("cod_pct", Math.min(10, Math.round((Number(text) || 0) * 10) / 10));
+                    }}
+                  />
+                </Field>
+                <Field id="st-cod-min" label={t("adm.shop.codMin")}>
+                  <TextInput id="st-cod-min" inputMode="numeric" value={v.cod_min || ""} disabled={!canWrite} onChange={(e) => set("cod_min", Math.min(1000, taka(e.target.value)))} />
+                </Field>
+              </div>
+              <p className="hint">{t("adm.shop.codExample", { goods: money(example.goods), delivery: money(example.delivery), fee: money(exampleFee) })}</p>
+            </>
+          )}
         </fieldset>
         <p className="hint">{t("adm.shop.policiesHint")}</p>
         {canWrite ? (

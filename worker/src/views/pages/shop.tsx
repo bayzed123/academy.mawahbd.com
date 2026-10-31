@@ -1,6 +1,21 @@
-import { SHOP_PER_PAGE, formatMoney, formatNumber, loc, percentOff, waNumber, type ShopCardDTO, type ShopCategoryDTO, type ShopProductDTO, type ShopReviewDTO } from "@mawah/shared";
+import {
+  SHOP_PER_PAGE,
+  formatDate,
+  formatMoney,
+  formatNumber,
+  loc,
+  percentOff,
+  waNumber,
+  type ShopCardDTO,
+  type ShopCategoryDTO,
+  type ShopFreeOffer,
+  type ShopProductDTO,
+  type ShopReviewDTO,
+} from "@mawah/shared";
 import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
+import type { BannerDTO } from "../../services/banners";
 import { SHOP_SORTS, type ShopSort } from "../../services/shop";
+import { BannerSlider } from "../banners";
 import type { PageCtx } from "../ctx";
 import { Layout } from "../layout";
 import { breadcrumbLd } from "../seo";
@@ -107,6 +122,39 @@ const ShopBar = ({ ctx }: { ctx: PageCtx }) => (
   </div>
 );
 
+/** The free-delivery offer in words: "Free delivery on every order" or "… on orders of ৳1,500 or more", and its last day when it has one. */
+export function freeOfferText(ctx: PageCtx, offer: ShopFreeOffer): string {
+  const what = offer.from > 0 ? ctx.t("shop.offer.from", { amount: money(ctx, offer.from) }) : ctx.t("shop.offer.all");
+  return offer.until ? `${what} · ${ctx.t("shop.offer.until", { date: formatDate(offer.until, ctx.lang) })}` : what;
+}
+
+/** Under the shop's title: the free-delivery offer while it runs, cash on delivery, and how long delivery takes (in the owner's words). */
+const OfferStrip = ({ ctx, offer, cod, delivery }: { ctx: PageCtx; offer: ShopFreeOffer | null; cod: boolean; delivery: string }) =>
+  offer || cod || delivery ? (
+    <div class="offer-strip">
+      <ul class="wrap">
+        {offer && (
+          <li class="is-offer">
+            <Icon name="truck" />
+            <b>{freeOfferText(ctx, offer)}</b>
+          </li>
+        )}
+        {cod && (
+          <li>
+            <Icon name="wallet" />
+            {ctx.t("shop.offer.cod")}
+          </li>
+        )}
+        {delivery && (
+          <li>
+            <Icon name="clock" />
+            {ctx.t("shop.offer.days", { days: delivery })}
+          </li>
+        )}
+      </ul>
+    </div>
+  ) : null;
+
 const PolicyLinks = ({ ctx }: { ctx: PageCtx }) => (
   <p class="shop-policies small">
     <a href={ctx.href("/policies/shop-terms")}>{ctx.t("policy.shop_terms")}</a>
@@ -130,6 +178,14 @@ export interface ShopListData {
   min?: number;
   max?: number;
   inStock?: boolean;
+  /** the owner's banners for the shop (Admin -> Banners -> Shop page slider): shown on a list's first page */
+  banners: BannerDTO[];
+  /** the free-delivery offer running today */
+  offer: ShopFreeOffer | null;
+  /** buyers can pay on delivery */
+  cod: boolean;
+  /** how long delivery takes, in the owner's words ("" = not said) */
+  delivery: string;
 }
 
 /** A filter's hidden fields: each of the page's three small forms keeps what the other two chose. */
@@ -168,6 +224,8 @@ export function ShopPage({ ctx, data }: { ctx: PageCtx; data: ShopListData }) {
   const title = data.category ? loc(data.category, "name", lang) : t("shop.title");
   const crumbs = [{ label: t("nav.home"), href: ctx.href("/") }, ...(data.category ? [{ label: t("shop.title"), href: ctx.href("/shop") }, { label: title }] : [{ label: t("shop.title") }])];
   const filtered = !!(state.q || state.min || state.max || state.inStock);
+  // the offers belong to the shop's front: a list's first page, not a search or a filter
+  const banners = data.page === 1 && !filtered ? data.banners : [];
   const from = (data.page - 1) * SHOP_PER_PAGE + 1;
   const to = Math.min(data.total, data.page * SHOP_PER_PAGE);
   const showing =
@@ -192,6 +250,7 @@ export function ShopPage({ ctx, data }: { ctx: PageCtx; data: ShopListData }) {
       canonicalPath={ctx.href(base) + (data.page > 1 ? `?page=${data.page}` : "")}
       jsonLd={[breadcrumbLd(ctx, crumbs.map((c) => ({ name: c.label, path: c.href ?? ctx.href(base) })))]}
       shop
+      slider={banners.length > 0}
     >
       <section class="page-hero shop-hero">
         <div class="wrap">
@@ -200,6 +259,8 @@ export function ShopPage({ ctx, data }: { ctx: PageCtx; data: ShopListData }) {
           <p>{t("shop.sub")}</p>
         </div>
       </section>
+      <OfferStrip ctx={ctx} offer={data.offer} cod={data.cod} delivery={data.delivery} />
+      {banners.length > 0 && <BannerSlider ctx={ctx} banners={banners} />}
       <section class="section tight">
         <div class="wrap shop-layout">
           <aside class="shop-side">
@@ -400,12 +461,15 @@ export function ProductPage({
   reviews,
   related,
   delivery,
+  offer,
 }: {
   ctx: PageCtx;
   product: ShopProductDTO;
   reviews: ShopReviewDTO[];
   related: ShopCardDTO[];
   delivery: string;
+  /** the free-delivery offer running today */
+  offer: ShopFreeOffer | null;
 }) {
   const { t, lang } = ctx;
   const name = loc(p, "name", lang);
@@ -537,6 +601,12 @@ export function ProductPage({
               </form>
               <WishButton ctx={ctx} product={p} big />
               <ul class="product-facts">
+                {offer && (
+                  <li class="is-offer">
+                    <Icon name="truck" />
+                    <b>{freeOfferText(ctx, offer)}</b>
+                  </li>
+                )}
                 <li>
                   <Icon name="truck" />
                   {delivery || t("shop.deliveryAll")}

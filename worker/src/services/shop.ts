@@ -1,9 +1,11 @@
 import {
+  codCharge,
   SHOP_MAX_QTY,
   SHOP_PER_PAGE,
   type ShopCardDTO,
   type ShopCartLine,
   type ShopCategoryDTO,
+  type ShopFreeOffer,
   type ShopOrderDTO,
   type ShopOrderStatus,
   type ShopPayment,
@@ -16,6 +18,7 @@ import type { Env } from "../env";
 import { CROCKFORD, randomString, randomToken } from "../lib/crypto";
 import { all, first, nowIso, qs, run } from "../lib/db";
 import { getSettings, type Settings } from "../lib/settings";
+import { dhakaToday } from "./banners";
 import { sslConfigured } from "./payments/sslcommerz";
 
 /**
@@ -219,12 +222,19 @@ export async function productReviews(env: Env, productId: number, limit = 30): P
 
 export type StoreSettings = Settings["store"];
 
-/** The shop takes orders: switched on, with delivery charges set (or free delivery chosen) and a way to pay. */
+/** The shop takes orders: switched on, with delivery charges set (or free delivery for every order chosen) and a way to pay. */
 export function storeOpen(s: StoreSettings, env: Env): boolean {
   return s.enabled && deliverySet(s) && storePayments(s, env).length > 0;
 }
 
-export const deliverySet = (s: StoreSettings) => s.free_delivery || (s.fee_home > 0 && s.fee_other > 0);
+/** Every order has a delivery price: the charges are set, or delivery is free for every order with no last day. */
+export const deliverySet = (s: StoreSettings) => (s.free_delivery && s.free_over === 0 && !s.free_until) || (s.fee_home > 0 && s.fee_other > 0);
+
+/** The free-delivery offer running on `today` (a Bangladesh calendar day, YYYY-MM-DD): switched on and not past its last day; else null. */
+export function freeOffer(s: StoreSettings, today: string = dhakaToday()): ShopFreeOffer | null {
+  if (!s.free_delivery || (s.free_until && today > s.free_until)) return null;
+  return { from: s.free_over, until: s.free_until };
+}
 
 /** The ways a buyer can pay, in the order the checkout lists them (the first is chosen): cash on delivery, then SSLCommerz online. */
 export function storePayments(s: StoreSettings, env: Env): ShopPayment[] {
@@ -235,10 +245,15 @@ export function storePayments(s: StoreSettings, env: Env): ShopPayment[] {
 }
 
 /** What delivery to `districtId` costs for an order of `subtotal`. */
-export function deliveryFee(s: StoreSettings, districtId: number, subtotal: number): number {
-  if (s.free_delivery) return 0;
-  if (s.free_over > 0 && subtotal >= s.free_over) return 0;
+export function deliveryFee(s: StoreSettings, districtId: number, subtotal: number, today: string = dhakaToday()): number {
+  const offer = freeOffer(s, today);
+  if (offer && subtotal >= offer.from) return 0;
   return districtId === s.home_district ? s.fee_home : s.fee_other;
+}
+
+/** What paying on delivery adds to an order whose courier collects `amount` (the goods and the delivery): nothing unless switched on. */
+export function codFee(s: StoreSettings, amount: number): number {
+  return s.cod && s.cod_charge ? codCharge(amount, s.cod_pct, s.cod_min) : 0;
 }
 
 /* ----------------------------------------------------------------------------------------------------------------------- cart */
@@ -304,15 +319,18 @@ export async function quoteCart(env: Env, cart: ShopCartLine[], districtId: numb
     });
   }
   const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
-  const fee = districtId && lines.length ? deliveryFee(settings, districtId, subtotal) : null;
+  const today = dhakaToday();
+  const fee = districtId && lines.length ? deliveryFee(settings, districtId, subtotal, today) : null;
+  const payments = storePayments(settings, env);
   return {
     lines,
     gone,
     subtotal,
     delivery_fee: fee,
+    cod_fee: fee === null ? null : payments.includes("cod") ? codFee(settings, subtotal + fee) : 0,
     total: subtotal + (fee ?? 0),
-    payments: storePayments(settings, env),
-    free_over: settings.free_delivery ? 0 : settings.free_over,
+    payments,
+    free: freeOffer(settings, today),
     rows: kept,
   };
 }
@@ -347,18 +365,20 @@ export async function createShopOrder(env: Env, quote: Awaited<ReturnType<typeof
   const now = nowIso();
   const status: ShopOrderStatus = input.payment === "cod" ? "placed" : "pending";
   const fee = quote.delivery_fee ?? 0;
+  const cod = input.payment === "cod" ? (quote.cod_fee ?? 0) : 0;
   const res = await run(
     env.DB,
-    `INSERT INTO shop_orders (public_id, access_key, status, payment, subtotal, delivery_fee, total, name, phone, email, division_id, district_id, upazila_id,
-                              union_id, place, address, note, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO shop_orders (public_id, access_key, status, payment, subtotal, delivery_fee, cod_fee, total, name, phone, email, division_id, district_id,
+                              upazila_id, union_id, place, address, note, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     publicId,
     accessKey,
     status,
     input.payment,
     quote.subtotal,
     fee,
-    quote.subtotal + fee,
+    cod,
+    quote.subtotal + fee + cod,
     input.name,
     input.phone,
     input.email,
@@ -434,6 +454,7 @@ interface OrderRow {
   payment: ShopPayment;
   subtotal: number;
   delivery_fee: number;
+  cod_fee: number;
   total: number;
   name: string;
   phone: string;
@@ -467,6 +488,7 @@ export async function shopOrderDTO(env: Env, row: OrderRow): Promise<ShopOrderDT
     payment: row.payment,
     subtotal: row.subtotal,
     delivery_fee: row.delivery_fee,
+    cod_fee: row.cod_fee,
     total: row.total,
     name: row.name,
     phone: row.phone,

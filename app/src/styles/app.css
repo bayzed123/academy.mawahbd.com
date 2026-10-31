@@ -209,6 +209,17 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .pay-opt small{color:var(--ink-3)}
 /* SSLCommerz refuses this amount lately (the store's limit per payment): said on the option itself, before anyone presses Pay */
 .pay-opt small.pay-limited{display:block;margin-top:2px;color:var(--red-700);font-weight:600}
+/* what paying on delivery adds, said on its option before the buyer chooses */
+.pay-opt small.pay-extra{display:block;margin-top:2px;color:var(--ink-2);font-weight:600}
+/* the free-delivery offer against the cart: how much more gets it, with a bar; or that this order has it */
+.free-note{margin:.7rem 0 0;font-size:.92rem;color:var(--ink-2)}
+.free-note p{margin:0;display:flex;gap:.45rem;align-items:flex-start}
+p.free-note{display:flex;gap:.45rem;align-items:flex-start}
+.free-note .icon{flex:none;color:var(--o-500);margin-top:.2em}
+p.free-note.is-done{color:var(--ok-700);font-weight:600}
+p.free-note.is-done .icon{color:inherit}
+.free-bar{height:6px;margin-top:.45rem;border-radius:999px;background:var(--line-2);overflow:hidden}
+.free-bar span{display:block;height:100%;border-radius:inherit;background:var(--o-500)}
 .pay-ico{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:var(--ivory-2);color:var(--k-800);flex:none}
 .pay-marks{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
 .pay-mark{display:inline-flex;align-items:center;height:26px;padding:0 7px;border-radius:8px;background:#fff;box-shadow:0 0 0 1px var(--line-2)}

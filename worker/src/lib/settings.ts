@@ -75,9 +75,12 @@ export interface Settings {
    */
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
   /**
-   * the tools shop on this website (/shop): closed until the owner opens it, with the delivery charges set (or free delivery chosen).
-   * Delivery costs `fee_home` inside the home district (the shop's own, from the trade licence: Chattogram) and `fee_other` elsewhere;
-   * nothing from `free_over` taka (0 = never). `cod` = cash on delivery, `online` = SSLCommerz (needs the store keys).
+   * the tools shop on this website (/shop): closed until the owner opens it, with the delivery charges set (or free delivery for every
+   * order chosen). Delivery costs `fee_home` inside the home district (the shop's own, from the trade licence: Chattogram) and `fee_other`
+   * elsewhere. The free-delivery offer (`free_delivery` on) makes it nothing for orders from `free_over` taka (0 = every order), through
+   * `free_until` (a Bangladesh calendar day, YYYY-MM-DD; "" = until switched off). `cod` = cash on delivery, `online` = SSLCommerz (needs
+   * the store keys). With `cod_charge` on, paying on delivery adds `cod_pct` percent of the cash collected (goods and delivery), at least
+   * `cod_min` taka (shared/src/shop.ts codCharge).
    */
   store: {
     enabled: boolean;
@@ -88,6 +91,10 @@ export interface Settings {
     fee_other: number;
     free_over: number;
     free_delivery: boolean;
+    free_until: string;
+    cod_charge: boolean;
+    cod_pct: number;
+    cod_min: number;
     /** how long delivery takes, in the owner's words ("2–3 days inside Chattogram, 3–5 days elsewhere") — shown at checkout */
     delivery_bn: string;
     delivery_en: string;
@@ -145,7 +152,23 @@ export const SETTING_DEFAULTS: Settings = {
   chatbot: { enabled: true, greeting_bn: "", greeting_en: "", faq_bn: "", faq_en: "" },
   shop: { enabled: true, url: "", label_bn: "দোকান", label_en: "Shop" },
   // Chattogram district (worker/src/data/bd-geo.ts), where the shop is; no charges are made up: the owner sets them before opening
-  store: { enabled: false, cod: true, online: true, home_district: 8, fee_home: 0, fee_other: 0, free_over: 0, free_delivery: false, delivery_bn: "", delivery_en: "" },
+  // the cash-on-delivery charge starts off, at the couriers' own 1% for when the owner switches it on
+  store: {
+    enabled: false,
+    cod: true,
+    online: true,
+    home_district: 8,
+    fee_home: 0,
+    fee_other: 0,
+    free_over: 0,
+    free_delivery: false,
+    free_until: "",
+    cod_charge: false,
+    cod_pct: 1,
+    cod_min: 0,
+    delivery_bn: "",
+    delivery_en: "",
+  },
   notifications: { emails: [], off: [] },
   sms: { enabled: true, sender_id: "", with_email: true },
   onboarding: { dismissed: false },

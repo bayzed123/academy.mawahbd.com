@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SHOP_MAX_QTY, percentOff, type GeoPlaceDTO, type ShopCardDTO, type ShopOrderDTO, type ShopPayment, type ShopQuoteDTO } from "@mawah/shared";
+import { SHOP_MAX_QTY, percentOff, type GeoPlaceDTO, type ShopCardDTO, type ShopFreeOffer, type ShopOrderDTO, type ShopPayment, type ShopQuoteDTO } from "@mawah/shared";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useSite } from "../lib/hooks";
@@ -19,8 +19,10 @@ interface ShopConfig {
   home_district: number;
   fee_home: number;
   fee_other: number;
-  free_over: number;
-  free_delivery: boolean;
+  /** the free-delivery offer running today */
+  free: ShopFreeOffer | null;
+  /** what paying on delivery adds: a percent of the cash collected, at least an amount; null = nothing */
+  cod_charge: { pct: number; min: number } | null;
   delivery_bn: string;
   delivery_en: string;
 }
@@ -55,6 +57,32 @@ function useQuote(lines: { variant_id: number; qty: number }[], districtId: numb
     enabled: lines.length > 0,
     placeholderData: (prev) => prev,
   });
+}
+
+/** The free-delivery offer against this order: how much more gets it (and how far there, as a bar), or that this order has it. */
+function FreeNote({ free, subtotal }: { free: ShopFreeOffer | null; subtotal: number }) {
+  const { t, money, date } = useI18n();
+  if (!free) return null;
+  const until = free.until ? ` ${t("app.shop.freeUntil", { date: date(free.until) })}` : "";
+  if (subtotal >= free.from) {
+    return (
+      <p className="free-note is-done">
+        <Icon name="truck" /> {t("app.shop.freeYes")}
+        {until}
+      </p>
+    );
+  }
+  return (
+    <div className="free-note">
+      <p>
+        <Icon name="truck" /> {t("app.shop.freeMore", { amount: money(free.from - subtotal) })}
+        {until}
+      </p>
+      <div className="free-bar" role="progressbar" aria-label={t("app.shop.freeBar")} aria-valuemin={0} aria-valuemax={free.from} aria-valuenow={subtotal} aria-valuetext={`${money(subtotal)} / ${money(free.from)}`}>
+        <span style={{ width: `${Math.min(100, Math.round((subtotal / free.from) * 100))}%` }} />
+      </div>
+    </div>
+  );
 }
 
 function Thumb({ src }: { src: string | null }) {
@@ -172,9 +200,9 @@ export function ShopCart() {
               </div>
               <div className="sum-row">
                 <span>{t("app.shop.delivery")}</span>
-                <span className="muted">{t("app.shop.deliveryLater")}</span>
+                <span className="muted">{q.free && q.subtotal >= q.free.from ? t("app.shop.free") : t("app.shop.deliveryLater")}</span>
               </div>
-              {q.free_over > 0 && <p className="hint">{t("app.shop.freeOver", { amount: money(q.free_over) })}</p>}
+              <FreeNote free={q.free} subtotal={q.subtotal} />
               <div className="mt">
                 <Link className="btn btn-primary btn-block btn-lg" to="/shop/checkout">
                   {t("app.shop.toCheckout")}
@@ -332,6 +360,14 @@ export function ShopCheckout() {
   };
   const cfg = config.data!;
   const delivery = lang === "bn" ? cfg.delivery_bn || cfg.delivery_en : cfg.delivery_en || cfg.delivery_bn;
+  // paying on delivery adds its charge (worked out by the Worker once the district is known); an online payment does not
+  const codFee = payment === "cod" ? (q.cod_fee ?? 0) : 0;
+  const total = q.total + codFee;
+  const codNote = (p: ShopPayment) => {
+    if (p !== "cod" || !cfg.cod_charge) return null;
+    if (q.cod_fee !== null) return q.cod_fee > 0 ? t("app.shop.codPlus", { amount: money(q.cod_fee) }) : null;
+    return t("app.shop.codPct", { pct: cfg.cod_charge.pct.toLocaleString(lang === "bn" ? "bn-BD" : "en-US") });
+  };
 
   return (
     <>
@@ -434,6 +470,7 @@ export function ShopCheckout() {
                   <span>
                     <b>{t(`app.shop.pay.${p}` as "app.shop.pay.cod")}</b>
                     <small>{t(`app.shop.pay.${p}.sub` as "app.shop.pay.cod.sub")}</small>
+                    {codNote(p) && <small className="pay-extra">{codNote(p)}</small>}
                   </span>
                 </label>
               ))}
@@ -509,13 +546,20 @@ export function ShopCheckout() {
               <span>{t("app.shop.delivery")}</span>
               <span>{q.delivery_fee === null ? <span className="muted">{t("app.shop.chooseDistrict")}</span> : q.delivery_fee === 0 ? t("app.shop.free") : money(q.delivery_fee)}</span>
             </div>
+            {codFee > 0 && (
+              <div className="sum-row">
+                <span>{t("app.shop.codFee")}</span>
+                <span>{money(codFee)}</span>
+              </div>
+            )}
             <div className="sum-row total">
               <span>{t("label.total")}</span>
-              <span>{money(q.total)}</span>
+              <span>{money(total)}</span>
             </div>
+            <FreeNote free={q.free} subtotal={q.subtotal} />
             <div className="mt">
               <Button className="btn-primary btn-block btn-lg" type="submit" busy={place.isPending}>
-                {payment === "cod" ? t("app.shop.placeCod", { amount: money(q.total) }) : t("app.checkout.place", { amount: money(q.total) })}
+                {payment === "cod" ? t("app.shop.placeCod", { amount: money(total) }) : t("app.checkout.place", { amount: money(total) })}
               </Button>
             </div>
             <p className="hint tc">
@@ -599,6 +643,12 @@ export function ShopOrder() {
           <span>{t("app.shop.delivery")}</span>
           <span>{o.delivery_fee === 0 ? t("app.shop.free") : money(o.delivery_fee)}</span>
         </div>
+        {o.cod_fee > 0 && (
+          <div className="sum-row">
+            <span>{t("app.shop.codFee")}</span>
+            <span>{money(o.cod_fee)}</span>
+          </div>
+        )}
         <div className="sum-row total">
           <span>{t("label.total")}</span>
           <span>{money(o.total)}</span>
