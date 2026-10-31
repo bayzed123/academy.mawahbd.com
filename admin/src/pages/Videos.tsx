@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { facebookNeedsOwnAddress, videoEmbed, videoThumb } from "@mawah/shared";
+import { videoEmbed, videoThumb } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -64,9 +64,8 @@ export function Videos() {
       csv={false}
       trash
       preview={(values) => {
-        // nothing to show for an empty or unknown address (no empty box above the form)
-        const url = String(values.url ?? "");
-        return videoEmbed(url) || facebookNeedsOwnAddress(url) ? <VideoLinkHelp url={url} /> : null;
+        // nothing to show for an empty or unknown address (no empty box above the form); a Facebook or Drive video is explained
+        return <VideoLinkHelp url={String(values.url ?? "")} publicPage />;
       }}
       filters={[{ key: "active", label: t("label.status"), options: [{ value: "1", label: t("adm.videos.on") }, { value: "0", label: t("adm.videos.off") }] }]}
       toolbarExtra={

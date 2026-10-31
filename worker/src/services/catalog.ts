@@ -1,10 +1,11 @@
-import type {
-  Accent,
-  CategoryDTO,
-  CourseCardDTO,
-  CourseStatus,
-  CurriculumModuleDTO,
-  LessonType,
+import {
+  playsOnPublicPages,
+  type Accent,
+  type CategoryDTO,
+  type CourseCardDTO,
+  type CourseStatus,
+  type CurriculumModuleDTO,
+  type LessonType,
 } from "@mawah/shared";
 import type { Env } from "../env";
 import { all, first, likeEscape, qs, safeJson } from "./../lib/db";
@@ -16,7 +17,7 @@ import { all, first, likeEscape, qs, safeJson } from "./../lib/db";
 
 const CARD_COLUMNS = `
   c.id, c.slug, c.title_bn, c.title_en, c.short_bn, c.short_en, c.banner_key, c.icon, c.price, c.status, c.level,
-  c.rating_avg, c.rating_count, c.lesson_count, c.featured,
+  c.rating_avg, c.rating_count, c.lesson_count, c.featured, c.demo_url AS card_demo,
   cat.slug AS cat_slug, cat.name_bn AS cat_name_bn, cat.name_en AS cat_name_en, cat.accent AS cat_accent, cat.icon AS cat_icon`;
 
 interface CardRow {
@@ -35,6 +36,7 @@ interface CardRow {
   rating_count: number;
   lesson_count: number;
   featured: number;
+  card_demo: string | null;
   cat_slug: string | null;
   cat_name_bn: string | null;
   cat_name_en: string | null;
@@ -59,6 +61,8 @@ export function toCard(r: CardRow): CourseCardDTO {
     rating_count: r.rating_count,
     lesson_count: r.lesson_count,
     featured: !!r.featured,
+    // the same rule the class page plays its demo by
+    has_demo: playsOnPublicPages(r.card_demo ?? ""),
     category: r.cat_slug
       ? { slug: r.cat_slug, name_bn: r.cat_name_bn ?? "", name_en: r.cat_name_en ?? "", accent: r.cat_accent ?? "snack", icon: r.cat_icon ?? "cake" }
       : null,

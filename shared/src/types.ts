@@ -35,6 +35,8 @@ export interface CourseCardDTO {
   rating_count: number;
   lesson_count: number;
   featured: boolean;
+  /** the class has a demo anyone can watch on its page before enrolling (the card says so) */
+  has_demo: boolean;
   category: Pick<CategoryDTO, "slug" | "name_bn" | "name_en" | "accent" | "icon"> | null;
 }
 
