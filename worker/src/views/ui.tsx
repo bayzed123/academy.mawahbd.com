@@ -322,6 +322,14 @@ export const CourseCard = ({ course, ctx, eager = false, headingLevel = 3 }: { c
             <Icon name={soon ? "clock" : "check"} />
             {ctx.t(soon ? "stock.out" : "stock.in")}
           </span>
+          {/* a class with a demo anyone can watch says so, and goes straight to it */}
+          {course.has_demo && (
+            <a class="card-demo" href={`${detail}#demo`}>
+              <Icon name="video" />
+              {ctx.t("card.demo")}
+              <span class="vh"> — {loc(course, "title", ctx.lang)}</span>
+            </a>
+          )}
           {course.level && (
             <span>
               <Icon name="layers" />

@@ -459,10 +459,11 @@
   1. **+ যোগ করুন** → ইউটিউব বা ভিমিও ভিডিওর ঠিকানা দিন, বাংলা ও ইংরেজি শিরোনাম লিখুন → **সংরক্ষণ করুন**। ফেসবুক ভিডিওর ঠিকানা নেওয়া হয় না (ওয়েবসাইট সেগুলো চালাতে পারে না)।
   2. তালিকার সুইচ দিয়ে প্রতিটি ভিডিও চালু/বন্ধ করুন; “ক্রম”-এ ছোট সংখ্যা আগে আসে।
   3. হোম পেজে ভিডিওর ছবি ও প্লে বোতাম দেখায়; চাপলে ভিডিও পাতাতেই চলে, অন্য কোথাও যায় না। একটিও চালু না থাকলে অংশটি দেখায় না।
-* **ডেমো ক্লাস (প্রতিটি ক্লাসে আলাদা)** — *ক্লাস → ক্লাসটি খুলুন → বিবরণ → ডেমো ক্লাস*:
-  1. **ডেমো ক্লাসের ভিডিও** ঘরে ইউটিউব বা ভিমিও ঠিকানা দিন — নিচে সঙ্গে সঙ্গে দেখায় এটি ক্লাসের পাতায় চলবে কি না, আর “এখানে চালান” দিয়ে দেখে নিতে পারেন।
+* **ডেমো ক্লাস (প্রতিটি ক্লাসে আলাদা)** — *ক্লাস* তালিকার **ডেমো ক্লাস** কলামে প্রতিটি ক্লাসের পাশে **ডেমো যোগ করুন** (ডেমো থাকলে লেখা থাকে **ডেমো আছে**) → ক্লাসের নিজের **ডেমো ক্লাস** ট্যাব খোলে (ক্লাসটি খুলে *ডেমো ক্লাস* ট্যাবেও যাওয়া যায়):
+  1. **ডেমো ক্লাসের ভিডিও** ঘরে ইউটিউব বা ভিমিও ঠিকানা দিন (ইউটিউবে *Share → Copy link*) — নিচে সঙ্গে সঙ্গে দেখায় এটি ক্লাসের পাতায় চলবে কি না, আর “এখানে চালান” দিয়ে দেখে নিতে পারেন। ইউটিউবের **“Unlisted”** ভিডিওও চলে, তাই চ্যানেলে না দেখিয়েও ডেমো দেওয়া যায়।
   2. ডেমোর শিরোনাম ও কয়েক লাইন বিবরণ (বাংলা ও ইংরেজি) লিখুন → **সংরক্ষণ করুন**।
-  3. ক্লাসের পাতায় ছবি ও বিবরণের ঠিক নিচে **“ডেমো ক্লাস দেখুন”** অংশ আসে (ভিডিওর কোণে “ফ্রি ডেমো” লেখা), আর দামের বাক্সে **“ডেমো ক্লাস দেখুন”** বোতাম — একবার চাপলেই নিচে গিয়ে ভিডিও চলতে শুরু করে। ঘর খালি রাখলে ডেমো দেখায় না।
+  3. ক্লাসের পাতায় ছবি ও বিবরণের ঠিক নিচে **“ডেমো ক্লাস দেখুন”** অংশ আসে (ভিডিওর কোণে “ফ্রি ডেমো” লেখা), আর দামের বাক্সে **“ডেমো ক্লাস দেখুন”** বোতাম — একবার চাপলেই নিচে গিয়ে ভিডিও চলতে শুরু করে। সব ক্লাসের তালিকায় সেই ক্লাসের কার্ডে **“ফ্রি ডেমো ক্লাস”** লেখা থাকে — চাপলে সোজা ডেমোতে যায়। ঘর খালি রাখলে ডেমো দেখায় না।
+  * **ফেসবুক বা গুগল ড্রাইভের ভিডিও** যে পেজ সবাই দেখেন সেখানে চলে না — ঘরে দিলে সঙ্গে সঙ্গে তা বলে দেয়। ভিডিওটি ইউটিউবে (Unlisted হলেও চলবে) আপলোড করে সেই লিংক দিন।
 * **সার্টিফিকেট** — নতুন ডিজাইন: বাঁদিকে কালো অংশে লোগো ও কিউআর কোড, শিক্ষার্থীর নাম বড় করে, ক্লাসের নাম কমলা, তারিখ, সনদ নম্বর আর কমলা সিল। ডিজাইনটি দেখতে: *সার্টিফিকেট → ডিজাইন দেখুন* (নমুনায় “নমুনা” লেখা থাকে)।
   * লেসনসহ ক্লাস: শিক্ষার্থী সব লেসন শেষ করলে নিজে থেকেই ইস্যু হয় (আগের মতো)।
   * **লাইভ ক্লাস (অ্যাপে লেসন নেই):** *সার্টিফিকেট → সার্টিফিকেট ইস্যু করুন* → ক্লাস বেছে নিন → “ভর্তি থাকা সবাই, যাদের এখনো নেই” → **ইস্যু করুন**। একজনকে দিতে: *শিক্ষার্থী → শিক্ষার্থী খুলুন → ক্লাসের সারিতে “সার্টিফিকেট ইস্যু করুন”*।
@@ -919,10 +920,11 @@ The whole website and the students' app are now on a clean, flat black — no pa
   1. **+ Add** → paste a YouTube or Vimeo video's address, write the title in Bangla and English → **Save**. A Facebook video's address is not taken (the website cannot play those).
   2. Switch each video on or off with the switch in the list; under “Order”, smaller numbers come first.
   3. The home page shows each video's picture with a play button; pressed, it plays right there on the page. With none switched on, the section is not shown.
-* **Demo class (one for each class)** — *Classes → open the class → Details → Demo class*:
-  1. Paste a YouTube or Vimeo address in **Demo class video** — right under it you see whether it will play on the class page, and “Play here” lets you watch it.
+* **Demo class (one for each class)** — in the *Classes* list, the **Demo class** column has **Add demo** beside every class (**Demo added** once it has one) → the class's own **Demo class** tab opens (you can also open the class and choose the *Demo class* tab):
+  1. Paste a YouTube or Vimeo address in **Demo class video** (on YouTube: *Share → Copy link*) — right under it you see whether it will play on the class page, and “Play here” lets you watch it. An **“Unlisted”** YouTube video works too, so a demo need not be on your channel.
   2. Write the demo's title and a few lines (Bangla and English) → **Save**.
-  3. The class page shows **“Watch a demo class”** right under its picture and description (with “Free demo” on the video's corner), and the price box gets a **“Watch the demo class”** button — one press goes down to the video and starts it. With the box empty, no demo is shown.
+  3. The class page shows **“Watch a demo class”** right under its picture and description (with “Free demo” on the video's corner), and the price box gets a **“Watch the demo class”** button — one press goes down to the video and starts it. In every list of classes, the class's card says **“Free demo class”**, which goes straight to it. With the box empty, no demo is shown.
+  * **Facebook and Google Drive videos** cannot play on the pages every visitor sees — the box says so as soon as you paste one. Upload the video to YouTube (Unlisted is fine) and paste that link.
 * **Certificates** — a new design: a black band on the left with the logo and a QR code, the student's name large, the class in orange, the date, the certificate ID and an orange seal. To see it: *Certificates → See the design* (the sample is marked SAMPLE).
   * Classes with lessons: issued by itself when a student finishes every lesson (as before).
   * **Classes taught live (no lessons in the app):** *Certificates → Issue certificates* → choose the class → “Everyone enrolled who has none yet” → **Issue**. For one student: *Students → open the student → “Issue certificate” on the class's row*.

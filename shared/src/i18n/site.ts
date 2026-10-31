@@ -208,6 +208,7 @@ const en = {
 
   "card.by": "by {name}",
   "card.lessons": "{n} lessons",
+  "card.demo": "Free demo class",
   "card.notify_hint": "Get an email when it launches",
   "card.notify_ph": "Your email",
 
@@ -649,6 +650,7 @@ const bn: Record<keyof typeof en, string> = {
 
   "card.by": "{name}",
   "card.lessons": "{n}টি লেসন",
+  "card.demo": "ফ্রি ডেমো ক্লাস",
   "card.notify_hint": "চালু হলে ইমেইলে জানুন",
   "card.notify_ph": "আপনার ইমেইল",
 

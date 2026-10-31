@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
+import { playsOnPublicPages } from "@mawah/shared";
 import { adm } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -7,7 +8,7 @@ import type { CourseRow, ListResponse } from "../lib/types";
 import { isActive, useSetActive } from "../lib/visibility";
 import { ResourcePage } from "../components/ResourcePage";
 import { CourseStateChip } from "../components/CourseState";
-import { Icon, Switch } from "../components/ui";
+import { Chip, Icon, Switch } from "../components/ui";
 
 export function useCategoryOptions() {
   const { pick } = useI18n();
@@ -76,6 +77,27 @@ export function Courses() {
               <Switch checked={isActive(r)} disabled={!can("courses:write")} onChange={(x) => void setActive(r, x)} label={t("adm.course.toggle", { name: pick(r, "title") })} hideLabel />
             </span>
           ),
+        },
+        {
+          // the demo class, one click away for every class: added (opens its tab) or "+ Add demo"
+          key: "demo",
+          label: t("adm.f.demoSection"),
+          render: (r) =>
+            playsOnPublicPages(r.demo_url ?? "") ? (
+              <Link to={`/courses/${r.id}/edit?tab=demo`} className="chip-link" onClick={(e) => e.stopPropagation()}>
+                <Chip tone="ok">
+                  <Icon name="play" /> {t("adm.courses.demoYes")}
+                  <span className="vh"> — {pick(r, "title")}</span>
+                </Chip>
+              </Link>
+            ) : can("courses:write") ? (
+              <Link to={`/courses/${r.id}/edit?tab=demo`} className="btn btn-outline btn-sm" onClick={(e) => e.stopPropagation()}>
+                <Icon name="plus" /> {t("adm.courses.demoAdd")}
+                <span className="vh"> — {pick(r, "title")}</span>
+              </Link>
+            ) : (
+              <span className="muted">—</span>
+            ),
         },
         {
           key: "lessons",

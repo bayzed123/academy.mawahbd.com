@@ -29,6 +29,7 @@
           "rating_count": "number",
           "lesson_count": "number",
           "featured": "boolean",
+          "has_demo": "boolean",
           "category": "object|null"
         },
         "$min": 1

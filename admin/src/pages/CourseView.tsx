@@ -1,6 +1,6 @@
 import { Link, Navigate, useParams, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { formatDuration } from "@mawah/shared";
+import { formatDuration, playsOnPublicPages } from "@mawah/shared";
 import { adm } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -169,6 +169,18 @@ export function CourseView() {
           <div>
             <dt>{t("adm.f.featured")}</dt>
             <dd>{c.featured ? t("adm.yes") : t("adm.no")}</dd>
+          </div>
+          <div>
+            <dt>{t("adm.f.demoSection")}</dt>
+            <dd>
+              {playsOnPublicPages(c.demo_url ?? "") ? (
+                <Link to={`/courses/${id}/edit?tab=demo`}>{t("adm.courses.demoYes")}</Link>
+              ) : canWrite ? (
+                <Link to={`/courses/${id}/edit?tab=demo`}>{t("adm.courses.demoAdd")}</Link>
+              ) : (
+                t("adm.no")
+              )}
+            </dd>
           </div>
           <div>
             <dt>{t("adm.course.address")}</dt>

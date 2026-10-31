@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { COURSE_STATUSES, facebookNeedsOwnAddress, videoEmbed } from "@mawah/shared";
+import { COURSE_STATUSES } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -14,7 +14,7 @@ import { Button, Chip, ErrorState, Icon, PageHeader, Panel, Spinner, Tabs, useCo
 import { VideoLinkHelp } from "../components/VideoLinkHelp";
 import { useCategoryOptions, useInstructorOptions } from "./Courses";
 
-type Tab = "details" | "curriculum" | "pictures" | "seo";
+type Tab = "details" | "demo" | "curriculum" | "pictures" | "seo";
 
 const DEFAULTS: Values = {
   title_bn: "", title_en: "", short_bn: "", short_en: "", long_bn: "", long_en: "", banner_key: null, icon: "cake", category_id: null, instructor_id: null,
@@ -63,14 +63,6 @@ export function CourseEditor() {
     { type: "icon", key: "icon", label: t("adm.f.icon"), hint: t("adm.f.iconHint") },
     { type: "markdown", key: "long_bn", label: t("adm.f.longBn"), rows: 10 },
     { type: "markdown", key: "long_en", label: t("adm.f.longEn"), rows: 10 },
-    // the demo class anyone can watch on the class page before enrolling: shown under the description, played right there
-    { type: "section", key: "s0", label: t("adm.f.demoSection") },
-    { type: "url", key: "demo_url", label: t("adm.f.demoUrl"), hint: t("adm.f.demoUrlHint"), maxLength: 300, placeholder: "https://www.youtube.com/watch?v=…" },
-    { type: "custom", key: "demo_play", render: (v) => (videoEmbed(String(v.demo_url ?? "")) || facebookNeedsOwnAddress(String(v.demo_url ?? "")) ? <VideoLinkHelp url={String(v.demo_url ?? "")} /> : null) },
-    { type: "text", key: "demo_title_bn", label: t("adm.f.demoTitleBn"), half: true, maxLength: 120 },
-    { type: "text", key: "demo_title_en", label: t("adm.f.demoTitleEn"), half: true, maxLength: 120 },
-    { type: "textarea", key: "demo_text_bn", label: t("adm.f.demoTextBn"), half: true, maxLength: 600 },
-    { type: "textarea", key: "demo_text_en", label: t("adm.f.demoTextEn"), half: true, maxLength: 600, hint: t("adm.f.demoTextHint") },
     { type: "section", key: "s1", label: t("adm.f.sellingSection") },
     { type: "number", key: "price", label: t("adm.f.coursePrice"), half: true, min: 0, suffix: "৳", hint: t("adm.f.coursePriceHint") },
     { type: "select", key: "status", label: t("adm.course.visibility"), half: true, options: COURSE_STATUSES.map((s) => ({ value: s, label: t(`adm.course.vis.${s}` as "adm.course.vis.draft") })), hint: t(`adm.status.hint.${"draft"}` as "adm.status.hint.draft") },
@@ -83,13 +75,23 @@ export function CourseEditor() {
     { type: "switch", key: "featured", label: t("adm.f.featured"), half: true, hint: t("adm.f.featuredHint") },
     { type: "switch", key: "cert_enabled", label: t("adm.f.certEnabled"), half: true, hint: t("adm.f.certHint") },
   ];
+  // the demo class anyone can watch on the class page before enrolling (its own tab, one click from every class in the list): shown under
+  // the description and played right there; a link a public page cannot play (Facebook, Google Drive) is explained before saving
+  const demoFields: FieldDef[] = [
+    { type: "url", key: "demo_url", label: t("adm.f.demoUrl"), hint: t("adm.f.demoUrlHint"), maxLength: 300, placeholder: "https://www.youtube.com/watch?v=…" },
+    { type: "custom", key: "demo_play", render: (v) => <VideoLinkHelp url={String(v.demo_url ?? "")} publicPage /> },
+    { type: "text", key: "demo_title_bn", label: t("adm.f.demoTitleBn"), half: true, maxLength: 120 },
+    { type: "text", key: "demo_title_en", label: t("adm.f.demoTitleEn"), half: true, maxLength: 120 },
+    { type: "textarea", key: "demo_text_bn", label: t("adm.f.demoTextBn"), half: true, maxLength: 600 },
+    { type: "textarea", key: "demo_text_en", label: t("adm.f.demoTextEn"), half: true, maxLength: 600, hint: t("adm.f.demoTextHint") },
+  ];
   const seoFields: FieldDef[] = [
     { type: "text", key: "seo_title_bn", label: t("adm.f.seoTitleBn"), half: true, maxLength: 120 },
     { type: "text", key: "seo_title_en", label: t("adm.f.seoTitleEn"), half: true, maxLength: 120 },
     { type: "textarea", key: "seo_desc_bn", label: t("adm.f.seoDescBn"), half: true, maxLength: 320 },
     { type: "textarea", key: "seo_desc_en", label: t("adm.f.seoDescEn"), half: true, maxLength: 320 },
   ];
-  const all = [...detailFields, ...seoFields];
+  const all = [...detailFields, ...demoFields, ...seoFields];
 
   const [values, setValues] = useState<Values>(DEFAULTS);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -122,7 +124,12 @@ export function CourseEditor() {
       if (!id) navigate(`/courses/${res.item.id}/edit?tab=curriculum`, { replace: true });
     },
     onError: (e) => {
-      setErrors(fieldErrors(e));
+      const errs = fieldErrors(e);
+      setErrors(errs);
+      // a field refused on another tab (the demo's link, a search title): that tab opens, so the owner sees what to change
+      const key = Object.keys(errs)[0];
+      const home: Tab | null = !key ? null : demoFields.some((f) => f.key === key) ? "demo" : seoFields.some((f) => f.key === key) ? "seo" : detailFields.some((f) => f.key === key) ? "details" : null;
+      if (home && home !== tab) setParams(home === "details" ? {} : { tab: home });
       toast(e instanceof ApiError && e.code === "validation" ? t("err.validation") : t(`err.${e instanceof ApiError ? e.code : "generic"}` as "err.generic"), true);
     },
   });
@@ -183,6 +190,7 @@ export function CourseEditor() {
         onChange={(v) => setParams(v === "details" ? {} : { tab: v })}
         tabs={[
           { value: "details", label: t("adm.course.tab.details") },
+          { value: "demo", label: t("adm.f.demoSection") },
           { value: "curriculum", label: t("adm.course.curriculum"), count: c?.lesson_count },
           { value: "pictures", label: t("adm.course.tab.pictures"), count: pictureCount.data },
           { value: "seo", label: t("adm.course.tab.seo") },
@@ -203,7 +211,8 @@ export function CourseEditor() {
       ) : (
         <Panel>
           {tab === "details" && <p className="hint status-hint">{statusHint}</p>}
-          <FormFields fields={tab === "seo" ? seoFields : detailFields} values={values} errors={errors} onChange={set} idPrefix="c" />
+          {tab === "demo" && <p className="hint">{t("adm.f.demoIntro")}</p>}
+          <FormFields fields={tab === "seo" ? seoFields : tab === "demo" ? demoFields : detailFields} values={values} errors={errors} onChange={set} idPrefix="c" />
           {tab === "seo" && <p className="hint">{t("adm.f.seoNote")}</p>}
         </Panel>
       )}

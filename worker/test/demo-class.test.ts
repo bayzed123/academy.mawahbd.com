@@ -107,4 +107,24 @@ describe("a class's demo class", () => {
     expect(x).not.toContain('" onmouseover="x');
     expect(demoOf(x)).toContain("&lt;b&gt;bold&lt;/b&gt;");
   });
+
+  it("puts “Free demo class” on the class's card in every list, going straight to the demo — only for a demo the page can play", async () => {
+    const tag = `demo-card-${Date.now().toString(36)}`;
+    const withDemo = await makeClass({ url: "https://youtu.be/dQw4w9WgXcQ" });
+    const without = await makeClass();
+    const byHand = await makeClass({ url: "https://www.facebook.com/watch/?v=1234567890123456" }); // saved before the check, or by hand
+    for (const c of [withDemo, without, byHand]) await env.DB.prepare("UPDATE courses SET short_en = ? WHERE id = ?").bind(`${tag} ${c.slug}`, c.id).run();
+
+    const api = (await json(await new Client().get(`/api/courses?q=${tag}&per_page=10`))).courses as { slug: string; has_demo: boolean }[];
+    expect(Object.fromEntries(api.map((x) => [x.slug, x.has_demo]))).toEqual({ [withDemo.slug]: true, [without.slug]: false, [byHand.slug]: false });
+
+    const cardOf = (html: string, href: string) => html.split('<article class="card').find((x) => x.includes(`href="${href}"`)) ?? "";
+    const en = await page(`/en/courses?q=${tag}`);
+    expect(cardOf(en, `/en/courses/${withDemo.slug}`)).toContain(`<a class="card-demo" href="/en/courses/${withDemo.slug}#demo">`);
+    expect(cardOf(en, `/en/courses/${withDemo.slug}`)).toContain("Free demo class");
+    for (const c of [without, byHand]) expect(cardOf(en, `/en/courses/${c.slug}`)).not.toContain("card-demo");
+    const bn = await page(`/courses?q=${tag}`);
+    expect(cardOf(bn, `/courses/${withDemo.slug}`)).toContain(`<a class="card-demo" href="/courses/${withDemo.slug}#demo">`);
+    expect(cardOf(bn, `/courses/${withDemo.slug}`)).toContain("ফ্রি ডেমো ক্লাস");
+  });
 });
