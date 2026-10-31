@@ -153,8 +153,9 @@ export function Layout(props: LayoutProps) {
   const ids = chrome ? ctx.track : NO_TRACKING;
   const measuring = isTracking(ids);
   const tsKey = turnstileEnabled(env) ? env.TURNSTILE_SITE_KEY : "";
-  // the announcement bar (with a countdown to the end of the offer and a button, when the owner set them): see views/topbar.tsx
-  const bar = chrome ? topBar(ctx) : null;
+  // the announcement bar (with a countdown to the end of the offer and a button, when the owner set them): see views/topbar.tsx. It is
+  // for the landing pages only (Admin → Landing pages): the home page, the classes and every other page stay without it
+  const bar = chrome && props.landing ? topBar(ctx) : null;
   const counting = bar !== null && bar.end !== null;
   // with its country code (a number written the local way, 01…, gets 880): WhatsApp's links need it
   const wa = waNumber(settings.contact.whatsapp);

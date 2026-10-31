@@ -183,7 +183,7 @@ import { inView, stagger } from "framer-motion/dom";
     };
     if (tick()) var cdTimer = setInterval(function () { if (!tick()) clearInterval(cdTimer); }, 1000);
     // the sticky top's real height (on a phone the words above the time take one line or two; the bar goes at zero), so that a jump to a
-    // part of the page (#demo, #reviews …) lands just below it (marketing/site.css: html.has-topbar)
+    // part of the landing page lands just below it (marketing/site.css: html.has-topbar)
     var sticky = cd.parentElement;
     if (sticky && window.ResizeObserver) new ResizeObserver(function () { d.documentElement.style.setProperty("--top-h", sticky.offsetHeight + "px"); }).observe(sticky);
   }

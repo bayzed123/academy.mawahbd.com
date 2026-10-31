@@ -6,8 +6,8 @@
 .announce{background:#000;color:#fff;text-align:center;font-size:.92rem;padding:.55rem 1rem;line-height:1.5;border-bottom:1px solid rgba(255,255,255,.1)}
 .announce a{color:#fff;text-decoration:underline}
 .top{position:sticky;top:0;z-index:50}
-/* with the countdown in the sticky top, a jump to a part of the page (#reviews …) lands below it: --top-h is the top's measured height
-   (marketing/site.js 7), as the words above the time take one line or two on a phone */
+/* with the countdown in the sticky top (landing pages only), a jump to a part of the page lands below it: --top-h is the top's
+   measured height (marketing/site.js 7), as the words above the time take one line or two on a phone */
 html.has-topbar{scroll-padding-top:calc(var(--top-h,138px) + 12px)}
 /* the countdown bar: the owner's offer on a band of the site's own accent (orange at night, red by day — theme.css), the time left in
    solid boxes and one button in the same colours, all centred; on a phone the words sit above the time and the button */
@@ -376,7 +376,6 @@ html.offer-open{overflow:hidden}
 @media (min-width:960px){
   .faq-grid{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
   .faq-side{position:sticky;top:104px}
-  .has-topbar .faq-side{top:164px}
 }
 
 /* "still have a question?": always a dark card, so it reads the same on the ivory band and on the page */

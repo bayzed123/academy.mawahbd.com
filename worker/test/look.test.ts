@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { dhakaMinuteMs, formatDateTime, timeLeft } from "@mawah/shared";
 import { COURSE_CSS, CSS, DOC_CSS, FONTS_CSS, SITE_FONTS_BN_CSS, SITE_FONTS_EN_CSS } from "../src/generated/assets";
 import { SETTING_DEFAULTS, setSetting } from "../src/lib/settings";
@@ -7,9 +7,9 @@ import { messengerHref } from "../src/views/topbar";
 import { Client, env, firstCourse, freshState, json, loginStaff } from "./helpers";
 
 /*
- * The working parts of the dark look that are more than colours. The announcement bar's countdown is always the owner's own end of the
- * offer: it shows only until then, the owner can switch it off and on, and its end time and button are checked before they are stored. The Messenger button is for the owner's
- * Facebook page only. The class page and the documents send their own styles, so every other page stays as light as before, and the
+ * The working parts of the dark look that are more than colours. The announcement bar is for the landing pages only, and its countdown
+ * is always the owner's own end of the offer: it shows only until then, the owner can switch it off and on, and its end time and button
+ * are checked before they are stored. The Messenger button is for the owner's Facebook page only. The class page and the documents send their own styles, so every other page stays as light as before, and the
  * site's text never jumps when a font comes late.
  */
 const text = async (path: string) => (await new Client().get(path)).text();
@@ -37,13 +37,27 @@ afterEach(async () => {
 /** The countdown bar of a page: what is inside the sticky top, before the header. */
 const topOf = (page: string) => /<div class="top"><div class="topbar has-cd" data-countdown="([^"]+)">([\s\S]*?)<header class="site-header">/.exec(page);
 
+/** A published landing page (Admin → Landing pages), in English and in Bangla: the only pages the bar is for. */
+let lpEn = "";
+let lpBn = "";
+beforeAll(async () => {
+  const { client: admin } = await loginStaff();
+  const made = await admin.post("/api/admin/landing", { title_bn: "ঈদের অফারের পাতা", title_en: `Eid offer page ${Date.now().toString(36)}`, description_bn: "", description_en: "", status: "draft" });
+  const { id, slug } = (await json(made)).item as { id: number; slug: string };
+  const block = { type: "text", heading_bn: "অফার", heading_en: "The offer", body_bn: "তিনটি ক্লাস", body_en: "Three classes" };
+  expect((await admin.put(`/api/admin/landing/${id}/blocks`, { blocks: [block] })).status).toBe(200);
+  expect((await admin.patch(`/api/admin/landing/${id}`, { status: "published" })).status).toBe(200);
+  lpEn = `/en/l/${slug}`;
+  lpBn = `/l/${slug}`;
+});
+
 describe("the announcement bar's countdown", () => {
-  it("counts down to the owner's end time, in both languages, with a button, and stays at the top with the header", async () => {
+  it("counts down to the owner's end time on the landing pages, in both languages, with a button, and stays at the top with the header", async () => {
     const end = dhakaLocal(Date.now() + ((3 * 24 + 2) * 60 + 30) * 60_000); // 3 days 2 h 30 min from now (to the minute)
     await setBar({ bn: "ঈদ অফার চলছে", en: "Eid offer is on", ends_at: end, link: "/courses" });
     const iso = new Date(dhakaMinuteMs(end)!).toISOString();
 
-    const en = await text("/en");
+    const en = await text(lpEn);
     expect(en).toContain('<html lang="en" class="has-topbar">');
     const bar = topOf(en);
     expect(bar, "the bar sits in the sticky top, before the header").not.toBeNull();
@@ -59,7 +73,7 @@ describe("the announcement bar's countdown", () => {
     // no words for the button: the usual "Join now", to the page in the visitor's language
     expect(bar![2]).toMatch(/<\/div><a class="btn btn-primary btn-sm" href="\/en\/courses">Join now<\/a><\/div><\/div><\/div>$/);
 
-    const bn = await text("/");
+    const bn = await text(lpBn);
     const bnBar = topOf(bn);
     expect(bnBar![2]).toContain('<p class="topbar-text"><svg class="icon" aria-hidden="true" focusable="false"><use href="/sprite.svg#i-clock"></use></svg>ঈদ অফার চলছে</p>');
     expect(bnBar![2]).toContain(`aria-label="অফার শেষ হবে ${formatDateTime(iso, "bn")}"`);
@@ -68,26 +82,33 @@ describe("the announcement bar's countdown", () => {
 
     // the owner's own words for the button
     await setBar({ en: "Eid offer is on", ends_at: end, link: "/courses", button_en: "Grab the offer" });
-    expect(topOf(await text("/en"))![2]).toContain('href="/en/courses">Grab the offer</a>');
-    // every public page has it, and a certificate check too (with its own styles)
-    expect(topOf(await text("/en/faq"))).not.toBeNull();
-    expect(topOf(await text("/en/verify"))).not.toBeNull();
+    expect(topOf(await text(lpEn))![2]).toContain('href="/en/courses">Grab the offer</a>');
+    // only the landing pages: the home page, the class list, a class, the FAQ and a certificate check stay without it
+    const course = await firstCourse();
+    for (const path of ["/en", "/", "/en/courses", `/en/courses/${course.slug}`, "/en/faq", "/en/verify"]) {
+      const page = await text(path);
+      expect(page, path).not.toContain('class="has-topbar"');
+      const shown = page.slice(page.indexOf("<body"));
+      for (const trace of ["topbar", "data-countdown", "Eid offer is on"]) expect(shown, `${path}: ${trace}`).not.toContain(trace);
+    }
   });
 
   it("is gone once the end time has passed; without an end time the words scroll away as before; with nothing set there is no bar", async () => {
     await setBar({ en: "Eid offer is on", ends_at: dhakaLocal(Date.now() - 2 * 60_000), link: "/courses" });
-    expect(await text("/en")).toContain('<html lang="en">');
-    const over = await body("/en");
+    expect(await text(lpEn)).toContain('<html lang="en">');
+    const over = await body(lpEn);
     for (const trace of ["topbar", 'class="announce"', "data-countdown", "Eid offer is on"]) expect(over, trace).not.toContain(trace);
 
     await setBar({ en: "New classes every month", link: "/courses", button_en: "See them" });
-    const plain = await text("/en");
+    const plain = await text(lpEn);
     expect(plain).toContain('<div class="announce">New classes every month <a href="/en/courses">See them</a></div><div class="top"><header class="site-header">');
     expect(plain).not.toContain("data-countdown");
     expect(plain).toContain('<html lang="en">');
+    // the words alone are for the landing pages only too
+    expect(await body("/en")).not.toContain('class="announce"');
 
     await setBar({});
-    const none = await body("/en");
+    const none = await body(lpEn);
     for (const trace of ["topbar", 'class="announce"']) expect(none, trace).not.toContain(trace);
   });
 
@@ -101,25 +122,25 @@ describe("the announcement bar's countdown", () => {
     expect(off.status).toBe(200);
     expect((await json(off)).settings.announcement).toEqual({ ...offer, enabled: false });
     freshState();
-    expect(await text("/en")).toContain('<html lang="en">');
-    for (const path of ["/en", "/", "/en/faq"]) {
+    expect(await text(lpEn)).toContain('<html lang="en">');
+    for (const path of [lpEn, lpBn, "/en"]) {
       const page = await body(path);
       for (const trace of ["topbar", "data-countdown", 'class="announce"', "Eid offer is on", "ঈদ অফার চলছে"]) expect(page, `${path}: ${trace}`).not.toContain(trace);
     }
     // a bar without a countdown (the words alone) goes too
     await setBar({ enabled: false, en: "New classes every month" });
-    expect(await body("/en")).not.toContain('class="announce"');
+    expect(await body(lpEn)).not.toContain('class="announce"');
 
     // on again: everything as it was
     const on = await put({ ...offer, enabled: true });
     expect((await json(on)).settings.announcement).toEqual({ ...offer, enabled: true });
     freshState();
-    expect(topOf(await text("/en"))![2]).toContain('href="/en/courses">Grab it</a>');
+    expect(topOf(await text(lpEn))![2]).toContain('href="/en/courses">Grab it</a>');
     // a screen from before the switch sends none: the bar stays on, and so does one stored before the switch existed
     expect((await json(await put(offer))).settings.announcement.enabled).toBe(true);
     await setSetting(env, "announcement", offer, null);
     freshState();
-    expect(topOf(await text("/en"))).not.toBeNull();
+    expect(topOf(await text(lpEn))).not.toBeNull();
     // anything but true or false is refused
     const bad = await put({ ...offer, enabled: "no" });
     expect(bad.status).toBe(422);
