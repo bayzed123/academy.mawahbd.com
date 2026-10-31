@@ -74,7 +74,6 @@ body.has-buybar{padding-bottom:78px}
 @media (min-width:900px){
   .detail{grid-template-columns:minmax(0,1fr) 360px}
   .buy{position:sticky;top:96px}
-  .has-topbar .buy{top:158px}
   .buybar{display:none}
   body.has-buybar{padding-bottom:0}
   body.has-buybar .floats{bottom:max(14px,env(safe-area-inset-bottom))}

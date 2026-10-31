@@ -3,9 +3,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { adminLogin, agree, apiGet, apiSend, offerAnswered, TEST_ADDRESS, uniquePhone, useLang } from "./helpers";
 
 /*
- * The dark look's working parts, in a real browser. The owner sets a countdown in Settings → Announcement bar. Visitors see it tick at the
- * top in both languages, press its Join button, and see the bar go away at the end; the owner can switch it off and on again. The look
- * is flat and still: no glow, pulse or bounce anywhere. For visitors who have not asked for less motion, sections, headings and cards
+ * The dark look's working parts, in a real browser. The owner sets a countdown in Settings → Announcement bar. Visitors of a landing
+ * page see it tick at the top in both languages (never on the home page), press its Join button, and see the bar go away at the end;
+ * the owner can switch it off and on again. The look is flat and still: no glow, pulse or bounce anywhere. For visitors who have not asked for less motion, sections, headings and cards
  * rise 20px and fade in as they come into view (Framer Motion), and a card lifts under the pointer with an orange edge; once everything
  * is in, the page passes the accessibility scan. The class slider moves with its arrows and a mouse drag, and a drag opens nothing. The
  * talk-to-us button opens a card with WhatsApp, Messenger and the assistant, and a "back to the top" button above it appears down the
@@ -16,12 +16,20 @@ test.describe.configure({ mode: "serial" });
 
 let admin: Page;
 let contact: Record<string, unknown>;
+/** a published landing page's address: the countdown bar is for the landing pages only */
+let lp = "";
 test.beforeAll(async ({ browser }) => {
   const ctx = await browser.newContext({ locale: "en-US" });
   await useLang(ctx, "en");
   admin = await ctx.newPage();
   await adminLogin(admin);
   contact = (await apiGet<{ settings: { contact: Record<string, unknown> } }>(admin, "/admin/settings")).settings.contact;
+  const made = await apiSend(admin, "POST", "/admin/landing", { title_bn: "ঈদের অফারের পাতা", title_en: `Eid offer page ${Date.now().toString(36)}`, description_bn: "", description_en: "", status: "draft" });
+  const { id, slug } = (made.body as { item: { id: number; slug: string } }).item;
+  const block = { type: "text", heading_bn: "অফার", heading_en: "The offer", body_bn: "তিনটি ক্লাস একসাথে।", body_en: "Three classes together." };
+  expect((await apiSend(admin, "PUT", `/admin/landing/${id}/blocks`, { blocks: [block] })).status).toBe(200);
+  expect((await apiSend(admin, "PATCH", `/admin/landing/${id}`, { status: "published" })).status).toBe(200);
+  lp = slug;
 });
 test.afterAll(async () => {
   await apiSend(admin, "PUT", "/admin/settings/announcement", { bn: "", en: "" });
@@ -37,7 +45,7 @@ async function axe(page: Page, scope?: string) {
   expect(r.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.nodes[0]?.html.slice(0, 120)}`)).toEqual([]);
 }
 
-test("the owner sets a countdown; visitors see it tick at the top, press Join now, and the bar goes away at the end", async ({ browser }) => {
+test("the owner sets a countdown; visitors of a landing page see it tick at the top, press Join now, and the bar goes away at the end; the home page never shows it", async ({ browser }) => {
   await admin.goto("/admin/settings");
   const form = admin.locator("form").filter({ has: admin.getByLabel("Countdown to (Bangladesh time)") });
   await form.getByLabel("Announcement (English)").fill("Eid offer: a special price on every class");
@@ -53,7 +61,7 @@ test("the owner sets a countdown; visitors see it tick at the top, press Join no
   await offerAnswered(ctx);
   const page = await ctx.newPage();
   await page.clock.install();
-  await page.goto("/en");
+  await page.goto(`/en/l/${lp}`);
   const timer = page.getByRole("timer", { name: /^The offer ends / });
   await expect(timer).toBeVisible();
   await expect(page.locator(".topbar-text")).toHaveText("Eid offer: a special price on every class");
@@ -70,6 +78,13 @@ test("the owner sets a countdown; visitors see it tick at the top, press Join no
   await axe(page, ".top");
   // the button goes where the owner said, in the visitor's language
   await expect(page.getByRole("link", { name: "Join now" })).toHaveAttribute("href", "/en/courses");
+  // the landing pages only: the home page stays clean
+  const home = await ctx.newPage();
+  await home.goto("/en");
+  await expect(home.locator(".site-header")).toBeVisible();
+  await expect(home.locator(".topbar, .announce")).toHaveCount(0);
+  await expect(home.locator("html")).not.toHaveClass(/has-topbar/);
+  await home.close();
   // at the end of the offer the bar goes away by itself
   await page.clock.fastForward(60 * 3600_000); // 60 hours: past the end
   await expect(page.locator(".topbar")).toBeHidden();
@@ -82,7 +97,7 @@ test("the owner sets a countdown; visitors see it tick at the top, press Join no
   await useLang(bn, "bn");
   await offerAnswered(bn);
   const phone = await bn.newPage();
-  await phone.goto("/");
+  await phone.goto(`/l/${lp}`);
   const bnTimer = phone.getByRole("timer", { name: /^অফার শেষ হবে / });
   await expect(bnTimer.locator('[data-cd="d"]')).toHaveText("০২");
   const join = phone.getByRole("link", { name: "এখনই ভর্তি হোন" });
@@ -94,15 +109,14 @@ test("the owner sets a countdown; visitors see it tick at the top, press Join no
   const [w, row] = await Promise.all([words.boundingBox(), phone.locator(".cd-row").boundingBox()]);
   expect(w!.y + w!.height).toBeLessThanOrEqual(row!.y + 1);
   for (const box of [w!, row!]) expect(Math.abs(box.x + box.width / 2 - 180)).toBeLessThan(3);
-  // a jump to a part of a class page (its reviews) lands just below the sticky top, however tall the bar is on this phone
-  const slug = (await apiGet<{ courses: { slug: string }[] }>(phone, "/courses")).courses[0].slug;
-  await phone.goto(`/courses/${slug}`);
+  // a jump to a part of the landing page lands just below the sticky top, however tall the bar is on this phone
   await expect.poll(() => phone.evaluate(() => document.documentElement.style.getPropertyValue("--top-h"))).toMatch(/^\d+px$/);
   const landing = await phone.evaluate(() => {
     document.documentElement.style.scrollBehavior = "auto";
     document.body.append(Object.assign(document.createElement("div"), { style: "height:2000px" })); // room below, whatever the page's length
-    document.getElementById("reviews")!.scrollIntoView();
-    return document.getElementById("reviews")!.getBoundingClientRect().top - document.querySelector(".top")!.getBoundingClientRect().bottom;
+    const part = document.querySelector(".lp-text")!;
+    part.scrollIntoView();
+    return part.getBoundingClientRect().top - document.querySelector(".top")!.getBoundingClientRect().bottom;
   });
   expect(landing).toBeGreaterThanOrEqual(0);
   expect(landing).toBeLessThan(24);
@@ -116,7 +130,7 @@ test("the owner switches the countdown bar off and on again in Settings (Active 
   expect((await apiSend(admin, "PUT", "/admin/settings/announcement", { bn: "ঈদ অফার: সব ক্লাসে বিশেষ দাম", en: words, ends_at: dhakaLocal(Date.now() + 2 * 24 * 3600_000), link: "/courses" })).status).toBe(200);
   await admin.goto("/admin/settings");
   const form = admin.locator("form").filter({ has: admin.getByLabel("Countdown to (Bangladesh time)") });
-  const on = form.getByRole("switch", { name: "Show the bar on the website" });
+  const on = form.getByRole("switch", { name: "Show the bar on the landing pages" });
   const save = () =>
     Promise.all([
       admin.waitForResponse((r) => r.url().endsWith("/api/admin/settings/announcement") && r.request().method() === "PUT" && r.ok()),
@@ -129,12 +143,12 @@ test("the owner switches the countdown bar off and on again in Settings (Active 
   await expect(form.getByText("Inactive", { exact: true })).toBeVisible();
   await save();
 
-  // visitors: no bar at all
+  // visitors of the landing page: no bar at all
   const ctx = await browser.newContext({ locale: "en-US" });
   await useLang(ctx, "en");
   await offerAnswered(ctx);
   const page = await ctx.newPage();
-  await page.goto("/en");
+  await page.goto(`/en/l/${lp}`);
   await expect(page.locator(".site-header")).toBeVisible();
   await expect(page.locator(".topbar, .announce")).toHaveCount(0);
   await expect(page.locator("html")).not.toHaveClass(/has-topbar/);

@@ -4,8 +4,9 @@ import type { PageCtx } from "./ctx";
 import { Icon } from "./ui";
 
 /**
- * The bar at the very top of every page (Admin → Settings → Announcement bar): the owner's words and, when the owner sets them, a live
- * countdown to the end of the offer and a button ("Join now"). The owner can switch the bar off (and on again) without losing its words.
+ * The bar at the very top of the landing pages (Admin → Settings → Announcement bar; never on the home page, the classes or any other
+ * page): the owner's words and, when the owner sets them, a live countdown to the end of the offer and a button ("Join now"). The
+ * owner can switch the bar off (and on again) without losing its words.
  * The countdown is always the owner's own end time — never a made-up one, never one that starts again by itself — and once that time
  * has passed the bar is gone. marketing/site.js moves the numbers every second and hides the bar at zero (a cached page
  * may still carry it a little longer); without the script the numbers are those of when the page was made, and the end time itself is

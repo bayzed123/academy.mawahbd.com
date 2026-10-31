@@ -21,10 +21,10 @@ export interface Settings {
     trade_license: string;
   };
   /**
-   * the bar at the very top of every page: the owner's words, and — when the owner sets them — a countdown to the end of the offer
-   * (`ends_at`, a minute of Bangladesh time like "2026-10-31T23:59"; once it has passed the bar is gone) and a button (a page of this
-   * site or an https address, the same rules as a banner's button). `enabled` off hides the bar at once and keeps everything else for
-   * next time; a setting stored before the switch existed has none, and so stays on.
+   * the bar at the very top of the landing pages (only those): the owner's words, and — when the owner sets them — a countdown to the
+   * end of the offer (`ends_at`, a minute of Bangladesh time like "2026-10-31T23:59"; once it has passed the bar is gone) and a button
+   * (a page of this site or an https address, the same rules as a banner's button). `enabled` off hides the bar at once and keeps
+   * everything else for next time; a setting stored before the switch existed has none, and so stays on.
    */
   announcement: { enabled: boolean; bn: string; en: string; ends_at: string; button_bn: string; button_en: string; link: string };
   payments: {

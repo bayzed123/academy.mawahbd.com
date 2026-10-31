@@ -433,16 +433,17 @@
 3. তীর দিয়ে ব্লক ওপর-নিচ করুন, ময়লার ঝুড়ি দিয়ে সরান, তারপর **সংরক্ষণ করুন**। কোনো ভুল থাকলে (যেমন বোতামের ঠিকানা ঠিক নয়) লাল লেখায় বলে দেয়, কিছুই সংরক্ষিত হয় না।
 4. প্রস্তুত হলে সারির পেনসিল → অবস্থা **প্রকাশিত** → **সংরক্ষণ করুন**। সারির ↗ বোতাম পাতাটি খোলে।
 * প্রতিটি লেখা দুই ভাষায়; এক ভাষা খালি রাখলে সেই ব্লকে অন্য ভাষার লেখা দেখায়।
+* **কাউন্টডাউন বার** (*সেটিংস → … → ঘোষণা বার*) শুধু ল্যান্ডিং পেজগুলোর একেবারে উপরে দেখায় — ওয়েবসাইটের অন্য কোনো পাতায় নয় (অংশ ২৮)।
 * লুকানো বা “শীঘ্রই আসছে” ক্লাসের ব্লক, অনুমোদিত রিভিউ ছাড়া রিভিউ ব্লক, আর নম্বর ছাড়া হোয়াটসঅ্যাপ ব্লক পাতায় দেখায় না — ভুয়া কিছু দেখানো হয় না।
 
 ## ২৮. নতুন ডিজাইন — পরিষ্কার কালো ও কমলা, কাউন্টডাউন বার, মেসেঞ্জার বোতাম
 
 পুরো ওয়েবসাইট আর শিক্ষার্থীদের অ্যাপ এখন পরিষ্কার, সমতল কালো পটভূমিতে — কোনো নকশা, আলো বা ঝাপসা দাগ নেই। ক্লাসের কার্ড, প্রশ্নোত্তর আর ফর্মের ঘর সমতল গাঢ় ধূসর, পাতলা আধা-স্বচ্ছ সাদা রেখায় ঘেরা। বোতাম একটাই কমলা রঙে, আইকনও কমলা; বড় সাদা শিরোনাম, হালকা ধূসর লেখা, Hind Siliguri-এর মোটা অক্ষর। অ্যাডমিন আগের মতোই সাদা থাকে।
-* **কাউন্টডাউন বার** — *সেটিংস → যোগাযোগ, ঘোষণা ও দোকান → ঘোষণা বার*:
+* **কাউন্টডাউন বার** — *সেটিংস → যোগাযোগ, ঘোষণা ও দোকান → ঘোষণা বার (ল্যান্ডিং পেজ)*। বারটি শুধু আপনার **ল্যান্ডিং পেজগুলোতে** দেখায় (*অ্যাডমিন → ল্যান্ডিং পেজ*, ঠিকানা `/l/…`); হোম পেজ, ক্লাসের পাতা বা ওয়েবসাইটের অন্য কোনো পাতায় দেখায় না।
   1. ঘোষণার লেখা (বাংলা ও ইংরেজি) লিখুন।
   2. **কাউন্টডাউন যে সময় পর্যন্ত** — অফারের আসল শেষ সময় দিন (বাংলাদেশ সময়)। নিচে লেখা ওঠে “বারটি … পর্যন্ত কাউন্টডাউন দেখাবে”।
   3. **বোতামের লিংক** — যেমন `/courses`, বা একটি ল্যান্ডিং পেজ `/l/eid-offer`। বোতামের লেখা খালি রাখলে “এখনই ভর্তি হোন” লেখা থাকে।
-  4. **সংরক্ষণ করুন**। প্রতিটি পাতার একেবারে উপরে বারটি দিন : ঘণ্টা : মিনিট : সেকেন্ড গুনতে থাকে, আর স্ক্রল করলেও উপরে থাকে। সময় শেষ হলে বারটি নিজে থেকেই সরে যায়।
+  4. **সংরক্ষণ করুন**। প্রতিটি ল্যান্ডিং পেজের একেবারে উপরে বারটি দিন : ঘণ্টা : মিনিট : সেকেন্ড গুনতে থাকে, আর স্ক্রল করলেও উপরে থাকে। সময় শেষ হলে বারটি নিজে থেকেই সরে যায়।
   * **ফোনে** লেখাটি এক লাইনে থাকে (ছোট একটি ঘড়ির চিহ্নসহ), আর তার নিচে মাঝখানে সময় ও বোতাম। বড় স্ক্রিনে সব এক লাইনে, মাঝখানে। লেখা ছোট রাখুন (৪০ অক্ষরের মতো), তাহলে ফোনে এক লাইনেই ধরবে; বড় লেখা দুই লাইনে যায়।
   * **চালু বা বন্ধ করুন** — একই ঘরের ওপরে **ওয়েবসাইটে বারটি দেখান** সুইচ দিয়ে, তারপর **সংরক্ষণ করুন**। এক মিনিটের মধ্যে বারটি ওয়েবসাইট থেকে সরে যায় (বা ফিরে আসে)। লেখা, সময় ও বোতাম পরের বারের জন্য ঘরেই থেকে যায়। সুইচের পাশে লেখা থাকে **চালু**, **বন্ধ**, অথবা **… তারিখে শেষ হয়েছে** (সময় পেরিয়ে গেছে: আবার দেখাতে নতুন সময় দিন)।
   * কাউন্টডাউন সবসময় আপনার দেওয়া আসল সময় ধরে চলে, কখনো বানানো সময়ে নয়, আর নিজে থেকে আবার শুরু হয় না। সময় না দিলে আগের মতো সাধারণ ঘোষণা দেখায়।
@@ -925,16 +926,17 @@ In *Admin → Landing pages* make your own pages, each at its own address: **maw
 3. Move blocks up and down with the arrows, remove one with the bin, then **Save**. Anything wrong (a button's address that is not safe, for example) is said in red and nothing is stored.
 4. When it is ready: the pencil on its row → status **Published** → **Save**. The ↗ button on the row opens the page.
 * Every block's words are in both languages; if one language is empty, that block shows the other.
+* The **countdown bar** (*Settings → … → Announcement bar*) shows at the very top of the landing pages only, never on the rest of the website (section 28).
 * A block for a hidden or "coming soon" class, a reviews block with no approved review, and a WhatsApp block with no number are left out of the page — nothing made up is ever shown.
 
 ## 28. The new look — clean black and orange, the countdown bar, the Messenger button
 
 The whole website and the students' app are now on a clean, flat black — no patterns, lights or blurry glows. Class cards, questions and form fields are a flat dark grey with a thin see-through white border. Buttons are one solid orange, icons orange too; big white headings, light grey words, bold Hind Siliguri letters. The admin stays light, as before.
-* **Countdown bar** — *Settings → Contact, announcement & shop → Announcement bar*:
+* **Countdown bar** — *Settings → Contact, announcement & shop → Announcement bar (landing pages)*. The bar shows only on your **landing pages** (*Admin → Landing pages*, addresses starting `/l/…`); the home page, the class pages and every other page never show it.
   1. Write the announcement (Bangla and English).
   2. **Countdown to (Bangladesh time)** — the real end of your offer. A line under it says "The bar counts down to …".
   3. **Button link** — for example `/courses`, or a landing page such as `/l/eid-offer`. With the button text left empty, the button says "Join now".
-  4. **Save**. At the very top of every page the bar counts days : hours : minutes : seconds, and stays there while people scroll. When the time is over, the bar goes away by itself.
+  4. **Save**. At the very top of each landing page the bar counts days : hours : minutes : seconds, and stays there while people scroll. When the time is over, the bar goes away by itself.
   * **On a phone** the words sit on one line (with a small clock), and the time and the button sit centred under them. On a wider screen everything is on one centred line. Keep the words short (about 40 letters) so they fit on one line on a phone; longer words take two lines.
   * **Switch it off or on** with **Show the bar on the website** at the top of the same box, then **Save**. Within a minute the bar leaves the website (or comes back). Its words, time and button stay in the box for next time. The label beside the switch says **Active**, **Inactive**, or **Ended on …** (the time has passed: set a new time to show it again).
   * The countdown always runs to the real time you give, never a made-up one, and it never starts again by itself. Without a time, the bar is a plain announcement, as before.
