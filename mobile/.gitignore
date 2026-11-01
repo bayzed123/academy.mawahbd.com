@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# the Android project is made fresh by "expo prebuild" on every build (CI); it is never kept
+android/
+ios/
+.kotlin/
+
+# signing keys and anything like them: never in this repository (it is public)
+*.jks
+*.keystore
+*.p8
+*.p12
+*.pem
+*.key
+*.base64.txt
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+*.orig.*

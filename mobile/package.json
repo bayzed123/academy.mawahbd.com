@@ -1,0 +1,50 @@
+{
+  "name": "mawah-academy-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MAWAH Academy for Android: the study app (React Native + Expo). Reads the same server as mawahacademy.com.",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types --no-warnings \"src/**/*.test.ts\"",
+    "check": "npm run typecheck && npm test",
+    "prebuild:android": "expo prebuild --platform android --clean --no-install"
+  },
+  "dependencies": {
+    "@expo-google-fonts/hind-siliguri": "^0.4.1",
+    "@expo/metro-runtime": "~58.0.14",
+    "@mawah/shared": "file:../shared",
+    "expo": "~58.0.14",
+    "expo-constants": "~58.0.12",
+    "expo-file-system": "~58.0.9",
+    "expo-font": "~58.0.8",
+    "expo-haptics": "~58.0.7",
+    "expo-image": "~58.0.15",
+    "expo-linking": "~58.0.13",
+    "expo-router": "~58.0.23",
+    "expo-screen-capture": "~58.0.5",
+    "expo-secure-store": "~58.0.2",
+    "expo-sharing": "~58.0.19",
+    "expo-splash-screen": "~58.0.10",
+    "expo-status-bar": "~58.0.3",
+    "expo-system-ui": "~58.0.6",
+    "expo-video": "~58.0.11",
+    "expo-web-browser": "~58.0.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.0",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-screens": "~4.30.0",
+    "react-native-svg": "15.16.0",
+    "react-native-web": "~0.21.4",
+    "react-native-webview": "14.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "~22.19.0",
+    "@types/react": "~19.3.0",
+    "typescript": "~6.0.3"
+  }
+}

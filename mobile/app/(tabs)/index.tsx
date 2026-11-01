@@ -1,0 +1,205 @@
+import { loc } from "@mawah/shared/format";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import { useMemo } from "react";
+import { FlatList, useWindowDimensions, View } from "react-native";
+import { useResource } from "../../src/api";
+import { CourseArt, DemoCard, MyCourseCard, ProductCard } from "../../src/components/Cards";
+import { whatsappLink } from "../../src/lib/links";
+import { openApp } from "../../src/open";
+import { usePrefs } from "../../src/prefs";
+import { useSession } from "../../src/session";
+import { RADIUS } from "../../src/theme";
+import type { CourseList, MyCourses, ShopPage, SiteInfo } from "../../src/types";
+import { Btn } from "../../src/ui/Btn";
+import { Card } from "../../src/ui/Card";
+import { Icon } from "../../src/ui/Icon";
+import { Page, SectionTitle } from "../../src/ui/Page";
+import { Press } from "../../src/ui/Press";
+import { ProgressBar } from "../../src/ui/ProgressBar";
+import { CardSkeleton, Skeleton } from "../../src/ui/Skeleton";
+import { Txt } from "../../src/ui/Txt";
+
+export default function Home() {
+  const { c, t, lang } = usePrefs();
+  const { status, me } = useSession();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const signedIn = status === "in";
+
+  const mine = useResource<MyCourses>(signedIn ? "/api/student/courses" : null);
+  const catalog = useResource<CourseList>("/api/courses?per_page=48");
+  const shop = useResource<ShopPage>("/api/shop/products?sort=featured");
+  const site = useResource<SiteInfo>("/api/site");
+
+  const demos = useMemo(() => (catalog.data?.courses ?? []).filter((x) => x.has_demo), [catalog.data]);
+  const courses = mine.data?.courses ?? [];
+  // the class to carry on with: the newest one not finished yet (the list comes newest first)
+  const current = courses.find((m) => m.progress.pct < 100) ?? courses[0];
+  const products = (shop.data?.items ?? []).slice(0, 4);
+  const tile = (width - 16 * 2 - 12) / 2;
+  const wa = site.data ? whatsappLink(site.data.site.contact.whatsapp) : null;
+
+  const refreshing = mine.refreshing || catalog.refreshing || shop.refreshing;
+  const refresh = () => {
+    void mine.refresh();
+    void catalog.refresh();
+    void shop.refresh();
+    void site.refresh();
+  };
+
+  return (
+    <Page onRefresh={refresh} refreshing={refreshing}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Image source={require("../../assets/logo-wide.png")} style={{ width: 86, height: 44, borderRadius: 8 }} contentFit="contain" accessibilityLabel="MAWAH Academy" />
+        <View style={{ flex: 1 }}>
+          <Txt v="heading" numberOfLines={1}>
+            {signedIn && me ? t("home.hello", { name: me.name.split(" ")[0] ?? me.name }) : t("home.welcome")}
+          </Txt>
+          <Txt v="small" color={c.text3} numberOfLines={2}>
+            {t("home.welcomeSub")}
+          </Txt>
+        </View>
+      </View>
+
+      {signedIn ? (
+        mine.loading ? (
+          <CardSkeleton />
+        ) : current ? (
+          <Press
+            onPress={() => router.push(current.resume_lesson_id ? `/lesson/${current.resume_lesson_id}` : `/course/${current.course.slug}`)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t("home.continue")}: ${loc(current.course, "title", lang)}`}
+            style={{ backgroundColor: c.surface, borderRadius: RADIUS.l, borderWidth: 1, borderColor: c.line, overflow: "hidden" }}
+          >
+            <CourseArt course={current.course} height={168} />
+            <View style={{ padding: 16, gap: 10 }}>
+              <Txt v="tiny" color={c.accent} style={{ textTransform: "uppercase", letterSpacing: 0.6 }}>
+                {t("home.continue")}
+              </Txt>
+              <Txt v="title" numberOfLines={2}>
+                {loc(current.course, "title", lang)}
+              </Txt>
+              <ProgressBar pct={current.progress.pct} />
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Txt v="small" color={c.text3}>
+                  {t("learning.progress", { done: current.progress.done, total: current.progress.total })}
+                </Txt>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: c.accent, borderRadius: RADIUS.pill, paddingHorizontal: 14, paddingVertical: 7 }}>
+                  <Icon name="play" size={14} color={c.onAccent} />
+                  <Txt v="label" color={c.onAccent} style={{ fontSize: 13.5 }}>
+                    {t("home.continueCta")}
+                  </Txt>
+                </View>
+              </View>
+            </View>
+          </Press>
+        ) : null
+      ) : (
+        <Card style={{ gap: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" }}>
+              <Icon name="book" size={22} color={c.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Txt v="heading">{t("home.login.title")}</Txt>
+              <Txt v="small" color={c.text2}>
+                {t("home.login.sub")}
+              </Txt>
+            </View>
+          </View>
+          <Btn title={t("home.login.cta")} onPress={() => router.push("/login")} />
+        </Card>
+      )}
+
+      {signedIn && courses.length > 1 ? (
+        <View style={{ gap: 12 }}>
+          <SectionTitle title={t("home.myClasses")} right={<SeeAll onPress={() => router.push("/learning")} />} />
+          <FlatList
+            horizontal
+            data={courses}
+            keyExtractor={(m) => String(m.course.id)}
+            renderItem={({ item }) => <MyCourseCard item={item} onPress={() => router.push(`/course/${item.course.slug}`)} />}
+            ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+            showsHorizontalScrollIndicator={false}
+            style={{ marginHorizontal: -16 }}
+            contentContainerStyle={{ paddingHorizontal: 16 }}
+          />
+        </View>
+      ) : null}
+
+      {catalog.loading || demos.length ? (
+        <View style={{ gap: 12 }}>
+          <SectionTitle title={t("home.demo.title")} sub={t("home.demo.sub")} />
+          {catalog.loading ? (
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ width: 230 }}>
+                <CardSkeleton />
+              </View>
+              <View style={{ width: 230 }}>
+                <CardSkeleton />
+              </View>
+            </View>
+          ) : (
+            <FlatList
+              horizontal
+              data={demos}
+              keyExtractor={(x) => String(x.id)}
+              renderItem={({ item }) => <DemoCard course={item} onPress={() => router.push(`/demo/${item.slug}`)} />}
+              ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              showsHorizontalScrollIndicator={false}
+              style={{ marginHorizontal: -16 }}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+            />
+          )}
+        </View>
+      ) : null}
+
+      {shop.loading || products.length ? (
+        <View style={{ gap: 12 }}>
+          <SectionTitle title={t("home.shop.title")} sub={t("home.shop.sub")} right={<SeeAll onPress={() => router.push("/shop")} />} />
+          {shop.loading ? (
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <Skeleton w={tile} h={tile + 70} r={20} />
+              <Skeleton w={tile} h={tile + 70} r={20} />
+            </View>
+          ) : (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+              {products.map((p) => (
+                <ProductCard key={p.id} p={p} width={tile} onPress={() => router.push(`/product/${p.slug}`)} />
+              ))}
+            </View>
+          )}
+        </View>
+      ) : null}
+
+      {wa ? (
+        <Card style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "#25D366", alignItems: "center", justifyContent: "center" }}>
+            <Icon name="whatsapp" size={24} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Txt v="heading">{t("home.help.title")}</Txt>
+            <Txt v="small" color={c.text2}>
+              {t("home.help.sub")}
+            </Txt>
+          </View>
+          <Press onPress={() => void openApp(wa)} accessibilityRole="button" accessibilityLabel={t("profile.whatsapp")} hitSlop={8} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.raised, alignItems: "center", justifyContent: "center" }}>
+            <Icon name="arrowRight" size={20} color={c.text} />
+          </Press>
+        </Card>
+      ) : null}
+    </Page>
+  );
+}
+
+function SeeAll({ onPress }: { onPress: () => void }) {
+  const { c, t } = usePrefs();
+  return (
+    <Press onPress={onPress} accessibilityRole="button" hitSlop={10}>
+      <Txt v="label" color={c.link}>
+        {t("common.seeAll")}
+      </Txt>
+    </Press>
+  );
+}

@@ -504,6 +504,15 @@
 * কুরিয়ারের প্যানেলে হাতে বানানো পার্সেলের খবর ওয়েবসাইট রাখে না — শুধু এখান থেকে পাঠানো পার্সেলের।
 * স্টেডফাস্ট ও পাঠাও যে টাকা সংগ্রহ করে তার ১% রাখে; ক্রেতার কাছ থেকে তা নিতে চাইলে **ক্যাশ অন ডেলিভারি চার্জ** চালু করুন (অধ্যায় ২৬)।
 
+## ৩১. অ্যান্ড্রয়েড অ্যাপ — শিক্ষার্থীরা ফোনে পড়বেন
+
+অ্যাপটি ওয়েবসাইটের **একই সার্ভার** থেকে তথ্য নেয়: অ্যাডমিনে নতুন ক্লাস, লেসন, ম্যাটেরিয়াল বা দাম দিলে অ্যাপে সাথে সাথে দেখা যায় — অ্যাপ আপডেট লাগে না। শিক্ষার্থীরা ওয়েবসাইটের একই মোবাইল নম্বর/স্টুডেন্ট আইডি/ইমেইল ও পাসওয়ার্ড দিয়ে লগ ইন করেন।
+
+* **অ্যাপে যা আছে:** যেখানে থেমেছিলেন সেখান থেকে চালিয়ে যাওয়া, আমার ক্লাস, লেসন (ফোনের নিজস্ব ভিডিও প্লেয়ারে), ম্যাটেরিয়াল ও ডাউনলোড, সার্টিফিকেট, ফ্রি ডেমো ক্লাস, ইকুইপমেন্ট শপ, বাংলা/ইংরেজি, রাত/দিনের মোড। লেসন খোলা থাকলে স্ক্রিনশট ও স্ক্রিন রেকর্ডিং কালো দেখায়।
+* **অ্যাপে ক্লাস কেনা যায় না** — গুগল প্লের নিয়ম অনুযায়ী অ্যাপে কোনো ক্লাসের দাম বা কেনার বোতাম নেই। শিক্ষার্থীরা আগের মতো ওয়েবসাইটে কেনেন। শপের পণ্যে “অর্ডার করুন” চাপলে ওয়েবসাইটের নিরাপদ পাতা খোলে।
+* **আপলোড কী ও বিল্ড:** কীভাবে কী বানাবেন, GitHub-এ কোন ৪টি সিক্রেট দেবেন, আর কোথা থেকে `.aab` (গুগল প্লের জন্য) ও `.apk` (ফোনে ইনস্টলের জন্য) নামাবেন — সব ধাপ [android-app.md](android-app.md)-তে। কী ফাইল ও পাসওয়ার্ড কখনো চ্যাট, ইমেইল বা রিপোজিটরিতে দেবেন না।
+* **গুগল প্লে:** পার্সোনাল ডেভেলপার অ্যাকাউন্ট (১৩ নভেম্বর ২০২৩-এর পরে খোলা) হলে প্রোডাকশনের আগে **১২ জন টেস্টার টানা ১৪ দিন** ক্লোজড টেস্টে থাকতে হবে।
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -996,3 +1005,12 @@ A confirmed order can go straight from Admin to **Steadfast** or **Pathao** — 
 * If a courier does not answer in time, the screen says "The courier did not answer in time". Look in the courier's panel before sending it again: if the parcel is there, type its tracking code and press **Mark as shipped**, so the same parcel is never booked twice.
 * News about a parcel made by hand in the courier's panel is not kept — only about parcels sent from here.
 * Steadfast and Pathao keep 1% of the cash they collect; to pass it on to the buyer, switch on the **Cash on delivery charge** (section 26).
+
+## 31. The Android app — students study on their phones
+
+The app reads the **same server** as the website: a class, lesson, material or price you add in Admin shows in the app at once, with no app update. Students log in with the same mobile number / student ID / e-mail and password as on the website.
+
+* **In the app:** carry on where they stopped, my classes, lessons (in the phone's own video player), materials and downloads, certificates, the free demo classes, the Equipment Shop, Bangla/English and night/day. While a lesson is open, screenshots and screen recordings come out black.
+* **Classes cannot be bought in the app.** Google Play's rule: the app shows no class price and no buy button. Students buy on the website, as now. In the shop, **Order now** opens the website's secure page.
+* **The upload key and the builds:** how to make the key, the 4 GitHub secrets, and where to download the `.aab` (for Google Play) and the `.apk` (to install on a phone) — every step is in [android-app.md](android-app.md). Never put the key file or its password in a chat, an e-mail or the repository.
+* **Google Play:** a personal developer account made after 13 Nov 2023 must run a **closed test with 12 testers for 14 days in a row** before production.
