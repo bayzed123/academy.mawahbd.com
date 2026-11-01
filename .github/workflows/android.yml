@@ -1,0 +1,191 @@
+name: Android app
+
+# Builds the Android app in mobile/ (React Native + Expo): an AAB for Google Play and an APK to install straight on a phone.
+#  - every change to mobile/ or shared/ on main, and the "Run workflow" button: signed with the owner's upload key (4 repository secrets,
+#    docs/android-app.md). Without the secrets, or in a pull request, a throwaway test key signs it: fine on a phone, refused by Google Play.
+#  - the files are on the run's page (Summary → Artifacts). The app reads the same server as the website, so new classes, lessons and prices
+#    appear in the app at once; a new build is only needed when the app itself changes.
+on:
+  push:
+    branches: [main]
+    paths: ["mobile/**", "shared/**", ".github/workflows/android.yml"]
+  pull_request:
+    paths: ["mobile/**", "shared/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build AAB + APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+    steps:
+      - name: Make room on the runner (an Android build needs several GB)
+        working-directory: /
+        run: sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/local/.ghcup "$AGENT_TOOLSDIRECTORY/CodeQL" || true
+
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Keep Gradle's downloads between runs
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('mobile/package-lock.json') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - run: npm ci
+
+      - name: TypeScript and the app's own tests
+        run: npm run check
+
+      - name: Version
+        id: version
+        run: |
+          # Google refuses an upload whose version code it has seen: minutes since 2026-01-01 only ever grow
+          code=$(( ( $(date -u +%s) - 1767225600 ) / 60 ))
+          name=$(node -p "require('./package.json').version")
+          echo "ANDROID_VERSION_CODE=$code" >> "$GITHUB_ENV"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "Version $name ($code)"
+
+      - name: Make the Android project (expo prebuild)
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Signing key
+        id: key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          store="$RUNNER_TEMP/upload-key.jks"
+          rm -f "$store"
+          if [ "$GITHUB_EVENT_NAME" != "pull_request" ] && [ -n "$KEYSTORE_B64" ]; then
+            missing=""
+            for v in STORE_PASS KEY_ALIAS KEY_PASS; do [ -n "${!v}" ] || missing="$missing $v"; done
+            if [ -n "$missing" ]; then
+              echo "::error title=Upload key incomplete::ANDROID_KEYSTORE_BASE64 is set but not all of ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD are (docs/android-app.md)."
+              exit 1
+            fi
+            if ! printf '%s' "$KEYSTORE_B64" | tr -d '\r\n ' | base64 -d > "$store" 2>/dev/null || [ ! -s "$store" ]; then
+              echo "::error title=Upload key unreadable::ANDROID_KEYSTORE_BASE64 is not the base64 text of the .jks file (docs/android-app.md, step 3)."
+              exit 1
+            fi
+            # check the password and the alias now, not after a 20-minute build
+            if ! keytool -list -keystore "$store" -storepass "$STORE_PASS" -alias "$KEY_ALIAS" > /dev/null 2>&1; then
+              echo "::error title=Upload key does not open::The key file opened with ANDROID_KEYSTORE_PASSWORD has no key called ANDROID_KEY_ALIAS (or the password is wrong)."
+              exit 1
+            fi
+            echo "kind=upload" >> "$GITHUB_OUTPUT"
+            sp="$STORE_PASS"
+            {
+              echo "MAWAH_UPLOAD_STORE_FILE=$store"
+              echo "MAWAH_UPLOAD_STORE_PASSWORD=$STORE_PASS"
+              echo "MAWAH_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
+              echo "MAWAH_UPLOAD_KEY_PASSWORD=$KEY_PASS"
+            } >> "$GITHUB_ENV"
+          else
+            # a pull request, or no key yet: a throwaway key made for this run only (installable on a phone, refused by Google Play)
+            pass=$(openssl rand -hex 24)
+            echo "::add-mask::$pass"
+            keytool -genkeypair -storetype PKCS12 -keystore "$store" -storepass "$pass" -keypass "$pass" -alias test -keyalg RSA -keysize 2048 -validity 30 -dname "CN=MAWAH Academy TEST KEY, O=Not for Google Play" > /dev/null 2>&1
+            echo "kind=test" >> "$GITHUB_OUTPUT"
+            sp="$pass"
+            {
+              echo "MAWAH_UPLOAD_STORE_FILE=$store"
+              echo "MAWAH_UPLOAD_STORE_PASSWORD=$pass"
+              echo "MAWAH_UPLOAD_KEY_ALIAS=test"
+              echo "MAWAH_UPLOAD_KEY_PASSWORD=$pass"
+            } >> "$GITHUB_ENV"
+            if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+              echo "::warning title=Built with a test key::Add the 4 upload-key secrets (docs/android-app.md) to get an AAB that Google Play accepts."
+            fi
+          fi
+          # the certificate's fingerprint, for the run's summary (Play Console shows the same one under App signing → Upload key)
+          echo "sha256=$(keytool -list -v -keystore "$store" -storepass "$sp" 2>/dev/null | awk '/SHA256:/{print $2; exit}')" >> "$GITHUB_OUTPUT"
+
+      - name: Build (Gradle)
+        working-directory: mobile/android
+        run: ./gradlew --no-daemon --stacktrace bundleRelease assembleRelease
+
+      - name: Check the signature and name the files
+        id: out
+        run: |
+          aab=android/app/build/outputs/bundle/release/app-release.aab
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          [ -s "$aab" ] && [ -s "$apk" ] || { echo "::error::The build made no AAB or APK"; ls -R android/app/build/outputs || true; exit 1; }
+          signer=$(keytool -printcert -jarfile "$aab" | awk '/^Owner:/{sub(/^Owner: /,""); print; exit}')
+          echo "AAB signed by: $signer"
+          case "$signer" in *"Android Debug"*|"") echo "::error::The AAB is not signed with the upload key"; exit 1;; esac
+          apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          "$apksigner" verify --print-certs "$apk" | grep -m1 "certificate DN" || { echo "::error::The APK is not signed"; exit 1; }
+          if "$apksigner" verify --print-certs "$apk" | grep -q "Android Debug"; then echo "::error::The APK is signed with the debug key"; exit 1; fi
+          base="mawah-academy-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}"
+          [ "${{ steps.key.outputs.kind }}" = upload ] || base="$base-TEST-KEY"
+          mkdir -p "$RUNNER_TEMP/out"
+          cp "$aab" "$RUNNER_TEMP/out/$base.aab"
+          cp "$apk" "$RUNNER_TEMP/out/$base.apk"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          ls -la "$RUNNER_TEMP/out"
+
+      - name: Keep the AAB (for Google Play)
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.out.outputs.base }}-aab
+          path: ${{ runner.temp }}/out/*.aab
+          retention-days: ${{ github.event_name == 'pull_request' && 7 || 30 }}
+          if-no-files-found: error
+
+      - name: Keep the APK (to install on a phone)
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.out.outputs.base }}-apk
+          path: ${{ runner.temp }}/out/*.apk
+          retention-days: ${{ github.event_name == 'pull_request' && 7 || 30 }}
+          if-no-files-found: error
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### MAWAH Academy for Android"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Version | ${{ steps.version.outputs.name }} (code ${{ steps.version.outputs.code }}) |"
+            if [ "${{ steps.key.outputs.kind }}" = upload ]; then
+              echo "| Signed with | the upload key (ready for Google Play) |"
+            else
+              echo "| Signed with | a **test key**: install the APK on a phone to try it; Google Play will refuse this AAB |"
+            fi
+            echo "| Key fingerprint (SHA-256) | \`${{ steps.key.outputs.sha256 }}\` |"
+            echo ""
+            echo "Download: this page → **Artifacts**. The \`.aab\` goes to Play Console; the \`.apk\` installs straight on a phone."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -10,7 +10,7 @@ import { toMe } from "../../lib/me";
 import { passwordResetMail } from "../../lib/mailer";
 import { resetCodeSms } from "../../lib/smsText";
 import { addressSchema, emailSchema, langSchema, nameSchema, optionalEmailSchema, passwordSchema, phoneSchema, turnstileField } from "../../lib/schemas";
-import { createSession, destroySession } from "../../lib/session";
+import { createSession, destroySession, viaApp } from "../../lib/session";
 import { verifyTurnstile } from "../../lib/turnstile";
 import { hashPassword } from "../../lib/crypto";
 import { loadStudent, requireStudent } from "../../middleware/auth";
@@ -80,7 +80,14 @@ authRoutes.post("/register", rateLimit("RL_AUTH"), async (c) => {
  */
 const whoSchema = z.string().trim().min(1, "required").max(254, "too_long");
 const loginSchema = z
-  .object({ identifier: whoSchema.optional(), email: whoSchema.optional(), password: z.string().min(1, "required").max(128), turnstile: turnstileField })
+  .object({
+    identifier: whoSchema.optional(),
+    email: whoSchema.optional(),
+    password: z.string().min(1, "required").max(128),
+    turnstile: turnstileField,
+    // "app" = the Android app signing in: it gets its session token in the answer (no cookie), and sends it back as a Bearer header
+    client: z.literal("app").optional(),
+  })
   .refine((d) => !!(d.identifier ?? d.email), { message: "required", path: ["identifier"] });
 
 authRoutes.post("/login", rateLimit("RL_AUTH"), async (c) => {
@@ -99,10 +106,11 @@ authRoutes.post("/login", rateLimit("RL_AUTH"), async (c) => {
     throw new HttpError(result.reason === "invalid_credentials" ? 401 : result.reason === "account_locked" ? 429 : 403, result.reason);
   }
   const row = result.row as unknown as { id: number; name: string; email: string; phone: string | null; address: string; locale: "bn" | "en" };
-  await createSession(c, "student", row.id);
+  const app = body.client === "app";
+  const token = await createSession(c, "student", row.id, { app });
   c.set("student", { id: row.id, name: row.name, email: row.email, phone: row.phone, address: row.address, locale: row.locale });
-  await audit(c, { action: "student.login", entity: "student", entityId: row.id });
-  return ok(c, { student: toMe(row) });
+  await audit(c, { action: "student.login", entity: "student", entityId: row.id, ...(app ? { meta: { via: "app" } } : {}) });
+  return ok(c, app ? { student: toMe(row), token } : { student: toMe(row) });
 });
 
 authRoutes.post("/logout", async (c) => {
@@ -229,10 +237,11 @@ authRoutes.post("/change-password", requireStudent, rateLimit("RL_AUTH"), async 
   const check = await authenticate(c.env, "students", me.email, body.current);
   if (!check.ok) throw new HttpError(400, "invalid_credentials", "invalid_credentials", { current: "invalid_credentials" });
   await setPassword(c.env, "students", me.id, body.next);
-  // the current device stays signed in with a fresh session
-  await createSession(c, "student", me.id);
+  // the current device stays signed in with a fresh session (the app gets its new token in the answer)
+  const app = viaApp(c);
+  const token = await createSession(c, "student", me.id, { app });
   await audit(c, { action: "student.password_changed", entity: "student", entityId: me.id });
-  return ok(c);
+  return ok(c, app ? { token } : undefined);
 });
 
 const setPasswordSchema = z.object({ password: passwordSchema });
@@ -247,10 +256,11 @@ authRoutes.post("/set-password", requireStudent, rateLimit("RL_AUTH"), async (c)
   const row = await first<{ has_password: number }>(c.env.DB, "SELECT (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password FROM students WHERE id = ?", me.id);
   if (!row || row.has_password) throw new HttpError(409, "password_already_set");
   await setPassword(c.env, "students", me.id, body.password);
-  // the current device stays signed in with a fresh session
-  await createSession(c, "student", me.id);
+  // the current device stays signed in with a fresh session (the app gets its new token in the answer)
+  const app = viaApp(c);
+  const token = await createSession(c, "student", me.id, { app });
   await audit(c, { action: "student.password_set", entity: "student", entityId: me.id });
-  return ok(c, { student: toMe({ ...me, has_password: true }) });
+  return ok(c, app ? { student: toMe({ ...me, has_password: true }), token } : { student: toMe({ ...me, has_password: true }) });
 });
 
 // `address` and `email` may be left out: the address stays as it is, and an e-mail can only be ADDED (by someone who gave none), never swapped here

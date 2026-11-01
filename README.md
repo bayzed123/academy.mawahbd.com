@@ -9,12 +9,13 @@
 | **Public site** | Server-rendered, edge-cached, ≈ 4 KB of JavaScript. The 26 launch classes with the owner’s prices, class pages with structured data, blog, an FAQ page, certificate verification. Lighthouse (mobile): accessibility / best practices / SEO **100**, performance **91–99** |
 | **Student app** (`/app`) | Register, buy (SSLCommerz · bKash · Nagad · Rocket · cards · manual send-money (20-minute pay window, TrxID and/or screenshot, ready-made WhatsApp message) · free), watch lessons (Stream video with signed tokens), track progress, ask questions, review (enrolled students only), earn **verifiable certificates**, invoices |
 | **Admin** (`/admin`) | Health check and “needs attention today” first, then classes (one **Active / Inactive** switch, a read-only overview page, a separate edit mode) + curriculum builder, orders (verify / refund), students, reviews, Q&A, coupons, bundles, **banners (home slider + offer pop-up)**, an **FAQ the owner writes** (site-wide and per class), **materials** (files to download, links, live classes and private groups for each class, with a type chooser and an upload box), certificates, Coming-Soon notify lists, reports, team with **roles**, audit log, AI chatbot settings — CSV export everywhere |
+| **Android app** (`mobile/`) | React Native + Expo, reads the same API: continue where you stopped, my classes, lessons in the phone's own video player (screenshots blocked), materials and downloads, certificates, free demo classes, the Equipment Shop, Bangla/English, night/day. A study app: classes are bought on the website (Google Play rule). GitHub Actions builds a signed **AAB** (Google Play) and **APK** — see [android-app.md](docs/android-app.md) |
 | **Analytics** | Google Analytics 4 on the real site only: 43 actions counted (a class opened, “Enroll now”, checkout steps, payment, lessons, certificates, banners, the chat assistant …) with nothing personal in them; nobody counted who asked not to be (Do Not Track, the footer switch, Europe/UK until they accept), test browsers and the admin never. **Admin → Analytics** shows *how people see each class* next to the shop’s own sales — see [docs/analytics.md](docs/analytics.md) |
 | **AI chatbot** | Workers AI by default, Gemini switchable in the admin (no code change), grounded in your live catalogue, honest “I’m not sure” with hand-off to the team |
 | **Security** | PBKDF2 + pepper, opaque sessions, strict CSP (no `unsafe-inline`), CSRF guard, RBAC on every route, rate limits, signed video and authenticated file access, audit log, webhook-driven idempotent payments — see [docs/security.md](docs/security.md) |
 | **Honesty guardrail** | No fabricated “X enrolled / Y watching” counters anywhere; ratings only from real reviews by enrolled students |
 
-📘 **Start here:** [the A–Z specification](docs/spec.md) · [deployment guide](docs/deployment.md) · [owner guide (বাংলা + English)](docs/owner-guide.md) · [analytics](docs/analytics.md) · [security](docs/security.md) · [decisions to confirm](docs/decisions.md)
+📘 **Start here:** [the A–Z specification](docs/spec.md) · [deployment guide](docs/deployment.md) · [owner guide (বাংলা + English)](docs/owner-guide.md) · [Android app](docs/android-app.md) · [analytics](docs/analytics.md) · [security](docs/security.md) · [decisions to confirm](docs/decisions.md)
 
 ---
 
@@ -37,9 +38,10 @@ Requires **Node.js ≥ 20.19** (22 recommended). Local D1/KV/R2 run on your mach
 |---|---|
 | `npm run dev` | Everything for local work: builds, migrates a local database, runs the Worker (8787) and hot-reload servers for the student app (5173) and admin (5174) |
 | `npm run typecheck` | `tsc` in all four workspaces (required before any deploy) |
-| `npm test` | i18n completeness, script tests, and **736 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
+| `npm test` | i18n completeness, script tests, and **744 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
 | `npm run build && npm run test:e2e` | **203 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows (typed key by key, like a person), accessibility (axe), 360 px phones |
 | `npm run lighthouse:local` | Core Web Vitals gate on the public pages (mobile profile) |
+| `cd mobile && npm ci && npm run check` | The Android app: TypeScript and its own 14 tests (Bangla/English texts complete, no class price or "buy" wording, the video player choice, website links). The build itself runs in GitHub Actions (*Android app* workflow) |
 | `npm run setup:cloudflare -- --secrets` | Only for deploying from your own computer: creates D1/KV/R2, fills `wrangler.toml`, sets the secrets (`--dry-run` first). **GitHub’s Deploy workflow does all of this by itself** — see [deployment.md](docs/deployment.md) |
 | `npm run db:migrate:remote` · `npm run deploy` | Apply migrations / build and deploy (normally done by GitHub Actions on every push to `main`) |
 | `npm run check:i18n` · `npm run brand:assets` | Bangla/English dictionary check · rebuild every logo, icon and social-share file from `brand/mawah-logo.jpg` |
@@ -52,7 +54,8 @@ brand/       the owner’s original logo (source of the generated logo/icon file
 marketing/   public-site CSS/JS, chat widget, fonts, sprite, logo, icons, social image; verification/ = proof-of-ownership files for Meta / Google / Bing, served at the root
 app/         React student app          admin/   React admin CMS          shared/  types, RBAC table, i18n, design tokens
 e2e/         Playwright specs           tests/   API fixtures + test guide  scripts/ dev runner, setup, builds, Lighthouse gate
-docs/        specification and guides   .github/ CI, deploy and Lighthouse workflows
+mobile/      Android app (Expo; its own package, not a workspace)
+docs/        specification and guides   .github/ CI, deploy, Lighthouse and Android workflows
 ```
 
 The full annotated tree is in [docs/spec.md §13](docs/spec.md#13-file-and-folder-structure).
