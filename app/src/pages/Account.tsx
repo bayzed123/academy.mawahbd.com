@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "react-router";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type { CertificateDTO, StudentMe } from "@mawah/shared";
 import { track } from "../lib/analytics";
@@ -184,6 +184,89 @@ export function Profile() {
         </Button>
       </form>
       )}
+
+      <DeleteAccount hasPassword={student.has_password} />
     </>
+  );
+}
+
+/* ----------------------------------------------------------------------------------------- delete account */
+/**
+ * Profile → Delete my account (Google Play asks for it; the website's /account/delete page links here with ?delete=1, which scrolls to it).
+ * The password is asked for when the account has one; "I understand" must be ticked. Afterwards this browser is signed out.
+ */
+function DeleteAccount({ hasPassword }: { hasPassword: boolean }) {
+  const { t, lang, err } = useI18n();
+  const { logout } = useAuth();
+  const toast = useToast();
+  const fieldErrors = useFieldErrors();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const box = useRef<HTMLFormElement>(null);
+  const [password, setPassword] = useState("");
+  const [sure, setSure] = useState(false);
+  const [fields, setFields] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (params.get("delete") === "1") box.current?.scrollIntoView({ block: "start" });
+  }, [params]);
+
+  const remove = useMutation({
+    mutationFn: () => api("/auth/delete-account", { json: { confirm: true, ...(hasPassword ? { password } : {}) } }),
+    onSuccess: async () => {
+      // leave the signed-in pages first, then forget the account in this browser
+      navigate("/deleted", { replace: true });
+      await logout();
+    },
+    onError: (e) => {
+      setFields(fieldErrors(e));
+      if (!(e instanceof ApiError && (e.code === "validation" || e.code === "invalid_credentials"))) toast(err(e instanceof ApiError ? e.code : "generic"), true);
+    },
+  });
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (sure) remove.mutate();
+  };
+
+  return (
+    <form ref={box} id="delete" className="panel danger-panel" onSubmit={onSubmit} noValidate>
+      <h2>{t("app.del.title")}</h2>
+      <p>{t("app.del.body")}</p>
+      <p>
+        <a href={lang === "en" ? "/en/account/delete" : "/account/delete"}>{t("app.del.more")}</a>
+      </p>
+      {hasPassword && (
+        <Field id="del-pw" label={t("app.del.password")} error={fields.password}>
+          <TextInput id="del-pw" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} error={fields.password} />
+        </Field>
+      )}
+      <label className="check">
+        <input type="checkbox" checked={sure} onChange={(e) => setSure(e.target.checked)} />
+        <span>{t("app.del.confirm")}</span>
+      </label>
+      <Button type="submit" className="btn-danger" busy={remove.isPending} disabled={!sure || (hasPassword && !password)}>
+        {t("app.del.button")}
+      </Button>
+    </form>
+  );
+}
+
+/** After deleting: the account is gone and this browser is signed out. */
+export function AccountDeleted() {
+  const { t } = useI18n();
+  return (
+    <div className="panel center-panel">
+      <Icon name="check" />
+      <h1>{t("app.del.doneTitle")}</h1>
+      <p>{t("app.del.doneBody")}</p>
+      <p className="row center">
+        <a className="btn btn-dark" href="/">
+          {t("app.del.home")}
+        </a>
+        <Link className="btn btn-outline" to="/register">
+          {t("app.del.register")}
+        </Link>
+      </p>
+    </div>
   );
 }

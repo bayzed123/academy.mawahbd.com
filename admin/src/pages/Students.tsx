@@ -27,7 +27,8 @@ interface StudentRow {
   spent: number;
 }
 interface StudentDetail {
-  student: StudentRow & { blocked_reason: string | null; marketing_opt_in: number; email_verified_at: string | null; has_password: number };
+  /** deleted_at: the account was deleted (by the student, or by staff on request) — emptied for good, nothing more can be done with it */
+  student: StudentRow & { blocked_reason: string | null; marketing_opt_in: number; email_verified_at: string | null; has_password: number; deleted_at: string | null };
   enrollments: { id: number; course_id: number; status: string; source: string; enrolled_at: string; slug: string; title_en: string; title_bn: string; total: number; done: number; certificate_code: string | null }[];
   orders: { id: number; public_id: string; invoice_no: string | null; status: string; total: number; method: string | null; created_at: string }[];
 }
@@ -63,6 +64,7 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
   });
 
   const s = q.data?.student;
+  const deleted = !!s?.deleted_at;
   return (
     <SlideOver open wide onClose={onClose} title={s ? s.name : t("adm.nav.students")}>
       {q.isPending && <Spinner />}
@@ -71,10 +73,10 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
         <div className="stack">
           <div className="row between">
             <div className="row">
-              {s.blocked ? <Chip tone="bad">{t("adm.student.blocked")}</Chip> : <Chip tone="ok">{t("status.active")}</Chip>}
+              {deleted ? <Chip tone="bad">{t("adm.student.deleted")}</Chip> : s.blocked ? <Chip tone="bad">{t("adm.student.blocked")}</Chip> : <Chip tone="ok">{t("status.active")}</Chip>}
               <small className="muted">{t("adm.student.joined", { d: date(s.created_at) })}</small>
             </div>
-            {canWrite && (
+            {canWrite && !deleted && (
               <div className="row">
                 <Button className="btn-outline" onClick={() => setEditing(true)}>
                   {t("btn.edit")}
@@ -114,7 +116,11 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
               </div>
             )}
           </div>
-          {s.blocked_reason && <p className="notice bad-note">{s.blocked_reason}</p>}
+          {deleted ? (
+            <p className="notice bad-note">{t("adm.student.deletedNote", { d: date(s.deleted_at!) })}</p>
+          ) : (
+            s.blocked_reason && <p className="notice bad-note">{s.blocked_reason}</p>
+          )}
           {canWrite && !s.has_password && !s.blocked && <InviteBox studentId={id} name={s.name} hasPassword={false} hasEmail={!!s.email} hasPhone={!!s.phone} />}
           <KV
             items={[
@@ -145,7 +151,7 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
                   {e.done}/{e.total} {e.certificate_code ? `· ${t("label.certificate")}: ${e.certificate_code}` : ""}
                 </small>
               </div>
-              {canCert && e.status === "active" && !e.certificate_code && (
+              {canCert && !deleted && e.status === "active" && !e.certificate_code && (
                 <Button
                   className="btn-outline"
                   onClick={async () => {
@@ -157,7 +163,7 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
                   <Icon name="award" /> {t("adm.student.cert")}
                 </Button>
               )}
-              {canWrite && e.status === "active" && (
+              {canWrite && !deleted && e.status === "active" && (
                 <Button
                   className="btn-ghost"
                   onClick={async () => {
@@ -189,6 +195,29 @@ function StudentDrawer({ id, onClose }: { id: number; onClose: () => void }) {
                 ))}
               </tbody>
             </table>
+          )}
+
+          {/* the student asked (WhatsApp, a call, the Contact page): the same as their own "Delete my account" — Google Play requires a way */}
+          {canWrite && !deleted && (
+            <section className="danger-zone">
+              <h3>{t("adm.student.deleteTitle")}</h3>
+              <p className="muted">{t("adm.student.deleteHelp")}</p>
+              <Button
+                className="btn-danger"
+                onClick={async () => {
+                  const r = await confirm({
+                    title: t("adm.student.deleteConfirm", { code: studentCode(s.id) }),
+                    body: t("adm.student.deleteBody"),
+                    danger: true,
+                    confirmLabel: t("adm.student.delete"),
+                    reason: { label: t("adm.student.deleteReason"), required: true },
+                  });
+                  if (r.ok) act.mutate({ run: () => adm(`/students/${id}/delete-account`, { json: { reason: r.reason } }), ok: t("adm.student.deleteDone") });
+                }}
+              >
+                {t("adm.student.delete")}
+              </Button>
+            </section>
           )}
         </div>
       )}

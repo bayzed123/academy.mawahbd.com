@@ -15,8 +15,9 @@ It is a **study app**: students buy classes on the website, as today, and study 
   Screenshots and screen recordings are blacked out while a lesson is open.
 * **Shop:** the equipment shop with categories. **Order now** opens the product on the website's secure page (cash on delivery or online).
 * **Profile:** student ID, language (বাংলা / English), look (night / day / like the phone), certificates, WhatsApp / call / Messenger /
-  e-mail, policies, log out.
-* Bangla first, like the website. Night look by default.
+  e-mail, policies, log out, and **Delete my account** (Google Play rule; see below).
+* Bangla first, like the website. Night look by default. On a tablet the screens keep a centred column (at most 760 points wide) and the
+  shop shows 3 or 4 products in a row.
 
 **Google Play rule.** Digital things bought *inside* an app must use Google Play Billing. So the app **never** shows a class's price,
 never offers to buy a class, and never sends anyone to pay for a class elsewhere. The equipment shop sells physical goods, which may be
@@ -88,13 +89,33 @@ files' signatures afterwards.
    * **Ads:** no ads.
    * **Content rating:** fill in the questionnaire (an education app).
    * **Target audience:** 18 and over (unless children are your students: under 13 brings in Google's family rules).
-   * **Data safety:** the app collects name, phone number, e-mail (when given) and purchase history (classes, orders), to run the student
-     account; it is sent over HTTPS; nothing is shared with advertisers. Students can ask for their data to be deleted.
-   * **Account deletion:** Google asks for a "Delete my account" in the app **and** a web address for it. This is the next piece of work
-     (before you submit for review).
+   * **Data safety** (the answers to give):
+     * *Does the app collect or share user data?* Collects: yes. Shares: **no** (nothing goes to advertisers or data brokers; the
+       payment and hosting services work for us, which Google does not count as sharing).
+     * *Encrypted in transit?* Yes (HTTPS). *Can users ask for deletion?* Yes (next point).
+     * *Data types collected* — all **required**, for **App functionality** and **Account management**, not for advertising:
+       * Personal info: **Name**, **Phone number**, **Email address** (when given), **User IDs** (the student ID)
+       * Financial info: **Purchase history** (classes and orders)
+       * App activity: **Other user-generated content** (questions and reviews), **App interactions** (lessons finished, downloads)
+     * The app collects no location, contacts, photos, files, audio or device identifiers, and has no advertising or analytics library.
+   * **Account deletion:** in the app *Profile → Delete my account*; on the web **https://mawahacademy.com/account/delete** (give this
+     address under *Delete account URL*). Deleting removes the name, number, e-mail, address, password, progress, questions and reviews,
+     ends every sign-in, and keeps orders and payments for tax records (the page says so, as Google requires). Staff can also delete an
+     account on request (*Admin → Students → Delete account*).
+   * **Privacy policy** covers the app: a section about the Android app and deleting an account is always shown under the privacy text.
 5. **Store listing:** name (30 letters), short description (80), full description, the 512×512 icon (`mobile/assets/icon.png` resized),
-   a 1024×500 feature graphic and at least 2 phone screenshots, in Bangla and English.
-6. Target API level: the app targets **Android 16 (API 36)**, which Google requires for new apps.
+   a 1024×500 feature graphic and 2–8 screenshots each for phone, 7-inch tablet and 10-inch tablet, in Bangla and English (PNG or JPEG
+   without transparency; the long side at most twice the short side).
+6. **Web addresses Play Console asks for** (all in Bangla, and in English under `/en`):
+
+   | Field | Address |
+   |---|---|
+   | Privacy policy | https://mawahacademy.com/policies/privacy |
+   | Delete account | https://mawahacademy.com/account/delete |
+   | Website | https://mawahacademy.com |
+   | Terms (for the listing text, if you link it) | https://mawahacademy.com/policies/terms |
+   | Contact | https://mawahacademy.com/contact (and the support e-mail from Settings → Contact) |
+7. Target API level: the app targets **Android 16 (API 36)**, which Google requires for new apps.
 
 ## For developers
 
@@ -120,7 +141,6 @@ npx expo start           # then press "a" for an Android emulator, or scan the Q
 * Classes cannot be bought in the app (Google Play rule above). A student who joined on the website logs in with the same account.
 * "Forgot password" opens the website's page in the browser.
 * Shop orders are placed on the website's page (opened from the app), not in an in-app cart.
-* Account deletion (needed before Google's review) comes in the next pull request.
 * If Cloudflare Turnstile (the website's optional bot check) is switched on, logging in from the app stops working until the app gets a
   way to answer it.
 
@@ -133,3 +153,4 @@ npx expo start           # then press "a" for an Android emulator, or scan the Q
 * **আপলোড কী:** নিজের কম্পিউটারে `mobile/scripts/make-upload-key.ps1` চালান (উপরে ১ নম্বর)। তারপর GitHub → Settings → Secrets and variables → Actions-এ ৪টি সিক্রেট দিন (উপরে ২ নম্বর)। কী ফাইল ও পাসওয়ার্ড কখনো রিপোজিটরি বা চ্যাটে দেবেন না; দুই জায়গায় ব্যাকআপ রাখুন।
 * **বিল্ড:** GitHub → Actions → Android app → Run workflow → শেষ হলে Artifacts থেকে `.aab` (গুগল প্লের জন্য) ও `.apk` (ফোনে সরাসরি ইনস্টলের জন্য) নামান।
 * **গুগল প্লে:** পার্সোনাল অ্যাকাউন্ট (১৩ নভেম্বর ২০২৩-এর পরে খোলা) হলে প্রোডাকশনের আগে **১২ জন টেস্টার, টানা ১৪ দিন** ক্লোজড টেস্ট লাগবে — আগে থেকেই টেস্টার জোগাড় শুরু করুন।
+* **প্লে কনসোলের ঠিকানা:** গোপনীয়তা নীতি `https://mawahacademy.com/policies/privacy`, অ্যাকাউন্ট ডিলিট `https://mawahacademy.com/account/delete`। অ্যাপে প্রোফাইল → **আমার অ্যাকাউন্ট ডিলিট করুন**; স্টাফ অনুরোধে অ্যাডমিন → শিক্ষার্থী থেকে ডিলিট করতে পারেন। অর্ডার ও পেমেন্টের রেকর্ড করের জন্য থেকে যায়।

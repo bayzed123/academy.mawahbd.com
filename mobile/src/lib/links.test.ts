@@ -9,6 +9,8 @@ test("website addresses follow the language", () => {
   assert.equal(siteLinks(BASE, "bn").product("cake-mould"), "https://mawahacademy.com/shop/p/cake-mould");
   assert.equal(siteLinks(BASE, "en").product("cake-mould"), "https://mawahacademy.com/en/shop/p/cake-mould");
   assert.equal(siteLinks(BASE, "en").policy("privacy"), "https://mawahacademy.com/en/policies/privacy");
+  assert.equal(siteLinks(BASE, "bn").accountDelete, "https://mawahacademy.com/account/delete");
+  assert.equal(siteLinks(BASE, "en").accountDelete, "https://mawahacademy.com/en/account/delete");
   assert.equal(siteLinks(BASE, "bn").certificate("AB12-CD34"), "https://mawahacademy.com/certificate/AB12-CD34");
   assert.equal(siteLinks(BASE, "bn").media("course/banner one.webp"), "https://mawahacademy.com/media/course/banner%20one.webp");
 });

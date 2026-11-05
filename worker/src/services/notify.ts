@@ -34,6 +34,7 @@ const TITLE: Record<NotifyKind, { en: string; bn: string }> = {
   shop_order: { en: "New order in the Equipment Shop", bn: "ইকুইপমেন্ট শপে নতুন অর্ডার" },
   shop_review: { en: "A product review is waiting for your approval", bn: "একটি পণ্যের রিভিউ আপনার অনুমোদনের অপেক্ষায়" },
   shop_courier: { en: "A courier says a parcel needs you", bn: "কুরিয়ার জানাচ্ছে একটি পার্সেলে আপনার নজর দরকার" },
+  account_deleted: { en: "A student account was deleted", bn: "একটি শিক্ষার্থী অ্যাকাউন্ট ডিলিট হয়েছে" },
 };
 
 /** The admin page each note links to. */
@@ -52,6 +53,7 @@ const OPEN: Record<NotifyKind, { path: string; en: string; bn: string }> = {
   shop_order: { path: "/admin/shop/orders", en: "Open Shop → Orders", bn: "শপ → অর্ডার খুলুন" },
   shop_review: { path: "/admin/shop/reviews", en: "Open Shop → Reviews", bn: "শপ → রিভিউ খুলুন" },
   shop_courier: { path: "/admin/shop?tab=orders", en: "Open Shop → Orders", bn: "শপ → অর্ডার খুলুন" },
+  account_deleted: { path: "/admin/activity", en: "Open Activity", bn: "অ্যাক্টিভিটি খুলুন" },
 };
 
 /** At most this many notes of one kind per hour — a burst (or someone hammering a form) cannot fill the inbox; the admin pages still show everything. */
@@ -71,6 +73,7 @@ const HOURLY_CAP: Record<NotifyKind, number> = {
   shop_order: 200,
   shop_review: 40,
   shop_courier: 100,
+  account_deleted: 30,
 };
 
 /** The short, plain version of each way the online gateway can say no (the long one, with the steps, is in Settings → Payments). */
@@ -164,6 +167,15 @@ export const notices = {
   },
   newStudent(d: { name: string; email: string; phone: string | null }): Notice {
     return { kind: "new_student", headline: d.name, facts: [fact("Name", "নাম", d.name), fact("E-mail", "ইমেইল", d.email), fact("Phone", "ফোন", d.phone)] };
+  },
+  /** only the student ID: the name, number and e-mail are gone (Admin → Activity has the rest) */
+  accountDeleted(d: { code: string; by: string | null }): Notice {
+    return {
+      kind: "account_deleted",
+      headline: d.code,
+      facts: [fact("Student ID", "স্টুডেন্ট আইডি", d.code), fact("Deleted by", "ডিলিট করেছেন", d.by ?? "the student · শিক্ষার্থী নিজে")],
+      note: "Orders and payments stay in Admin → Orders (tax and accounting records). · অর্ডার ও পেমেন্টের রেকর্ড অ্যাডমিন → অর্ডারে থেকে যায় (হিসাব ও কর আইনের জন্য)।",
+    };
   },
   courseQuestion(d: { student: string; course: string; lesson: string; body: string }): Notice {
     return {

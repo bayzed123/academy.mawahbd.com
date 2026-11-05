@@ -428,6 +428,9 @@ export function Layout(props: LayoutProps) {
                     <li>
                       <a href={ctx.href("/policies/delivery")}>{t("policy.delivery")}</a>
                     </li>
+                    <li>
+                      <a href={ctx.href("/account/delete")}>{t("del.title")}</a>
+                    </li>
                     {shop?.internal && (
                       <>
                         <li>

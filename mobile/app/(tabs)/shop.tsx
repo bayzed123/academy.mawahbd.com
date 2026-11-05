@@ -6,6 +6,7 @@ import { ActivityIndicator, FlatList, RefreshControl, ScrollView, useWindowDimen
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, ApiError, useResource } from "../../src/api";
 import { ProductCard } from "../../src/components/Cards";
+import { CONTENT_MAX, contentWidth, GUTTER, gridColumns, tileWidth } from "../../src/lib/layout";
 import { usePrefs } from "../../src/prefs";
 import { RADIUS } from "../../src/theme";
 import type { ShopCategories, ShopPage } from "../../src/types";
@@ -21,7 +22,8 @@ export default function Shop() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const tile = (width - 16 * 2 - 12) / 2;
+  const cols = gridColumns(contentWidth(width));
+  const tile = tileWidth(contentWidth(width), cols);
   const cats = useResource<ShopCategories>("/api/shop/categories");
   const [category, setCategory] = useState("");
   const [items, setItems] = useState<ShopCardDTO[]>([]);
@@ -86,10 +88,12 @@ export default function Shop() {
   return (
     <FlatList
       style={{ flex: 1, backgroundColor: c.bg }}
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 16, paddingBottom: 32 }}
+      contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: GUTTER, paddingBottom: 32, width: "100%", maxWidth: CONTENT_MAX + GUTTER * 2, alignSelf: "center" }}
       data={loading ? [] : items}
       keyExtractor={(p) => String(p.id)}
-      numColumns={2}
+      // a list cannot change its number of columns in place: a new one is drawn when the phone turns or the window changes
+      key={`cols-${cols}`}
+      numColumns={cols}
       columnWrapperStyle={{ gap: 12 }}
       ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       renderItem={({ item }) => <ProductCard p={item} width={tile} onPress={() => router.push(`/product/${item.slug}`)} />}
@@ -97,8 +101,9 @@ export default function Shop() {
       ListEmptyComponent={
         loading ? (
           <View style={{ flexDirection: "row", gap: 12 }}>
-            <Skeleton w={tile} h={tile + 80} r={20} />
-            <Skeleton w={tile} h={tile + 80} r={20} />
+            {Array.from({ length: cols }, (_, i) => (
+              <Skeleton key={i} w={tile} h={tile + 80} r={20} />
+            ))}
           </View>
         ) : error ? (
           <ErrorState error={error} onRetry={() => void load(1, "first")} />

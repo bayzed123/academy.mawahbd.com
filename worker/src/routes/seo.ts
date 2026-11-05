@@ -59,6 +59,7 @@ seoRoutes.get("/sitemap.xml", (c) =>
       { path: "/policies/privacy", priority: "0.3" },
       { path: "/policies/terms", priority: "0.3" },
       { path: "/policies/delivery", priority: "0.3" },
+      { path: "/account/delete", priority: "0.2" },
       { path: "/how-to-order", priority: "0.5" },
       { path: "/guide", priority: "0.4" },
       { path: "/hotline", priority: "0.4" },

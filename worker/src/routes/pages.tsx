@@ -39,6 +39,7 @@ import { HomePage, type HomeVideo } from "../views/pages/home";
 import { LandingPage } from "../views/pages/landing";
 import {
   AboutPage,
+  AccountDeletePage,
   BlogListPage,
   BlogPostPage,
   CertificatePage,
@@ -266,6 +267,14 @@ export function pageRoutes(lang: Lang) {
       return renderHtml(c, ctx, <PolicyPage ctx={ctx} kind={page} />);
     });
   });
+
+  // how to delete an account, and what deleting does: the address Google Play asks for ("Delete account")
+  r.get("/account/delete", (c) =>
+    cachedPage(c, { ttl: 600 }, async () => {
+      const ctx = await pageCtxFor(c, lang, "/account/delete");
+      return renderHtml(c, ctx, <AccountDeletePage ctx={ctx} />);
+    }),
+  );
 
   // the help pages: how to use the site, how to buy a class, and the numbers to call
   for (const [path, kind] of [["/guide", "guide"], ["/how-to-order", "order"], ["/hotline", "hotline"]] as const) {

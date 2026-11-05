@@ -12,10 +12,18 @@ import { emailSchema, idSchema, langSchema, nameSchema, optionalEmailSchema, pho
 import { requirePerm } from "../../../middleware/auth";
 import { createPasswordResetLink, createResetCode } from "../../../services/auth";
 import { analyzeRows, commitRows, createStudent, grantAccess, inviteStudent, summarize } from "../../../services/students";
+import { deleteStudentAccount } from "../../../services/accountDeletion";
+import { notices, notifyOwner } from "../../../services/notify";
 import { REAL_STUDENT } from "../../../services/guests";
 import { tellStudent } from "../../../services/studentMessages";
 
 export const students = new Hono<AppEnv>();
+
+/** A deleted account is emptied for good (services/accountDeletion.ts): nothing on it can be changed, nothing given to it, and it cannot be unblocked. */
+async function refuseDeleted(db: D1Database, id: number): Promise<void> {
+  const row = await first<{ deleted_at: string | null }>(db, "SELECT deleted_at FROM students WHERE id = ?", id);
+  if (row?.deleted_at) throw conflict("account_deleted");
+}
 
 const LIST_COLS = `s.id, s.name, s.email, s.phone, s.address, s.locale, s.blocked, s.source, s.notes, s.created_at, s.last_login_at,
   (SELECT COUNT(*) FROM enrollments e WHERE e.student_id = s.id AND e.status = 'active') AS enrollments,
@@ -88,7 +96,7 @@ students.get("/students/:id", requirePerm("students:read"), async (c) => {
   const id = intParam(c, "id");
   const student = await first(
     c.env.DB,
-    "SELECT id, name, email, phone, address, locale, blocked, blocked_reason, email_verified_at, marketing_opt_in, source, notes, created_at, last_login_at, (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password FROM students WHERE id = ?",
+    "SELECT id, name, email, phone, address, locale, blocked, blocked_reason, email_verified_at, marketing_opt_in, source, notes, created_at, last_login_at, deleted_at, (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password FROM students WHERE id = ?",
     id,
   );
   if (!student) throw notFound();
@@ -120,8 +128,9 @@ const editable = z
 
 students.patch("/students/:id", requirePerm("students:write"), async (c) => {
   const id = intParam(c, "id");
-  const current = await first<{ email: string }>(c.env.DB, "SELECT email FROM students WHERE id = ?", id);
+  const current = await first<{ email: string; deleted_at: string | null }>(c.env.DB, "SELECT email, deleted_at FROM students WHERE id = ?", id);
   if (!current) throw notFound();
+  if (current.deleted_at) throw conflict("account_deleted");
   const body = await parseBody(c, editable);
   const sets: string[] = [];
   const params: (string | number | null)[] = [];
@@ -159,6 +168,7 @@ students.post("/students/:id/block", requirePerm("students:write"), async (c) =>
 
 students.post("/students/:id/unblock", requirePerm("students:write"), async (c) => {
   const id = intParam(c, "id");
+  await refuseDeleted(c.env.DB, id);
   const res = await run(c.env.DB, "UPDATE students SET blocked = 0, blocked_reason = NULL, failed_logins = 0, locked_until = NULL, updated_at = ? WHERE id = ?", nowIso(), id);
   if ((res.meta.changes ?? 0) === 0) throw notFound();
   await audit(c, { action: "student.unblocked", entity: "student", entityId: id });
@@ -235,6 +245,7 @@ const enrolSchema = z.object({ course_id: courseRef.shape.course_id.optional(), 
 students.post("/students/:id/enroll", requirePerm("students:write"), async (c) => {
   const id = intParam(c, "id");
   const b = await parseBody(c, enrolSchema);
+  await refuseDeleted(c.env.DB, id);
   const input = accessInput(b, b.course_id ? [b.course_id] : []);
   if (input.courseIds.length === 0) throw new HttpError(422, "validation", "validation", { course_ids: "required" });
   const done = await grantAccess(c.env, id, input);
@@ -251,6 +262,7 @@ students.post("/students/:id/enroll", requirePerm("students:write"), async (c) =
 students.post("/students/:id/invite", requirePerm("students:write"), async (c) => {
   const id = intParam(c, "id");
   const b = await parseBody(c, z.object({ mode: z.enum(["email", "sms", "link"]) }));
+  await refuseDeleted(c.env.DB, id);
   const r = await inviteStudent(c.env, id, b.mode);
   await audit(c, { action: b.mode === "link" ? "student.invite_link" : b.mode === "sms" ? "student.invite_sms" : "student.invite_mail", entity: "student", entityId: id, meta: { sent: r.sent ?? null } });
   c.header("Cache-Control", "no-store");
@@ -286,4 +298,20 @@ students.post("/students/:id/revoke", requirePerm("students:write"), async (c) =
   if ((res.meta.changes ?? 0) === 0) throw notFound();
   await audit(c, { action: "enrollment.revoked", entity: "student", entityId: id, meta: { course_id: body.course_id } });
   return ok(c);
+});
+
+/**
+ * Deleting an account because the student asked for it (WhatsApp, a call, the Contact page): the same as the student's own "Delete my
+ * account" (services/accountDeletion.ts), and it cannot be undone. `reason` — who asked, how and when — goes into the activity log.
+ */
+students.post("/students/:id/delete-account", requirePerm("students:write"), async (c) => {
+  const id = intParam(c, "id");
+  const body = await parseBody(c, z.object({ reason: textSchema(300, 1) }));
+  const row = await first<{ deleted_at: string | null }>(c.env.DB, "SELECT deleted_at FROM students WHERE id = ?", id);
+  if (!row) throw notFound();
+  const done = row.deleted_at ? null : await deleteStudentAccount(c.env, id);
+  if (!done) throw conflict("account_deleted");
+  await audit(c, { action: "student.account_deleted", entity: "student", entityId: id, summary: body.reason, meta: { by: "staff", ...done } });
+  c.executionCtx.waitUntil(notifyOwner(c.env, notices.accountDeleted({ code: studentCode(id), by: c.get("staff")?.name ?? "staff" })));
+  return ok(c, done);
 });

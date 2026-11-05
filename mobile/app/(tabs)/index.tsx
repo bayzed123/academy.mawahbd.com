@@ -6,6 +6,7 @@ import { FlatList, useWindowDimensions, View } from "react-native";
 import { useResource } from "../../src/api";
 import { CourseArt, DemoCard, MyCourseCard, ProductCard } from "../../src/components/Cards";
 import { whatsappLink } from "../../src/lib/links";
+import { contentWidth, gridColumns, tileWidth } from "../../src/lib/layout";
 import { openApp } from "../../src/open";
 import { usePrefs } from "../../src/prefs";
 import { useSession } from "../../src/session";
@@ -36,8 +37,10 @@ export default function Home() {
   const courses = mine.data?.courses ?? [];
   // the class to carry on with: the newest one not finished yet (the list comes newest first)
   const current = courses.find((m) => m.progress.pct < 100) ?? courses[0];
-  const products = (shop.data?.items ?? []).slice(0, 4);
-  const tile = (width - 16 * 2 - 12) / 2;
+  const cols = gridColumns(contentWidth(width));
+  // one or two full rows: 4 on a phone (2 × 2), 3 or 4 on a tablet
+  const products = (shop.data?.items ?? []).slice(0, cols === 3 ? 3 : 4);
+  const tile = tileWidth(contentWidth(width), cols);
   const wa = site.data ? whatsappLink(site.data.site.contact.whatsapp) : null;
 
   const refreshing = mine.refreshing || catalog.refreshing || shop.refreshing;

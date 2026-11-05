@@ -10,6 +10,8 @@ interface Session {
   me: StudentMe | null;
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Profile → Delete my account: deletes the account on the server (`password` when it has one), then forgets it on the phone */
+  deleteAccount: (password?: string) => Promise<void>;
 }
 
 const SessionContext = createContext<Session | null>(null);
@@ -81,7 +83,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     await forget();
   }, [forget]);
 
-  const value = useMemo(() => ({ status, me, login, logout }), [status, me, login, logout]);
+  const deleteAccount = useCallback(
+    async (password?: string) => {
+      await api("/api/auth/delete-account", { method: "POST", body: { confirm: true, ...(password ? { password } : {}) } });
+      await forget();
+    },
+    [forget],
+  );
+
+  const value = useMemo(() => ({ status, me, login, logout, deleteAccount }), [status, me, login, logout, deleteAccount]);
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
