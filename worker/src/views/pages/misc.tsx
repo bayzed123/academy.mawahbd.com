@@ -3,7 +3,7 @@ import { formatDate, formatMoney, loc, waNumber, type CourseCardDTO, type OrderD
 import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
 import type { InstructorDTO, InstructorReview } from "../../services/catalog";
 import type { CertRow } from "../../services/learning";
-import type { PageKind } from "../../content/pageTexts";
+import { ACCOUNT_DELETION_TEXT, PRIVACY_APP_TEXT, type PageKind } from "../../content/pageTexts";
 import type { PageCtx } from "../ctx";
 import { Layout } from "../layout";
 import { CertificateArt, type CertArtData } from "../certificate";
@@ -370,6 +370,8 @@ export function PolicyPage({ ctx, kind }: { ctx: PageCtx; kind: PageKind }) {
   const { t, lang } = ctx;
   const p = ctx.settings.policies;
   const body = lang === "bn" ? p[`${kind}_bn` as const] || p[`${kind}_en` as const] : p[`${kind}_en` as const] || p[`${kind}_bn` as const];
+  // the privacy page always covers the Android app and deleting an account (Google Play checks it), unless the text already does
+  const appendix = kind === "privacy" && !body.includes("/account/delete") ? PRIVACY_APP_TEXT[lang] : "";
   const title = t(`policy.${kind}` as never);
   return (
     <Layout ctx={ctx} title={`${title} — ${t("brand.name")}`} description={stripMarkdown(body, 155)}>
@@ -382,8 +384,42 @@ export function PolicyPage({ ctx, kind }: { ctx: PageCtx; kind: PageKind }) {
       <section class="section tight">
         <div class="wrap">
           {kind === "hotline" && <ContactBox ctx={ctx} big />}
-          <div class="prose">{raw(renderMarkdown(body))}</div>
+          <div class="prose">
+            {raw(renderMarkdown(body))}
+            {appendix && <div id="app">{raw(renderMarkdown(appendix))}</div>}
+          </div>
           {kind !== "hotline" && <ContactBox ctx={ctx} />}
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+/* ======================================================================================== account deletion */
+/**
+ * /account/delete: how to delete an account and what deleting does — the web address given to Google Play ("Delete account"). The button
+ * opens the student app's profile (it asks to sign in first), where the account is deleted; the contact details are for asking us.
+ */
+export function AccountDeletePage({ ctx }: { ctx: PageCtx }) {
+  const { t, lang } = ctx;
+  return (
+    <Layout ctx={ctx} title={`${t("del.title")} — ${t("brand.name")}`} description={t("del.desc")}>
+      <section class="page-hero">
+        <div class="wrap">
+          <Crumbs items={[{ label: t("nav.home"), href: ctx.href("/") }, { label: t("del.title") }]} />
+          <h1>{t("del.title")}</h1>
+          <p>{t("del.sub")}</p>
+        </div>
+      </section>
+      <section class="section tight">
+        <div class="wrap">
+          <p class="cta-row">
+            <a class="btn btn-primary" href="/app/profile?delete=1" rel="nofollow">
+              {t("del.button")}
+            </a>
+          </p>
+          <div class="prose">{raw(renderMarkdown(ACCOUNT_DELETION_TEXT[lang]))}</div>
+          <ContactBox ctx={ctx} />
         </div>
       </section>
     </Layout>

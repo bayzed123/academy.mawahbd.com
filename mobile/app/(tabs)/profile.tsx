@@ -131,6 +131,14 @@ export default function Profile() {
 
       {signedIn ? <Btn kind="secondary" icon="logout" title={t("profile.logout")} onPress={askLogout} /> : null}
 
+      {signedIn ? (
+        <Group title={t("profile.account")}>
+          <Card pad={false}>
+            <Item first danger icon="trash" label={t("profile.delete")} onPress={() => router.push("/delete-account")} />
+          </Card>
+        </Group>
+      ) : null}
+
       <Txt v="tiny" color={c.text3} center>
         MAWAH Academy · {t("profile.version", { v: APP_VERSION })}
       </Txt>
@@ -165,15 +173,15 @@ function Row({ icon, label, value }: { icon: IconName; label: string; value: str
   );
 }
 
-function Item({ icon, label, sub, onPress, first }: { icon: IconName; label: string; sub?: string; onPress: () => void; first?: boolean }) {
+function Item({ icon, label, sub, onPress, first, danger }: { icon: IconName; label: string; sub?: string; onPress: () => void; first?: boolean; danger?: boolean }) {
   const { c } = usePrefs();
   return (
     <Press onPress={onPress} accessibilityRole="button" accessibilityLabel={label} scale={0.99} style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 14, borderTopWidth: first ? 0 : 1, borderTopColor: c.line }}>
       <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.raised, alignItems: "center", justifyContent: "center" }}>
-        <Icon name={icon} size={18} color={icon === "whatsapp" ? "#25D366" : c.accent} />
+        <Icon name={icon} size={18} color={icon === "whatsapp" ? "#25D366" : danger ? c.bad : c.accent} />
       </View>
       <View style={{ flex: 1 }}>
-        <Txt v="label" numberOfLines={2}>
+        <Txt v="label" numberOfLines={2} color={danger ? c.bad : undefined}>
           {label}
         </Txt>
         {sub ? (

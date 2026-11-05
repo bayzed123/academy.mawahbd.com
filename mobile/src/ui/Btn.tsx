@@ -8,7 +8,8 @@ import { Txt } from "./Txt";
 interface Props {
   title: string;
   onPress?: () => void;
-  kind?: "primary" | "secondary" | "ghost";
+  /** danger: deleting the account, the one action that cannot be undone */
+  kind?: "primary" | "secondary" | "ghost" | "danger";
   icon?: IconName;
   iconRight?: IconName;
   loading?: boolean;
@@ -21,8 +22,9 @@ interface Props {
 /** One solid orange (red by day) for the main action, a flat grey one for the rest — like the website's buttons. */
 export function Btn({ title, onPress, kind = "primary", icon, iconRight, loading, disabled, small, style, accessibilityHint }: Props) {
   const { c } = usePrefs();
-  const bg = kind === "primary" ? c.accent : kind === "secondary" ? c.raised : "transparent";
-  const fg = kind === "primary" ? c.onAccent : kind === "secondary" ? c.text : c.link;
+  const bg = kind === "primary" ? c.accent : kind === "danger" ? c.bad : kind === "secondary" ? c.raised : "transparent";
+  // the text colour on the accent also reads on the warning red, by night (near-black) and by day (white)
+  const fg = kind === "primary" || kind === "danger" ? c.onAccent : kind === "secondary" ? c.text : c.link;
   return (
     <Press
       onPress={onPress}

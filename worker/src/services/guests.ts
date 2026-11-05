@@ -23,8 +23,8 @@ export const GUEST_KEEP_DAYS = 30;
 const NEW_PER_ADDRESS_PER_DAY = 30;
 const NEW_PER_DAY = 3000;
 
-/** SQL (table alias `s`): a real student — signed up, added or imported by staff, or enrolled in a class. A visitor who only started to buy is not one yet. */
-export const REAL_STUDENT = "(s.source <> 'checkout' OR EXISTS (SELECT 1 FROM enrollments e WHERE e.student_id = s.id))";
+/** SQL (table alias `s`): a real student — signed up, added or imported by staff, or enrolled in a class. A visitor who only started to buy is not one yet, and a deleted account is not one any more. */
+export const REAL_STUDENT = "(s.deleted_at IS NULL AND (s.source <> 'checkout' OR EXISTS (SELECT 1 FROM enrollments e WHERE e.student_id = s.id)))";
 
 export interface GuestDetails {
   name: string;

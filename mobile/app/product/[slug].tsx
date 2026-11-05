@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useResource } from "../../src/api";
 import { API_URL } from "../../src/config";
 import { siteLinks } from "../../src/lib/links";
+import { contentWidth } from "../../src/lib/layout";
 import { plainText } from "../../src/lib/text";
 import { openPage } from "../../src/open";
 import { usePrefs } from "../../src/prefs";
@@ -27,7 +28,9 @@ export default function Product() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { c, t, lang, n } = usePrefs();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
+  // the pictures fill the content column (the whole width on a phone, a centred column on a tablet)
+  const width = contentWidth(windowWidth) + 32;
   const res = useResource<ShopProduct>(`/api/shop/products/${encodeURIComponent(slug)}`);
   const p = res.data?.product;
   const [slide, setSlide] = useState(0);

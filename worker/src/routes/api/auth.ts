@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { isNoEmail, parseLoginId } from "@mawah/shared";
+import { isNoEmail, parseLoginId, studentCode } from "@mawah/shared";
 import type { AppEnv, Ctx } from "../../env";
 import { audit, auditAs } from "../../lib/audit";
 import { randomToken, sha256Hex } from "../../lib/crypto";
@@ -16,6 +16,7 @@ import { hashPassword } from "../../lib/crypto";
 import { loadStudent, requireStudent } from "../../middleware/auth";
 import { checkRateLimit, rateLimit } from "../../middleware/ratelimit";
 import { authenticate, createPasswordResetLink, createResetCode, setPassword, studentLoginFor, useResetCode } from "../../services/auth";
+import { deleteStudentAccount } from "../../services/accountDeletion";
 import { notices, notifyOwner } from "../../services/notify";
 import { tellStudent } from "../../services/studentMessages";
 
@@ -285,4 +286,36 @@ authRoutes.patch("/profile", requireStudent, async (c) => {
   await run(c.env.DB, "UPDATE students SET name = ?, phone = ?, address = ?, locale = ?, updated_at = ? WHERE id = ?", body.name, body.phone, address, body.locale, nowIso(), me.id);
   await audit(c, { action: "student.profile_updated", entity: "student", entityId: me.id });
   return ok(c, { student: toMe({ ...me, email, name: body.name, phone: body.phone, address, locale: body.locale }) });
+});
+
+/* -------------------------------------- deleting the account -------------------------------------- */
+// `confirm`: the student ticked "I understand"; `password`: needed when the account has one (an account made at checkout may not)
+const deleteAccountSchema = z.object({ password: z.string().max(128).optional(), confirm: z.boolean().refine((v) => v, "required") });
+
+/**
+ * The student deletes their own account (website: Profile → Delete my account; the Android app: Profile → Delete my account) — what goes and
+ * what is kept is in services/accountDeletion.ts. Works with the website's cookie and with the app's token; every session ends.
+ */
+authRoutes.post("/delete-account", requireStudent, rateLimit("RL_AUTH"), async (c) => {
+  const body = await parseBody(c, deleteAccountSchema);
+  const me = c.get("student")!;
+  const row = await first<{ has_hash: number }>(c.env.DB, "SELECT password_hash IS NOT NULL AS has_hash FROM students WHERE id = ?", me.id);
+  if (row?.has_hash) {
+    if (!body.password) throw new HttpError(422, "validation", "validation", { password: "required" });
+    // a wrong password counts towards the account's lock like a wrong sign-in (authenticate), so this cannot be used to guess it
+    const check = await authenticate(c.env, "students", me.email, body.password);
+    if (!check.ok) {
+      if (check.reason === "account_locked") throw new HttpError(429, "account_locked");
+      throw new HttpError(400, "invalid_credentials", "invalid_credentials", { password: "wrong_password" });
+    }
+  }
+  const app = viaApp(c);
+  const done = await deleteStudentAccount(c.env, me.id);
+  await destroySession(c, "student");
+  if (done) {
+    // the trail keeps the account number, never the name
+    await auditAs(c.env, { type: "student", id: me.id, name: "" }, { action: "student.account_deleted", entity: "student", entityId: me.id, meta: { by: "self", via: app ? "app" : "web", ...done } }, c.get("ip"));
+    c.executionCtx.waitUntil(notifyOwner(c.env, notices.accountDeleted({ code: studentCode(me.id), by: null })));
+  }
+  return ok(c, { deleted: true });
 });

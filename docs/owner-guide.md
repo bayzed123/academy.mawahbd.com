@@ -513,6 +513,18 @@
 * **আপলোড কী ও বিল্ড:** কীভাবে কী বানাবেন, GitHub-এ কোন ৪টি সিক্রেট দেবেন, আর কোথা থেকে `.aab` (গুগল প্লের জন্য) ও `.apk` (ফোনে ইনস্টলের জন্য) নামাবেন — সব ধাপ [android-app.md](android-app.md)-তে। কী ফাইল ও পাসওয়ার্ড কখনো চ্যাট, ইমেইল বা রিপোজিটরিতে দেবেন না।
 * **গুগল প্লে:** পার্সোনাল ডেভেলপার অ্যাকাউন্ট (১৩ নভেম্বর ২০২৩-এর পরে খোলা) হলে প্রোডাকশনের আগে **১২ জন টেস্টার টানা ১৪ দিন** ক্লোজড টেস্টে থাকতে হবে।
 
+## ৩২. শিক্ষার্থীর অ্যাকাউন্ট ডিলিট করা (গুগল প্লের নিয়ম)
+
+গুগল প্লের নিয়মে শিক্ষার্থীকে নিজের অ্যাকাউন্ট ডিলিট করার সুযোগ দিতে হয় — অ্যাপের ভেতরে এবং একটি ওয়েব ঠিকানায়। তিনটি পথই তৈরি:
+
+* **অ্যাপে:** প্রোফাইল → **আমার অ্যাকাউন্ট ডিলিট করুন** (পাসওয়ার্ড + “আমি বুঝেছি” টিক)।
+* **ওয়েবসাইটে:** লগইন → প্রোফাইল → পাতার নিচে **আমার অ্যাকাউন্ট ডিলিট করুন**। সব নিয়ম লেখা আছে **https://mawahacademy.com/account/delete** পাতায় (ফুটারেও লিংক আছে) — এই ঠিকানাটিই প্লে কনসোলে দেবেন।
+* **শিক্ষার্থী আপনাকে বললে** (হোয়াটসঅ্যাপ, কল, ইমেইল): *অ্যাডমিন → শিক্ষার্থী → শিক্ষার্থীটি খুলুন → একদম নিচে* **অ্যাকাউন্ট ডিলিট করুন** → কে, কীভাবে চেয়েছেন লিখে নিশ্চিত করুন। ওয়েবসাইটে কথা দেওয়া আছে: **৭ দিনের মধ্যে** ডিলিট করে শিক্ষার্থীকে জানাবেন।
+
+**কী মুছে যায়:** নাম, মোবাইল নম্বর, ইমেইল, ঠিকানা, পাসওয়ার্ড, লেসনের অগ্রগতি, প্রশ্ন, রিভিউ, গ্রুপের অনুরোধ; ক্লাস ও সার্টিফিকেট বন্ধ হয়; সব ফোন ও কম্পিউটার থেকে লগআউট। **কী থাকে:** অর্ডার ও পেমেন্টের রেকর্ড (কর ও হিসাবের জন্য)। এটি আর ফেরানো যায় না; ডিলিট হলে শিক্ষার্থী তালিকা থেকে সরে যান, আর আপনি একটি ইমেইল পান (শুধু স্টুডেন্ট আইডি থাকে)।
+
+**গোপনীয়তা নীতি:** অ্যাপ ও অ্যাকাউন্ট ডিলিটের একটি অংশ গোপনীয়তা নীতির পাতার নিচে নিজে থেকেই যুক্ত হয় — আপনার নিজের লেখা নীতি বদলাতে হয় না।
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -1014,3 +1026,15 @@ The app reads the **same server** as the website: a class, lesson, material or p
 * **Classes cannot be bought in the app.** Google Play's rule: the app shows no class price and no buy button. Students buy on the website, as now. In the shop, **Order now** opens the website's secure page.
 * **The upload key and the builds:** how to make the key, the 4 GitHub secrets, and where to download the `.aab` (for Google Play) and the `.apk` (to install on a phone) — every step is in [android-app.md](android-app.md). Never put the key file or its password in a chat, an e-mail or the repository.
 * **Google Play:** a personal developer account made after 13 Nov 2023 must run a **closed test with 12 testers for 14 days in a row** before production.
+
+## 32. Deleting a student's account (a Google Play rule)
+
+Google Play requires that students can delete their own account — inside the app and from a web address. All three ways are ready:
+
+* **In the app:** Profile → **Delete my account** (their password and an “I understand” tick).
+* **On the website:** sign in → Profile → **Delete my account** at the bottom. Everything is explained at **https://mawahacademy.com/account/delete** (also linked in the footer) — this is the address you give Play Console.
+* **When a student asks you** (WhatsApp, a call, e-mail): *Admin → Students → open the student → at the bottom* **Delete account** → write who asked and how, and confirm. The website promises it is done **within 7 days** and that the student is told.
+
+**What goes:** name, mobile number, e-mail, address, password, lesson progress, questions, reviews, group requests; the classes and certificates stop working; every phone and computer is signed out. **What stays:** orders and payments (tax and accounting records). It cannot be undone; the student leaves the list, and you get an e-mail (with the student ID only).
+
+**Privacy policy:** a section about the app and deleting an account is added under the privacy page by itself — your own policy text does not need changing.

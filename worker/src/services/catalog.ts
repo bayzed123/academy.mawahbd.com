@@ -407,14 +407,19 @@ export async function refreshCourseStats(env: Env, courseId: number): Promise<vo
     .run();
 }
 
+/** The statement that recomputes a class's rating columns from its approved reviews (run on its own, or in a batch with other changes). */
+export function courseRatingStatement(db: D1Database, courseId: number): D1PreparedStatement {
+  return db
+    .prepare(
+      `UPDATE courses SET
+         rating_avg = COALESCE((SELECT ROUND(AVG(rating), 2) FROM reviews WHERE course_id = ?1 AND status = 'approved'), 0),
+         rating_count = (SELECT COUNT(*) FROM reviews WHERE course_id = ?1 AND status = 'approved')
+       WHERE id = ?1`,
+    )
+    .bind(courseId);
+}
+
 /** Recompute the rating columns from approved reviews (called whenever a review's status changes). */
 export async function refreshCourseRating(env: Env, courseId: number): Promise<void> {
-  await env.DB.prepare(
-    `UPDATE courses SET
-       rating_avg = COALESCE((SELECT ROUND(AVG(rating), 2) FROM reviews WHERE course_id = ?1 AND status = 'approved'), 0),
-       rating_count = (SELECT COUNT(*) FROM reviews WHERE course_id = ?1 AND status = 'approved')
-     WHERE id = ?1`,
-  )
-    .bind(courseId)
-    .run();
+  await courseRatingStatement(env.DB, courseId).run();
 }

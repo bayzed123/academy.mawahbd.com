@@ -16,6 +16,7 @@ const Orders = lazy(() => import("./pages/Orders").then((m) => ({ default: m.Ord
 const OrderDetail = lazy(() => import("./pages/Orders").then((m) => ({ default: m.OrderDetail })));
 const Certificates = lazy(() => import("./pages/Account").then((m) => ({ default: m.Certificates })));
 const Profile = lazy(() => import("./pages/Account").then((m) => ({ default: m.Profile })));
+const AccountDeleted = lazy(() => import("./pages/Account").then((m) => ({ default: m.AccountDeleted })));
 // the tools shop: no account needed (an order is opened by the link the buyer gets)
 const ShopCart = lazy(() => import("./pages/Shop").then((m) => ({ default: m.ShopCart })));
 const ShopCheckout = lazy(() => import("./pages/Shop").then((m) => ({ default: m.ShopCheckout })));
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="orders/:publicId" element={guard(<OrderDetail />)} />
           <Route path="certificates" element={guard(<Certificates />)} />
           <Route path="profile" element={guard(<Profile />)} />
+          <Route path="deleted" element={<AccountDeleted />} />
           <Route path="shop/cart" element={<ShopCart />} />
           <Route path="shop/checkout" element={<ShopCheckout />} />
           <Route path="shop/orders/:publicId" element={<ShopOrder />} />

@@ -7,6 +7,8 @@ export const siteLinks = (base: string, lang: Lang) => ({
   home: `${base}${prefix(lang)}/`,
   product: (slug: string) => `${base}${prefix(lang)}/shop/p/${encodeURIComponent(slug)}`,
   policy: (kind: "privacy" | "terms" | "refund") => `${base}${prefix(lang)}/policies/${kind}`,
+  /** what deleting an account does, and the other ways to ask for it (the page Google Play is given) */
+  accountDelete: `${base}${prefix(lang)}/account/delete`,
   certificate: (code: string) => `${base}/certificate/${encodeURIComponent(code)}`,
   forgot: `${base}/app/forgot`,
   media: (key: string) => `${base}/media/${key.split("/").map(encodeURIComponent).join("/")}`,

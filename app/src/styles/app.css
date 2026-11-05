@@ -61,6 +61,13 @@ html[lang=bn] .brand-name{font-weight:400;letter-spacing:.02em;font-size:1.1rem;
 .panel{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:clamp(18px,3vw,28px);box-shadow:var(--sh-1)}
 .panel h2{font-size:1.25rem;margin-bottom:.7em}
 .panel+.panel{margin-top:18px}
+/* Profile → Delete my account: set apart at the bottom in the warning colour; the page after deleting is centred */
+.danger-panel{border-color:var(--bad-100)}
+.danger-panel h2{color:var(--bad-700)}
+.danger-panel .check{margin:14px 0 16px}
+.center-panel{max-width:560px;margin:40px auto;text-align:center}
+.center-panel>.icon{width:44px;height:44px;color:var(--ok-600)}
+.row.center{justify-content:center}
 .notice{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:var(--g-100);border:1px solid var(--g-300);color:var(--g-800);margin-bottom:18px}
 .notice .icon{margin-top:.2em;flex:none;color:var(--g-600)}
 .notice b{display:block;color:var(--heading)}
