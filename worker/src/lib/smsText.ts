@@ -49,6 +49,17 @@ export function resetCodeSms(lang: Lang, d: { code: string }): string {
     : `${brand(lang)}: your password code is ${d.code}. It works for 15 minutes. Do not share it with anyone.`;
 }
 
+/**
+ * "Forgot password" for a mobile number that several accounts share (none of them is the number's own): which accounts they are, by their
+ * student IDs, so the person can ask again with the right one. No code in it, and no link (see resetCodeSms).
+ */
+export function sharedNumberSms(lang: Lang, d: { codes: string[] }): string {
+  const list = d.codes.join(", ");
+  return lang === "bn"
+    ? `${brand(lang)}: এই নম্বরে ${formatNumber(d.codes.length, "bn")}টি অ্যাকাউন্ট: ${list}। “পাসওয়ার্ড ভুলে গেছেন?” পাতায় যেটির কোড চান সেটির স্টুডেন্ট আইডি লিখুন।`
+    : `${brand(lang)}: ${d.codes.length} accounts use this number: ${list}. On "Forgot password", type the student ID you want a code for.`;
+}
+
 /** "I forgot my password", asked by mobile number. */
 export function resetSms(lang: Lang, d: { link: string }): string {
   return lang === "bn" ? `${brand(lang)}: নতুন পাসওয়ার্ড দিতে এই লিংকে যান (১ ঘণ্টা চলবে): ${d.link}` : `${brand(lang)}: choose a new password here (works for 1 hour): ${d.link}`;

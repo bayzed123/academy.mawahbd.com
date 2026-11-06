@@ -8,7 +8,7 @@ import { addSeconds, all, first, nowIso, run } from "../../lib/db";
 import { HttpError, ok, parseBody } from "../../lib/http";
 import { toMe } from "../../lib/me";
 import { passwordResetMail } from "../../lib/mailer";
-import { resetCodeSms } from "../../lib/smsText";
+import { resetCodeSms, sharedNumberSms } from "../../lib/smsText";
 import { addressSchema, emailSchema, langSchema, nameSchema, optionalEmailSchema, passwordSchema, phoneSchema, requiredPhoneSchema, turnstileField } from "../../lib/schemas";
 import { createSession, destroySession, viaApp } from "../../lib/session";
 import { verifyTurnstile } from "../../lib/turnstile";
@@ -211,6 +211,14 @@ async function forgotTarget(c: Ctx, typed: string): Promise<Reachable | null> {
   return numberOnly.length === 1 ? numberOnly[0] : null;
 }
 
+/** A mobile number that several accounts share: their student IDs and the number, for the one text that says which they are. */
+async function sharedNumber(c: Ctx, typed: string): Promise<{ phone: string; ids: number[] } | null> {
+  const id = parseLoginId(typed);
+  if (id?.kind !== "phone") return null;
+  const rows = await all<{ id: number }>(c.env.DB, "SELECT id FROM students WHERE blocked = 0 AND phone = ? ORDER BY id LIMIT 5", id.value);
+  return rows.length > 1 ? { phone: id.value, ids: rows.map((r) => r.id) } : null;
+}
+
 authRoutes.post("/forgot", rateLimit("RL_AUTH"), async (c) => {
   const body = await parseBody(c, forgotSchema);
   const typed = (body.identifier ?? body.email)!;
@@ -235,6 +243,18 @@ authRoutes.post("/forgot", rateLimit("RL_AUTH"), async (c) => {
       ),
     );
     await audit(c, { action: "student.password_reset_requested", entity: "student", entityId: student.id, meta: { by: byNumber ? "number" : hasEmail ? "email" : "id" } });
+  } else if (!student) {
+    // a number that several accounts share, none of them the number's own: no code (which one would it change?), but one text to that number
+    // with their student IDs, so its owner can ask again with the right one — capped like the codes, and the page answers as always
+    const shared = await sharedNumber(c, typed);
+    if (shared) {
+      const ip = c.get("ip");
+      c.executionCtx.waitUntil(
+        tellStudent(c.env, { email: null, phone: shared.phone }, { sms: sharedNumberSms(body.lang, { codes: shared.ids.map(studentCode) }) }, { smsAlso: true, capped: true }).then((told) =>
+          auditAs(c.env, { type: "system", id: null, name: "" }, { action: "student.password_ids_sent", entity: "student", entityId: shared.ids.join(","), meta: { accounts: shared.ids.length, sms: toldMeta(told).sms } }, ip),
+        ),
+      );
+    }
   }
   // identical response whether or not the account exists
   return ok(c);
