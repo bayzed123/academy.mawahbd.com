@@ -20,6 +20,7 @@ interface Call {
   url: string;
   method: string;
   body: Record<string, any> | null;
+  type: string;
 }
 
 /** Pretend the SMS company is at the other end: every request to its host gets `reply(call)`. Returns the calls it received. */
@@ -30,7 +31,9 @@ function companySays(reply: (call: Call, n: number) => Response | Promise<Respon
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     if (!url.startsWith(`${HOST}/`)) return real(input as RequestInfo, init);
     const raw = init?.body ? String(init.body) : "";
-    const call: Call = { url, method: init?.method ?? "GET", body: raw ? JSON.parse(raw) : null };
+    // the details as the company reads them: an ordinary form (or, from an older version, JSON)
+    const body = raw ? (raw.trimStart().startsWith("{") ? JSON.parse(raw) : Object.fromEntries(new URLSearchParams(raw))) : null;
+    const call: Call = { url, method: init?.method ?? "GET", body, type: new Headers(init?.headers).get("content-type") ?? "" };
     calls.push(call);
     return reply(call, calls.length);
   });
@@ -81,13 +84,14 @@ describe("sending a message", () => {
     expect(box.at(-1)).toMatchObject({ text: "Hello from the shop", sms: true });
   });
 
-  it("sends one request in the company's JSON format, with the number in 880 form and the sender name when there is one", async () => {
+  it("sends one request with the details as an ordinary form (how MRAM reads them), the number in 880 form and the sender name when there is one", async () => {
     withSecrets();
     const calls = companySays(() => says(200, { response_code: 202, message: "SMS Submitted Successfully", message_id: "m-1" }));
     const r = await sendSms(env, { to: "01711223344", text: "Your class is open" }, { sender: "MAWAH" });
     expect(r).toMatchObject({ ok: true, provider: "sms", id: "m-1" });
     expect(calls).toHaveLength(1);
     expect(calls[0].method).toBe("POST");
+    expect(calls[0].type).toBe("application/x-www-form-urlencoded");
     expect(calls[0].url).toBe(`${HOST}/smsapi`);
     expect(calls[0].body).toMatchObject({ api_key: FAKE_KEY, contacts: "8801711223344", msg: "Your class is open", type: "text", senderid: "MAWAH" });
     // nothing was kept in the outbox: it went to the company
@@ -120,6 +124,57 @@ describe("sending a message", () => {
     expect(r.ok).toBe(true);
     expect(calls.map((c) => c.method)).toEqual(["POST", "GET"]);
     expect(new URL(calls[1].url).searchParams.get("senderid")).toBe("MAWAH");
+  });
+
+  it("reads MRAM's own answers: “SMS SUBMITTED: ID - …” is sent; a bare error code is a refusal with its meaning — never “sent”", async () => {
+    withSecrets();
+    const sent = companySays(() => says(200, "SMS SUBMITTED: ID - C20007345e7c1a2b3.31415926"));
+    const ok = await sendSms(env, { to: "01711223344", text: "Hi" }, { sender: "8809617000000" });
+    expect(ok).toMatchObject({ ok: true, provider: "sms", id: "C20007345e7c1a2b3.31415926", detail: "SMS SUBMITTED: ID - C20007345e7c1a2b3.31415926" });
+    expect(sent).toHaveLength(1);
+    vi.restoreAllMocks();
+
+    for (const [reply, problem, detail] of [
+      ["1002", "sender_rejected", "1002 — Sender Id/Masking Not Found"],
+      ["1007", "no_balance", "1007 — Balance Insufficient"],
+      ["1002 Sender Id/Masking Not Found", "sender_rejected", "1002 Sender Id/Masking Not Found"],
+      ["Error: 1007", "no_balance", "Error: 1007 — Balance Insufficient"],
+      // a code the site does not know is shown as it came (the owner looks it up in MRAM's table)
+      ["1012", "other", "1012"],
+    ] as const) {
+      withSecrets();
+      companySays(() => says(200, reply));
+      const r = await sendSms(env, { to: "01711223344", text: "Hi" });
+      expect(r, reply).toMatchObject({ ok: false, provider: "sms", problem, detail });
+      vi.restoreAllMocks();
+    }
+
+    // 1003 (MRAM: “API Not Found” — it did not see the key): once more as a plain web address; still 1003 → the key is wrong
+    withSecrets();
+    const twice = companySays(() => says(200, "1003"));
+    expect(await sendSms(env, { to: "01711223344", text: "Hi" })).toMatchObject({ ok: false, problem: "key_rejected", detail: "1003 — API Not Found" });
+    expect(twice.map((c) => c.method)).toEqual(["POST", "GET"]);
+    vi.restoreAllMocks();
+    withSecrets();
+    const thenSent = companySays((_, n) => (n === 1 ? says(200, "1003") : says(200, "SMS SUBMITTED: ID - C2000aa11bb22.5")));
+    expect(await sendSms(env, { to: "01711223344", text: "Hi" })).toMatchObject({ ok: true, id: "C2000aa11bb22.5" });
+    expect(new URL(thenSent[1].url).searchParams.get("api_key")).toBe(FAKE_KEY);
+    vi.restoreAllMocks();
+
+    // an answer the site cannot read as “sent” is not called sent: the owner sees it
+    for (const reply of ["", "   ", "Hello", "<html><body>Maintenance</body></html>"]) {
+      withSecrets();
+      companySays(() => says(200, reply));
+      expect((await sendSms(env, { to: "01711223344", text: "Hi" })).ok, JSON.stringify(reply)).toBe(false);
+      vi.restoreAllMocks();
+    }
+    // a reference alone, or a plain OK, is a message taken
+    for (const reply of ["C2000aa11bb22cc33.44", "OK", "202611060001"]) {
+      withSecrets();
+      companySays(() => says(200, reply));
+      expect((await sendSms(env, { to: "01711223344", text: "Hi" })).ok, reply).toBe(true);
+      vi.restoreAllMocks();
+    }
   });
 
   it("turns every kind of refusal into the right problem, in the company's words", async () => {
@@ -262,6 +317,10 @@ describe("the credit left", () => {
     vi.restoreAllMocks();
     companySays(() => says(200, { response_code: 202, message: "ok" }));
     expect(await smsBalance(env)).toMatchObject({ ok: false, balance: null });
+    vi.restoreAllMocks();
+    // MRAM's bare error code is not a credit: "1003" is a key it does not know
+    companySays(() => says(200, "1003"));
+    expect(await smsBalance(env)).toMatchObject({ ok: false, balance: null, problem: "key_rejected", detail: "1003 — API Not Found" });
     vi.restoreAllMocks();
     e.SMS_API_KEY = undefined;
     expect(await smsBalance(env)).toMatchObject({ ok: false, problem: "not_configured" });

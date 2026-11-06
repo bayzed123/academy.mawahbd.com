@@ -234,6 +234,8 @@ export function SmsPanel() {
               <Icon name="check" />
               <div>
                 <b>{test.provider === "dev-outbox" ? t("adm.sms.sentDev") : t("adm.sms.sentOk", { to: test.to })}</b>
+                {/* the company's own words when it took the message (MRAM: "SMS SUBMITTED: ID - …"), so the owner can match it in its panel */}
+                {said(test)}
               </div>
             </div>
           ) : (
