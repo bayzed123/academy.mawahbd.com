@@ -82,7 +82,7 @@ studentRoutes.get("/resources/:id/download", async (c) => {
  */
 studentRoutes.get("/courses/:slug/materials", async (c) => {
   const me = c.get("student")!;
-  const course = await getCourseBySlug(c.env, c.req.param("slug"), { includeHidden: true });
+  const course = await getCourseBySlug(c.env, c.req.param("slug"), { includeHidden: true, channel: "any" });
   if (!course) throw notFound();
   if (!(await activeEnrollment(c.env, me.id, course.id))) throw forbidden("not_enrolled");
   return ok(c, { materials: await materialsForStudent(c.env, me.id, course.id) });

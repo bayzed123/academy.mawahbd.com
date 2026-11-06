@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { FlatList, useWindowDimensions, View } from "react-native";
 import { useResource } from "../../src/api";
-import { CourseArt, DemoCard, MyCourseCard, ProductCard } from "../../src/components/Cards";
+import { CourseArt, DemoCard, FreeCard, MyCourseCard, ProductCard } from "../../src/components/Cards";
 import { whatsappLink } from "../../src/lib/links";
 import { contentWidth, gridColumns, tileWidth } from "../../src/lib/layout";
 import { openApp } from "../../src/open";
@@ -30,6 +30,8 @@ export default function Home() {
 
   const mine = useResource<MyCourses>(signedIn ? "/api/student/courses" : null);
   const catalog = useResource<CourseList>("/api/courses?per_page=48");
+  // the app's own free classes (Admin → Android app): free for everyone with an account, never on the website
+  const free = useResource<CourseList>("/api/app/courses");
   const shop = useResource<ShopPage>("/api/shop/products?sort=featured");
   const site = useResource<SiteInfo>("/api/site");
 
@@ -42,10 +44,15 @@ export default function Home() {
   const products = (shop.data?.items ?? []).slice(0, cols === 3 ? 3 : 4);
   const tile = tileWidth(contentWidth(width), cols);
   const wa = site.data ? whatsappLink(site.data.site.contact.whatsapp) : null;
+  const notice = site.data?.site.app_notice ? site.data.site.app_notice[lang] : "";
+  // a free class the student has started already is under "My classes": the row offers the others
+  const mineIds = new Set(courses.map((m) => m.course.id));
+  const freeClasses = (free.data?.courses ?? []).filter((x) => !mineIds.has(x.id));
 
-  const refreshing = mine.refreshing || catalog.refreshing || shop.refreshing;
+  const refreshing = mine.refreshing || catalog.refreshing || shop.refreshing || free.refreshing;
   const refresh = () => {
     void mine.refresh();
+    void free.refresh();
     void catalog.refresh();
     void shop.refresh();
     void site.refresh();
@@ -64,6 +71,15 @@ export default function Home() {
           </Txt>
         </View>
       </View>
+
+      {notice ? (
+        <View accessibilityRole="summary" style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: c.accentSoft, borderRadius: RADIUS.m, paddingHorizontal: 14, paddingVertical: 12 }}>
+          <Icon name="bell" size={18} color={c.accent} />
+          <Txt v="body" style={{ flex: 1 }} accessibilityLabel={`${t("home.notice")}: ${notice}`}>
+            {notice}
+          </Txt>
+        </View>
+      ) : null}
 
       {signedIn ? (
         mine.loading ? (
@@ -112,8 +128,36 @@ export default function Home() {
             </View>
           </View>
           <Btn title={t("home.login.cta")} onPress={() => router.push("/login")} />
+          <Btn kind="secondary" title={t("home.login.signup")} icon="gift" onPress={() => router.push("/signup")} />
         </Card>
       )}
+
+      {free.loading || freeClasses.length ? (
+        <View style={{ gap: 12 }}>
+          <SectionTitle title={t("home.free.title")} sub={t("home.free.sub")} />
+          {free.loading ? (
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <View style={{ width: 230 }}>
+                <CardSkeleton />
+              </View>
+              <View style={{ width: 230 }}>
+                <CardSkeleton />
+              </View>
+            </View>
+          ) : (
+            <FlatList
+              horizontal
+              data={freeClasses}
+              keyExtractor={(x) => String(x.id)}
+              renderItem={({ item }) => <FreeCard course={item} onPress={() => router.push(`/free/${item.slug}`)} />}
+              ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              showsHorizontalScrollIndicator={false}
+              style={{ marginHorizontal: -16 }}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+            />
+          )}
+        </View>
+      ) : null}
 
       {signedIn && courses.length > 1 ? (
         <View style={{ gap: 12 }}>

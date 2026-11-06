@@ -72,7 +72,8 @@ export function CourseCheckList({ value, onChange }: { value: number[]; onChange
     queryFn: () => adm<ListResponse<CourseRow>>("/courses?per_page=100&sort=title_en"),
     staleTime: 60_000,
   });
-  const items = (list.data?.items ?? []).filter((c) => !filter || `${c.title_en} ${c.title_bn}`.toLowerCase().includes(filter.toLowerCase()));
+  // bundles and coupons are sold on the website: an Android app class (free there) is not offered — unless it was picked before
+  const items = (list.data?.items ?? []).filter((c) => (c.channel !== "app" || value.includes(c.id)) && (!filter || `${c.title_en} ${c.title_bn}`.toLowerCase().includes(filter.toLowerCase())));
   const toggle = (id: number) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
   return (
     <div className="check-list">

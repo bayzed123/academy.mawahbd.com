@@ -3,12 +3,16 @@ import {
   type Accent,
   type CategoryDTO,
   type CourseCardDTO,
+  type CourseChannel,
   type CourseStatus,
   type CurriculumModuleDTO,
   type LessonType,
 } from "@mawah/shared";
 import type { Env } from "../env";
 import { all, first, likeEscape, qs, safeJson } from "./../lib/db";
+
+/** SQL (table alias `c`): a class the website shows and sells — never one of the Android app's free classes. */
+export const ON_WEBSITE = "c.channel = 'website'";
 
 /* -------------------------------------------------------------------------------------------------
  * Read-side catalog queries used by the server-rendered pages and the public JSON API.
@@ -87,10 +91,13 @@ export interface ListOptions {
   level?: "beginner" | "intermediate" | "advanced";
   excludeId?: number;
   ids?: number[];
+  /** "website" (the default): the classes sold on the website; "app": the Android app's free classes */
+  channel?: CourseChannel;
 }
 
 export async function listCourses(env: Env, o: ListOptions = {}): Promise<{ items: CourseCardDTO[]; total: number }> {
-  const where: string[] = ["c.deleted_at IS NULL", "c.status IN ('published','coming_soon')"];
+  // the website lists its own classes (live and coming soon); the Android app's free classes are listed only there, and only when live
+  const where: string[] = ["c.deleted_at IS NULL", o.channel === "app" ? "c.channel = 'app' AND c.status = 'published'" : `${ON_WEBSITE} AND c.status IN ('published','coming_soon')`];
   const params: (string | number)[] = [];
   if (o.category) {
     where.push("cat.slug = ?");
@@ -147,6 +154,8 @@ export interface CourseDetail extends CourseCardDTO {
   demo_title_en: string;
   demo_text_bn: string;
   demo_text_en: string;
+  /** where the class is shown: sold on the website, or free in the Android app only (it then has no page on the website) */
+  channel: CourseChannel;
 }
 
 /** What students think of an instructor: the average of the approved reviews of their live classes (real data only). */
@@ -190,7 +199,7 @@ export async function instructorRatings(env: Env, ids: number[]): Promise<Map<nu
   const rows = await all<{ instructor_id: number; classes: number; reviews: number; weighted: number }>(
     env.DB,
     `SELECT instructor_id, COUNT(*) AS classes, COALESCE(SUM(rating_count), 0) AS reviews, COALESCE(SUM(rating_avg * rating_count), 0) AS weighted
-     FROM courses WHERE instructor_id IN (${unique.map(() => "?").join(",")}) AND deleted_at IS NULL AND status IN ('published','coming_soon')
+     FROM courses c WHERE instructor_id IN (${unique.map(() => "?").join(",")}) AND deleted_at IS NULL AND status IN ('published','coming_soon') AND ${ON_WEBSITE}
      GROUP BY instructor_id`,
     ...unique,
   );
@@ -203,15 +212,20 @@ async function withRatings(env: Env, list: InstructorDTO[]): Promise<InstructorD
   return list.map((i) => ({ ...i, rating: ratings.get(i.id) ?? { avg: 0, count: 0, classes: 0 } }));
 }
 
-export async function getCourseBySlug(env: Env, slug: string, opts: { includeHidden?: boolean } = {}): Promise<CourseDetail | null> {
+/**
+ * A class by its address. The website's pages ask for the website's classes (the default); a signed-in student's own class (`channel:
+ * "any"`, with `includeHidden`) may be an Android app class too, and the app's free-class page asks for `channel: "app"`.
+ */
+export async function getCourseBySlug(env: Env, slug: string, opts: { includeHidden?: boolean; channel?: CourseChannel | "any" } = {}): Promise<CourseDetail | null> {
+  const channel = opts.channel ?? "website";
   const row = await first<CardRow & Record<string, unknown>>(
     env.DB,
     `SELECT ${CARD_COLUMNS}, c.long_bn, c.long_en, c.details_url, c.cert_enabled, c.duration_sec, c.seo_title_bn, c.seo_title_en,
             c.seo_desc_bn, c.seo_desc_en, c.published_at, c.launch_at, c.updated_at, c.instructor_id,
-            c.demo_url, c.demo_title_bn, c.demo_title_en, c.demo_text_bn, c.demo_text_en
+            c.demo_url, c.demo_title_bn, c.demo_title_en, c.demo_text_bn, c.demo_text_en, c.channel
      FROM courses c LEFT JOIN categories cat ON cat.id = c.category_id
-     WHERE c.slug = ? AND c.deleted_at IS NULL ${opts.includeHidden ? "" : "AND c.status IN ('published','coming_soon')"}`,
-    slug,
+     WHERE c.slug = ? AND c.deleted_at IS NULL ${opts.includeHidden ? "" : "AND c.status IN ('published','coming_soon')"} ${channel === "any" ? "" : "AND c.channel = ?"}`,
+    ...(channel === "any" ? [slug] : [slug, channel]),
   );
   if (!row) return null;
   const instructor = row.instructor_id
@@ -237,6 +251,7 @@ export async function getCourseBySlug(env: Env, slug: string, opts: { includeHid
     demo_title_en: (row.demo_title_en as string | null) ?? "",
     demo_text_bn: (row.demo_text_bn as string | null) ?? "",
     demo_text_en: (row.demo_text_en as string | null) ?? "",
+    channel: row.channel === "app" ? "app" : "website",
   };
 }
 
@@ -244,7 +259,7 @@ export async function listCategories(env: Env): Promise<CategoryDTO[]> {
   return all<CategoryDTO>(
     env.DB,
     `SELECT cat.id, cat.slug, cat.name_bn, cat.name_en, cat.blurb_bn, cat.blurb_en, cat.accent, cat.icon,
-            (SELECT COUNT(*) FROM courses c WHERE c.category_id = cat.id AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon')) AS course_count
+            (SELECT COUNT(*) FROM courses c WHERE c.category_id = cat.id AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon') AND ${ON_WEBSITE}) AS course_count
      FROM categories cat WHERE cat.active = 1 ORDER BY cat.sort, cat.id`,
   );
 }
@@ -263,7 +278,7 @@ export async function coursesByInstructor(env: Env, instructorId: number): Promi
   const rows = await all<CardRow>(
     env.DB,
     `SELECT ${CARD_COLUMNS} FROM courses c LEFT JOIN categories cat ON cat.id = c.category_id
-     WHERE c.instructor_id = ? AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon') ORDER BY c.sort, c.id`,
+     WHERE c.instructor_id = ? AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon') AND ${ON_WEBSITE} ORDER BY c.sort, c.id`,
     instructorId,
   );
   return rows.map(toCard);
@@ -352,7 +367,7 @@ export async function reviewsByInstructor(env: Env, instructorId: number, limit 
     env.DB,
     `SELECT r.id, r.rating, r.body, r.reply, r.created_at, s.name, c.slug AS course_slug, c.title_bn AS course_title_bn, c.title_en AS course_title_en
      FROM reviews r JOIN students s ON s.id = r.student_id JOIN courses c ON c.id = r.course_id
-     WHERE c.instructor_id = ? AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon') AND r.status = 'approved'
+     WHERE c.instructor_id = ? AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon') AND ${ON_WEBSITE} AND r.status = 'approved'
      ORDER BY r.created_at DESC, r.id DESC LIMIT ?`,
     instructorId,
     limit,
@@ -390,7 +405,7 @@ export function shortName(full: string): string {
 }
 
 export async function publishedCounts(env: Env): Promise<{ courses: number }> {
-  const row = await first<{ n: number }>(env.DB, "SELECT COUNT(*) AS n FROM courses WHERE deleted_at IS NULL AND status = 'published'");
+  const row = await first<{ n: number }>(env.DB, `SELECT COUNT(*) AS n FROM courses c WHERE deleted_at IS NULL AND status = 'published' AND ${ON_WEBSITE}`);
   return { courses: row?.n ?? 0 };
 }
 

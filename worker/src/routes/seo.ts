@@ -36,7 +36,7 @@ seoRoutes.get("/sitemap.xml", (c) =>
   cachedPage(c, { ttl: 3600 }, async () => {
     const site = c.env.SITE_URL.replace(/\/$/, "");
     const [courses, posts, instructors, cats, landing] = await Promise.all([
-      all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM courses WHERE deleted_at IS NULL AND status IN ('published','coming_soon') ORDER BY sort, id"),
+      all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM courses WHERE deleted_at IS NULL AND status IN ('published','coming_soon') AND channel = 'website' ORDER BY sort, id"),
       all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM blog_posts WHERE status = 'published' AND deleted_at IS NULL"),
       all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM instructors WHERE active = 1 AND deleted_at IS NULL"),
       all<{ slug: string }>(c.env.DB, "SELECT slug FROM categories WHERE active = 1 ORDER BY sort"),

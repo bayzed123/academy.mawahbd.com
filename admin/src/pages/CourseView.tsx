@@ -84,7 +84,12 @@ export function CourseView() {
             <Chip tone="info">
               <Icon name="eye" /> {t("adm.course.viewMode")}
             </Chip>
-            {c.status === "published" && (
+            {c.channel === "app" && (
+              <Chip tone="info">
+                <Icon name="phone" /> {t("adm.courses.ch.app")}
+              </Chip>
+            )}
+            {c.status === "published" && c.channel !== "app" && (
               <a className="btn btn-outline btn-sm" href={publicHref} target="_blank" rel="noopener noreferrer">
                 <Icon name="external" /> {t("adm.course.viewOnSite")}
               </a>
@@ -107,8 +112,9 @@ export function CourseView() {
         <div className="vis-text">
           <CourseStateChip status={c.status} />
           <p>{t(`adm.course.stateText.${c.status}` as "adm.course.stateText.draft")}</p>
+          {c.channel === "app" && <p>{t("adm.course.stateText.app")}</p>}
         </div>
-        <Switch checked={active} disabled={!canWrite} onChange={(x) => void setActive(subject, x)} label={t("adm.course.activeOnSite")} />
+        <Switch checked={active} disabled={!canWrite} onChange={(x) => void setActive(subject, x)} label={t(c.channel === "app" ? "adm.course.activeInApp" : "adm.course.activeOnSite")} />
       </section>
 
       <section className="kpis" aria-label={t("adm.course.viewMode")}>

@@ -104,6 +104,34 @@ export function DemoCard({ course, onPress }: { course: CourseCardDTO; onPress: 
   );
 }
 
+/** One of the app's free classes (Admin → Android app): no price anywhere, only "Free". */
+export function FreeCard({ course, onPress }: { course: CourseCardDTO; onPress: () => void }) {
+  const { c, t, lang } = usePrefs();
+  return (
+    <Press onPress={onPress} accessibilityRole="button" accessibilityLabel={`${loc(course, "title", lang)}, ${t("free.badge")}`} style={{ width: 230, backgroundColor: c.surface, borderRadius: RADIUS.l, borderWidth: 1, borderColor: c.line, overflow: "hidden" }}>
+      <View>
+        <CourseArt course={course} height={130} />
+        <View style={{ position: "absolute", left: 10, bottom: 10, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: c.ok, paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.pill }}>
+          <Icon name="gift" size={12} color={c.onAccent} />
+          <Txt v="tiny" color={c.onAccent}>
+            {t("free.badge")}
+          </Txt>
+        </View>
+      </View>
+      <View style={{ padding: 12, gap: 4 }}>
+        <Txt v="label" numberOfLines={2}>
+          {loc(course, "title", lang)}
+        </Txt>
+        {course.lesson_count ? (
+          <Txt v="small" color={c.text3}>
+            {t("course.lessons", { n: course.lesson_count })}
+          </Txt>
+        ) : null}
+      </View>
+    </Press>
+  );
+}
+
 /** A product of the equipment shop (physical goods: price shown, ordered on the website). */
 export function ProductCard({ p, onPress, width }: { p: ShopCardDTO; onPress: () => void; width: number }) {
   const { c, t, lang, n } = usePrefs();

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { isNoEmail, parseLoginId, studentCode } from "@mawah/shared";
+import { isNoEmail, noEmailAddress, parseLoginId, studentCode } from "@mawah/shared";
 import type { AppEnv, Ctx } from "../../env";
 import { audit, auditAs } from "../../lib/audit";
 import { randomToken, sha256Hex } from "../../lib/crypto";
@@ -9,7 +9,7 @@ import { HttpError, ok, parseBody } from "../../lib/http";
 import { toMe } from "../../lib/me";
 import { passwordResetMail } from "../../lib/mailer";
 import { resetCodeSms } from "../../lib/smsText";
-import { addressSchema, emailSchema, langSchema, nameSchema, optionalEmailSchema, passwordSchema, phoneSchema, turnstileField } from "../../lib/schemas";
+import { addressSchema, emailSchema, langSchema, nameSchema, optionalEmailSchema, passwordSchema, phoneSchema, requiredPhoneSchema, turnstileField } from "../../lib/schemas";
 import { createSession, destroySession, viaApp } from "../../lib/session";
 import { verifyTurnstile } from "../../lib/turnstile";
 import { hashPassword } from "../../lib/crypto";
@@ -73,6 +73,66 @@ authRoutes.post("/register", rateLimit("RL_AUTH"), async (c) => {
   await audit(c, { action: "student.register", entity: "student", entityId: id });
   c.executionCtx.waitUntil(notifyOwner(c.env, notices.newStudent({ name: body.name, email: body.email, phone: body.phone })));
   return ok(c, { student: toMe({ id, name: body.name, email: body.email, phone: body.phone, locale: body.lang }) }, 201);
+});
+
+/**
+ * Making an account in the Android app (to study its free classes): a name, a mobile number, a password — and an e-mail only if they want
+ * to. Without one, the number is who they are (the account is kept under a made-up address, noEmailAddress, and they sign in with the
+ * number or their student ID), so a number that already has an account is never a second one: that person signs in, or uses "Forgot
+ * password" (a code by text message). The app gets its session token in the answer, as at sign-in.
+ */
+const appRegisterSchema = z.object({
+  name: nameSchema,
+  phone: requiredPhoneSchema,
+  email: optionalEmailSchema,
+  password: passwordSchema,
+  lang: langSchema.optional().default("bn"),
+  turnstile: turnstileField,
+});
+
+authRoutes.post("/app-register", rateLimit("RL_AUTH"), async (c) => {
+  const body = await parseBody(c, appRegisterSchema);
+  // a second limiter keyed by the number, like sign-in: one number cannot be tried again and again from many addresses
+  if (!(await checkRateLimit(c.env, "RL_AUTH", `RL_AUTH:signup:${body.phone}`))) throw new HttpError(429, "rate_limited");
+  await guardBots(c, body.turnstile);
+
+  const key = body.email ?? noEmailAddress(body.phone);
+  if (body.email) {
+    if (await first(c.env.DB, "SELECT id FROM students WHERE email = ?", key)) throw new HttpError(409, "email_taken", "email_taken", { email: "email_taken" });
+  } else if (await first(c.env.DB, "SELECT id FROM students WHERE (phone = ? OR email = ?) AND deleted_at IS NULL LIMIT 1", body.phone, key)) {
+    throw new HttpError(409, "phone_taken", "phone_taken", { phone: "phone_taken" });
+  }
+
+  const hash = await hashPassword(body.password, c.env.APP_SECRET);
+  const now = nowIso();
+  let id: number;
+  try {
+    const res = await run(
+      c.env.DB,
+      `INSERT INTO students (email, name, phone, password_hash, locale, source, marketing_opt_in, last_login_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'signup', 0, ?, ?, ?)`,
+      key,
+      body.name,
+      body.phone,
+      hash,
+      body.lang,
+      now,
+      now,
+      now,
+    );
+    id = res.meta.last_row_id as number;
+  } catch (err) {
+    // the same sign-up sent twice (a double tap): the second one loses the UNIQUE race
+    if (String(err).includes("UNIQUE")) throw body.email ? new HttpError(409, "email_taken", "email_taken", { email: "email_taken" }) : new HttpError(409, "phone_taken", "phone_taken", { phone: "phone_taken" });
+    throw err;
+  }
+
+  const token = await createSession(c, "student", id, { app: true });
+  const me = { id, name: body.name, email: key, phone: body.phone, address: "", locale: body.lang, has_password: true };
+  c.set("student", me);
+  await audit(c, { action: "student.register", entity: "student", entityId: id, meta: { via: "app" } });
+  c.executionCtx.waitUntil(notifyOwner(c.env, notices.newStudent({ name: body.name, email: body.email ?? "", phone: body.phone })));
+  return ok(c, { student: toMe(me), token }, 201);
 });
 
 /**

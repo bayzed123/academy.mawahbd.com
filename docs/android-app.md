@@ -7,9 +7,14 @@ class, a lesson, a price or a banner in Admin, the app shows it at once. You onl
 
 ## What the app does (and does not do)
 
-It is a **study app**: students buy classes on the website, as today, and study in the app.
+It is a **study app**: students buy classes on the website, as today, and study in the app. It also has **free classes of its own**.
 
-* **Home:** "continue where you stopped", my classes, the free demo classes and the shop.
+* **Home:** the app's notice (when the owner sets one), "continue where you stopped", my classes, the **free classes**, the free demo
+  classes and the shop.
+* **Free classes** (Admin → Android app): a class whose editor says *Where is this class shown? → Android app only — free*. It is free in
+  the app for anyone with an account, and the website never lists, shows or sells it. The student taps **Start for free**: the class is
+  theirs at once (no order, nothing bought) and opens like any other class. Signed out, the same button opens **Make a free account**:
+  name, mobile number and password (an e-mail only if they want); they log in later with the number or their student ID.
 * **My classes → a class:** progress, lessons by part, class materials (files, links, live classes, private groups), the certificate.
 * **A lesson:** the video in the phone's own player (full screen, smooth), "Mark as done", the notes, downloads, next/previous lesson.
   Screenshots and screen recordings are blacked out while a lesson is open.
@@ -85,7 +90,11 @@ files' signatures afterwards.
    An organization account (needs a free D-U-N-S number) does not have this rule.
 4. **App content** (Policy → App content):
    * **Privacy policy:** `https://mawahacademy.com/policies/privacy`
-   * **App access:** some screens need a login → give Google a test student (a mobile number and password) with one class.
+   * **App access:** some screens need a login → *All or some functionality is restricted* → **Admin → Android app → Google Play test
+     account → Make the test account**, and give Google its **student ID** (as the username) and the **password** shown (shown once:
+     copy it at once; *New password* makes another and signs the old one out everywhere). Instructions for the reviewer, in English:
+     "Sign in with the student ID and password. The free classes are on Home: tap one, then Start for free." To let the reviewer see a
+     website class too, give the account that class in *Admin → Students* (the page links there).
    * **Ads:** no ads.
    * **Content rating:** fill in the questionnaire (an education app).
    * **Target audience:** 18 and over (unless children are your students: under 13 brings in Google's family rules).
@@ -93,8 +102,9 @@ files' signatures afterwards.
      * *Does the app collect or share user data?* Collects: yes. Shares: **no** (nothing goes to advertisers or data brokers; the
        payment and hosting services work for us, which Google does not count as sharing).
      * *Encrypted in transit?* Yes (HTTPS). *Can users ask for deletion?* Yes (next point).
-     * *Data types collected* — all **required**, for **App functionality** and **Account management**, not for advertising:
-       * Personal info: **Name**, **Phone number**, **Email address** (when given), **User IDs** (the student ID)
+     * *Data types collected* — all **required**, for **App functionality** and **Account management**, not for advertising (an
+       account is made in the app — *Make a free account* — or on the website):
+       * Personal info: **Name**, **Phone number**, **Email address** (only when given: it is optional), **User IDs** (the student ID)
        * Financial info: **Purchase history** (classes and orders)
        * App activity: **Other user-generated content** (questions and reviews), **App interactions** (lessons finished, downloads)
      * The app collects no location, contacts, photos, files, audio or device identifiers, and has no advertising or analytics library.
@@ -134,11 +144,22 @@ npx expo start           # then press "a" for an Android emulator, or scan the Q
 * **Sign-in:** `POST /api/auth/login` with `"client": "app"` returns a session token instead of a cookie; the app keeps it in Android's
   encrypted storage (`expo-secure-store`) and sends `Authorization: Bearer …`. Students only: staff sessions are never read from a header.
   Logging out ends that token; a password change, a block or "log out everywhere" ends it too.
+* **Free classes:** `GET /api/app/courses` (the live app classes), `GET /api/app/courses/:slug` (one, with its lessons' titles and, for a
+  signed-in student, `joined` / `revoked`), `POST /api/app/courses/:slug/join` (an enrolment with source `free` and no order; a class
+  staff took back stays taken back). `courses.channel` is `website` or `app` (migration 0023); every website list, page, search, sitemap,
+  checkout and bundle reads only `website` classes (`ON_WEBSITE` in `worker/src/services/catalog.ts`).
+* **Sign-up:** `POST /api/auth/app-register` (name, phone, password, optional email, lang) answers like an app login (a token). Without an
+  e-mail the number is the account (`p<number>@no-email.invalid`), so a number that has an account already is refused (`phone_taken`).
+* **Notice:** `/api/site` → `site.app_notice` (`{ bn, en }` or null), saved in Admin → Android app (setting key `app`).
 * Icons are drawn from the website's `marketing/public/sprite.svg` (`node scripts/gen-icons.mjs` rebuilds `src/ui/iconData.ts`).
 
 ## Known limits
 
 * Classes cannot be bought in the app (Google Play rule above). A student who joined on the website logs in with the same account.
+  The app's own free classes are free; a student who has one also sees it in the website's student area (it is their class), but the
+  website never lists it.
+* Only **live** app classes are in the app: a draft or "coming soon" app class is not shown there yet.
+* `/api/site` may be kept for up to a minute, so a new notice reaches open apps within about a minute.
 * "Forgot password" opens the website's page in the browser.
 * Shop orders are placed on the website's page (opened from the app), not in an in-app cart.
 * If Cloudflare Turnstile (the website's optional bot check) is switched on, logging in from the app stops working until the app gets a
@@ -150,6 +171,9 @@ npx expo start           # then press "a" for an Android emulator, or scan the Q
 
 * অ্যাপটি `mobile/` ফোল্ডারে। ওয়েবসাইটের **একই সার্ভার** থেকে তথ্য নেয় — অ্যাডমিনে নতুন ক্লাস, লেসন বা দাম দিলে অ্যাপে সাথে সাথে দেখা যায়। নতুন বিল্ড লাগে শুধু অ্যাপ নিজে বদলালে।
 * **অ্যাপে ক্লাস কেনা যায় না** (গুগল প্লের নিয়ম): শিক্ষার্থীরা ওয়েবসাইটে কেনেন, অ্যাপে পড়েন। ইকুইপমেন্ট শপের পণ্য অর্ডার হয় ওয়েবসাইটের নিরাপদ পাতায়।
+* **অ্যাপের ফ্রি ক্লাস:** অ্যাডমিন → ক্লাস → নতুন ক্লাস → “ক্লাসটি কোথায় দেখানো হবে?” → **শুধু অ্যান্ড্রয়েড অ্যাপে — ফ্রি** (অথবা অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → **ফ্রি ক্লাস যোগ করুন**)। ক্লাসটি অ্যাপে সবার জন্য ফ্রি; ওয়েবসাইটে কখনো দেখানো বা বিক্রি হয় না। শিক্ষার্থী অ্যাপে “ফ্রি শুরু করুন” চাপলেই ক্লাসটি তাঁর হয়ে যায় (কোনো অর্ডার নেই)। অ্যাকাউন্ট না থাকলে অ্যাপেই **ফ্রি অ্যাকাউন্ট খুলুন** — নাম, মোবাইল নম্বর, পাসওয়ার্ড (ইমেইল চাইলে)।
+* **গুগল প্লের টেস্ট অ্যাকাউন্ট:** অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → **টেস্ট অ্যাকাউন্ট তৈরি করুন** → যে স্টুডেন্ট আইডি ও পাসওয়ার্ড দেখাবে (শুধু একবার), সেটি Play Console → App content → App access-এ দিন। হারালে “নতুন পাসওয়ার্ড” চাপুন।
+* **অ্যাপের নোটিশ:** অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → নোটিশ (বাংলা ও ইংরেজি) → “নোটিশ দেখান” → সংরক্ষণ। এক মিনিটের মধ্যে অ্যাপের হোমে দেখা যায়।
 * **আপলোড কী:** নিজের কম্পিউটারে `mobile/scripts/make-upload-key.ps1` চালান (উপরে ১ নম্বর)। তারপর GitHub → Settings → Secrets and variables → Actions-এ ৪টি সিক্রেট দিন (উপরে ২ নম্বর)। কী ফাইল ও পাসওয়ার্ড কখনো রিপোজিটরি বা চ্যাটে দেবেন না; দুই জায়গায় ব্যাকআপ রাখুন।
 * **বিল্ড:** GitHub → Actions → Android app → Run workflow → শেষ হলে Artifacts থেকে `.aab` (গুগল প্লের জন্য) ও `.apk` (ফোনে সরাসরি ইনস্টলের জন্য) নামান।
 * **গুগল প্লে:** পার্সোনাল অ্যাকাউন্ট (১৩ নভেম্বর ২০২৩-এর পরে খোলা) হলে প্রোডাকশনের আগে **১২ জন টেস্টার, টানা ১৪ দিন** ক্লোজড টেস্ট লাগবে — আগে থেকেই টেস্টার জোগাড় শুরু করুন।

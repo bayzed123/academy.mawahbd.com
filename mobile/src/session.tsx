@@ -9,6 +9,8 @@ interface Session {
   status: Status;
   me: StudentMe | null;
   login: (identifier: string, password: string) => Promise<void>;
+  /** a new account made in the app (to study its free classes): signed in at once, like login */
+  register: (details: { name: string; phone: string; email?: string; password: string; lang: "bn" | "en" }) => Promise<void>;
   logout: () => Promise<void>;
   /** Profile → Delete my account: deletes the account on the server (`password` when it has one), then forgets it on the phone */
   deleteAccount: (password?: string) => Promise<void>;
@@ -64,8 +66,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     })();
   }, [forget]);
 
-  const login = useCallback(async (identifier: string, password: string) => {
-    const res = await api<{ student: StudentMe; token: string }>("/api/auth/login", { method: "POST", body: { identifier, password, client: "app" } });
+  const signedIn = useCallback(async (res: { student: StudentMe; token: string }) => {
     if (!res.token) throw new ApiError(500, "server");
     setToken(res.token);
     clearCache();
@@ -73,6 +74,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setMe(res.student);
     setStatus("in");
   }, []);
+
+  const login = useCallback(
+    async (identifier: string, password: string) => {
+      await signedIn(await api<{ student: StudentMe; token: string }>("/api/auth/login", { method: "POST", body: { identifier, password, client: "app" } }));
+    },
+    [signedIn],
+  );
+
+  // the server's app sign-up (POST /api/auth/app-register): mobile number required, e-mail only if given; it answers with a token too
+  const register = useCallback(
+    async (d: { name: string; phone: string; email?: string; password: string; lang: "bn" | "en" }) => {
+      await signedIn(await api<{ student: StudentMe; token: string }>("/api/auth/app-register", { method: "POST", body: { name: d.name, phone: d.phone, password: d.password, lang: d.lang, ...(d.email ? { email: d.email } : {}) } }));
+    },
+    [signedIn],
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -91,7 +107,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [forget],
   );
 
-  const value = useMemo(() => ({ status, me, login, logout, deleteAccount }), [status, me, login, logout, deleteAccount]);
+  const value = useMemo(() => ({ status, me, login, register, logout, deleteAccount }), [status, me, login, register, logout, deleteAccount]);
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 

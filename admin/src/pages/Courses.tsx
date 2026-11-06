@@ -53,6 +53,7 @@ export function Courses() {
       filters={[
         { key: "status", label: t("label.status"), options: ["draft", "coming_soon", "published", "archived"].map((s) => ({ value: s, label: t(`status.${s}` as "status.draft") })) },
         { key: "category_id", label: t("adm.f.category"), options: categories },
+        { key: "channel", label: t("adm.courses.channel"), options: (["website", "app"] as const).map((ch) => ({ value: ch, label: t(`adm.courses.ch.${ch}`) })) },
       ]}
       columns={[
         {
@@ -67,6 +68,19 @@ export function Courses() {
           ),
         },
         { key: "price", label: t("label.price"), sort: "price", className: "num", render: (r) => (r.price === 0 ? t("label.free") : money(r.price)) },
+        {
+          // sold on the website, or free in the Android app only (Admin → Android app)
+          key: "channel",
+          label: t("adm.courses.channel"),
+          render: (r) =>
+            r.channel === "app" ? (
+              <Chip tone="info">
+                <Icon name="phone" /> {t("adm.courses.ch.app")}
+              </Chip>
+            ) : (
+              <span className="muted">{t("adm.courses.ch.website")}</span>
+            ),
+        },
         { key: "status", label: t("label.status"), sort: "status", render: (r) => <CourseStateChip status={r.status} /> },
         {
           key: "active",
@@ -74,7 +88,7 @@ export function Courses() {
           render: (r) => (
             // one switch: on = on the website and open for enrolment; off = hidden. It asks before hiding a class or opening an empty one.
             <span onClick={(e) => e.stopPropagation()}>
-              <Switch checked={isActive(r)} disabled={!can("courses:write")} onChange={(x) => void setActive(r, x)} label={t("adm.course.toggle", { name: pick(r, "title") })} hideLabel />
+              <Switch checked={isActive(r)} disabled={!can("courses:write")} onChange={(x) => void setActive(r, x)} label={t(r.channel === "app" ? "adm.course.toggleApp" : "adm.course.toggle", { name: pick(r, "title") })} hideLabel />
             </span>
           ),
         },
@@ -121,7 +135,7 @@ export function Courses() {
           <Link className="icon-btn" to={`/courses/${r.id}/edit?tab=curriculum`} aria-label={t("adm.course.curriculum")} title={t("adm.course.curriculum")}>
             <Icon name="list" />
           </Link>
-          {r.status === "published" && (
+          {r.status === "published" && r.channel !== "app" && (
             <a className="icon-btn" href={`/courses/${r.slug}`} target="_blank" rel="noopener noreferrer" aria-label={t("adm.course.viewOnSite")} title={t("adm.course.viewOnSite")}>
               <Icon name="external" />
             </a>

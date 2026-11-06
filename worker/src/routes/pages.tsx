@@ -71,12 +71,12 @@ export function pageRoutes(lang: Lang) {
         listCourses(c.env, { level: "beginner", perPage: 4 }),
         listInstructors(c.env),
         publishedCounts(c.env),
-        first<{ p: number | null }>(c.env.DB, "SELECT MIN(price) AS p FROM courses WHERE deleted_at IS NULL AND status = 'published' AND price > 0"),
+        first<{ p: number | null }>(c.env.DB, "SELECT MIN(price) AS p FROM courses WHERE deleted_at IS NULL AND status = 'published' AND price > 0 AND channel = 'website'"),
         all<{ id: number; rating: number; body: string; reply: string | null; created_at: string; name: string; course_slug: string; title_bn: string; title_en: string }>(
           c.env.DB,
           `SELECT r.id, r.rating, r.body, r.reply, r.created_at, s.name, c.slug AS course_slug, c.title_bn, c.title_en
            FROM reviews r JOIN students s ON s.id = r.student_id JOIN courses c ON c.id = r.course_id
-           WHERE r.status = 'approved' AND r.body <> '' AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon')
+           WHERE r.status = 'approved' AND r.body <> '' AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon') AND c.channel = 'website'
            ORDER BY r.rating DESC, r.created_at DESC LIMIT 3`,
         ),
         all<PostRow>(c.env.DB, `SELECT ${POST_COLS} FROM blog_posts WHERE status = 'published' AND deleted_at IS NULL ORDER BY published_at DESC LIMIT 3`),

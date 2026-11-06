@@ -158,6 +158,13 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
   }),
   // the sender ID is the short name the SMS company approved for the shop (letters and digits); empty = the company's own default
   sms: z.object({ enabled: z.boolean(), sender_id: z.string().trim().max(15, "too_long").regex(/^[A-Za-z0-9 ._-]*$/, "invalid_id"), with_email: z.boolean() }),
+  // the Android app's notice: switched on only with words in both languages (the app shows the one the student reads)
+  app: z
+    .object({ notice_on: z.boolean(), notice_bn: textSchema(240), notice_en: textSchema(240) })
+    .superRefine((v, ctx) => {
+      if (v.notice_on && !v.notice_bn) ctx.addIssue({ code: "custom", path: ["notice_bn"], message: "required" });
+      if (v.notice_on && !v.notice_en) ctx.addIssue({ code: "custom", path: ["notice_en"], message: "required" });
+    }),
   onboarding: z.object({ dismissed: z.boolean() }),
 };
 

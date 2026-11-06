@@ -175,7 +175,7 @@ export async function landingData(env: Env, blocks: LandingBlock[]): Promise<Lan
       env.DB,
       `SELECT r.id, r.rating, r.body, r.reply, r.created_at, s.name, c.slug AS course_slug, c.title_bn AS course_title_bn, c.title_en AS course_title_en
        FROM reviews r JOIN students s ON s.id = r.student_id JOIN courses c ON c.id = r.course_id
-       WHERE r.status = 'approved' AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon') ${b.course_id > 0 ? "AND c.id = ?" : ""}
+       WHERE r.status = 'approved' AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon') AND c.channel = 'website' ${b.course_id > 0 ? "AND c.id = ?" : ""}
        ORDER BY r.created_at DESC, r.id DESC LIMIT 12`,
       ...(b.course_id > 0 ? [b.course_id] : []),
     );
