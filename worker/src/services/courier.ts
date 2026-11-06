@@ -264,9 +264,15 @@ export async function orderForCourier(env: Env, c: Courier, cid: string, code: s
 
 /**
  * Keep a courier's word about an order: in its history, as the order's latest, and — when it says the parcel was delivered — the
- * order is marked delivered (only from "shipped": an order staff already closed is never reopened by a courier).
+ * order is marked delivered (only from "shipped": an order staff already closed is never reopened by a courier). `delivered`: this word
+ * is the one that marked it so (a courier that says it twice changes nothing the second time).
  */
-export async function recordCourierWord(env: Env, order: { id: number; status: string }, c: Courier, w: { event: string; status: string; message: string }): Promise<CourierMeaning> {
+export async function recordCourierWord(
+  env: Env,
+  order: { id: number; status: string },
+  c: Courier,
+  w: { event: string; status: string; message: string },
+): Promise<{ meaning: CourierMeaning; delivered: boolean }> {
   const now = nowIso();
   const meaning = courierMeaning(w.status || w.event);
   await env.DB.batch([
@@ -275,9 +281,10 @@ export async function recordCourierWord(env: Env, order: { id: number; status: s
     env.DB.prepare("UPDATE shop_orders SET courier_status = COALESCE(NULLIF(?, ''), courier_status), courier_at = ?, updated_at = ? WHERE id = ?").bind(w.status.slice(0, 60), now, now, order.id),
   ]);
   if (meaning === "delivered") {
-    await run(env.DB, "UPDATE shop_orders SET status = 'delivered', delivered_at = ?, updated_at = ? WHERE id = ? AND status = 'shipped'", now, now, order.id);
+    const res = await run(env.DB, "UPDATE shop_orders SET status = 'delivered', delivered_at = ?, updated_at = ? WHERE id = ? AND status = 'shipped'", now, now, order.id);
+    return { meaning, delivered: !!res.meta.changes };
   }
-  return meaning;
+  return { meaning, delivered: false };
 }
 
 /** An order's parcel history, oldest first (Admin → Shop → Orders). */

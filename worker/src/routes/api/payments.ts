@@ -10,6 +10,7 @@ import { bkashAcceptable, bkashExecute, bkashQuery } from "../../services/paymen
 import { sslAcceptable, sslConfigured, sslMethod, sslValidate } from "../../services/payments/sslcommerz";
 import { notices, notifyOwner } from "../../services/notify";
 import { closeShopOrder, holdShopPayment, isShopOrderId, lateShopPayment, markShopPaid, shopOrderRow } from "../../services/shop";
+import { textShopBuyer } from "../../services/shopTexts";
 
 /**
  * Payment gateway callbacks. These are NOT cookie-authenticated (they arrive cross-site, often as POST from
@@ -113,6 +114,8 @@ async function confirmShopSsl(c: Ctx, tranId: string, valId: string): Promise<"p
         }),
       ),
     );
+    // …and the buyer, that the money arrived (a payment held for staff to check, or one after the order was closed, too: the money is there)
+    c.executionCtx.waitUntil(textShopBuyer(c.env, order, "paid"));
   }
   return verdict === "ok" && !closed ? "paid" : "pending";
 }

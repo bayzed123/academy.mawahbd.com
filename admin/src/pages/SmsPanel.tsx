@@ -21,6 +21,8 @@ interface SmsStatus {
   enabled: boolean;
   sender_id: string;
   with_email: boolean;
+  /** tools-shop buyers are texted about their order */
+  shop: boolean;
   last: Last | null;
 }
 interface Result {
@@ -54,6 +56,7 @@ export function SmsPanel() {
   const q = useQuery({ queryKey: ["sms-status"], queryFn: () => adm<SmsStatus>("/settings/sms") });
   const [enabled, setEnabled] = useState(true);
   const [withEmail, setWithEmail] = useState(true);
+  const [shop, setShop] = useState(true);
   const [sender, setSender] = useState("");
   const [senderError, setSenderError] = useState("");
   const [to, setTo] = useState("");
@@ -65,6 +68,7 @@ export function SmsPanel() {
     if (!q.data) return;
     setEnabled(q.data.enabled);
     setWithEmail(q.data.with_email);
+    setShop(q.data.shop);
     setSender(q.data.sender_id);
   }, [q.data]);
 
@@ -75,7 +79,7 @@ export function SmsPanel() {
     void qc.invalidateQueries({ queryKey: ["dashboard"] });
   };
   const save = useMutation({
-    mutationFn: () => adm("/settings/sms", { method: "PUT", json: { enabled, with_email: withEmail, sender_id: sender.trim() } }),
+    mutationFn: () => adm("/settings/sms", { method: "PUT", json: { enabled, with_email: withEmail, shop, sender_id: sender.trim() } }),
     onSuccess: () => {
       setSenderError("");
       toast(t("adm.saved"));
@@ -171,6 +175,10 @@ export function SmsPanel() {
           <div>
             <Switch id="sms-with-email" checked={withEmail} disabled={!canWrite || !enabled} onChange={setWithEmail} label={t("adm.sms.withEmail")} />
             <p className="hint">{t("adm.sms.withEmailHint")}</p>
+          </div>
+          <div>
+            <Switch id="sms-shop" checked={shop} disabled={!canWrite || !enabled} onChange={setShop} label={t("adm.sms.shop")} />
+            <p className="hint">{t("adm.sms.shopHint")}</p>
           </div>
         </div>
         <Field id="sms-sender" label={t("adm.sms.senderId")} hint={t("adm.sms.senderHint")} error={senderError}>

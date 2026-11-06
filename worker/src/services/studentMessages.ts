@@ -16,6 +16,17 @@ export interface Told {
 }
 
 /**
+ * How a message went, for the activity log: "sent" (the company took it), the reason it was not, or "not_sent" — nothing was to go that way
+ * (texts switched off, no number, the hourly limit for a number reached, no e-mail).
+ */
+export function toldMeta(told: Told): { sms: string; email: string } {
+  return {
+    sms: told.sms ? (told.sms.ok ? "sent" : (told.sms.problem ?? "failed")) : "not_sent",
+    email: told.mail ? (told.mail.ok ? "sent" : (told.mail.code ?? "failed")) : "not_sent",
+  };
+}
+
+/**
  * Tell a student something: by e-mail when they have one, and by text message to their mobile number when the shop sends them
  * (Admin → Settings → SMS) — always by text when there is no e-mail to use, since that is then the only way. `smsAlso` sends the text even
  * when the owner has switched off texts for people who gave an e-mail (a sign-in link that was asked for by number). `capped`: something a

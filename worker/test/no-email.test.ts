@@ -123,8 +123,13 @@ describe("buying with a mobile number and no e-mail", () => {
   });
 
   it("is told by text message, not by e-mail: the receipt has the student ID, the link to the class and a link to choose a password", async () => {
-    const { phone, code, out } = await paidBuyer();
+    const { phone, code, out, publicId } = await paidBuyer();
     const receipt = await until(async () => (await smsTo(phone)).find((m) => /payment received/.test(m.text)));
+    // the owner can see it went (Admin → Activity): by text, and no e-mail (there is none to use)
+    const sent = await until(async () =>
+      env.DB.prepare("SELECT l.meta FROM activity_log l JOIN orders o ON o.id = l.entity_id WHERE l.action = 'order.receipt_sent' AND o.public_id = ?").bind(publicId).first<{ meta: string }>(),
+    );
+    expect(JSON.parse(sent.meta)).toEqual({ sms: "sent", email: "not_sent" });
     expect(receipt.text).toContain(code);
     expect(receipt.text).toContain("Tk 1500");
     expect(receipt.text).toMatch(/https?:\/\/[^\s]+\/app\//);

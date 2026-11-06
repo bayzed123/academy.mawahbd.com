@@ -18,7 +18,7 @@ import { checkRateLimit, rateLimit } from "../../middleware/ratelimit";
 import { authenticate, createPasswordResetLink, createResetCode, setPassword, studentLoginFor, useResetCode } from "../../services/auth";
 import { deleteStudentAccount } from "../../services/accountDeletion";
 import { notices, notifyOwner } from "../../services/notify";
-import { tellStudent } from "../../services/studentMessages";
+import { tellStudent, toldMeta } from "../../services/studentMessages";
 
 export const authRoutes = new Hono<AppEnv>();
 
@@ -231,7 +231,7 @@ authRoutes.post("/forgot", rateLimit("RL_AUTH"), async (c) => {
     c.executionCtx.waitUntil(
       tellStudent(c.env, { email: student.email, phone: student.phone }, { mail: link ? passwordResetMail(lang, link, code) : undefined, sms: resetCodeSms(lang, { code }) }, { smsAlso: byNumber, capped: true }).then((told) =>
         // how it went, for the owner (Admin → Activity): a text or e-mail that could not be sent is the usual reason "the code never came"
-        auditAs(c.env, { type: "system", id: null, name: "" }, { action: "student.password_code_sent", entity: "student", entityId: student.id, meta: { sms: told.sms ? (told.sms.ok ? "sent" : (told.sms.problem ?? "failed")) : "not_sent", email: told.mail ? (told.mail.ok ? "sent" : (told.mail.code ?? "failed")) : "not_sent" } }, ip),
+        auditAs(c.env, { type: "system", id: null, name: "" }, { action: "student.password_code_sent", entity: "student", entityId: student.id, meta: toldMeta(told) }, ip),
       ),
     );
     await audit(c, { action: "student.password_reset_requested", entity: "student", entityId: student.id, meta: { by: byNumber ? "number" : hasEmail ? "email" : "id" } });

@@ -61,6 +61,51 @@ export function inviteSms(lang: Lang, d: { link: string; days: number }): string
     : `${brand(lang)}: your account and classes are ready. Choose a password here (works for ${d.days} days): ${d.link}`;
 }
 
+/** A step of a tools-shop order its buyer is told about by text message (services/shopTexts.ts). */
+export type ShopTextStep = "placed" | "paid" | "confirmed" | "shipped" | "delivered" | "cancelled" | "refunded";
+
+const COURIER_NAMES: Record<string, Record<Lang, string>> = { steadfast: { bn: "স্টেডফাস্ট", en: "Steadfast" }, pathao: { bn: "পাঠাও", en: "Pathao" } };
+
+/**
+ * A tools-shop order, told to its buyer: received (cash on delivery) or paid (online), confirmed, on its way (with the courier and its
+ * tracking number when there is one), delivered, cancelled — and cancelled after an online payment, which is then paid back. Every text
+ * carries the order code, so the buyer can quote it on the phone, and a cash-on-delivery one the amount to have ready. No web address in
+ * any of them (see resetCodeSms).
+ */
+export function shopSms(lang: Lang, step: ShopTextStep, d: { code: string; total: number; cod: boolean; courier?: string; tracking?: string }): string {
+  const b = brand(lang);
+  const amount = tk(lang, d.total);
+  // what staff typed as the tracking number: one short line
+  const tracking = (d.tracking ?? "").replace(/\s+/g, " ").trim().slice(0, 40);
+  const courier = (d.courier && COURIER_NAMES[d.courier]?.[lang]) || "";
+  if (lang === "bn") {
+    const pay = d.cod ? ` ডেলিভারির সময় ${amount} দেবেন।` : "";
+    const via = [courier, tracking ? `ট্র্যাকিং নম্বর ${tracking}` : ""].filter(Boolean).join(", ");
+    const bn: Record<ShopTextStep, string> = {
+      placed: `${b}: আপনার অর্ডার ${d.code} পেয়েছি (${amount}, ক্যাশ অন ডেলিভারি)। শিগগিরই কনফার্ম করব।`,
+      paid: `${b}: অর্ডার ${d.code}-এর পেমেন্ট পেয়েছি (${amount})। শিগগিরই কনফার্ম করব।`,
+      confirmed: `${b}: আপনার অর্ডার ${d.code} কনফার্ম হয়েছে, শিগগিরই পাঠানো হবে।${pay}`,
+      shipped: `${b}: আপনার অর্ডার ${d.code} পাঠানো হয়েছে${via ? ` (${via})` : ""}।${pay}`,
+      delivered: `${b}: আপনার অর্ডার ${d.code} ডেলিভারি হয়েছে। ধন্যবাদ!`,
+      cancelled: `${b}: আপনার অর্ডার ${d.code} বাতিল হয়েছে। কোনো প্রশ্ন থাকলে আমাদের জানান।`,
+      refunded: `${b}: আপনার অর্ডার ${d.code} বাতিল হয়েছে। আপনার পেমেন্ট (${amount}) ফেরত দেওয়া হবে।`,
+    };
+    return bn[step];
+  }
+  const pay = d.cod ? ` Please have ${amount} ready on delivery.` : "";
+  const via = [courier ? `with ${courier}` : "", tracking ? `tracking no. ${tracking}` : ""].filter(Boolean).join(", ");
+  const en: Record<ShopTextStep, string> = {
+    placed: `${b}: we got your order ${d.code} (${amount}, cash on delivery). We will confirm it soon.`,
+    paid: `${b}: payment received for order ${d.code} (${amount}). We will confirm it soon.`,
+    confirmed: `${b}: your order ${d.code} is confirmed and will be sent soon.${pay}`,
+    shipped: `${b}: your order ${d.code} is on its way${via ? ` (${via})` : ""}.${pay}`,
+    delivered: `${b}: your order ${d.code} was delivered. Thank you!`,
+    cancelled: `${b}: your order ${d.code} was cancelled. Please contact us if you have a question.`,
+    refunded: `${b}: your order ${d.code} was cancelled. Your payment of ${amount} will be refunded.`,
+  };
+  return en[step];
+}
+
 /** Settings → SMS → "Send a test message". */
 export function testSms(lang: Lang): string {
   return lang === "bn" ? `${brand(lang)}: পরীক্ষামূলক বার্তা — এসএমএস ঠিকমতো কাজ করছে।` : `${brand(lang)}: test message - SMS is working.`;

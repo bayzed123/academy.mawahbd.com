@@ -157,7 +157,7 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     off: z.array(z.enum(NOTIFY_KINDS)).max(NOTIFY_KINDS.length).transform((a) => [...new Set(a)]),
   }),
   // the sender ID is the short name the SMS company approved for the shop (letters and digits); empty = the company's own default
-  sms: z.object({ enabled: z.boolean(), sender_id: z.string().trim().max(15, "too_long").regex(/^[A-Za-z0-9 ._-]*$/, "invalid_id"), with_email: z.boolean() }),
+  sms: z.object({ enabled: z.boolean(), sender_id: z.string().trim().max(15, "too_long").regex(/^[A-Za-z0-9 ._-]*$/, "invalid_id"), with_email: z.boolean(), shop: z.boolean() }),
   // the Android app's notice: switched on only with words in both languages (the app shows the one the student reads)
   app: z
     .object({ notice_on: z.boolean(), notice_bn: textSchema(240), notice_en: textSchema(240) })
@@ -270,6 +270,7 @@ settings.get("/settings/sms", requirePerm("settings:read"), async (c) => {
     enabled: s.sms.enabled,
     sender_id: s.sms.sender_id,
     with_email: s.sms.with_email,
+    shop: s.sms.shop,
     last,
   });
 });
