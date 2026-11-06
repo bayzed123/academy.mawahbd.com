@@ -15,7 +15,7 @@
 | **Security** | PBKDF2 + pepper, opaque sessions, strict CSP (no `unsafe-inline`), CSRF guard, RBAC on every route, rate limits, signed video and authenticated file access, audit log, webhook-driven idempotent payments — see [docs/security.md](docs/security.md) |
 | **Honesty guardrail** | No fabricated “X enrolled / Y watching” counters anywhere; ratings only from real reviews by enrolled students |
 
-📘 **Start here:** [the A–Z specification](docs/spec.md) · [deployment guide](docs/deployment.md) · [owner guide (বাংলা + English)](docs/owner-guide.md) · [Android app](docs/android-app.md) · [analytics](docs/analytics.md) · [security](docs/security.md) · [decisions to confirm](docs/decisions.md)
+📘 **Start here:** [the A–Z specification](docs/spec.md) · [deployment guide](docs/deployment.md) · [owner guide (বাংলা + English)](docs/owner-guide.md) · [Android app](docs/android-app.md) · [analytics](docs/analytics.md) · [FoodCost Pro plan](docs/foodcost.md) · [security](docs/security.md) · [decisions to confirm](docs/decisions.md)
 
 ---
 
@@ -38,7 +38,7 @@ Requires **Node.js ≥ 20.19** (22 recommended). Local D1/KV/R2 run on your mach
 |---|---|
 | `npm run dev` | Everything for local work: builds, migrates a local database, runs the Worker (8787) and hot-reload servers for the student app (5173) and admin (5174) |
 | `npm run typecheck` | `tsc` in all four workspaces (required before any deploy) |
-| `npm test` | i18n completeness, script tests, and **772 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
+| `npm test` | i18n completeness, script tests, and **788 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
 | `npm run build && npm run test:e2e` | **208 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows (typed key by key, like a person), accessibility (axe), 360 px phones |
 | `npm run lighthouse:local` | Core Web Vitals gate on the public pages (mobile profile) |
 | `cd mobile && npm ci && npm run check` | The Android app: TypeScript and its own 16 tests (Bangla/English texts complete, no class price or "buy" wording, the video player choice, website links, the tablet layout). The build itself runs in GitHub Actions (*Android app* workflow) |
