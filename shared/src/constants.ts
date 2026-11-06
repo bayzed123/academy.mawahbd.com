@@ -108,6 +108,10 @@ export const PERMISSIONS = {
   "settings:read": ALL,
   "settings:write": SA,
   "activity:read": SA_VW,
+  // FoodCost Pro: the shared ingredient list and its default prices like the class catalogue; giving a workspace Pro is the owner's
+  "fc:read": ALL,
+  "fc:write": SA_CM,
+  "fc:plans": SA,
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -122,6 +126,7 @@ export const ADMIN_NAV = [
   { key: "dashboard", path: "", perm: "dashboard:read" },
   { key: "courses", path: "courses", perm: "courses:read" },
   { key: "app", path: "app", perm: "courses:read" },
+  { key: "foodcost", path: "foodcost", perm: "fc:read" },
   { key: "materials", path: "materials", perm: "materials:read" },
   { key: "instructors", path: "instructors", perm: "instructors:read" },
   { key: "orders", path: "orders", perm: "orders:read" },

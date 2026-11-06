@@ -13,6 +13,21 @@ import { Client, env, firstCourse, json, loginStaff, registerStudent } from "./h
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
 const apiRoutes = [...new Map(app.routes.filter((r) => METHODS.has(r.method) && r.path.startsWith("/api/")).map((r) => [`${r.method} ${r.path}`, { method: r.method, path: r.path }])).values()];
 const concrete = (path: string) => path.replace(/:\w+/g, "1");
+/**
+ * The same signed-in session from a fresh address every 50 requests: these loops call every route once, more than the API's own limit of
+ * requests a minute from one address allows — a 429 there would hide whether the route checked who is calling.
+ */
+function rotating(signedIn: Client) {
+  let n = 0;
+  let current = signedIn;
+  return () => {
+    if (n++ % 50 === 0 && n > 1) {
+      current = new Client();
+      current.jar = signedIn.jar;
+    }
+    return current;
+  };
+}
 const label = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
 
 /** Admin endpoints that are deliberately reachable without a staff session (login screens). */
@@ -38,9 +53,10 @@ describe("route guards (enumerated from the router)", () => {
 
   it("a student session is never a staff session", async () => {
     const { client } = await registerStudent();
+    const next = rotating(client);
     const leaks: string[] = [];
     for (const r of apiRoutes.filter((x) => x.path.startsWith("/api/admin/") && !OPEN_ADMIN.has(label(x)) && x.method === "GET")) {
-      const res = await client.get(concrete(r.path));
+      const res = await next().get(concrete(r.path));
       if (res.status !== 401) leaks.push(`${label(r)} -> ${res.status}`);
     }
     expect(leaks).toEqual([]);
@@ -48,9 +64,10 @@ describe("route guards (enumerated from the router)", () => {
 
   it("a read-only Viewer can read, but cannot write anywhere in the admin", async () => {
     const viewer = (await loginStaff("viewer")).client;
+    const next = rotating(viewer);
     const writable: string[] = [];
     for (const r of apiRoutes.filter((x) => x.path.startsWith("/api/admin/") && x.method !== "GET" && !x.path.startsWith("/api/admin/auth/") && !ANY_STAFF.has(label(x)))) {
-      const res = await viewer.fetch(concrete(r.path), { method: r.method, ...(r.method === "DELETE" ? {} : { json: {} }) });
+      const res = await next().fetch(concrete(r.path), { method: r.method, ...(r.method === "DELETE" ? {} : { json: {} }) });
       if (res.status !== 403) writable.push(`${label(r)} -> ${res.status}`);
     }
     expect(writable).toEqual([]);
@@ -63,6 +80,7 @@ describe("route guards (enumerated from the router)", () => {
     const guarded = apiRoutes.filter(
       (x) =>
         x.path.startsWith("/api/student/") ||
+        x.path.startsWith("/api/fc/") ||
         (x.path.startsWith("/api/checkout") && !visitorMayUse.includes(x.path)) ||
         ["/api/auth/profile", "/api/auth/change-password", "/api/auth/set-password"].includes(x.path),
     );

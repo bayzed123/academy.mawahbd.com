@@ -8,7 +8,7 @@ import { useI18n } from "../lib/i18n";
 import { Button, Icon, SlideOver, useDebounced } from "./ui";
 
 const NAV_ICON: Record<string, string> = {
-  dashboard: "grid", courses: "book", app: "phone", instructors: "user", orders: "wallet", students: "users", reviews: "star", questions: "chat",
+  dashboard: "grid", courses: "book", app: "phone", foodcost: "chart", instructors: "user", orders: "wallet", students: "users", reviews: "star", questions: "chat",
   blog: "edit", coupons: "tag", bundles: "gift", shop: "shop", banners: "image", videos: "video", landing: "layers", faqs: "help", materials: "layers", certificates: "award", signups: "bell", messages: "inbox", chatbot: "bot",
   reports: "chart", analytics: "activity", staff: "shield", settings: "settings", activity: "activity", help: "help",
 };

@@ -14,6 +14,7 @@ import { dashboard } from "./dashboard";
 import { drive } from "./drive";
 import { engagement } from "./engagement";
 import { faqs } from "./faqs";
+import { fcAdmin } from "./foodcost";
 import { videos } from "./videos";
 import { gallery } from "./gallery";
 import { materials } from "./materials";
@@ -46,6 +47,6 @@ adminApi.route("/courses", courses);
 adminApi.route("/shop/categories", shopCategoriesAdmin);
 adminApi.route("/shop/products", shopProductsAdmin);
 
-for (const router of [shopPictures, shopOrdersAdmin, shopReviewsAdmin, courseOverview, curriculum, drive, gallery, materials, media, orders, students, engagement, audience, analytics, chatbot, settings, reports, dashboard, staff, appAdmin]) {
+for (const router of [shopPictures, shopOrdersAdmin, shopReviewsAdmin, courseOverview, curriculum, drive, gallery, materials, media, orders, students, engagement, audience, analytics, chatbot, settings, reports, dashboard, staff, appAdmin, fcAdmin]) {
   adminApi.route("/", router);
 }

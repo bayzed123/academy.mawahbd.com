@@ -365,3 +365,144 @@ export const FC_LIMITS: Record<FcPlan | "student", { recipes: number | null }> =
 export function fcRecipeLimit(plan: FcPlan, student: boolean): number | null {
   return student ? FC_LIMITS.student.recipes : FC_LIMITS[plan].recipes;
 }
+
+/* ------------------------------------------------------------------------------------------------------------------------------------
+ * The API's shapes (/api/fc/v1, snake_case like the rest of the API) and their conversion for the engine — one conversion, used by the
+ * server, the website and the app, so a recipe is read the same way everywhere. A computed `result` is the engine's own FcResult.
+ * ---------------------------------------------------------------------------------------------------------------------------------- */
+
+export interface FcPriceDTO {
+  pack_qty: number;
+  pack_unit: FcUnit;
+  price_minor: number;
+  supplier: string;
+  /** the day of the price (yyyy-mm-dd), when given */
+  bought_on: string | null;
+  /** when it was entered */
+  at: string;
+}
+
+export interface FcIngredientDTO {
+  id: number;
+  /** the workspace's own ingredient (not on the shared list) */
+  own: boolean;
+  name_bn: string;
+  name_en: string;
+  category: string;
+  g_per_ml: number | null;
+  g_per_piece: number | null;
+  /** switched off by staff: kept for the recipes that use it, not offered for new lines */
+  active: boolean;
+  /** the price that counts for this workspace: its own, else the shared default */
+  price: FcPriceDTO | null;
+  price_source: "mine" | "default" | null;
+  /** the shared default (Admin), shown next to one's own price */
+  default_price: FcPriceDTO | null;
+}
+
+export interface FcItemDTO {
+  ingredient_id: number | null;
+  recipe_id: number | null;
+  qty: number;
+  unit: FcUnit;
+  note: string;
+}
+
+export interface FcCostDTO {
+  kind: FcCostKind;
+  label: string;
+  per: "batch" | "piece" | "hour";
+  amount_minor: number;
+  hours: number | null;
+}
+
+export interface FcPricingDTO {
+  mode: "markup" | "margin";
+  pct: number;
+  /** the step the suggested price is rounded up to (paisa: 100 = ৳1); 0 = to the paisa */
+  round_to_minor: number;
+  actual_minor: number | null;
+}
+
+export interface FcRecipeDTO {
+  id: number;
+  name: string;
+  notes: string;
+  yield_qty: number;
+  yield_unit: FcUnit;
+  yield_label: string;
+  output_g: number | null;
+  items: FcItemDTO[];
+  costs: FcCostDTO[];
+  pricing: FcPricingDTO;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FcRecipeSummaryDTO {
+  id: number;
+  name: string;
+  yield_qty: number;
+  yield_unit: FcUnit;
+  yield_label: string;
+  per_unit_minor: number | null;
+  suggested_minor: number | null;
+  complete: boolean;
+  /** other recipes of the workspace use this one (it cannot be deleted while they do) */
+  used_by: number;
+  updated_at: string;
+}
+
+export interface FcMeDTO {
+  plan: FcPlan;
+  plan_until: string | null;
+  /** a MAWAH student: a class bought on the website (or given by staff) — never limited */
+  student: boolean;
+  /** how many recipes may be kept; null = no limit */
+  limit: number | null;
+  used: number;
+  currency: FcCurrency;
+}
+
+const priceOf = (p: FcPriceDTO | null): FcPrice | null => (p ? { packQty: p.pack_qty, packUnit: p.pack_unit, priceMinor: p.price_minor } : null);
+
+/** An ingredient from the API, for the engine, named in the reader's language. */
+export function fcIngredient(d: FcIngredientDTO, lang: Lang): FcIngredient {
+  return {
+    id: d.id,
+    name: lang === "bn" ? d.name_bn || d.name_en : d.name_en || d.name_bn,
+    gPerMl: d.g_per_ml,
+    gPerPiece: d.g_per_piece,
+    price: priceOf(d.price),
+  };
+}
+
+/** A recipe from the API (or a form shaped like it), for the engine. */
+export function fcRecipe(d: Pick<FcRecipeDTO, "id" | "name" | "yield_qty" | "yield_unit" | "output_g" | "items" | "costs" | "pricing">): FcRecipe {
+  return {
+    id: d.id,
+    name: d.name,
+    yieldQty: d.yield_qty,
+    yieldUnit: d.yield_unit,
+    outputG: d.output_g,
+    items: d.items.map((i) => ({ ingredientId: i.ingredient_id, recipeId: i.recipe_id, qty: i.qty, unit: i.unit })),
+    costs: d.costs.map((c) => ({ kind: c.kind, label: c.label, per: c.per, amountMinor: c.amount_minor, hours: c.hours ?? undefined })),
+    pricing: { mode: d.pricing.mode, pct: d.pricing.pct, roundToMinor: d.pricing.round_to_minor, actualMinor: d.pricing.actual_minor },
+  };
+}
+
+/** Each unit's name for people, in both languages (the codes — g, kg, tbsp … — stay in the data). */
+export const FC_UNIT_NAMES: Record<FcUnit, Record<Lang, string>> = {
+  mg: { bn: "মিলিগ্রাম", en: "mg" },
+  g: { bn: "গ্রাম", en: "g" },
+  kg: { bn: "কেজি", en: "kg" },
+  lb: { bn: "পাউন্ড", en: "lb" },
+  oz: { bn: "আউন্স", en: "oz" },
+  ml: { bn: "মিলি", en: "ml" },
+  l: { bn: "লিটার", en: "l" },
+  tsp: { bn: "চা চামচ", en: "tsp" },
+  tbsp: { bn: "টেবিল চামচ", en: "tbsp" },
+  cup: { bn: "কাপ", en: "cup" },
+  piece: { bn: "পিস", en: "piece" },
+  dozen: { bn: "ডজন", en: "dozen" },
+};
