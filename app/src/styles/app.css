@@ -46,7 +46,7 @@ html[lang=bn] .brand-name{font-weight:400;letter-spacing:.02em;font-size:1.1rem;
 .menu-pop a,.menu-pop button{display:flex;align-items:center;gap:.7rem;padding:.75rem .9rem;border-radius:10px;color:var(--ink);text-decoration:none;font-weight:600;min-height:46px;border:0;background:none;text-align:left;cursor:pointer;width:100%;font-size:1rem}
 .menu-pop a:hover,.menu-pop button:hover{background:rgba(255,255,255,.06)}
 .menu-pop hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
-.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:55;display:grid;grid-template-columns:repeat(4,1fr);background:#000;border-top:1px solid rgba(255,255,255,.1);padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -8px 24px rgba(0,0,0,.6)}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:55;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);background:#000;border-top:1px solid rgba(255,255,255,.1);padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -8px 24px rgba(0,0,0,.6)}
 .tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;color:var(--ink-3);text-decoration:none;font-size:.74rem;font-weight:600}
 .tabbar a .icon{width:22px;height:22px}
 .tabbar a[aria-current=page]{color:var(--red-700)}
@@ -393,4 +393,80 @@ p.free-note.is-done .icon{color:inherit}
   .success-mark circle,.success-mark path{animation:none;stroke-dashoffset:0}
   .confetti{display:none}
   .toast:not(.bad) .icon{animation:none}
+}
+
+/* FoodCost (pages/FoodCost.tsx): the recipe list, the editor with its live result, ingredients and prices */
+.plain-list{list-style:none;margin:0;padding:0}
+.fc-plan{margin:0 0 14px;color:var(--ink-2)}
+.fc-plan.full{padding:10px 14px;border-radius:12px;background:var(--g-100);border:1px solid var(--g-300);color:var(--g-800)}
+.fc-actions{margin-bottom:18px}
+.fc-list li+li{margin-top:12px}
+.fc-row .fc-fig{display:inline-flex;flex-direction:column;align-items:flex-end;line-height:1.3}
+.fc-row .fc-fig small{color:var(--ink-3);font-size:.78rem}
+.fc-crumb{margin:0 0 .3rem;font-size:.95rem}
+.fc-grid{display:grid;gap:18px;align-items:start}
+.fc-main{display:grid;gap:18px;min-width:0}
+.fc-main>.panel+.panel{margin-top:0}
+@media (min-width:1000px){.fc-grid{grid-template-columns:minmax(0,1fr) 340px}.fc-side{position:sticky;top:84px}}
+.fc-yield,.fc-mode{border:0;margin:0;padding:0;min-width:0}
+.fc-yield legend,.fc-mode legend{font-weight:700;margin-bottom:.5rem;padding:0}
+.fc-yield-row,.fc-price-fields{display:grid;gap:0 12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:start}
+.fc-lines,.fc-costs{display:grid;gap:12px;margin-bottom:12px}
+.fc-line,.fc-cost{display:grid;gap:8px 10px;align-items:end;padding:12px;border:1px solid var(--line);border-radius:14px;min-width:0}
+.fc-line{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px}
+.fc-cost{grid-template-columns:minmax(0,1fr);position:relative;padding-right:56px}
+@media (min-width:640px){.fc-cost{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,.8fr) minmax(0,1.3fr)}}
+.fc-cost .fc-remove{position:absolute;top:6px;right:6px}
+.fc-line label,.fc-cost label{display:block;font-size:.85rem;font-weight:600;color:var(--ink-2);margin-bottom:4px}
+.fc-line-what,.fc-line-err{grid-column:1/-1}
+.fc-line-cost{display:flex;flex-direction:column;justify-content:center;min-height:48px;grid-column:1/3;grid-row:3}
+.fc-line-cost:empty{display:none}
+.fc-remove{justify-self:end;min-width:44px;min-height:44px}
+.fc-line-err{margin:0}
+@media (min-width:640px){
+  .fc-line{grid-template-columns:minmax(0,1fr) 96px 130px 96px 44px}
+  .fc-line-what{grid-column:auto}
+  .fc-line-cost{grid-column:auto;grid-row:auto}
+  .fc-line-cost:empty{display:flex}
+}
+.fc-radio{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:12px;cursor:pointer;margin-bottom:8px}
+.fc-radio span{display:flex;flex-direction:column}
+.fc-radio input{margin-top:.35rem;accent-color:var(--red-600)}
+.fc-figs{margin:0;display:grid;gap:10px}
+.fc-figs div{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px;align-items:baseline}
+.fc-figs dt{color:var(--ink-3)}
+.fc-figs dd{margin:0 0 0 auto;font-weight:700;text-align:right;white-space:nowrap}
+.fc-figs .big dd{font-size:1.25rem}
+.fc-figs .accent dd{color:var(--red-700)}
+.fc-figs .loss dd{color:var(--bad-600)}
+.fc-split{width:100%;margin:14px 0;border-collapse:collapse;font-size:.92rem}
+.fc-split th{text-align:left;font-weight:500;color:var(--ink-2);padding:5px 0}
+.fc-split td{text-align:right;padding:5px 0}
+.fc-split tr+tr{border-top:1px solid var(--line)}
+.fc-warn{background:var(--g-100);border:1px solid var(--g-300);color:var(--g-800);border-radius:12px;padding:10px 12px;margin:12px 0;font-size:.92rem}
+.fc-warn ul{margin:.4rem 0 0;padding-left:1.1rem}
+ul.fc-warn{padding-left:1.8rem}
+.fc-buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.fc-buttons .btn[type=submit]{flex:1 1 100%}
+.fc-confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fc-search{flex:1 1 240px}
+.fc-ings{margin-top:12px}
+.fc-ing{padding:12px 0;border-top:1px solid var(--line)}
+.fc-ing:first-child{border-top:0;padding-top:0}
+.fc-ing-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center}
+.fc-price-form{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:14px}
+.fc-add{margin-bottom:18px}
+.fc-add h3{font-size:1rem;margin:.6rem 0}
+.fc-result h2{scroll-margin-top:96px}
+/* on a phone the costs stay in sight in a bar above the tab bar; the panel itself is below the form */
+.fc-bar{display:none}
+@media (max-width:999px){
+  .fc-bar{position:fixed;left:0;right:0;bottom:0;z-index:54;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;justify-content:center;min-height:52px;padding:8px 16px calc(8px + env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line);background:var(--paper);color:var(--ink);font:inherit;font-size:.92rem;cursor:pointer;box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+  .fc-bar b{white-space:nowrap}
+  body.has-fcbar{padding-bottom:56px}
+  body.has-fcbar .floats{bottom:calc(72px + env(safe-area-inset-bottom))}
+}
+@media (max-width:899px){
+  body.has-tabbar .fc-bar{bottom:calc(58px + env(safe-area-inset-bottom));padding-bottom:8px}
+  body.has-tabbar.has-fcbar .floats{bottom:calc(132px + env(safe-area-inset-bottom))}
 }

@@ -103,6 +103,21 @@ const driveProblems = [...(/export type DriveProblem =([\s\S]*?);/.exec(driveSou
 if (driveProblems.length < 10) fail(`drive.ts: the problem list parse looks wrong (${driveProblems.length})`);
 need(admin, "drive problems", driveProblems.flatMap((p) => [`adm.drive.p.${p}.title`, `adm.drive.p.${p}.body`]));
 
+// FoodCost: every problem the engine can report, every kind of cost, what a cost is counted for, both ways of counting profit, and every
+// refusal of its API are said in words on the website (read from the source, so a new one cannot be forgotten)
+const fcSource = readFileSync(resolve(root, "shared/src/foodcost.ts"), "utf8");
+const listOf = (re) => [...(re.exec(fcSource)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+const fcProblems = listOf(/export type FcProblemCode =([\s\S]*?);/);
+const fcKinds = listOf(/export const FC_COST_KINDS[^=]*= \[([^\]]+)\]/);
+const fcPers = listOf(/export const FC_COST_PERS = \[([^\]]+)\]/);
+if (fcProblems.length < 10 || fcKinds.length < 4 || fcPers.length < 3) fail(`foodcost.ts: the list parse looks wrong (${fcProblems.length}/${fcKinds.length}/${fcPers.length})`);
+const fcApi = readFileSync(resolve(root, "worker/src/routes/api/foodcost.ts"), "utf8");
+const fcRefusals = [...new Set([...fcApi.matchAll(/(?<!entity: )"(fc_[a-z_]+)"/g)].map((m) => m[1]))]; // not the activity log's names
+if (fcRefusals.length < 5) fail(`routes/api/foodcost.ts: the refusal parse looks wrong (${fcRefusals.length})`);
+need(app, "FoodCost problems", fcProblems.map((p) => `app.fc.p.${p}`));
+need(app, "FoodCost costs", [...fcKinds.map((k) => `app.fc.kind.${k}`), ...fcPers.map((p) => `app.fc.per.${p}`), ...["markup", "margin"].flatMap((m) => [`app.fc.mode.${m}`, `app.fc.mode.${m}.d`, `app.fc.suggested.${m}`])]);
+need(app, "FoodCost refusals", fcRefusals.map((c) => `err.${c}`));
+
 // every error code the Worker can throw should have a translation in both UIs (generic is the safety net, but specific is kinder)
 const codes = new Set();
 for (const f of ["worker/src/routes/api/auth.ts", "worker/src/routes/api/checkout.ts", "worker/src/routes/api/student.tsx", "worker/src/services/orders.ts", "worker/src/services/learning.ts", "worker/src/services/payments/bkash.ts"]) {

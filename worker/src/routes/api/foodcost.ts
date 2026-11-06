@@ -157,6 +157,13 @@ async function insertRecipe(c: Ctx, w: Workspace, body: RecipeInput): Promise<nu
 
 fcRoutes.get("/me", async (c) => ok(c, { me: await meDTO(c.env, await ws(c)) }));
 
+/** Everything the screens need to cost while one types: the plan, every ingredient with the price that counts, and every recipe in full. */
+fcRoutes.get("/book", async (c) => {
+  const w = await ws(c);
+  const [me, book] = await Promise.all([meDTO(c.env, w), bookOf(c.env, w.id)]);
+  return ok(c, { me, ...book });
+});
+
 /* ---------------------------------------------------------------------------------------------------------------------- ingredients */
 
 fcRoutes.get("/ingredients", async (c) => {

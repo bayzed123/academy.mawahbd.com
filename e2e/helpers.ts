@@ -132,7 +132,7 @@ export async function registerStudent(page: Page, opts: { name?: string; email?:
   const email = opts.email ?? uniqueEmail("student");
   const password = opts.password ?? randomPassword();
   await page.goto("/app/register");
-  await page.getByLabel(/Full name|পুরো নাম/).fill(opts.name ?? "Test Student");
+  await page.getByLabel(/Full name|পুরো নাম|পূর্ণ নাম/).fill(opts.name ?? "Test Student");
   await page.getByLabel(/^Email|^ইমেইল/).fill(email);
   await page.getByLabel(/Mobile number|মোবাইল নম্বর/).fill("01712345678");
   await page.getByLabel(/^Password|^পাসওয়ার্ড/).fill(password);

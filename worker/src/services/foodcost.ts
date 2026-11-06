@@ -1,8 +1,8 @@
 import {
-  costRecipe,
-  fcIngredient,
+  fcCostWith,
   fcRecipe,
   fcRecipeLimit,
+  type FcBook,
   type FcCostDTO,
   type FcCurrency,
   type FcIngredientDTO,
@@ -227,12 +227,8 @@ export async function bookOf(env: Env, workspaceId: number): Promise<{ ingredien
 }
 
 /** Cost one recipe against a workspace's book (the recipe as given — saved or not — wins over the saved copy of the same id). */
-export function costWith(recipe: Parameters<typeof fcRecipe>[0], book: { ingredients: FcIngredientDTO[]; recipes: FcRecipeDTO[] }): FcResult {
-  return costRecipe(
-    fcRecipe(recipe),
-    book.ingredients.map((i) => fcIngredient(i, "en")),
-    book.recipes.filter((r) => r.id !== recipe.id).map(fcRecipe),
-  );
+export function costWith(recipe: Parameters<typeof fcRecipe>[0], book: FcBook): FcResult {
+  return fcCostWith(recipe, book);
 }
 
 export function summaries(book: { ingredients: FcIngredientDTO[]; recipes: FcRecipeDTO[] }): FcRecipeSummaryDTO[] {
