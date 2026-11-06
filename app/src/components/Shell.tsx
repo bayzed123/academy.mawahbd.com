@@ -9,6 +9,7 @@ import { Icon, Spinner } from "./ui";
 
 const TABS = [
   { to: "/", end: true, icon: "book", key: "app.nav.learning" },
+  { to: "/foodcost", end: false, icon: "receipt", key: "app.nav.foodcost" },
   { to: "/orders", end: false, icon: "wallet", key: "app.nav.orders" },
   { to: "/certificates", end: false, icon: "award", key: "app.nav.certificates" },
   { to: "/profile", end: false, icon: "user", key: "app.nav.profile" },
@@ -129,6 +130,9 @@ export function Shell() {
                 </Link>
                 <Link to="/orders">
                   <Icon name="wallet" /> {t("app.nav.orders")}
+                </Link>
+                <Link to="/certificates">
+                  <Icon name="award" /> {t("app.nav.certificates")}
                 </Link>
                 <a href={`${home === "/" ? "" : home}/courses`}>
                   <Icon name="search" /> {t("app.nav.browse")}

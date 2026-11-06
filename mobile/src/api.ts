@@ -28,7 +28,7 @@ export function onUnauthorized(fn: (() => void) | null) {
 }
 
 export interface CallOptions {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   /** seconds before giving up on a slow network (default 20) */
   timeout?: number;

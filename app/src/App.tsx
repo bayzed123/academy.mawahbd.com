@@ -22,6 +22,10 @@ const ShopCart = lazy(() => import("./pages/Shop").then((m) => ({ default: m.Sho
 const ShopCheckout = lazy(() => import("./pages/Shop").then((m) => ({ default: m.ShopCheckout })));
 const ShopOrder = lazy(() => import("./pages/Shop").then((m) => ({ default: m.ShopOrder })));
 const ShopWishlist = lazy(() => import("./pages/Shop").then((m) => ({ default: m.ShopWishlist })));
+// FoodCost: recipe costing (docs/foodcost.md)
+const FcHome = lazy(() => import("./pages/FoodCost").then((m) => ({ default: m.FcHome })));
+const FcEditor = lazy(() => import("./pages/FoodCost").then((m) => ({ default: m.FcEditor })));
+const FcIngredients = lazy(() => import("./pages/FoodCost").then((m) => ({ default: m.FcIngredients })));
 
 const guard = (el: React.ReactNode) => <RequireAuth>{el}</RequireAuth>;
 
@@ -49,6 +53,10 @@ export default function App() {
           <Route path="shop/checkout" element={<ShopCheckout />} />
           <Route path="shop/orders/:publicId" element={<ShopOrder />} />
           <Route path="shop/wishlist" element={<ShopWishlist />} />
+          <Route path="foodcost" element={guard(<FcHome />)} />
+          <Route path="foodcost/new" element={guard(<FcEditor />)} />
+          <Route path="foodcost/ingredients" element={guard(<FcIngredients />)} />
+          <Route path="foodcost/:id" element={guard(<FcEditor />)} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

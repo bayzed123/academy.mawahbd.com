@@ -21,8 +21,8 @@ calculation code, tables and API, so it can later become a separate app without 
 |---|---|---|
 | **1a** | The calculation engine (`shared/src/foodcost.ts`) and its tests, and this plan | built |
 | **1b** | Database tables (migration `0025`), the API (`/api/fc/v1`), Admin → FoodCost (ingredients and default prices, a pasted list, the users and their plan), plans and limits, account deletion | built |
-| 1c + 1d | The screens: recipe list, recipe editor with live costing, my prices, report — on the website (`/app/foodcost`) and in the Android app (a Tools tab), in Bangla and English | after 1b |
-| 1e | The report: print / save as PDF on the website, share as PDF from the app | with 1c + 1d |
+| **1c + 1d** | The screens, on the website (`/app/foodcost`) and in the Android app, each with a **FoodCost** tab, in Bangla and English: my recipes with the plan; the recipe editor, costing live while one types (the same engine as the server, `fcCostWith`) with the cost and price kept in sight on a phone; ingredients & prices (the Dhaka average or one's own price, one's own ingredients) | built |
+| 1e | The report: print / save as PDF on the website, share as PDF from the app | next |
 | 2 | Nutrition: calories, protein, carbs, fat, fiber, sugar and sodium per piece; a nutrition label | after real use of phase 1 |
 | 3 | Other currencies in use (USD, GBP, EUR, AED), teams, a paid plan, a separate app | later |
 
@@ -82,6 +82,7 @@ with no database change.
 ## The API (phase 1b) — `/api/fc/v1`, for a signed-in student (website cookie or the app's token)
 
 - `GET /me`: plan, limit, how many recipes are saved, and whether the user counts as a MAWAH student.
+- `GET /book`: everything the screens cost with while one types: the plan, every ingredient with the price that counts, every recipe in full.
 - `GET /prices/:ingredient`: your own price history for an ingredient, with the current Admin default.
 - `GET /ingredients`: the shared list plus the user's own, each with the price that applies to this user (theirs, else the default).
 - `POST /ingredients`: add your own ingredient.

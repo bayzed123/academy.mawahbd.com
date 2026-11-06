@@ -18,6 +18,10 @@ It is a **study app**: students buy classes on the website, as today, and study 
 * **My classes → a class:** progress, lessons by part, class materials (files, links, live classes, private groups), the certificate.
 * **A lesson:** the video in the phone's own player (full screen, smooth), "Mark as done", the notes, downloads, next/previous lesson.
   Screenshots and screen recordings are blacked out while a lesson is open.
+* **FoodCost** (its own tab): one's recipes and what each costs and sells for; a recipe costed while one types (lines, packaging, labour,
+  gas, markup or margin, one's real price), with the cost and price in a bar at the bottom; ingredients & prices (the Dhaka average the
+  owner keeps, or one's own price). Free keeps 3 recipes, said plainly with nothing about buying; MAWAH students have no limit.
+  The same server and the same costing as the website ([foodcost.md](foodcost.md)).
 * **Shop:** the equipment shop with categories. **Order now** opens the product on the website's secure page (cash on delivery or online).
 * **Profile:** student ID, language (বাংলা / English), look (night / day / like the phone), certificates, WhatsApp / call / Messenger /
   e-mail, policies, log out, and **Delete my account** (Google Play rule; see below).
@@ -106,10 +110,11 @@ files' signatures afterwards.
        account is made in the app — *Make a free account* — or on the website):
        * Personal info: **Name**, **Phone number**, **Email address** (only when given: it is optional), **User IDs** (the student ID)
        * Financial info: **Purchase history** (classes and orders)
-       * App activity: **Other user-generated content** (questions and reviews), **App interactions** (lessons finished, downloads)
+       * App activity: **Other user-generated content** (questions, reviews, and FoodCost recipes, ingredients and prices),
+         **App interactions** (lessons finished, downloads)
      * The app collects no location, contacts, photos, files, audio or device identifiers, and has no advertising or analytics library.
    * **Account deletion:** in the app *Profile → Delete my account*; on the web **https://mawahacademy.com/account/delete** (give this
-     address under *Delete account URL*). Deleting removes the name, number, e-mail, address, password, progress, questions and reviews,
+     address under *Delete account URL*). Deleting removes the name, number, e-mail, address, password, progress, questions, reviews and FoodCost data,
      ends every sign-in, and keeps orders and payments for tax records (the page says so, as Google requires). Staff can also delete an
      account on request (*Admin → Students → Delete account*).
    * **Privacy policy** covers the app: a section about the Android app and deleting an account is always shown under the privacy text.

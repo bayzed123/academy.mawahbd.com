@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { costRecipe, fcIngredient, fcRecipe, type FcIngredientDTO, type FcRecipeDTO } from "@mawah/shared/foodcost";
+import { costRecipe, fcCostWith, fcIngredient, fcRecipe, type FcIngredientDTO, type FcRecipeDTO } from "@mawah/shared/foodcost";
 import { Client, env, json, loginStaff, registerStudent } from "./helpers";
 
 /*
@@ -164,6 +164,22 @@ describe("recipes", () => {
     expect((await json(theft)).error.fields).toEqual({ "items.0": "not_found" });
     const theft2 = await b.client.post(fc("/recipes"), { name: "Copy", yield_qty: 1, yield_unit: "piece", items: [{ recipe_id: recipe.id, qty: 1, unit: "piece" }] });
     expect((await json(theft2)).error.fields).toEqual({ "items.0": "not_found" });
+  });
+
+  it("the book holds what the screens cost with while one types — the plan, every ingredient, one's own recipes in full — and costs as the server does", async () => {
+    const admin = (await loginStaff()).client;
+    const flour = await shared(admin, `Flour ${Date.now()}`, { pack_qty: 1, pack_unit: "kg", price_minor: tk(120) });
+    const a = await student();
+    const b = await student();
+    const roti = await json(await a.client.post(fc("/recipes"), { name: "Roti", yield_qty: 10, yield_unit: "piece", items: [{ ingredient_id: flour.id, qty: 500, unit: "g" }] }));
+    await b.client.post(fc("/recipes"), { name: "Not yours", yield_qty: 1, yield_unit: "piece", items: [] });
+    const book = await json(await a.client.get(fc("/book")));
+    expect(book.me).toMatchObject({ plan: "free", used: 1, limit: 3 });
+    expect(book.recipes).toEqual([expect.objectContaining({ id: roti.recipe.id, name: "Roti", items: [expect.objectContaining({ ingredient_id: flour.id, qty: 500, unit: "g" })] })]);
+    expect((book.ingredients as FcIngredientDTO[]).find((i) => i.id === flour.id)).toMatchObject({ price_source: "default", price: { price_minor: tk(120) } });
+    // what a screen works out from the book is exactly what the server says
+    expect(fcCostWith(roti.recipe, book)).toEqual(roti.result);
+    expect((await new Client().get(fc("/book"))).status).toBe(401);
   });
 
   it("checks what is typed: a name, a yield, one thing per line, the costs and a margin under 100%", async () => {

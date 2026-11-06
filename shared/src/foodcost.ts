@@ -1,4 +1,4 @@
-import { formatNumber, toBnDigits, type Lang } from "./format";
+import { formatNumber, fromBnDigits, toBnDigits, type Lang } from "./format";
 
 /*
  * FoodCost Pro — the calculation engine. One piece of plain TypeScript that the website, the Android app, the server (saved recipes,
@@ -506,3 +506,150 @@ export const FC_UNIT_NAMES: Record<FcUnit, Record<Lang, string>> = {
   piece: { bn: "পিস", en: "piece" },
   dozen: { bn: "ডজন", en: "dozen" },
 };
+
+/* ------------------------------------------------------------------------------------------------------------------------------------
+ * What the screens share (the website and the Android app): costing against a workspace's book exactly as the server does, the numbers
+ * people type, and the recipe form while one types — so a recipe is read, costed and saved the same way on every screen.
+ * ---------------------------------------------------------------------------------------------------------------------------------- */
+
+/** Everything the engine needs from a workspace: its ingredients (shared and own, each with the price that counts) and its recipes. */
+export interface FcBook {
+  ingredients: FcIngredientDTO[];
+  recipes: FcRecipeDTO[];
+}
+
+/**
+ * Cost one recipe against a workspace's book — the server, the website and the app all call this. The recipe as given (saved or not, a
+ * new one with id 0) wins over the saved copy of the same id. Line names are in `lang`.
+ */
+export function fcCostWith(recipe: Parameters<typeof fcRecipe>[0], book: FcBook, lang: Lang = "en"): FcResult {
+  return costRecipe(
+    fcRecipe(recipe),
+    book.ingredients.map((i) => fcIngredient(i, lang)),
+    book.recipes.filter((r) => r.id !== recipe.id).map(fcRecipe),
+  );
+}
+
+/** A number people type ("120", "115.50", "১২০.৫০", "1,200"); null when it is not one, or not above zero unless `zero` is allowed. */
+export function fcParseNumber(text: string, zero = false): number | null {
+  const t = fromBnDigits(text.trim()).replace(/,/g, "");
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isFinite(n) && (n > 0 || (zero && n === 0)) ? n : null;
+}
+
+/** Taka people type → paisa ("120.50" → 12050); null when it is not an amount. */
+export function fcParseTaka(text: string): number | null {
+  const n = fcParseNumber(text, true);
+  return n === null ? null : Math.round(n * 100);
+}
+
+/** Paisa → the taka to put back in a box ("120", "115.5"), in plain digits. */
+export function fcTakaText(minor: number | null | undefined): string {
+  return minor === null || minor === undefined ? "" : String(minor / 100);
+}
+
+/** The steps a suggested price can be rounded up to, in paisa: none, ৳1, ৳5, ৳10, ৳20, ৳50. */
+export const FC_ROUND_STEPS = [0, 100, 500, 1000, 2000, 5000] as const;
+export const FC_COST_KINDS: readonly FcCostKind[] = ["packaging", "labour", "energy", "other"];
+export const FC_COST_PERS = ["batch", "piece", "hour"] as const;
+export type FcCostPer = (typeof FC_COST_PERS)[number];
+
+/** The units a line of this ingredient can be measured in (its price's kind, and others its density or piece weight reach); all without a price. */
+export function fcUnitsFor(ing: FcIngredient | null): FcUnit[] {
+  if (!ing?.price) return [...FC_UNIT_LIST];
+  return FC_UNIT_LIST.filter((u) => unitCost(ing, u) !== null);
+}
+
+/** One line of the recipe form, as typed. `ref`: "i12" (ingredient 12), "r3" (recipe 3), "" (not chosen yet). */
+export interface FcFormItem {
+  ref: string;
+  qty: string;
+  unit: FcUnit;
+  note: string;
+}
+export interface FcFormCost {
+  kind: FcCostKind;
+  label: string;
+  per: FcCostPer;
+  /** taka, as typed */
+  amount: string;
+  hours: string;
+}
+/** The recipe form while one types (text in the boxes); `roundTo` is one of FC_ROUND_STEPS. */
+export interface FcRecipeForm {
+  name: string;
+  notes: string;
+  yieldQty: string;
+  yieldUnit: FcUnit;
+  yieldLabel: string;
+  outputG: string;
+  items: FcFormItem[];
+  costs: FcFormCost[];
+  mode: "markup" | "margin";
+  pct: string;
+  roundTo: number;
+  actual: string;
+}
+
+/** What POST/PUT /recipes takes. */
+export type FcRecipeInputDTO = Omit<FcRecipeDTO, "id" | "created_at" | "updated_at">;
+
+export const fcNewItem = (): FcFormItem => ({ ref: "", qty: "", unit: "g", note: "" });
+
+export function fcEmptyForm(): FcRecipeForm {
+  return { name: "", notes: "", yieldQty: "", yieldUnit: "piece", yieldLabel: "", outputG: "", items: [fcNewItem()], costs: [], mode: "markup", pct: "", roundTo: 0, actual: "" };
+}
+
+export function fcFormFromDTO(r: FcRecipeDTO): FcRecipeForm {
+  return {
+    name: r.name,
+    notes: r.notes,
+    yieldQty: String(r.yield_qty),
+    yieldUnit: r.yield_unit,
+    yieldLabel: r.yield_label,
+    outputG: r.output_g === null ? "" : String(r.output_g),
+    items: r.items.map((i) => ({ ref: i.ingredient_id !== null ? `i${i.ingredient_id}` : `r${i.recipe_id}`, qty: String(i.qty), unit: i.unit, note: i.note })),
+    costs: r.costs.map((c) => ({ kind: c.kind, label: c.label, per: c.per, amount: fcTakaText(c.amount_minor), hours: c.hours === null ? "" : String(c.hours) })),
+    mode: r.pricing.mode,
+    pct: String(r.pricing.pct),
+    roundTo: r.pricing.round_to_minor,
+    actual: fcTakaText(r.pricing.actual_minor),
+  };
+}
+
+/**
+ * The form → what the API takes (and the engine reads). Lines with nothing chosen are left out; `rows[k]` is the form line the k-th line
+ * sent came from, to put a problem (or the server's `items.k.qty`) back on the right line. A box that is not a number goes as 0, which
+ * the engine and the server both report.
+ */
+export function fcFormToInput(f: FcRecipeForm): { input: FcRecipeInputDTO; rows: number[] } {
+  const num = (s: string) => fcParseNumber(s) ?? 0;
+  const rows: number[] = [];
+  const items = f.items.flatMap((i, n) => {
+    if (!/^[ir]\d+$/.test(i.ref)) return [];
+    rows.push(n);
+    const id = Number(i.ref.slice(1));
+    return [{ ingredient_id: i.ref[0] === "i" ? id : null, recipe_id: i.ref[0] === "r" ? id : null, qty: num(i.qty), unit: i.unit, note: i.note.trim() }];
+  });
+  return {
+    rows,
+    input: {
+      name: f.name.trim(),
+      notes: f.notes.trim(),
+      yield_qty: num(f.yieldQty),
+      yield_unit: f.yieldUnit,
+      yield_label: f.yieldLabel.trim(),
+      output_g: fcParseNumber(f.outputG),
+      items,
+      costs: f.costs.map((c) => ({
+        kind: c.kind,
+        label: c.label.trim(),
+        per: c.per,
+        amount_minor: fcParseTaka(c.amount) ?? 0,
+        hours: c.per === "hour" ? (fcParseNumber(c.hours, true) ?? 0) : null,
+      })),
+      pricing: { mode: f.mode, pct: fcParseNumber(f.pct, true) ?? 0, round_to_minor: f.roundTo, actual_minor: f.actual.trim() ? fcParseTaka(f.actual) : null },
+    },
+  };
+}

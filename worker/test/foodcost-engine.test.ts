@@ -1,5 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { convert, costRecipe, fcMoney, fcRecipeLimit, roundMinor, toBase, unitCost, type FcIngredient, type FcRecipe } from "@mawah/shared/foodcost";
+import {
+  convert,
+  costRecipe,
+  fcEmptyForm,
+  fcFormFromDTO,
+  fcFormToInput,
+  fcMoney,
+  fcParseNumber,
+  fcParseTaka,
+  fcRecipeLimit,
+  fcTakaText,
+  fcUnitsFor,
+  roundMinor,
+  toBase,
+  unitCost,
+  type FcIngredient,
+  type FcRecipe,
+  type FcRecipeDTO,
+} from "@mawah/shared/foodcost";
 
 /*
  * FoodCost Pro's calculation engine (shared/src/foodcost.ts) — the one the website, the Android app and the server all run. What it must
@@ -321,5 +339,58 @@ describe("money and plans", () => {
     expect(fcRecipeLimit("free", false)).toBe(3);
     expect(fcRecipeLimit("free", true)).toBeNull();
     expect(fcRecipeLimit("pro", false)).toBeNull();
+  });
+});
+
+describe("what the screens share", () => {
+  it("reads amounts as people type them: Bangla digits, thousands commas, taka to paisa; nothing that is not a number", () => {
+    expect(fcParseNumber("120")).toBe(120);
+    expect(fcParseNumber(" ১২০.৫০ ")).toBe(120.5);
+    expect(fcParseNumber("1,200")).toBe(1200);
+    for (const bad of ["", "  ", "abc", "-5", "0", "1e999", "৳"]) expect(fcParseNumber(bad), bad).toBeNull();
+    expect(fcParseNumber("0", true)).toBe(0);
+    expect(fcParseTaka("115.50")).toBe(11550);
+    expect(fcParseTaka("০.১৫")).toBe(15);
+    expect(fcParseTaka("0")).toBe(0);
+    expect(fcParseTaka("ten")).toBeNull();
+    expect([fcTakaText(12000), fcTakaText(11550), fcTakaText(null)]).toEqual(["120", "115.5", ""]);
+  });
+
+  it("offers only the units a line can be costed in: the price's kind, and the others its density or piece weight reach", () => {
+    const flour: FcIngredient = { id: 1, name: "Flour", gPerMl: 0.53, price: { packQty: 1, packUnit: "kg", priceMinor: 12000 } };
+    const butter: FcIngredient = { id: 2, name: "Butter", price: { packQty: 500, packUnit: "g", priceMinor: 55000 } };
+    expect(fcUnitsFor(flour)).toEqual(["mg", "g", "kg", "lb", "oz", "ml", "l", "tsp", "tbsp", "cup"]);
+    expect(fcUnitsFor(butter)).toEqual(["mg", "g", "kg", "lb", "oz"]);
+    expect(fcUnitsFor({ ...butter, price: null })).toHaveLength(12); // no price yet: every unit
+  });
+
+  it("a recipe goes from the API into the form and back unchanged; lines with nothing chosen are left out, and each line sent knows its row", () => {
+    const dto: FcRecipeDTO = {
+      id: 7,
+      name: "Cupcakes",
+      notes: "Bake at 180°",
+      yield_qty: 12,
+      yield_unit: "piece",
+      yield_label: "cupcake",
+      output_g: 720,
+      items: [
+        { ingredient_id: 3, recipe_id: null, qty: 500, unit: "g", note: "" },
+        { ingredient_id: null, recipe_id: 4, qty: 200, unit: "g", note: "sifted" },
+      ],
+      costs: [
+        { kind: "packaging", label: "Box", per: "piece", amount_minor: 1000, hours: null },
+        { kind: "labour", label: "", per: "hour", amount_minor: 10000, hours: 2 },
+      ],
+      pricing: { mode: "margin", pct: 40, round_to_minor: 500, actual_minor: 6000 },
+      created_at: "2026-11-06T00:00:00Z",
+      updated_at: "2026-11-06T00:00:00Z",
+    };
+    const { id: _id, created_at: _c, updated_at: _u, ...input } = dto;
+    expect(fcFormToInput(fcFormFromDTO(dto))).toEqual({ input, rows: [0, 1] });
+
+    const form = { ...fcEmptyForm(), name: " Syrup ", yieldQty: "১", items: [{ ref: "", qty: "5", unit: "g" as const, note: "" }, { ref: "i9", qty: "abc", unit: "ml" as const, note: "" }] };
+    const out = fcFormToInput(form);
+    expect(out.rows).toEqual([1]);
+    expect(out.input).toMatchObject({ name: "Syrup", yield_qty: 1, items: [{ ingredient_id: 9, recipe_id: null, qty: 0, unit: "ml" }], pricing: { mode: "markup", pct: 0, actual_minor: null } });
   });
 });
