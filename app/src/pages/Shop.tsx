@@ -293,6 +293,8 @@ export function ShopCheckout() {
           address: address.trim(),
           note: note.trim(),
           payment,
+          // the texts about the order (received, confirmed, on its way …) come in the language the buyer reads the site in
+          lang,
           agree: true,
           turnstile: captcha || undefined,
         },

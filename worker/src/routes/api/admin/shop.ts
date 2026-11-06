@@ -12,6 +12,8 @@ import { uniqueSlug } from "../../../lib/slug";
 import { requirePerm } from "../../../middleware/auth";
 import { courierEvents, hasKeys, pathaoBook, pathaoStores, steadfastBalance, steadfastBook, type Parcel } from "../../../services/courier";
 import { restockOrder, shopOrderDTO, shopOrderRow } from "../../../services/shop";
+import { textShopBuyer } from "../../../services/shopTexts";
+import type { ShopTextStep } from "../../../lib/smsText";
 
 /**
  * Admin → Shop: the products (with their weights or sizes and prices, pictures and descriptions), the categories, the orders (with the
@@ -287,6 +289,8 @@ async function staffOrder(c: Ctx, code: string) {
 shopOrdersAdmin.get("/shop/orders/:code", requirePerm("shop:orders"), async (c) => ok(c, { order: await staffOrder(c, c.req.param("code")) }));
 
 const STAMP: Partial<Record<ShopOrderStatus, string>> = { shipped: "shipped_at", delivered: "delivered_at", cancelled: "cancelled_at" };
+/** The steps the buyer is told about by text message (a cancelled order that was paid online: that the money comes back). */
+const BUYER_TEXT: Partial<Record<ShopOrderStatus, ShopTextStep>> = { confirmed: "confirmed", shipped: "shipped", delivered: "delivered", cancelled: "cancelled", refunded: "refunded" };
 
 /** Move an order one step: confirm, ship (with the courier's number), deliver, or cancel (the stock goes back). Only the allowed next steps. */
 shopOrdersAdmin.post("/shop/orders/:code/status", requirePerm("shop:orders_write"), async (c) => {
@@ -312,6 +316,9 @@ shopOrdersAdmin.post("/shop/orders/:code/status", requirePerm("shop:orders_write
   if (!res.meta.changes) throw conflict("bad_step");
   if (body.status === "cancelled") await restockOrder(c.env, row.id);
   await audit(c, { action: `shop_orders.${status}`, entity: "shop_order", entityId: row.id, summary: row.public_id });
+  const step = BUYER_TEXT[status];
+  // sent by hand: no courier booked from here, only the tracking number staff typed
+  if (step) c.executionCtx.waitUntil(textShopBuyer(c.env, { ...row, courier: "", courier_ref: body.courier_ref ?? row.courier_ref }, step));
   return ok(c, { order: await staffOrder(c, row.public_id) });
 });
 
@@ -387,6 +394,7 @@ shopOrdersAdmin.post("/shop/orders/:code/courier", requirePerm("shop:orders_writ
     ),
   ]);
   await audit(c, { action: "shop_orders.shipped", entity: "shop_order", entityId: row.id, summary: `${row.public_id} · ${body.courier} ${r.data.cid}` });
+  c.executionCtx.waitUntil(textShopBuyer(c.env, { ...row, courier: body.courier, courier_ref: r.data.tracking || r.data.cid }, "shipped"));
   return ok(c, { order: await staffOrder(c, row.public_id) });
 });
 

@@ -3,6 +3,8 @@ import type { AppEnv } from "../../env";
 import { timingSafeEqual } from "../../lib/crypto";
 import { orderForCourier, recordCourierWord, type Courier } from "../../services/courier";
 import { notices, notifyOwner } from "../../services/notify";
+import { shopOrderRow } from "../../services/shop";
+import { textShopBuyer } from "../../services/shopTexts";
 
 /*
  * The couriers' webhooks: what Steadfast and Pathao tell the site about a parcel it booked with them (services/courier.ts). They come
@@ -20,7 +22,12 @@ const text = (v: unknown, max: number) => (typeof v === "string" || typeof v ===
 async function take(c: Context<AppEnv>, courier: Courier, w: { cid: string; code: string; event: string; status: string; message: string }) {
   const order = await orderForCourier(c.env, courier, w.cid, w.code);
   if (!order) return;
-  const meaning = await recordCourierWord(c.env, order, courier, { event: w.event, status: w.status, message: w.message });
+  const { meaning, delivered } = await recordCourierWord(c.env, order, courier, { event: w.event, status: w.status, message: w.message });
+  // the parcel reached the buyer: they are told so (once)
+  if (delivered) {
+    const row = await shopOrderRow(c.env, order.public_id);
+    if (row) c.executionCtx.waitUntil(textShopBuyer(c.env, row, "delivered"));
+  }
   // the parcel came back, was cancelled, could not be delivered or is on hold: the owner decides what happens to the order
   if (meaning === "attention") {
     c.executionCtx.waitUntil(notifyOwner(c.env, notices.courierWord({ code: order.public_id, courier, said: w.status || w.event, message: w.message, name: order.name, phone: order.phone, total: order.total, payment: order.payment })));

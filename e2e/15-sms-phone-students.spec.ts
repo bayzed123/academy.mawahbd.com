@@ -43,6 +43,23 @@ test("Settings → SMS: says what is connected, keeps the sender name, and sends
   await admin.getByLabel("Sender name (sender ID)").fill("MAWAH");
   await admin.getByRole("button", { name: "Save" }).first().click();
 
+  // the shop buyers' texts have a switch of their own, on to begin with, and the choice is kept (a person presses the switch's label)
+  const shopTexts = admin.getByRole("switch", { name: "Text shop buyers about their order" });
+  const pressShopTexts = () => admin.locator('label.switch[for="sms-shop"]').click();
+  await expect(shopTexts).toBeChecked();
+  await expect(admin.getByText("Each text carries the order code.")).toBeVisible();
+  await pressShopTexts();
+  await expect(shopTexts).not.toBeChecked();
+  await admin.getByRole("button", { name: "Save" }).first().click();
+  await expect(admin.getByText("Saved.").first()).toBeVisible();
+  await admin.reload();
+  await expect(shopTexts).not.toBeChecked();
+  await expect(admin.getByLabel("Sender name (sender ID)")).toHaveValue("MAWAH");
+  await pressShopTexts();
+  await expect(shopTexts).toBeChecked();
+  await admin.getByRole("button", { name: "Save" }).first().click();
+  await expect(admin.getByText("Saved.").first()).toBeVisible();
+
   // a test message to a number: refused when it is not a number, kept (test mode) when it is
   const phone = uniquePhone();
   await admin.getByLabel("Send a test message to this number").fill("12345");

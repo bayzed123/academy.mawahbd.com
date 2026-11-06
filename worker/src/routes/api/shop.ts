@@ -5,12 +5,13 @@ import type { AppEnv } from "../../env";
 import { audit } from "../../lib/audit";
 import { first, run } from "../../lib/db";
 import { HttpError, notFound, ok, parseBody, parseQuery } from "../../lib/http";
-import { nameSchema, optionalEmailSchema, requiredPhoneSchema, textSchema, turnstileField } from "../../lib/schemas";
+import { langSchema, nameSchema, optionalEmailSchema, requiredPhoneSchema, textSchema, turnstileField } from "../../lib/schemas";
 import { getSettings } from "../../lib/settings";
 import { verifyTurnstile } from "../../lib/turnstile";
 import { rateLimit } from "../../middleware/ratelimit";
 import { geoChildren, geoPlace, type GeoLevel } from "../../services/geo";
 import { notices, notifyOwner } from "../../services/notify";
+import { textShopBuyer } from "../../services/shopTexts";
 import { clearCap, rememberCap, rememberSsl, sslInit } from "../../services/payments/sslcommerz";
 import {
   closeShopOrder,
@@ -131,6 +132,8 @@ const orderSchema = z.object({
   address: textSchema(300, 5),
   note: textSchema(300).default(""),
   payment: z.enum(["cod", "sslcommerz"]),
+  // the language the buyer reads the site in: the texts about the order are written in it
+  lang: langSchema.optional().default("bn"),
   agree: z.literal(true, { error: "required" }),
   turnstile: turnstileField,
 });
@@ -159,6 +162,7 @@ shopRoutes.post("/orders", rateLimit("RL_FORM"), async (c) => {
     address: body.address,
     note: body.note,
     payment: body.payment,
+    locale: body.lang,
   });
   if (!order) throw new HttpError(409, "cart_changed");
   // what the buyer pays: paying on delivery adds its charge, an online payment does not
@@ -169,6 +173,8 @@ shopRoutes.post("/orders", rateLimit("RL_FORM"), async (c) => {
 
   if (body.payment === "cod") {
     c.executionCtx.waitUntil(notifyOwner(c.env, notice));
+    // the buyer's own word that the order arrived — capped: no payment stands behind a cash-on-delivery order, so the number could be anyone's
+    c.executionCtx.waitUntil(textShopBuyer(c.env, { id: order.id, public_id: order.public_id, phone: body.phone, locale: body.lang, total, payment: "cod" }, "placed", { capped: true }));
     return ok(c, { order: { public_id: order.public_id, total, status: "placed" }, link }, 201);
   }
 

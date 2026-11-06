@@ -10,7 +10,7 @@ import { orderReceiptMail } from "../lib/mailer";
 import { receiptSms } from "../lib/smsText";
 import { createPasswordResetLink } from "./auth";
 import { notices, notifyOwner } from "./notify";
-import { tellStudent } from "./studentMessages";
+import { tellStudent, toldMeta } from "./studentMessages";
 
 /* =================================================================================================
  *  Pricing  (server-side, always — the browser never tells us a price)
@@ -495,11 +495,13 @@ export async function sendReceipt(env: Env, orderId: number): Promise<void> {
     setPasswordDays: SET_PASSWORD_LINK_DAYS,
   });
   // by e-mail when they gave one, and by text message to their mobile number (the only way for a buyer who gave no e-mail)
-  await tellStudent(
+  const told = await tellStudent(
     env,
     { email: order.customer_email, phone: order.customer_phone || student?.phone },
     { mail, sms: receiptSms(lang, { total: order.total, learnUrl: `${env.SITE_URL}/app/`, code: studentCode(order.student_id), setPasswordUrl }) },
   );
+  // how it went, for the owner (Admin → Activity): a receipt that could not be sent is the usual reason "I paid and heard nothing"
+  await auditAs(env, { type: "system", id: null, name: "" }, { action: "order.receipt_sent", entity: "order", entityId: orderId, summary: order.public_id, meta: toldMeta(told) });
 }
 
 /** Mark an unpaid order failed/cancelled (gateway fail/cancel redirects). No-op once paid. */

@@ -14,7 +14,7 @@ import {
   type ShopReviewDTO,
   type ShopVariantDTO,
 } from "@mawah/shared";
-import type { Env } from "../env";
+import type { Env, Lang } from "../env";
 import { CROCKFORD, randomString, randomToken } from "../lib/crypto";
 import { all, first, nowIso, qs, run } from "../lib/db";
 import { getSettings, type Settings } from "../lib/settings";
@@ -353,6 +353,8 @@ export interface PlaceInput {
   address: string;
   note: string;
   payment: ShopPayment;
+  /** the language the buyer used on the website (the texts about the order are written in it) */
+  locale: Lang;
 }
 
 /**
@@ -369,8 +371,8 @@ export async function createShopOrder(env: Env, quote: Awaited<ReturnType<typeof
   const res = await run(
     env.DB,
     `INSERT INTO shop_orders (public_id, access_key, status, payment, subtotal, delivery_fee, cod_fee, total, name, phone, email, division_id, district_id,
-                              upazila_id, union_id, place, address, note, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                              upazila_id, union_id, place, address, note, locale, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     publicId,
     accessKey,
     status,
@@ -389,6 +391,7 @@ export async function createShopOrder(env: Env, quote: Awaited<ReturnType<typeof
     input.place,
     input.address,
     input.note,
+    input.locale,
     now,
     now,
   );
@@ -462,6 +465,7 @@ interface OrderRow {
   place: string;
   address: string;
   note: string;
+  locale: Lang;
   courier_ref: string;
   courier: "" | "steadfast" | "pathao";
   courier_cid: string;

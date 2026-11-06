@@ -123,8 +123,13 @@ describe("buying with a mobile number and no e-mail", () => {
   });
 
   it("is told by text message, not by e-mail: the receipt has the student ID, the link to the class and a link to choose a password", async () => {
-    const { phone, code, out } = await paidBuyer();
+    const { phone, code, out, publicId } = await paidBuyer();
     const receipt = await until(async () => (await smsTo(phone)).find((m) => /payment received/.test(m.text)));
+    // the owner can see it went (Admin → Activity): by text, and no e-mail (there is none to use)
+    const sent = await until(async () =>
+      env.DB.prepare("SELECT l.meta FROM activity_log l JOIN orders o ON o.id = l.entity_id WHERE l.action = 'order.receipt_sent' AND o.public_id = ?").bind(publicId).first<{ meta: string }>(),
+    );
+    expect(JSON.parse(sent.meta)).toEqual({ sms: "sent", email: "not_sent" });
     expect(receipt.text).toContain(code);
     expect(receipt.text).toContain("Tk 1500");
     expect(receipt.text).toMatch(/https?:\/\/[^\s]+\/app\//);
@@ -491,6 +496,39 @@ describe("forgot my password, by number", () => {
     await new Client().post("/api/auth/forgot", { identifier: phone, lang: "en" });
     const fresh = codeIn((await until(async () => (await codeTexts(phone)).length >= 2 && (await codeTexts(phone)).at(-1))).text)!;
     expect((await new Client().post("/api/auth/reset-code", { identifier: phone, code: fresh, password: "a-brand-new-password-1" })).status).toBe(200);
+  });
+
+  it("a number several accounts share gets one text naming them by student ID (no code), the page answering as always; with the ID, the code comes", async () => {
+    const phone = uniquePhone();
+    const one = await registerStudent(new Client(), { phone, email: uniqueEmail("shared-a") });
+    const two = await registerStudent(new Client(), { phone, email: uniqueEmail("shared-b") });
+    const ids = [one.id, two.id].map((id) => `STU-${String(id).padStart(6, "0")}`);
+    const res = await new Client().post("/api/auth/forgot", { identifier: phone, lang: "en" });
+    expect(res.status).toBe(200);
+    // the answer tells the asker nothing: it is the one a number nobody has gets
+    expect(await json(res)).toEqual(await json(await new Client().post("/api/auth/forgot", { identifier: uniquePhone(), lang: "en" })));
+    const list = await until(async () => (await smsTo(phone)).find((m) => /accounts use this number/.test(m.text)));
+    expect(list.text).toBe(`MAWAH Academy: 2 accounts use this number: ${ids.join(", ")}. On "Forgot password", type the student ID you want a code for.`);
+    expect(list.text.replace(/STU-\d+/g, "")).not.toMatch(/https?:|\/app\/|www\.|\d{6}/); // no link, and no code beside the IDs
+    expect(await codeTexts(phone)).toHaveLength(0); // which account would a code change?
+    const logged = await until(async () => env.DB.prepare("SELECT meta FROM activity_log WHERE action = 'student.password_ids_sent' AND entity_id = ?").bind(`${one.id},${two.id}`).first<{ meta: string }>());
+    expect(JSON.parse(logged.meta)).toEqual({ accounts: 2, sms: "sent" });
+
+    // asked again with one of the IDs: the code comes, and changes that account only
+    await new Client().post("/api/auth/forgot", { identifier: ids[1], lang: "en" });
+    const code = codeIn((await until(async () => (await codeTexts(phone)).at(-1))).text)!;
+    const done = await new Client().post("/api/auth/reset-code", { identifier: ids[1], code, password: "a-brand-new-password-1" });
+    expect(done.status).toBe(200);
+    expect((await json(done)).student.id).toBe(two.id);
+    expect((await new Client().post("/api/auth/login", { identifier: one.email, password: "correct-horse-battery" })).status).toBe(200);
+
+    // in Bangla when the page is in Bangla
+    const bn = uniquePhone();
+    await registerStudent(new Client(), { phone: bn, email: uniqueEmail("shared-c") });
+    await registerStudent(new Client(), { phone: bn, email: uniqueEmail("shared-d") });
+    await new Client().post("/api/auth/forgot", { identifier: bn, lang: "bn" });
+    const bnText = await until(async () => (await smsTo(bn)).find((m) => /এই নম্বরে ২টি অ্যাকাউন্ট/.test(m.text)));
+    expect(bnText.text).toContain("“পাসওয়ার্ড ভুলে গেছেন?” পাতায়");
   });
 
   it("a code works for 15 minutes, and only for the account it was sent to", async () => {

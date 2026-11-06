@@ -353,7 +353,7 @@ describe("Settings → SMS", () => {
   it("says whether the secrets are set and where messages go — and never shows the key or the rest of the address", async () => {
     const admin = await owner();
     const before = await json(await admin.get("/api/admin/settings/sms"));
-    expect(before).toMatchObject({ configured: false, key_set: false, url_set: false, host: null, provider: "dev-outbox", enabled: true, sender_id: "", with_email: true, last: null });
+    expect(before).toMatchObject({ configured: false, key_set: false, url_set: false, host: null, provider: "dev-outbox", enabled: true, sender_id: "", with_email: true, shop: true, last: null });
 
     withSecrets(`${HOST}/miscapi/${FAKE_KEY}/getBalance`);
     const raw = await (await admin.get("/api/admin/settings/sms")).text();
@@ -382,7 +382,7 @@ describe("Settings → SMS", () => {
 
   it("sends one test message to the number typed, with the sender name from the settings; a bad number is refused before anything is sent", async () => {
     const admin = await owner();
-    expect((await admin.put("/api/admin/settings/sms", { enabled: true, sender_id: "MAWAH", with_email: true })).status).toBe(200);
+    expect((await admin.put("/api/admin/settings/sms", { enabled: true, sender_id: "MAWAH", with_email: true, shop: true })).status).toBe(200);
 
     // development: it lands in the outbox
     const dev = await json(await admin.post("/api/admin/settings/sms/test", { to: "+8801711000009", lang: "en" }));
@@ -428,12 +428,12 @@ describe("Settings → SMS", () => {
 
   it("keeps the sender name and the two switches, checks the sender name, and stops a flood of tests", async () => {
     const admin = await owner();
-    expect((await admin.put("/api/admin/settings/sms", { enabled: false, sender_id: "My Shop", with_email: false })).status).toBe(200);
-    expect(await json(await admin.get("/api/admin/settings/sms"))).toMatchObject({ enabled: false, sender_id: "My Shop", with_email: false });
-    expect((await getSettings(env, { fresh: true })).sms).toEqual({ enabled: false, sender_id: "My Shop", with_email: false });
+    expect((await admin.put("/api/admin/settings/sms", { enabled: false, sender_id: "My Shop", with_email: false, shop: false })).status).toBe(200);
+    expect(await json(await admin.get("/api/admin/settings/sms"))).toMatchObject({ enabled: false, sender_id: "My Shop", with_email: false, shop: false });
+    expect((await getSettings(env, { fresh: true })).sms).toEqual({ enabled: false, sender_id: "My Shop", with_email: false, shop: false });
 
     for (const bad of ["x".repeat(16), "bad<name>", "নাম"]) {
-      const res = await admin.put("/api/admin/settings/sms", { enabled: true, sender_id: bad, with_email: true });
+      const res = await admin.put("/api/admin/settings/sms", { enabled: true, sender_id: bad, with_email: true, shop: true });
       expect(res.status, bad).toBe(422);
     }
 
