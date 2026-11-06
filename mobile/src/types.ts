@@ -4,7 +4,11 @@ import type { ShopCardDTO, ShopCategoryDTO, ShopProductDTO } from "@mawah/shared
 
 /** What the website's API answers (worker/src/routes/api/*), as far as the app reads it. */
 export interface SiteInfo {
-  site: { contact: { whatsapp: string; phone: string; email: string; facebook: string; messenger: string } };
+  site: {
+    contact: { whatsapp: string; phone: string; email: string; facebook: string; messenger: string };
+    /** the notice at the top of Home (Admin → Android app); null when switched off. Older servers do not send it. */
+    app_notice?: { bn: string; en: string } | null;
+  };
 }
 export interface CourseList {
   courses: CourseCardDTO[];
@@ -13,6 +17,13 @@ export interface CourseList {
 export interface PublicCourse {
   course: CourseCardDTO & { long_bn: string; long_en: string; demo_url: string; demo_title_bn: string; demo_title_en: string };
   curriculum: CurriculumModuleDTO[];
+}
+/** One of the app's free classes (GET /api/app/courses/:slug): `joined` once it is the student's; `revoked` when staff took it back. */
+export interface FreeClass {
+  course: PublicCourse["course"] & { instructor: { name_bn: string; name_en: string } | null };
+  curriculum: CurriculumModuleDTO[];
+  joined: boolean;
+  revoked: boolean;
 }
 export interface MyCourses {
   courses: MyCourseDTO[];

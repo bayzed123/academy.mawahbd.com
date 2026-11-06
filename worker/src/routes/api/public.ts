@@ -41,6 +41,8 @@ publicRoutes.get("/site", async (c) => {
       chat_enabled: s.chatbot.enabled,
       greeting: { bn: s.chatbot.greeting_bn, en: s.chatbot.greeting_en },
       turnstile_site_key: turnstileEnabled(c.env) ? c.env.TURNSTILE_SITE_KEY : "",
+      // the notice at the top of the Android app's Home (Admin → Android app); null when switched off
+      app_notice: s.app.notice_on && s.app.notice_bn && s.app.notice_en ? { bn: s.app.notice_bn, en: s.app.notice_en } : null,
       environment: c.env.ENVIRONMENT,
     },
   });
@@ -83,7 +85,7 @@ publicRoutes.get("/bundles", async (c) => {
     ? await all<{ bundle_id: number; slug: string; title_bn: string; title_en: string; price: number }>(
         c.env.DB,
         `SELECT bi.bundle_id, c.slug, c.title_bn, c.title_en, c.price FROM bundle_items bi JOIN courses c ON c.id = bi.course_id
-         WHERE c.deleted_at IS NULL AND c.status = 'published'`,
+         WHERE c.deleted_at IS NULL AND c.status = 'published' AND c.channel = 'website'`,
       )
     : [];
   cacheable(c);
@@ -151,7 +153,7 @@ const notifySchema = z.object({ course: z.string().trim().min(1).max(120), email
 
 publicRoutes.post("/notify", rateLimit("RL_FORM"), (c) =>
   handleForm(c, notifySchema, "notify_ok", async (b) => {
-    const course = await first<{ id: number; title_en: string }>(c.env.DB, "SELECT id, title_en FROM courses WHERE slug = ? AND status = 'coming_soon' AND deleted_at IS NULL", b.course);
+    const course = await first<{ id: number; title_en: string }>(c.env.DB, "SELECT id, title_en FROM courses WHERE slug = ? AND status = 'coming_soon' AND deleted_at IS NULL AND channel = 'website'", b.course);
     if (!course) throw new HttpError(422, "course_unavailable");
     const added = await run(c.env.DB, "INSERT INTO notify_signups (course_id, email, phone, lang) VALUES (?, ?, ?, ?) ON CONFLICT(course_id, email) DO NOTHING", course.id, b.email, b.phone, b.lang);
     if ((added.meta.changes ?? 0) > 0) c.executionCtx.waitUntil(notifyOwner(c.env, notices.notifyMe({ email: b.email, phone: b.phone ?? null, course: course.title_en })));

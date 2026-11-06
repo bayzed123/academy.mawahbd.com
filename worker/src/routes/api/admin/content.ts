@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ACCENTS, CLASS_ICONS, COURSE_STATUSES, playsOnPublicPages } from "@mawah/shared";
+import { ACCENTS, CLASS_ICONS, COURSE_CHANNELS, COURSE_STATUSES, playsOnPublicPages } from "@mawah/shared";
 import type { Env } from "../../../env";
 import { crudRoutes, type ResourceDef } from "../../../lib/crud";
 import { all, first, nowIso, qs } from "../../../lib/db";
@@ -181,8 +181,10 @@ export const bundles = crudRoutes({
   async afterSave(c, row, data) {
     if (!Array.isArray(data.course_ids)) return;
     const ids = [...new Set(data.course_ids as number[])];
-    const valid = await all<{ id: number }>(c.env.DB, `SELECT id FROM courses WHERE id IN (${qs(ids.length)}) AND deleted_at IS NULL`, ...ids);
+    const valid = await all<{ id: number; channel: string }>(c.env.DB, `SELECT id, channel FROM courses WHERE id IN (${qs(ids.length)}) AND deleted_at IS NULL`, ...ids);
     if (valid.length !== ids.length) throw new HttpError(422, "validation", "validation", { course_ids: "invalid" });
+    // a bundle is sold on the website: one of the Android app's free classes is never part of one
+    if (valid.some((v) => v.channel !== "website")) throw new HttpError(422, "validation", "validation", { course_ids: "app_class" });
     await c.env.DB.batch([
       c.env.DB.prepare("DELETE FROM bundle_items WHERE bundle_id = ?").bind(row.id),
       ...ids.map((id) => c.env.DB.prepare("INSERT INTO bundle_items (bundle_id, course_id) VALUES (?, ?)").bind(row.id, id)),
@@ -269,6 +271,9 @@ const courseSchema = z.object({
   level: z.union([z.enum(["beginner", "intermediate", "advanced"]), z.null()]),
   price: money,
   status: z.enum(COURSE_STATUSES),
+  // where the class is shown (migration 0023): "website" (the default: sold there, studied on the website and in the app) or "app" (free,
+  // in the Android app only — never shown or sold on the website)
+  channel: z.enum(COURSE_CHANNELS).optional(),
   details_url: optionalUrl,
   featured: z.boolean(),
   cert_enabled: z.boolean(),
@@ -296,12 +301,21 @@ export const courses = crudRoutes({
   searchCols: ["title_bn", "title_en", "slug"],
   sortCols: ["id", "title_en", "price", "status", "sort", "updated_at", "published_at", "rating_avg"],
   defaultSort: "sort",
-  filters: { status: "status", category_id: "category_id" },
+  filters: { status: "status", category_id: "category_id", channel: "channel" },
   softDelete: true,
   publicContent: true,
   label: (r) => String(r.title_en),
   async beforeSave(c, data, existing) {
     await ensureSlug(c, "courses", data, existing, String(data.title_en ?? ""));
+    // an Android app class is free there and never sold: it has no price, and it is never part of a bundle (a bundle is sold on the website)
+    const channel = (data.channel as string | undefined) ?? (existing?.channel as string | undefined) ?? "website";
+    if (channel === "app") {
+      data.price = 0;
+      if (existing && existing.channel !== "app") {
+        const inBundle = await first(c.env.DB, "SELECT bi.bundle_id FROM bundle_items bi JOIN bundles b ON b.id = bi.bundle_id WHERE bi.course_id = ? AND b.deleted_at IS NULL LIMIT 1", existing.id);
+        if (inBundle) throw new HttpError(409, "in_bundle", "in_bundle", { channel: "in_bundle" });
+      }
+    }
     const status = (data.status as string | undefined) ?? (existing?.status as string | undefined);
     if (status === "published" && !existing?.published_at) data.published_at = nowIso();
     if (data.category_id) {
@@ -343,6 +357,7 @@ export const courses = crudRoutes({
     { key: "title_bn", label: "Title (BN)" },
     { key: "price", label: "Price (BDT)" },
     { key: "status", label: "Status" },
+    { key: "channel", label: "Shown on" },
     { key: "lesson_count", label: "Lessons" },
     { key: "rating_avg", label: "Rating" },
     { key: "rating_count", label: "Reviews" },

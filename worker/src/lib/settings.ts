@@ -110,6 +110,8 @@ export interface Settings {
   notifications: { emails: string[]; off: NotifyKind[] };
   /** text messages to students (Admin → Settings → SMS): the sender name the SMS company approved, and when messages go out */
   sms: { enabled: boolean; sender_id: string; with_email: boolean };
+  /** the Android app (Admin → Android app): a short notice at the top of the app's Home (`notice_on` off hides it and keeps the words) */
+  app: { notice_on: boolean; notice_bn: string; notice_en: string };
   onboarding: { dismissed: boolean };
 }
 
@@ -179,6 +181,7 @@ export const SETTING_DEFAULTS: Settings = {
   courier: { pathao_store: 0, pathao_store_name: "", pathao_delivery: 48, weight: 0.5 },
   notifications: { emails: [], off: [] },
   sms: { enabled: true, sender_id: "", with_email: true },
+  app: { notice_on: false, notice_bn: "", notice_en: "" },
   onboarding: { dismissed: false },
 };
 

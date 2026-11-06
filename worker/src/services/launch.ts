@@ -11,12 +11,13 @@ import { loc } from "@mawah/shared";
  * `limit` caps one run so a big list can never exceed the Worker's per-invocation subrequest budget.
  */
 export async function notifyLaunch(env: Env, courseId: number, limit = 400): Promise<number> {
-  const course = await first<{ slug: string; title_bn: string; title_en: string; status: string; deleted_at: string | null }>(
+  const course = await first<{ slug: string; title_bn: string; title_en: string; status: string; deleted_at: string | null; channel: string }>(
     env.DB,
-    "SELECT slug, title_bn, title_en, status, deleted_at FROM courses WHERE id = ?",
+    "SELECT slug, title_bn, title_en, status, deleted_at, channel FROM courses WHERE id = ?",
     courseId,
   );
-  if (!course || course.deleted_at || course.status !== "published") return 0;
+  // the e-mail links to the class page on the website: a class moved to the Android app has none (its sign-ups wait, untouched)
+  if (!course || course.deleted_at || course.status !== "published" || course.channel !== "website") return 0;
 
   const waiting = await all<{ id: number; email: string; lang: "bn" | "en" }>(
     env.DB,
@@ -45,7 +46,7 @@ export async function retryPendingLaunches(env: Env): Promise<void> {
   const courses = await all<{ course_id: number }>(
     env.DB,
     `SELECT DISTINCT n.course_id FROM notify_signups n JOIN courses c ON c.id = n.course_id
-     WHERE n.notified_at IS NULL AND c.status = 'published' AND c.deleted_at IS NULL LIMIT 5`,
+     WHERE n.notified_at IS NULL AND c.status = 'published' AND c.deleted_at IS NULL AND c.channel = 'website' LIMIT 5`,
   );
   for (const c of courses) await notifyLaunch(env, c.course_id);
 }

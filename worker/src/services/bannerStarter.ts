@@ -68,7 +68,7 @@ export async function createStarterBanners(env: Env): Promise<StarterResult> {
     env.DB,
     `SELECT c.id, c.slug, c.title_bn, c.title_en, c.short_bn, c.short_en, c.icon, c.banner_key, k.name_bn AS cat_bn, k.name_en AS cat_en, k.icon AS cat_icon
      FROM courses c LEFT JOIN categories k ON k.id = c.category_id
-     WHERE c.status = 'published' AND c.deleted_at IS NULL
+     WHERE c.status = 'published' AND c.deleted_at IS NULL AND c.channel = 'website'
      ORDER BY c.featured DESC, c.sort, c.id`,
   );
   const fresh = classes.filter((c) => !have.has(c.slug));

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../../../env";
 import { requireStaff } from "../../../middleware/auth";
 import { analytics } from "./analytics";
+import { appAdmin } from "./app";
 import { audience } from "./audience";
 import { banners } from "./banners";
 import { landing } from "./landing";
@@ -45,6 +46,6 @@ adminApi.route("/courses", courses);
 adminApi.route("/shop/categories", shopCategoriesAdmin);
 adminApi.route("/shop/products", shopProductsAdmin);
 
-for (const router of [shopPictures, shopOrdersAdmin, shopReviewsAdmin, courseOverview, curriculum, drive, gallery, materials, media, orders, students, engagement, audience, analytics, chatbot, settings, reports, dashboard, staff]) {
+for (const router of [shopPictures, shopOrdersAdmin, shopReviewsAdmin, courseOverview, curriculum, drive, gallery, materials, media, orders, students, engagement, audience, analytics, chatbot, settings, reports, dashboard, staff, appAdmin]) {
   adminApi.route("/", router);
 }

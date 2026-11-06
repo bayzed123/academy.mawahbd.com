@@ -10,7 +10,8 @@ import { MaterialsSection, useMaterials } from "../components/Materials";
 import { resumeLessonId } from "./Learning";
 
 export interface CourseView {
-  course: MyCourseDTO["course"] & { id: number };
+  /** `channel` "app": one of the Android app's free classes — it has no page on the website */
+  course: MyCourseDTO["course"] & { id: number; channel?: "website" | "app" };
   enrolled_at: string;
   progress: ProgressDTO;
   curriculum: CurriculumModuleDTO[];
@@ -198,9 +199,11 @@ export function CourseOverview() {
           <a className="btn btn-light" href="#review">
             <Icon name="star" /> {t("app.course.rate")}
           </a>
-          <a className="btn btn-light" href={`${home}/courses/${slug}`}>
-            {t("btn.readMore")}
-          </a>
+          {v.course.channel !== "app" && (
+            <a className="btn btn-light" href={`${home}/courses/${slug}`}>
+              {t("btn.readMore")}
+            </a>
+          )}
         </div>
       </div>
 

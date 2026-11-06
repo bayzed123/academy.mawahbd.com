@@ -11,6 +11,13 @@ export const ROLE_LABELS: Record<Role, { bn: string; en: string }> = {
 export const COURSE_STATUSES = ["draft", "coming_soon", "published", "archived"] as const;
 export type CourseStatus = (typeof COURSE_STATUSES)[number];
 
+/**
+ * Where a class is shown (courses.channel, migration 0023). "website": sold on the website; a student who has it studies it on the website
+ * and in the Android app. "app": free, and only in the Android app — never listed, shown or sold on the website.
+ */
+export const COURSE_CHANNELS = ["website", "app"] as const;
+export type CourseChannel = (typeof COURSE_CHANNELS)[number];
+
 export const ORDER_STATUSES = ["pending", "awaiting_verification", "paid", "failed", "cancelled", "refunded"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
@@ -114,6 +121,7 @@ export function can(role: Role | undefined | null, permission: Permission): bool
 export const ADMIN_NAV = [
   { key: "dashboard", path: "", perm: "dashboard:read" },
   { key: "courses", path: "courses", perm: "courses:read" },
+  { key: "app", path: "app", perm: "courses:read" },
   { key: "materials", path: "materials", perm: "materials:read" },
   { key: "instructors", path: "instructors", perm: "instructors:read" },
   { key: "orders", path: "orders", perm: "orders:read" },

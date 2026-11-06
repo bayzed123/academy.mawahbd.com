@@ -534,6 +534,18 @@
 
 **গোপনীয়তা নীতি:** অ্যাপ ও অ্যাকাউন্ট ডিলিটের একটি অংশ গোপনীয়তা নীতির পাতার নিচে নিজে থেকেই যুক্ত হয় — আপনার নিজের লেখা নীতি বদলাতে হয় না।
 
+## ৩৩. অ্যাপের ফ্রি ক্লাস, অ্যাপের নোটিশ ও গুগল প্লের টেস্ট অ্যাকাউন্ট
+
+অ্যাডমিন মেনুতে নতুন **অ্যান্ড্রয়েড অ্যাপ** পাতা। এখান থেকে অ্যাপের সবকিছু:
+
+* **ফ্রি ক্লাস যোগ করুন:** **ফ্রি ক্লাস যোগ করুন** চাপুন (অথবা যেকোনো ক্লাস খুলে “ক্লাসটি কোথায় দেখানো হবে?” → **শুধু অ্যান্ড্রয়েড অ্যাপে — ফ্রি**)। এমন ক্লাসের কোনো মূল্য থাকে না; **ওয়েবসাইটে কখনো দেখানো বা বিক্রি হয় না** (তালিকা, সার্চ, ক্লাসের পাতা, চেকআউট, বান্ডেল — কোথাও নয়)। “অ্যান্ড্রয়েড অ্যাপে দেখানো” → **চালু** করলে অ্যাপের হোমে সবার জন্য “ফ্রি ক্লাস” অংশে আসে। লেসন যোগ করুন আগের মতোই (পাঠ্যক্রম ট্যাব)।
+* **শিক্ষার্থী যা করেন:** অ্যাপে ক্লাসটি চাপেন → **ফ্রি শুরু করুন**। অ্যাকাউন্ট না থাকলে অ্যাপেই **ফ্রি অ্যাকাউন্ট খুলুন** — নাম, মোবাইল নম্বর, পাসওয়ার্ড (ইমেইল চাইলে)। ক্লাসটি সাথে সাথে তাঁর হয়ে যায়; কোনো অর্ডার হয় না, কোনো টাকা লাগে না।
+* **ওয়েবসাইটের ক্লাস আগের মতোই:** ওয়েবসাইটে কেনা হয়; যিনি কিনেছেন তিনি ওয়েবসাইট ও অ্যাপ দুই জায়গাতেই পড়েন। অ্যাপে কোনো ক্লাসের দাম বা কেনার বোতাম থাকে না — গুগল প্লের নিয়ম মেনে।
+* **কোন ক্লাস কোথায়:** অ্যাডমিন → ক্লাস তালিকায় অ্যাপের ক্লাসে **অ্যাপ · ফ্রি** লেখা থাকে; ওপরের ফিল্টারে “কোথায়” দিয়ে শুধু অ্যাপের ক্লাস দেখা যায়। বান্ডেলে থাকা ক্লাস অ্যাপে সরানো যায় না (আগে বান্ডেল থেকে সরান)।
+* **সংখ্যা:** গত ৩০ দিনে অ্যাপে সাইন-ইন, অ্যাপে খোলা অ্যাকাউন্ট, ফ্রি ক্লাস শুরু, আর ফ্রি ক্লাসে মোট শিক্ষার্থী।
+* **অ্যাপের নোটিশ:** বাংলা ও ইংরেজিতে একটি ছোট লাইন লিখে **নোটিশ দেখান** চালু করে সংরক্ষণ করুন — অ্যাপের হোমের ওপরে দেখা যায় (এক মিনিটের মধ্যে)। বন্ধ করলে লেখা থেকে যায়, পরের বার কাজে লাগবে।
+* **গুগল প্লের টেস্ট অ্যাকাউন্ট:** অ্যাপ যাচাই করতে গুগলের রিভিউয়ারদের সাইন-ইন করতে হয়। **টেস্ট অ্যাকাউন্ট তৈরি করুন** চাপুন → একটি **স্টুডেন্ট আইডি** ও **পাসওয়ার্ড** দেখাবে — **শুধু এই একবার**। সাথে সাথে Play Console → App content → App access → “All or some functionality is restricted”-এ দিন, সাথে পাতায় লেখা ইংরেজি নির্দেশনাটি। হারিয়ে গেলে **নতুন পাসওয়ার্ড** চাপুন (পুরনোটি আর কাজ করবে না)। শুধু সুপার অ্যাডমিন এটি করতে পারেন।
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -1056,3 +1068,15 @@ Google Play requires that students can delete their own account — inside the a
 **What goes:** name, mobile number, e-mail, address, password, lesson progress, questions, reviews, group requests; the classes and certificates stop working; every phone and computer is signed out. **What stays:** orders and payments (tax and accounting records). It cannot be undone; the student leaves the list, and you get an e-mail (with the student ID only).
 
 **Privacy policy:** a section about the app and deleting an account is added under the privacy page by itself — your own policy text does not need changing.
+
+## 33. Free classes in the app, the app's notice and the Google Play test account
+
+Admin has a new **Android app** page. Everything about the app is there:
+
+* **Add a free class:** press **Add a free class** (or open any class and choose “Where is this class shown?” → **Android app only — free**). Such a class has no price and is **never shown or sold on the website** (not in the lists, the search, a class page, the checkout or a bundle). Set “Visibility in the Android app” to **Active** and it appears for everyone under “Free classes” on the app's Home. Add lessons as usual (the Curriculum tab).
+* **What a student does:** taps the class in the app → **Start for free**. Without an account, they make one in the app — **Make a free account**: name, mobile number, password (an e-mail only if they want). The class is theirs at once; there is no order and nothing to pay.
+* **Website classes are as before:** bought on the website; whoever bought one studies it on the website and in the app. The app shows no class price and no buy button — Google Play's rule.
+* **Which class is where:** in Admin → Classes an app class says **App · free**; the “Shown on” filter at the top shows only the app's classes. A class that is in a bundle cannot move to the app (take it out of the bundle first).
+* **Numbers:** sign-ins in the app, accounts made in the app and free classes started (last 30 days), and all the students in free classes.
+* **The app's notice:** write one short line in Bangla and in English, switch on **Show the notice** and save — it shows at the top of the app's Home (within a minute). Switched off, the words are kept for next time.
+* **Google Play test account:** Google's reviewers must sign in to check the app. Press **Make the test account** → a **student ID** and a **password** are shown — **only this once**. Put them straight into Play Console → App content → App access → “All or some functionality is restricted”, with the English instruction line shown on the page. Lost it? Press **New password** (the old one stops working). Only a Super Admin can do this.

@@ -48,6 +48,7 @@ function Shell({ fonts }: { fonts: boolean }) {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, animation: "slide_from_right" }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="login" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
+        <Stack.Screen name="signup" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
       </Stack>
     </>
   );

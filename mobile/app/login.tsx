@@ -132,6 +132,12 @@ export default function Login() {
           </Txt>
         </Press>
 
+        <Press onPress={() => router.replace("/signup")} accessibilityRole="link" style={{ alignSelf: "center", padding: 6 }}>
+          <Txt v="label" color={c.link}>
+            {t("login.new")}
+          </Txt>
+        </Press>
+
         <Txt v="small" color={c.text3} center>
           {t("login.hint")}
         </Txt>

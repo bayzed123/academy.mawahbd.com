@@ -66,20 +66,23 @@ async function resolveCourses(env: Env, input: QuoteInput): Promise<{ courses: C
       input.bundleId,
     );
     if (!bundle) throw new HttpError(422, "course_unavailable");
-    const courses = await all<CourseLite>(
+    const rows = await all<CourseLite & { channel: string }>(
       env.DB,
-      `SELECT c.id, c.slug, c.title_bn, c.title_en, c.price, c.status FROM bundle_items bi
+      `SELECT c.id, c.slug, c.title_bn, c.title_en, c.price, c.status, c.channel FROM bundle_items bi
        JOIN courses c ON c.id = bi.course_id WHERE bi.bundle_id = ? AND c.deleted_at IS NULL ORDER BY c.id`,
       bundle.id,
     );
-    if (courses.length === 0 || courses.some((c) => c.status !== "published")) throw new HttpError(422, "course_unavailable");
+    // a bundle with one of the Android app's free classes in it is not sold (that class is never sold on the website)
+    if (rows.length === 0 || rows.some((c) => c.status !== "published" || c.channel !== "website")) throw new HttpError(422, "course_unavailable");
+    const courses: CourseLite[] = rows.map(({ channel: _channel, ...c }) => c);
     return { courses, bundlePrice: bundle.price, bundleId: bundle.id };
   }
   const slugs = [...new Set((input.courseSlugs ?? []).map((s) => s.trim()).filter(Boolean))].slice(0, MAX_ITEMS);
   if (slugs.length === 0) throw new HttpError(422, "course_unavailable");
   const courses = await all<CourseLite>(
     env.DB,
-    `SELECT id, slug, title_bn, title_en, price, status FROM courses WHERE slug IN (${qs(slugs.length)}) AND deleted_at IS NULL`,
+    // only the website's classes are sold: an Android app class is free there and never bought
+    `SELECT id, slug, title_bn, title_en, price, status FROM courses WHERE slug IN (${qs(slugs.length)}) AND deleted_at IS NULL AND channel = 'website'`,
     ...slugs,
   );
   if (courses.length !== slugs.length || courses.some((c) => c.status !== "published")) throw new HttpError(422, "course_unavailable");

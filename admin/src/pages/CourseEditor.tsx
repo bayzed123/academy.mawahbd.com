@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { COURSE_STATUSES } from "@mawah/shared";
+import { COURSE_CHANNELS, COURSE_STATUSES } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -18,7 +18,7 @@ type Tab = "details" | "demo" | "curriculum" | "pictures" | "seo";
 
 const DEFAULTS: Values = {
   title_bn: "", title_en: "", short_bn: "", short_en: "", long_bn: "", long_en: "", banner_key: null, icon: "cake", category_id: null, instructor_id: null,
-  level: null, price: 0, status: "draft", details_url: "", featured: false, cert_enabled: true, cert_template: "classic",
+  level: null, price: 0, status: "draft", channel: "website", details_url: "", featured: false, cert_enabled: true, cert_template: "classic",
   seo_title_bn: "", seo_title_en: "", seo_desc_bn: "", seo_desc_en: "", sort: 100, launch_at: null,
   demo_url: "", demo_title_bn: "", demo_title_en: "", demo_text_bn: "", demo_text_en: "",
 };
@@ -54,6 +54,11 @@ export function CourseEditor() {
     select: (r) => r.items.length,
   });
 
+  // "Add a free class" (Admin → Android app) opens a new class already set to the app
+  const [values, setValues] = useState<Values>(() => (isNew && params.get("channel") === "app" ? { ...DEFAULTS, channel: "app" } : DEFAULTS));
+  // an Android app class is shown (or not) in the app, never on the website: the visibility menu says so
+  const inApp = values.channel === "app";
+
   const detailFields: FieldDef[] = [
     { type: "text", key: "title_bn", label: t("adm.f.titleBn"), half: true, required: true, maxLength: 200 },
     { type: "text", key: "title_en", label: t("adm.f.titleEn"), half: true, required: true, maxLength: 200 },
@@ -64,8 +69,11 @@ export function CourseEditor() {
     { type: "markdown", key: "long_bn", label: t("adm.f.longBn"), rows: 10 },
     { type: "markdown", key: "long_en", label: t("adm.f.longEn"), rows: 10 },
     { type: "section", key: "s1", label: t("adm.f.sellingSection") },
-    { type: "number", key: "price", label: t("adm.f.coursePrice"), half: true, min: 0, suffix: "৳", hint: t("adm.f.coursePriceHint") },
-    { type: "select", key: "status", label: t("adm.course.visibility"), half: true, options: COURSE_STATUSES.map((s) => ({ value: s, label: t(`adm.course.vis.${s}` as "adm.course.vis.draft") })), hint: t(`adm.status.hint.${"draft"}` as "adm.status.hint.draft") },
+    // sold on the website (the default), or free in the Android app only — then it has no price and is never on the website
+    { type: "select", key: "channel", label: t("adm.f.channel"), options: COURSE_CHANNELS.map((ch) => ({ value: ch, label: t(`adm.f.channel.${ch}` as "adm.f.channel.app") })), hint: t("adm.f.channelHint") },
+    { type: "custom", key: "app_free", showIf: (v) => v.channel === "app", render: () => <p className="notice ok-note"><Icon name="phone" /> <span>{t("adm.f.appFree")}</span></p> },
+    { type: "number", key: "price", label: t("adm.f.coursePrice"), half: true, min: 0, suffix: "৳", hint: t("adm.f.coursePriceHint"), showIf: (v) => v.channel !== "app" },
+    { type: "select", key: "status", label: t(inApp ? "adm.course.visibilityApp" : "adm.course.visibility"), half: true, options: COURSE_STATUSES.map((s) => ({ value: s, label: t(`adm.course.${inApp ? "visApp" : "vis"}.${s}` as "adm.course.vis.draft") })), hint: inApp ? t("adm.course.stateText.app") : t(`adm.status.hint.${"draft"}` as "adm.status.hint.draft") },
     { type: "select", key: "category_id", label: t("adm.f.category"), half: true, options: categories, nullable: true, numeric: true },
     { type: "select", key: "instructor_id", label: t("adm.f.instructor"), half: true, options: instructors, nullable: true, numeric: true },
     { type: "select", key: "level", label: t("adm.f.level"), half: true, nullable: true, options: ["beginner", "intermediate", "advanced"].map((l) => ({ value: l, label: t(`label.${l}` as "label.beginner") })) },
@@ -93,7 +101,6 @@ export function CourseEditor() {
   ];
   const all = [...detailFields, ...demoFields, ...seoFields];
 
-  const [values, setValues] = useState<Values>(DEFAULTS);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dirty, setDirty] = useState(false);
   useEffect(() => {
@@ -121,6 +128,7 @@ export function CourseEditor() {
       void qc.invalidateQueries({ queryKey: ["/courses"] });
       void qc.invalidateQueries({ queryKey: ["course", res.item.id] });
       void qc.invalidateQueries({ queryKey: ["course-options"] });
+      void qc.invalidateQueries({ queryKey: ["android-app"] });
       if (!id) navigate(`/courses/${res.item.id}/edit?tab=curriculum`, { replace: true });
     },
     onError: (e) => {
@@ -149,7 +157,7 @@ export function CourseEditor() {
 
   const c = course.data;
   const title = c ? pick(c, "title") : t("adm.course.new");
-  const statusHint = t(`adm.status.hint.${String(values.status)}` as "adm.status.hint.draft");
+  const statusHint = inApp ? t(`adm.course.visApp.${String(values.status)}` as "adm.course.visApp.draft") : t(`adm.status.hint.${String(values.status)}` as "adm.status.hint.draft");
 
   return (
     <>
@@ -172,7 +180,7 @@ export function CourseEditor() {
                 <Icon name="eye" /> {t("adm.view")}
               </Link>
             )}
-            {c?.status === "published" && (
+            {c?.status === "published" && c.channel !== "app" && (
               <a className="btn btn-outline btn-sm" href={`${lang === "en" ? "/en" : ""}/courses/${c.slug}`} target="_blank" rel="noopener noreferrer">
                 <Icon name="external" /> {t("adm.course.viewOnSite")}
               </a>

@@ -56,7 +56,7 @@ async function catalogFacts(env: Env, lang: Lang): Promise<string> {
   if (catalogMemo && catalogMemo.key === key && Date.now() - catalogMemo.at < 60_000) return catalogMemo.text;
   const rows = await all<{ slug: string; title_bn: string; title_en: string; short_bn: string; short_en: string; price: number; status: string; lesson_count: number }>(
     env.DB,
-    "SELECT slug, title_bn, title_en, short_bn, short_en, price, status, lesson_count FROM courses WHERE deleted_at IS NULL AND status IN ('published','coming_soon') ORDER BY sort, id",
+    "SELECT slug, title_bn, title_en, short_bn, short_en, price, status, lesson_count FROM courses WHERE deleted_at IS NULL AND status IN ('published','coming_soon') AND channel = 'website' ORDER BY sort, id",
   );
   const text = rows
     .map((r) => {
@@ -72,7 +72,7 @@ async function catalogFacts(env: Env, lang: Lang): Promise<string> {
 async function courseFacts(env: Env, courseId: number, lang: Lang): Promise<string> {
   const c = await first<{ id: number; title_bn: string; title_en: string; short_bn: string; short_en: string; long_bn: string; long_en: string; price: number; status: string; level: string | null }>(
     env.DB,
-    "SELECT id, title_bn, title_en, short_bn, short_en, long_bn, long_en, price, status, level FROM courses WHERE id = ? AND deleted_at IS NULL AND status IN ('published','coming_soon')",
+    "SELECT id, title_bn, title_en, short_bn, short_en, long_bn, long_en, price, status, level FROM courses WHERE id = ? AND deleted_at IS NULL AND status IN ('published','coming_soon') AND channel = 'website'",
     courseId,
   );
   if (!c) return "";

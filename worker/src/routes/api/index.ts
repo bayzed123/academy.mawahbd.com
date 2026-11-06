@@ -8,6 +8,7 @@ import { rateLimit } from "../../middleware/ratelimit";
 import { apiHeaders } from "../../middleware/security";
 import { adminAuthRoutes } from "./admin/auth";
 import { adminApi } from "./admin";
+import { appRoutes } from "./app";
 import { authRoutes } from "./auth";
 import { chatRoutes } from "./chat";
 import { checkoutRoutes } from "./checkout";
@@ -49,6 +50,8 @@ api.get("/health", async (c) => {
 });
 
 api.route("/auth", authRoutes);
+// the Android app's free classes (routes/api/app.ts)
+api.route("/app", appRoutes);
 api.route("/admin/auth", adminAuthRoutes);
 api.route("/admin", adminApi);
 api.route("/student", studentRoutes);

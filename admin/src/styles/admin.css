@@ -185,6 +185,13 @@ html[lang=bn] .rail-in h3{letter-spacing:0;text-transform:none;font-size:.9rem}
 .notice.bad-note .icon{color:var(--red-600)}
 /* Admin → Students → a student: deleting the account sits apart at the bottom, under a thin line */
 .danger-zone{margin-top:8px;padding-top:16px;border-top:1px solid var(--line)}
+/* Admin → Android app: the free classes, and the test account's one-time password */
+.app-classes{list-style:none;margin:12px 0 0;padding:0;display:grid}
+.app-classes li{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line)}
+.app-classes li:first-child{border-top:0}
+.app-classes .cell-title{flex:1;min-width:0}
+.review-secret code.secret{display:inline-block;margin:0;padding:.35rem .7rem;font-size:1.05rem}
+.review-secret .row{flex-wrap:wrap;gap:8px;align-items:center}
 .danger-zone h3{margin:0 0 4px}
 .danger-zone p{margin:0 0 10px}
 /* a link that will not do what the owner expects (a Facebook or Drive video for a public page): said before saving, not as an error */

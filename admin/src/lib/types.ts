@@ -27,6 +27,8 @@ export interface CourseRow {
   level: "beginner" | "intermediate" | "advanced" | null;
   price: number;
   status: "draft" | "coming_soon" | "published" | "archived";
+  /** where the class is shown: sold on the website, or free in the Android app only */
+  channel: "website" | "app";
   details_url: string | null;
   featured: number;
   cert_enabled: number;

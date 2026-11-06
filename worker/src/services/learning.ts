@@ -90,7 +90,8 @@ export interface StudentCourseView {
 }
 
 export async function courseForStudent(env: Env, studentId: number, slug: string): Promise<StudentCourseView> {
-  const course = await getCourseBySlug(env, slug, { includeHidden: true });
+  // the student's own class: one sold on the website or one of the Android app's free classes
+  const course = await getCourseBySlug(env, slug, { includeHidden: true, channel: "any" });
   if (!course) throw notFound();
   const enrollment = await activeEnrollment(env, studentId, course.id);
   if (!enrollment) throw forbidden("not_enrolled");
