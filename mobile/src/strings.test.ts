@@ -1,5 +1,6 @@
 /// <reference types="node" />
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { bn, en, errorKey, translate } from "./strings.ts";
 
@@ -28,6 +29,27 @@ test("server error codes map to words, unknown ones to the general message", () 
 test("no class price or buy wording anywhere in the app (Google Play: classes are bought on the website)", () => {
   for (const [key, text] of [...Object.entries(en), ...Object.entries(bn)]) {
     if (key.startsWith("shop.")) continue; // the equipment shop sells physical goods
+    if (key.startsWith("fc.") || key.startsWith("err.fc_")) continue; // FoodCost's prices are ingredients' and a cook's own (checked below)
     assert.doesNotMatch(text, /\b(buy|purchase|enrol(l)?( now)?|price)\b|কিনুন|ক্রয়|ভর্তি হোন|দাম/i, key);
   }
+});
+
+test("FoodCost never offers to buy, upgrade or unlock anything, nor points to the website or a class: its limit is said plainly (Google Play)", () => {
+  const fc = [...Object.entries(en), ...Object.entries(bn)].filter(([key]) => key.startsWith("fc.") || key.startsWith("err.fc_"));
+  assert.ok(fc.length > 200, "the FoodCost words were found");
+  for (const [key, text] of fc) {
+    assert.doesNotMatch(text, /\b(buy|purchase|enrol(l)?|upgrade|subscribe|subscription|premium|unlock|website|class(es)?)\b|কিনুন|ক্রয়|ভর্তি|আপগ্রেড|সাবস্ক্রাইব|ওয়েবসাইট|ক্লাস/i, key);
+  }
+  assert.equal(translate("en", "fc.limitReached", { limit: 3 }), "Free accounts keep 3 recipes. Delete one to save a new one.");
+});
+
+test("every problem FoodCost's engine can report, every kind of cost and what a cost is counted for has words in the app", () => {
+  // read from the shared engine's source (the website and the server read the same lists), so a new one cannot be forgotten
+  const source = readFileSync(new URL("../../shared/src/foodcost.ts", import.meta.url), "utf8");
+  const list = (re: RegExp) => [...(re.exec(source)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+  const problems = list(/export type FcProblemCode =([\s\S]*?);/);
+  const kinds = list(/export const FC_COST_KINDS[^=]*= \[([^\]]+)\]/);
+  const pers = list(/export const FC_COST_PERS = \[([^\]]+)\]/);
+  assert.ok(problems.length >= 10 && kinds.length === 4 && pers.length === 3, "the lists were found");
+  for (const key of [...problems.map((p) => `fc.p.${p}`), ...kinds.map((k) => `fc.kind.${k}`), ...pers.map((p) => `fc.per.${p}`)]) assert.ok(key in en, key);
 });

@@ -5,7 +5,7 @@ import { usePrefs } from "../../src/prefs";
 import { FONT, RADIUS } from "../../src/theme";
 import { Icon, type IconName } from "../../src/ui/Icon";
 
-/** Four tabs at the bottom, like any Android app; the selected one sits on a soft pill (Material 3). */
+/** Five tabs at the bottom, like any Android app; the selected one sits on a soft pill (Material 3). */
 export default function TabsLayout() {
   const { c, t } = usePrefs();
   const insets = useSafeAreaInsets();
@@ -29,6 +29,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" options={{ title: t("tab.home"), tabBarIcon: icon("home") }} />
       <Tabs.Screen name="learning" options={{ title: t("tab.learning"), tabBarIcon: icon("book") }} />
+      <Tabs.Screen name="foodcost" options={{ title: t("tab.foodcost"), tabBarIcon: icon("receipt") }} />
       <Tabs.Screen name="shop" options={{ title: t("tab.shop"), tabBarIcon: icon("shop") }} />
       <Tabs.Screen name="profile" options={{ title: t("tab.profile"), tabBarIcon: icon("user") }} />
     </Tabs>

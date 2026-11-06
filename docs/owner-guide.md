@@ -560,7 +560,13 @@
 
 ## ৩৪. ফুডকস্ট — উপকরণের তালিকা ও ডিফল্ট দাম
 
-ফুডকস্ট হলো রেসিপির খরচ ও লাভের হিসাব করার টুল ([পরিকল্পনা](foodcost.md))। এটি ওয়েবসাইট আর অ্যান্ড্রয়েড অ্যাপে একসাথে আসবে। শিক্ষার্থীদের স্ক্রিন পরের ধাপে আসছে। এখন অ্যাডমিন মেনুতে **ফুডকস্ট** পাতা আছে, যাতে আপনি আগে থেকেই উপকরণ ও দাম সাজিয়ে রাখতে পারেন।
+ফুডকস্ট হলো রেসিপির খরচ ও লাভের হিসাব করার টুল ([পরিকল্পনা](foodcost.md))। শিক্ষার্থীরা এটি পায় ওয়েবসাইটের স্টুডেন্ট এরিয়ায় আর অ্যান্ড্রয়েড অ্যাপে, দুই জায়গাতেই **ফুডকস্ট** ট্যাবে:
+
+* **আমার রেসিপি:** প্রতিটি রেসিপির খরচ আর বিক্রির দাম। ফ্রি অ্যাকাউন্টে ৩টি রেসিপি সেভ হয়, MAWAH শিক্ষার্থীদের কোনো সীমা নেই।
+* **রেসিপি:** উপকরণ (আপনার তালিকা থেকে) আর পরিমাণ, প্যাকেজিং, শ্রম, গ্যাস; টাইপ করার সাথে সাথে খরচ, প্রতি পিসের খরচ আর লাভ রেখে দাম দেখায়।
+* **উপকরণ ও দাম:** আপনার রাখা ঢাকার গড় দাম চলে, যতক্ষণ না শিক্ষার্থী নিজের কেনা দাম বসায়। নিজের দাম শুধু তার নিজের রেসিপিতে চলে।
+
+অ্যাডমিন মেনুর **ফুডকস্ট** পাতায় আপনি উপকরণ ও দাম রাখেন:
 
 * **উপকরণ ট্যাব:** প্রতিটি রেসিপি এই তালিকা থেকে শুরু হয়। **উপকরণ যোগ করুন** চাপুন, তারপর দিন:
   * বাংলা ও ইংরেজি নাম, আর ধরন (যেমন ময়দা, দুধজাত);
@@ -1146,8 +1152,16 @@ Admin has a new **Android app** page. Everything about the app is there:
 
 ## 34. FoodCost — the ingredient list and its default prices
 
-FoodCost is the recipe costing and profit tool ([the plan](foodcost.md)). It comes to the website and the Android app together. The users'
-screens come next. For now there is a **FoodCost** page in the Admin menu, so you can set up the ingredients and prices first.
+FoodCost is the recipe costing and profit tool ([the plan](foodcost.md)). Students have it in the website's student area and in the
+Android app, on a **FoodCost** tab in both:
+
+* **My recipes:** what each recipe costs and what to sell it for. A free account keeps 3 recipes; MAWAH students have no limit.
+* **A recipe:** ingredients (from your list) and amounts, packaging, labour and gas; as they type it shows the cost of the batch and of
+  one piece, and a price with their profit.
+* **Ingredients & prices:** your Dhaka average counts until a student types the price they paid. Their own price counts in their own
+  recipes only.
+
+You keep the ingredients and prices on the **FoodCost** page in the Admin menu:
 
 * **Ingredients tab:** every recipe starts from this list. Press **Add an ingredient** and give:
   * its name in Bangla and in English, and a category (Flour, Dairy …);

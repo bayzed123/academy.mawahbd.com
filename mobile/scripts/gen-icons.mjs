@@ -11,7 +11,7 @@ const FROM_SPRITE = {
   arrowRight: "i-arrow", clock: "i-clock", file: "i-file", video: "i-video", link: "i-link", external: "i-external", award: "i-award",
   star: "i-star", eye: "i-eye", close: "i-x", refresh: "i-refresh", globe: "i-globe", help: "i-help", sparkle: "i-sparkle", bell: "i-bell",
   shield: "i-shield", list: "i-list", grid: "i-grid", heart: "i-heart", truck: "i-truck", gift: "i-gift", layers: "i-layers", tag: "i-tag",
-  trash: "i-trash",
+  trash: "i-trash", receipt: "i-receipt", plus: "i-plus", edit: "i-edit", chart: "i-chart",
 };
 // the class illustrations (64-unit grid), shown on a class that has no picture of its own — as on the website
 const ART = ["cake", "snack", "glass", "bowl", "sweet", "snowflake", "cupcake", "brownie", "pastry", "pot", "crescent", "tiffin", "mango"];
