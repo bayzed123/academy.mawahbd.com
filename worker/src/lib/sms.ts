@@ -24,7 +24,7 @@ export interface SmsResult {
   /** the company's own reference for the message, when it gave one */
   id?: string;
   problem?: SmsProblem;
-  /** what the company answered, shortened, with the key cut out (shown to the owner in Settings → SMS) */
+  /** what the company answered, shortened, with the key cut out (shown to the owner in Settings → SMS) — when it said yes, too */
   detail?: string;
   status?: number;
 }
@@ -62,9 +62,31 @@ function scrub(env: Env, s: string): string {
 const FAILED = /invalid|incorrect|unauthori[sz]ed|forbidden|denied|insufficient|not enough|low balance|expired|blocked|suspended|disabled|not found|missing|required|fail|error|reject|refus|whitelist|not allowed|wrong/i;
 const WORKED = /success|submitted|accepted|queued|\bsent\b|delivered|\b202\b/i;
 
-/** Read the company's answer. Different companies answer differently: a number in `response_code`, a word in `status`, or plain text. */
-function readReply(status: number, raw: string): { ok: boolean; id?: string } {
+/**
+ * MRAM's sending address (msg.mram.com.bd/smsapi, like the other panels of its kind) answers a refused message with nothing but its error
+ * code — "1002" — and a sent one with words ("SMS SUBMITTED: ID - …"). The codes from the "Error Code & Meaning" table at the bottom of
+ * its Developers API page that the site can act on; any other code is shown to the owner as it came, to look up in that table.
+ */
+export const MRAM_CODES: Record<string, { problem: SmsProblem; meaning: string }> = {
+  "1002": { problem: "sender_rejected", meaning: "Sender Id/Masking Not Found" },
+  "1003": { problem: "key_rejected", meaning: "API Not Found" },
+  "1007": { problem: "no_balance", meaning: "Balance Insufficient" },
+};
+
+/** The company's error code when the whole answer is one ("1002", "Error: 1002") or starts with one ("1002 Sender Id/Masking Not Found"). */
+function bareCode(raw: string): string | undefined {
+  return /^(?:error\s*(?:code)?\s*[:=-]?\s*)?(\d{3,5})(?:\s*[-:|]?\s*[^\d].*)?$/is.exec(raw.trim())?.[1];
+}
+
+/**
+ * Read the company's answer. Different companies answer differently: a number in `response_code`, a word in `status`, a bare code (MRAM's
+ * refusals), or words. Only an answer that really says yes counts as sent — an answer the site cannot read is shown to the owner as it is,
+ * never taken for a sent message (an MRAM refusal was once read as "sent", so nobody knew the messages were not going out).
+ */
+function readReply(status: number, raw: string): { ok: boolean; id?: string; code?: string } {
   if (status < 200 || status >= 300) return { ok: false };
+  const code = bareCode(raw);
+  if (code) return code === "202" ? { ok: true } : { ok: false, code };
   let json: Record<string, unknown> | null = null;
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -84,8 +106,13 @@ function readReply(status: number, raw: string): { ok: boolean; id?: string } {
   if (json && typeof json.status === "string") return { ok: /^(ok|success|sent|submitted|accepted|queued)/i.test(json.status), id: idOf(json) };
   // {"error": 0, ...} is "no error"; anything else in that field is one
   if (json && "error" in json) return { ok: [0, "0", "", false, null].includes(json.error as never), id: idOf(json) };
-  if (FAILED.test(raw) && !WORKED.test(raw)) return { ok: false };
-  return { ok: true, id: idOf(json) };
+  if (json) return { ok: false };
+  const text = raw.trim();
+  // words that say it went (MRAM: "SMS SUBMITTED: ID - C2000…"), with the company's own reference for the message when it gives one
+  if ((WORKED.test(text) || /^ok(ay)?\b/i.test(text)) && !FAILED.test(text)) return { ok: true, id: /\bID\s*[-:#]?\s*([A-Za-z0-9._-]{4,80})/i.exec(text)?.[1]?.slice(0, 60) };
+  // a reference alone — letters and digits, or a long number (an error code has 3 to 5 digits), no words — is a message the company took
+  if ((/^[A-Za-z0-9._-]{10,80}$/.test(text) && /[A-Za-z]/.test(text) && /\d/.test(text)) || /^\d{6,40}$/.test(text)) return { ok: true, id: text.slice(0, 60) };
+  return { ok: false };
 }
 
 /** What a refusal means, from the company's words — the admin screen explains each in plain words with the steps. */
@@ -129,7 +156,9 @@ async function remember(env: Env, r: SmsResult): Promise<void> {
 
 /**
  * Send one text message. Never throws. `sender` is the sender ID from Settings → SMS (empty = the company's default).
- * One request in the company's JSON format; if the address does not take that, once more as a plain web address with the same details.
+ * One request with the details as an ordinary form — how MRAM's address ("GET & POST") reads them; an earlier version sent JSON, which MRAM
+ * never read, and answered "1003" (API Not Found) to. If the address does not take a form (not found, not allowed, unsupported) or answers
+ * 1003, once more as a plain web address with the same details, as MRAM's page shows it.
  */
 export async function sendSms(env: Env, msg: SmsMessage, opts: { sender?: string; remember?: boolean } = {}): Promise<SmsResult> {
   const text = msg.text.slice(0, 480);
@@ -150,22 +179,34 @@ export async function sendSms(env: Env, msg: SmsMessage, opts: { sender?: string
     label: "transactional",
   };
 
-  const asPost = () => fetch(where.send, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(fields), signal: AbortSignal.timeout(10_000) });
-  const asWebAddress = () => fetch(`${where.send}?${new URLSearchParams(fields)}`, { method: "GET", headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
+  const form = new URLSearchParams(fields).toString();
+  const accept = "application/json, text/plain;q=0.9, */*;q=0.8";
+  const asForm = () => fetch(where.send, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: accept }, body: form, signal: AbortSignal.timeout(10_000) });
+  const asWebAddress = () => fetch(`${where.send}?${form}`, { method: "GET", headers: { Accept: accept }, signal: AbortSignal.timeout(10_000) });
 
   let result: SmsResult;
   try {
-    let res = await asPost();
+    let res = await asForm();
     let raw = await res.text().catch(() => "");
-    // the address does not take JSON (not found / not allowed / unsupported / bad request), or it answers "a required field is missing"
-    // because it never read the body: once more as a plain web address with the same details
-    if ([400, 404, 405, 415, 422].includes(res.status) || Number(asObject(raw)?.response_code) === 1003) {
+    // the address does not take a form (not found / not allowed / unsupported / bad request), or it answers 1003 (MRAM: "API Not Found" —
+    // it did not see the key in the body; another company: "a required field is missing"): once more as a plain web address
+    if ([400, 404, 405, 415, 422].includes(res.status) || replyCode(raw) === "1003") {
       res = await asWebAddress();
       raw = await res.text().catch(() => "");
     }
     const said = scrub(env, raw);
     const read = readReply(res.status, raw);
-    result = read.ok ? { ok: true, provider: "sms", id: read.id, status: res.status } : { ok: false, provider: "sms", problem: smsProblem(res.status, said), detail: said || `HTTP ${res.status}`, status: res.status };
+    const known = read.code ? MRAM_CODES[read.code] : undefined;
+    result = read.ok
+      ? { ok: true, provider: "sms", id: read.id, status: res.status, ...(said ? { detail: said } : {}) }
+      : {
+          ok: false,
+          provider: "sms",
+          // a bare code is MRAM's own: its meaning from MRAM's table (or, for a code the site does not know, the code as it came)
+          problem: read.code ? (known?.problem ?? "other") : smsProblem(res.status, said),
+          detail: read.code ? `${said}${known && !said.includes(known.meaning) ? ` — ${known.meaning}` : ""}` : said || `HTTP ${res.status}`,
+          status: res.status,
+        };
   } catch (err) {
     result = { ok: false, provider: "sms", problem: "network", detail: scrub(env, err instanceof Error ? err.message : "network") };
   }
@@ -180,6 +221,12 @@ export interface BalanceResult {
   problem?: SmsProblem;
   detail?: string;
   status?: number;
+}
+
+/** The company's code in its answer: a bare code (MRAM) or the `response_code` of a JSON answer. */
+function replyCode(raw: string): string | undefined {
+  const code = bareCode(raw) ?? asObject(raw)?.response_code;
+  return code === undefined || code === null ? undefined : String(code);
 }
 
 function asObject(raw: string): Record<string, unknown> | null {
@@ -228,6 +275,9 @@ export async function smsBalance(env: Env): Promise<BalanceResult> {
     const raw = await res.text().catch(() => "");
     const said = scrub(env, raw);
     const code = asObject(raw)?.response_code;
+    // MRAM answers a refusal with its bare error code: "1003" is a wrong key, not a credit of 1003
+    const mram = /^\s*\d{4}\s*$/.test(raw) ? MRAM_CODES[raw.trim()] : undefined;
+    if (mram) return { ok: false, balance: null, problem: mram.problem, detail: `${said} — ${mram.meaning}`, status: res.status };
     const refused = res.status < 200 || res.status >= 300 || (code !== undefined && Number(code) !== 202);
     const balance = refused ? null : balanceFrom(raw);
     if (refused || balance === null || (FAILED.test(said) && !/\d/.test(said))) return { ok: false, balance: null, problem: smsProblem(res.status, said), detail: said || `HTTP ${res.status}`, status: res.status };
