@@ -9,6 +9,7 @@ import { apiHeaders } from "../../middleware/security";
 import { adminAuthRoutes } from "./admin/auth";
 import { adminApi } from "./admin";
 import { appRoutes } from "./app";
+import { fcRoutes } from "./foodcost";
 import { authRoutes } from "./auth";
 import { chatRoutes } from "./chat";
 import { checkoutRoutes } from "./checkout";
@@ -52,6 +53,8 @@ api.get("/health", async (c) => {
 api.route("/auth", authRoutes);
 // the Android app's free classes (routes/api/app.ts)
 api.route("/app", appRoutes);
+// FoodCost Pro (docs/foodcost.md): versioned, because the Android app keeps calling the version it was built with
+api.route("/fc/v1", fcRoutes);
 api.route("/admin/auth", adminAuthRoutes);
 api.route("/admin", adminApi);
 api.route("/student", studentRoutes);

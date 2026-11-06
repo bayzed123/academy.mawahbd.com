@@ -19,8 +19,8 @@ calculation code, tables and API, so it can later become a separate app without 
 
 | Phase | What | Status |
 |---|---|---|
-| **1a** | The calculation engine (`shared/src/foodcost.ts`) and its tests, and this plan | **this pull request** |
-| 1b | Database tables, the API (`/api/fc/v1`), Admin → FoodCost (ingredients and default prices), plans and limits, account deletion | next |
+| **1a** | The calculation engine (`shared/src/foodcost.ts`) and its tests, and this plan | built |
+| **1b** | Database tables (migration `0025`), the API (`/api/fc/v1`), Admin → FoodCost (ingredients and default prices, a pasted list, the users and their plan), plans and limits, account deletion | built |
 | 1c + 1d | The screens: recipe list, recipe editor with live costing, my prices, report — on the website (`/app/foodcost`) and in the Android app (a Tools tab), in Bangla and English | after 1b |
 | 1e | The report: print / save as PDF on the website, share as PDF from the app | with 1c + 1d |
 | 2 | Nutrition: calories, protein, carbs, fat, fiber, sugar and sodium per piece; a nutrition label | after real use of phase 1 |
@@ -66,7 +66,7 @@ The engine is plain TypeScript with no database or screen in it, so the same num
 `worker/test/foodcost-engine.test.ts` checks all of this with figures worked out by hand. It has 16 tests, for example 12 vanilla cupcakes:
 ৳490 of ingredients, ৳10 a box each, 2 hours at ৳100, ৳50 of gas and ৳30 more come to ৳890 a batch, so ৳74.17 a piece.
 
-## The database (phase 1b, planned)
+## The database (phase 1b, migration `0025_foodcost.sql`)
 
 All tables start with `fc_`. Every recipe belongs to a **workspace**: each user gets a personal one, and a bakery team can share one later
 with no database change.
@@ -79,24 +79,32 @@ with no database change.
 | `fc_recipes` | workspace, name, notes, yield (amount and unit, a label such as "slice"), the batch's finished weight, the extra costs and the pricing choice, timestamps, soft delete |
 | `fc_recipe_items` | the lines: an ingredient or another recipe, the amount and the unit, in order |
 
-## The API (phase 1b, planned) — `/api/fc/v1`
+## The API (phase 1b) — `/api/fc/v1`, for a signed-in student (website cookie or the app's token)
 
 - `GET /me`: plan, limit, how many recipes are saved, and whether the user counts as a MAWAH student.
+- `GET /prices/:ingredient`: your own price history for an ingredient, with the current Admin default.
 - `GET /ingredients`: the shared list plus the user's own, each with the price that applies to this user (theirs, else the default).
 - `POST /ingredients`: add your own ingredient.
 - `PUT /prices/:ingredient`: set your own price. `DELETE /prices/:ingredient`: go back to the Admin default.
 - `GET /recipes`, `POST /recipes`, `GET /recipes/:id`, `PUT /recipes/:id`, `DELETE /recipes/:id`, `POST /recipes/:id/duplicate`.
 - The server costs a saved recipe with the same engine and returns the results. The screens also run the engine while you type, so the
   numbers change at once.
-- **Admin:** `/api/admin/fc/ingredients` to add and edit ingredients and set default prices (one at a time or from a pasted list), and a
-  way to give a workspace Pro.
+- **Admin** (`/api/admin/fc/...`):
+  - `ingredients`: the shared list, with `POST`, `PUT /:id`, `POST /:id/price` (a new default) and `GET /:id/prices` (the history);
+  - `ingredients/import`: a pasted list, up to 200 rows a request (the screen sends a longer one in parts). A name already on the list
+    (Bangla or English) is updated, a name twice in the list is one ingredient, and a price the same as the newest default is not saved
+    again, so pasting the same sheet each month keeps only real changes in the history;
+  - `workspaces`: the users and their plan, with `PUT /:id/plan` to give Pro.
+  - Permissions: `fc:read` (everyone), `fc:write` (owner and Content Manager), `fc:plans` (owner only).
 
 ## Plans, limits and Google Play
 
-- **Free:** 3 saved recipes. Duplicating counts as saving. Deleting a recipe frees its place.
+- **Free:** 3 saved recipes. Duplicating counts as saving. Deleting a recipe frees its place. The check and the save are one database statement, so two saves at the same moment cannot both pass the limit.
 - **MAWAH student:** no limit. A student is an account with an active (not revoked) enrolment in a **website** class, which includes classes
   added by staff or imported. Free Android-app classes do not count, otherwise anyone could unlock it by joining a free class.
 - **Pro:** no limit. Today only Admin can give it. A paid Pro is a later decision.
+- **Safety stops** for everyone, so nobody can fill the database: 2,000 recipes a workspace ("no limit" still stops there, far more than a
+  bakery keeps), 300 own ingredients, and the newest 50 changes of one's own price for an ingredient (the oldest go).
 - **In the app, never a price or a buy button** (`mobile/src/strings.test.ts` checks this). At the limit, the app says only: "Free accounts
   keep 3 recipes. Delete one to save a new one." It does not point to the website or to buying a class, because Google Play does not allow
   leading users to pay outside the app for something used in the app. The website may say that MAWAH students have no limit.
@@ -108,7 +116,7 @@ with no database change.
 ## Privacy
 
 - FoodCost keeps only what the user types: recipes, their own prices and ingredients.
-- Deleting the account (website, app or Admin) also deletes the workspace and all of this. This is built in phase 1b.
+- Deleting the account (website, app or Admin) also deletes the workspace and all of this (`services/accountDeletion.ts`).
 - The privacy policy and Google Play's Data safety form will say so before the screens go live.
 - A daily calorie tracker (phase 2+) would count as health data, which has extra Google Play rules. It is not planned for phase 1.
 

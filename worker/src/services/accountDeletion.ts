@@ -19,7 +19,8 @@ export interface DeletionResult {
  * Deletes a student's account — Google Play's "account deletion", and anyone's right to have their information deleted — in one D1 batch
  * (all of it or nothing):
  *  - removed: name, mobile number, e-mail, address, password, staff notes; lesson progress, questions under lessons, class reviews, material
- *    downloads, private-group requests, password codes and links, the chat assistant's hand-offs, and newsletter and "tell me when it opens"
+ *    downloads, private-group requests, password codes and links, the chat assistant's hand-offs, FoodCost (the workspace with its recipes,
+ *    own ingredients and own prices), and newsletter and "tell me when it opens"
  *    sign-ups with the same e-mail or number; the name in the activity log
  *  - ended: every sign-in (website and app), access to the classes, the certificates (the check page says the certificate is no longer valid)
  *  - kept, because tax and accounting law needs them: orders and payments (order and invoice number, class, amount, date, how it was paid,
@@ -62,6 +63,8 @@ export async function deleteStudentAccount(env: Env, id: number): Promise<Deleti
     db.prepare("DELETE FROM reset_codes WHERE student_id = ?").bind(id),
     db.prepare("DELETE FROM auth_tokens WHERE subject_type = 'student' AND subject_id = ?").bind(id),
     db.prepare("DELETE FROM chat_escalations WHERE student_id = ?").bind(id),
+    // FoodCost Pro: the workspace and everything in it (recipes and their lines, own ingredients, own prices) go with it
+    db.prepare("DELETE FROM fc_workspaces WHERE student_id = ?").bind(id),
     db.prepare("UPDATE activity_log SET actor_name = '' WHERE actor_type = 'student' AND actor_id = ?").bind(id),
     // CASE keeps a clipped (not valid JSON) meta from failing the whole batch
     db

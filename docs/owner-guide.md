@@ -558,6 +558,45 @@
 * **অ্যাপের নোটিশ:** বাংলা ও ইংরেজিতে একটি ছোট লাইন লিখে **নোটিশ দেখান** চালু করে সংরক্ষণ করুন — অ্যাপের হোমের ওপরে দেখা যায় (এক মিনিটের মধ্যে)। বন্ধ করলে লেখা থেকে যায়, পরের বার কাজে লাগবে।
 * **গুগল প্লের টেস্ট অ্যাকাউন্ট:** অ্যাপ যাচাই করতে গুগলের রিভিউয়ারদের সাইন-ইন করতে হয়। **টেস্ট অ্যাকাউন্ট তৈরি করুন** চাপুন → একটি **স্টুডেন্ট আইডি** ও **পাসওয়ার্ড** দেখাবে — **শুধু এই একবার**। সাথে সাথে Play Console → App content → App access → “All or some functionality is restricted”-এ দিন, সাথে পাতায় লেখা ইংরেজি নির্দেশনাটি। হারিয়ে গেলে **নতুন পাসওয়ার্ড** চাপুন (পুরনোটি আর কাজ করবে না)। শুধু সুপার অ্যাডমিন এটি করতে পারেন।
 
+## ৩৪. ফুডকস্ট — উপকরণের তালিকা ও ডিফল্ট দাম
+
+ফুডকস্ট হলো রেসিপির খরচ ও লাভের হিসাব করার টুল ([পরিকল্পনা](foodcost.md))। এটি ওয়েবসাইট আর অ্যান্ড্রয়েড অ্যাপে একসাথে আসবে। শিক্ষার্থীদের স্ক্রিন পরের ধাপে আসছে। এখন অ্যাডমিন মেনুতে **ফুডকস্ট** পাতা আছে, যাতে আপনি আগে থেকেই উপকরণ ও দাম সাজিয়ে রাখতে পারেন।
+
+* **উপকরণ ট্যাব:** প্রতিটি রেসিপি এই তালিকা থেকে শুরু হয়। **উপকরণ যোগ করুন** চাপুন, তারপর দিন:
+  * বাংলা ও ইংরেজি নাম, আর ধরন (যেমন ময়দা, দুধজাত);
+  * **১ মিলিতে কত গ্রাম (ঘনত্ব):** যেমন ময়দা ≈ ০.৫৩। এটা থাকলে কেজিতে দাম দেওয়া উপকরণ রেসিপিতে কাপ বা চামচে ব্যবহার করা যায়;
+  * **এক পিসে কত গ্রাম:** যেমন ডিম ≈ ৫০। এটা থাকলে ডজনে দাম দেওয়া ডিম ওজনে ব্যবহার করা যায়;
+  * **ডিফল্ট দাম:** এক প্যাকের এখনকার ঢাকার গড় দাম, যেমন “১ কেজি ৳১২০”, কোথা থেকে আর কোন তারিখের।
+
+  না জানা ঘর ফাঁকা রাখুন। রেসিপি তখন অনুমান না করে বলে দেবে কী নেই।
+* **দাম বদলাতে:** উপকরণে **সম্পাদনা** চাপুন, নতুন দাম লিখে **নতুন দাম সেভ করুন** চাপুন। নতুনটাই চলবে, আগেরগুলো **আগের দাম** তালিকায় থেকে যায়। তালিকায় প্রতিটি দামের পাশে দেখায় প্রতি গ্রাম, মিলি বা পিসে কত পড়ে।
+* **নিজের দাম:** প্রত্যেক ব্যবহারকারী চাইলে নিজের কেনা দাম বসাতে পারবেন। সেটা শুধু তার নিজের রেসিপিতে চলবে, আপনার ডিফল্ট দাম বদলায় না।
+* **উপকরণ বন্ধ করা:** **নতুন রেসিপিতে দেখাবে** বন্ধ করলে যেসব রেসিপিতে উপকরণটি আছে সেখানে দামসহ থেকে যায়, শুধু নতুন লাইনে আর আসে না। উপকরণ কখনো মোছা হয় না।
+* **তালিকা পেস্ট করুন ট্যাব:** Excel বা Google Sheets থেকে পুরো টেবিল কপি করে পেস্ট করুন। প্রতি লাইনে একটি উপকরণ, এই কলামগুলো এই ক্রমে:
+  1. বাংলা নাম
+  2. ইংরেজি নাম
+  3. ধরন
+  4. প্যাকের মাপ
+  5. একক (g, kg, ml, l, piece, dozen, tsp, tbsp, cup)
+  6. দাম টাকায়
+  7. ১ মিলিতে গ্রাম
+  8. এক পিসে গ্রাম
+
+  তারপর **তালিকা পড়ুন** চাপুন। ভুল সারিগুলো কারণসহ দেখায়। দেখে নিয়ে **উপকরণ তালিকায় যোগ করুন** চাপুন।
+  * তালিকায় আগে থেকে থাকা নাম (বাংলা বা ইংরেজি যেকোনোটি) আপডেট হয়, দুবার যোগ হয় না। একই তালিকায় একটি নাম দুবার থাকলেও একটিই উপকরণ হয়।
+  * প্রতি মাসে পুরো শীটটি আবার পেস্ট করতে পারেন: যে দাম বদলায়নি তা আবার সেভ হয় না, তাই আগের দামের তালিকায় শুধু আসল বদলগুলো থাকে।
+  * লম্বা তালিকাও চলবে: পেজ নিজেই ২০০টি করে সারি ভাগ করে পাঠায়।
+* **ব্যবহারকারী ট্যাব:** কারা ফুডকস্ট খুলেছেন, তাদের প্ল্যান আর কয়টি রেসিপি আছে। কারও রেসিপি বা দাম এখানে কখনো দেখা যায় না।
+* **প্ল্যান:**
+  * ফ্রি প্ল্যানে ৩টি রেসিপি রাখা যায়।
+  * MAWAH-এর স্টুডেন্টদের কোনো সীমা নেই। ওয়েবসাইটে ক্লাস কেনা বা স্টাফের দেওয়া ক্লাস থাকলেই স্টুডেন্ট। অ্যাপের ফ্রি ক্লাস এতে গোনা হয় না।
+  * শুধু মালিক কাউকে **প্রো দিন** চেপে সীমাহীন করতে পারেন, কোনো তারিখ পর্যন্ত বা চিরদিনের জন্য।
+* **কে কী পারেন:**
+  * মালিক ও কনটেন্ট ম্যানেজার: উপকরণ ও দাম বদলাতে পারেন;
+  * বাকিরা: শুধু দেখতে পারেন;
+  * শুধু মালিক: প্রো দিতে পারেন।
+* **অ্যাকাউন্ট ডিলিট:** কেউ অ্যাকাউন্ট ডিলিট করলে তার ফুডকস্টের সবকিছু মুছে যায়: রেসিপি, নিজের উপকরণ ও নিজের দাম।
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -1104,3 +1143,47 @@ Admin has a new **Android app** page. Everything about the app is there:
 * **Numbers:** sign-ins in the app, accounts made in the app and free classes started (last 30 days), and all the students in free classes.
 * **The app's notice:** write one short line in Bangla and in English, switch on **Show the notice** and save — it shows at the top of the app's Home (within a minute). Switched off, the words are kept for next time.
 * **Google Play test account:** Google's reviewers must sign in to check the app. Press **Make the test account** → a **student ID** and a **password** are shown — **only this once**. Put them straight into Play Console → App content → App access → “All or some functionality is restricted”, with the English instruction line shown on the page. Lost it? Press **New password** (the old one stops working). Only a Super Admin can do this.
+
+## 34. FoodCost — the ingredient list and its default prices
+
+FoodCost is the recipe costing and profit tool ([the plan](foodcost.md)). It comes to the website and the Android app together. The users'
+screens come next. For now there is a **FoodCost** page in the Admin menu, so you can set up the ingredients and prices first.
+
+* **Ingredients tab:** every recipe starts from this list. Press **Add an ingredient** and give:
+  * its name in Bangla and in English, and a category (Flour, Dairy …);
+  * **Grams in 1 ml (density):** for example flour ≈ 0.53. With it, an ingredient priced by the kg can be used by the cup or the spoon;
+  * **Grams in one piece:** for example an egg ≈ 50. With it, eggs priced by the dozen can be used by weight;
+  * **the default price:** today's average Dhaka price of one pack, for example "৳120 for 1 kg", with where and the date.
+
+  Leave empty what you do not know. A recipe then says what is missing instead of guessing.
+* **Changing a price:** press **Edit**, type the new price and press **Save the new price**. The newest counts, and the older ones stay under
+  **Earlier prices**. The list shows what each price comes to per gram, millilitre or piece.
+* **Users' own prices:** each user may type the price they paid. It counts in their own recipes only; your default does not change.
+* **Switching one off:** with **Offered for new recipes** off, recipes that use it keep it, with its price; it is no longer offered for new
+  lines. Ingredients are never deleted.
+* **Paste a list tab:** copy the whole table from Excel or Google Sheets and paste it. One ingredient per line, with these columns in this order:
+  1. Bangla name
+  2. English name
+  3. category
+  4. pack size
+  5. unit (g, kg, ml, l, piece, dozen, tsp, tbsp, cup)
+  6. price in taka
+  7. grams in 1 ml
+  8. grams in a piece
+
+  Then press **Read the list**. Rows that are wrong are shown with the reason. Check the rest and press **Add to the ingredient list**.
+  * A name already on the list (Bangla or English) is updated, not added twice. A name twice in the same list is one ingredient too.
+  * You can paste the whole sheet again each month: a price that has not changed is not saved again, so the price history keeps only real
+    changes.
+  * A long list is fine: the page sends it in parts of 200 rows.
+* **Users tab:** who has opened FoodCost, their plan and how many recipes they keep. Nobody's recipes or prices are ever shown here.
+* **Plans:**
+  * Free keeps 3 recipes.
+  * MAWAH students have no limit. A student is someone with a class bought on the website, or one given by staff. A free class of the app
+    does not count.
+  * Only the owner can press **Give Pro** to remove someone's limit, until a date or for good.
+* **Who may do what:**
+  * the owner and Content Managers: change the ingredients and prices;
+  * everyone else: look only;
+  * only the owner: give Pro.
+* **Deleting an account** deletes all of that person's FoodCost data: their recipes, own ingredients and own prices.
