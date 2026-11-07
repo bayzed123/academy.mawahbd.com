@@ -4,7 +4,8 @@ import type { AppEnv } from "../env";
 import { getSettings } from "../lib/settings";
 import { isTracking, NO_TRACKING, trackingFor, type TrackIds } from "../lib/tracking";
 import { turnstileEnabled } from "../lib/turnstile";
-import { buildCsp } from "../middleware/security";
+import { FC_REPORT_PRINT_CSS } from "@mawah/shared/foodcostReport";
+import { buildCsp, styleHash } from "../middleware/security";
 
 /**
  * The student app (/app) and admin (/admin) are static React builds. The Worker serves their HTML shell with a
@@ -51,7 +52,13 @@ async function shell(c: { env: AppEnv["Bindings"]; req: { url: string } }, base:
   const headers = new Headers({
     "Content-Type": "text/html; charset=utf-8",
     "Cache-Control": "no-cache",
-    "Content-Security-Policy": buildCsp({ spa: true, turnstile: turnstileEnabled(c.env), analytics: { ga4: !!ids.ga4, clarity: !!ids.clarity, pixel: !!ids.pixel } }),
+    "Content-Security-Policy": buildCsp({
+      spa: true,
+      turnstile: turnstileEnabled(c.env),
+      analytics: { ga4: !!ids.ga4, clarity: !!ids.clarity, pixel: !!ids.pixel },
+      // FoodCost's PDF: the one inline style the student app adds, the print style that shows only the report (allowed by its fingerprint)
+      styleHashes: base === "app" ? [await styleHash(FC_REPORT_PRINT_CSS)] : [],
+    }),
   });
   if (base === "admin") headers.set("X-Robots-Tag", "noindex, nofollow");
   if (secretAddress) headers.set("Referrer-Policy", "no-referrer");

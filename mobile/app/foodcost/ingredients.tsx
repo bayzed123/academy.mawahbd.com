@@ -5,26 +5,23 @@ import {
   FC_NUTRIENTS,
   FC_NUTRIENT_NAMES,
   FC_UNITS,
-  FC_UNIT_LIST,
   fcIngredient,
   fcNutrientText,
   fcNutritionBoxes,
   fcNutritionFromBoxes,
   fcParseNumber,
-  fcParseTaka,
-  fcTakaText,
   unitCost,
   type FcIngredientDTO,
   type FcNutrient,
   type FcUnit,
 } from "@mawah/shared/foodcost";
 import { api, ApiError, useResource } from "../../src/api";
-import { ask, codeText, say, useFc } from "../../src/components/FoodCost";
+import { ask, say, useFc } from "../../src/components/FoodCost";
+import { draftOf, fieldsOf, priceBody, PriceFields, type PriceDraft } from "../../src/components/FoodCostPrice";
 import { useSession } from "../../src/session";
 import { errorKey } from "../../src/strings";
 import { Btn } from "../../src/ui/Btn";
 import { Card } from "../../src/ui/Card";
-import { Choice } from "../../src/ui/Choice";
 import { Field } from "../../src/ui/Field";
 import { Header } from "../../src/ui/Header";
 import { Icon } from "../../src/ui/Icon";
@@ -37,20 +34,6 @@ import { Txt } from "../../src/ui/Txt";
 const PATH = "/api/fc/v1/ingredients";
 /** The unit a price is shared out per, by kind: a gram, a millilitre, a piece. */
 const BASE = { mass: "g", volume: "ml", count: "piece" } as const satisfies Record<string, FcUnit>;
-
-type PriceDraft = { qty: string; unit: FcUnit; taka: string; supplier: string };
-const draftOf = (i: FcIngredientDTO | null): PriceDraft => ({
-  qty: i?.price ? String(i.price.pack_qty) : "1",
-  unit: i?.price?.pack_unit ?? "kg",
-  taka: i?.price ? fcTakaText(i.price.price_minor) : "",
-  supplier: i?.price?.supplier ?? "",
-});
-const priceBody = (d: PriceDraft) => ({ pack_qty: fcParseNumber(d.qty) ?? 0, pack_unit: d.unit, price_minor: fcParseTaka(d.taka) ?? -1, supplier: d.supplier.trim(), bought_on: null });
-const fieldsOf = (e: unknown, t: ReturnType<typeof useFc>["t"]) => {
-  const out: Record<string, string> = {};
-  if (e instanceof ApiError) for (const [k, code] of Object.entries(e.fields)) out[k.replace(/^price\./, "")] = codeText(code, t);
-  return out;
-};
 
 /** Ingredients & prices: the Dhaka average staff keep, or one's own price (for oneself only), and one's own ingredients. */
 export default function IngredientsScreen() {
@@ -123,20 +106,6 @@ export default function IngredientsScreen() {
         )}
       </Page>
     </>
-  );
-}
-
-function PriceFields({ d, onChange, errors }: { d: PriceDraft; onChange: (d: PriceDraft) => void; errors: Record<string, string> }) {
-  const { t, unit } = useFc();
-  return (
-    <View style={{ gap: 10 }}>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <Field label={t("fc.pack")} value={d.qty} keyboardType="decimal-pad" onChangeText={(v) => onChange({ ...d, qty: v })} error={errors.pack_qty} box={{ flex: 1 }} />
-        <Choice label={t("fc.unit")} value={d.unit} options={FC_UNIT_LIST.map((u) => ({ value: u, label: unit(u) }))} onChange={(u) => onChange({ ...d, unit: u })} box={{ flex: 1 }} />
-      </View>
-      <Field label={t("fc.priceTk")} value={d.taka} keyboardType="decimal-pad" onChangeText={(v) => onChange({ ...d, taka: v })} error={errors.price_minor} />
-      <Field label={t("fc.supplier")} value={d.supplier} maxLength={80} onChangeText={(v) => onChange({ ...d, supplier: v })} />
-    </View>
   );
 }
 

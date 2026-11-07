@@ -425,6 +425,10 @@ p.free-note.is-done .icon{color:inherit}
 .fc-line-cost:empty{display:none}
 .fc-remove{justify-self:end;min-width:44px;min-height:44px}
 .fc-line-err{margin:0}
+.fc-line-price{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-width:0}
+.fc-line-price>small{flex:1 1 220px;min-width:0}
+.fc-line-price-form{flex:1 1 100%;margin-top:4px;padding:12px;border:1px solid var(--line);border-radius:12px;display:grid;gap:8px}
+.fc-line-price-form .hint{margin:0}
 @media (min-width:640px){
   .fc-line{grid-template-columns:minmax(0,1fr) 96px 130px 96px 44px}
   .fc-line-what{grid-column:auto}
@@ -450,6 +454,7 @@ p.free-note.is-done .icon{color:inherit}
 ul.fc-warn{padding-left:1.8rem}
 .fc-buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .fc-buttons .btn[type=submit]{flex:1 1 100%}
+.fc-pdf-hint{margin-top:8px}
 .fc-confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .fc-search{flex:1 1 240px}
 .fc-ings{margin-top:12px}

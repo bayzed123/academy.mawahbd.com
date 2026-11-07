@@ -88,9 +88,43 @@ and fibre in grams, sodium in mg (the `fc_ingredients` columns `kcal` … `sodiu
 **The starter list** (migration `0027_foodcost_starter.sql`): 45 common baking ingredients in 9 groups (flour, sugar, dairy and eggs, fats,
 baking aids, chocolate, nuts and dried fruit, fruit, spices), each with its Bangla and English name, its density or piece weight from USDA's
 cup and teaspoon weights, and its figures per 100 g from **USDA FoodData Central (SR Legacy, public domain)**; empty where the table gives
-none (semolina's sugar, yeast's sugar, shortening's sodium). **No prices:** the owner sets the Dhaka average, and each user can type their
-own. A name already on the shared list is left as it is, so the owner's own entries win and the list never adds a name twice. Staff can
-correct any figure in Admin → FoodCost, and a user can give their own ingredients figures from the pack's label.
+none (semolina's sugar, yeast's sugar, shortening's sodium). A name already on the shared list is left as it is, so the owner's own entries
+win and the list never adds a name twice. Staff can correct any figure in Admin → FoodCost, and a user can give their own ingredients
+figures from the pack's label.
+
+**The starter prices** (migration `0028_foodcost_prices.sql`, 7 November 2026): each of the 45 has a Dhaka default price, so a recipe is
+costed at once. Where each comes from is written on the price itself (its "where" line) and in the migration's header:
+
+- the **Dhaka market price report** (TBS, late October 2026) for the staples: flour, atta, sugar, eggs, milk, soybean oil, salt;
+- **Chaldal**'s listing for the rest (a brand's pack). A few of those are premium brands and may be above the market: oats (Quaker),
+  dalda (Aseel), dark chocolate (Lindt), walnuts, cream cheese. The owner's guide asks the owner to check them once.
+- A ripe banana is counted at 100 g a piece (`g_per_piece`), so a dozen's price works by weight; lemon juice is priced by the ml.
+
+The migration only adds a default price where an ingredient has none: a price the owner has set (or set since) is never overwritten, and
+running it again changes nothing (`worker/test/foodcost-api.test.ts`). Prices are history: the owner's newer price counts, the old stays.
+
+## Easier costing: the price on the line
+
+Each ingredient line of a recipe (website and app) says the price it is costed at: "Price: ৳170 for 2 kg · Dhaka average" (or "· My
+price"). With no price yet the line says so and offers **Set price** right there: pack size, unit and price, saved as the user's own price
+(`PUT /api/fc/v1/prices/:id`, the same as on Ingredients & prices), and the recipe is costed at it at once. The pack starts in the kind of
+unit the line uses (kg for a line in grams, litre for millilitres, piece for pieces), so a new price always fits its line. The recipe is
+one form, so the box is not a form of its own: Enter in it saves the price, not the recipe. The red "no price" message on the line is
+gone (the price box says it); the result still lists every missing price.
+
+## The PDF of the result
+
+**Download PDF** under the result (website and app) makes a one-page A4 report of the recipe as it is on the screen, saved or not: the
+name, what it makes and the date; the cost of one, the price and the calories of one; each ingredient with its amount, cost, share and
+calories; the batch, the price and the profit; where the cost goes; the nutrients; and notes (what is missing, where the numbers come from).
+One page design for both (`shared/src/foodcostReport.ts`), every word in the reader's language, every user's word escaped.
+
+- **Website:** the browser's own Save as PDF, like the certificate. The page itself is printed with a print style that shows only the report
+  (a phone's browser may print the whole page from a hidden frame, so no frame is used). The site's security rules allow no inline style,
+  so this one style is allowed by its fingerprint (`worker/src/routes/spa.ts`, `style-src 'self' 'sha256-…'`). The report goes as soon as
+  the recipe changes, so printing the page later prints the page. The paper is white even in the site's night look.
+- **App:** `expo-print` turns the same page into a PDF file (A4) in the app's own cache folder (no storage permission), named after the
+  recipe, and the share sheet opens: Files, Drive, WhatsApp, e-mail. The app's PDF names no website (Google Play; `mobile/src/strings.test.ts`).
 
 **Where it shows:** the recipe editor (website and app) shows each line's calories next to its cost, a **Calories & nutrition** panel beside
 the cost, and the calories of one piece in the bar at the bottom of a phone; the recipe list shows the calories of one piece when every
@@ -157,9 +191,8 @@ with no database change.
 
 ## What is needed from the owner
 
-1. **The Dhaka default prices:** about 30–50 common ingredients, each with a pack size and today's price, for example "flour: 1 kg, ৳…".
-   They can be typed in Admin once phase 1b is in, or sent as a list to load. Until a price is set, that ingredient shows "no price yet".
-   The site never shows a made-up price.
+1. **Check the Dhaka default prices** (in since 7 November 2026, sources above): change any that differ from what your students pay, in
+   Admin → FoodCost → Ingredients. An ingredient with no price shows "no price yet", and the site never shows a made-up price.
 2. **Confirm the cup and spoons:** cup 240 ml, tablespoon 15 ml, teaspoon 5 ml.
 3. **5 real recipes whose cost you already know**, to check the engine against your own numbers.
 4. **Usual rates:** labour per hour, and gas or electricity per hour or per batch, to offer as starting values.
@@ -189,8 +222,11 @@ with no database change.
 - **পরের ধাপ:**
   - ১খ: ডাটাবেস, API, অ্যাডমিনে উপকরণ ও ডিফল্ট দাম।
   - ১গ+১ঘ: ওয়েবসাইট ও অ্যাপের স্ক্রিন একসাথে।
+- **দাম (৭ নভেম্বর ২০২৬):** শুরুর ৪৫টি উপকরণে ঢাকার দাম বসানো আছে (ঢাকার বাজারদরের প্রতিবেদন আর Chaldal থেকে), তাই রেসিপির খরচ সাথে সাথে আসে। আপনার বসানো দাম কখনো বদলায় না।
+- **লাইনেই দাম:** রেসিপির প্রতিটি লাইনের নিচে কোন দামে হিসাব হচ্ছে লেখা থাকে। দাম না থাকলে সেখানেই **দাম দিন**।
+- **PDF:** ফলের নিচে **PDF ডাউনলোড**। ওয়েবসাইটে প্রিন্টের জানালায় Save as PDF; অ্যাপে PDF তৈরি হয়ে শেয়ারের তালিকা খোলে।
 - **আপনার কাছ থেকে লাগবে:**
-  - ৩০–৫০টি উপকরণের আজকের ঢাকার দাম (প্যাকের মাপসহ);
+  - শুরুর দামগুলো একবার মিলিয়ে দেখা (অ্যাডমিন → ফুডকস্ট → উপকরণ), বিশেষ করে ওটস, ডালডা, ডার্ক চকলেট, আখরোট, ক্রিম চিজ;
   - কাপ ও চামচের মাপ নিশ্চিত করা (কাপ ২৪০ মিলি, টেবিল চামচ ১৫ মিলি, চা চামচ ৫ মিলি);
   - খরচ জানা আছে এমন ৫টি আসল রেসিপি;
   - শ্রম ও গ্যাস/বিদ্যুতের স্বাভাবিক রেট।

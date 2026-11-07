@@ -34,11 +34,11 @@ test("no class price or buy wording anywhere in the app (Google Play: classes ar
   }
 });
 
-test("FoodCost never offers to buy, upgrade or unlock anything, nor points to the website or a class: its limit is said plainly (Google Play)", () => {
+test("FoodCost never offers to buy, upgrade or unlock anything, nor points to the website (not even its address, the PDF's footer included) or a class: its limit is said plainly (Google Play)", () => {
   const fc = [...Object.entries(en), ...Object.entries(bn)].filter(([key]) => key.startsWith("fc.") || key.startsWith("err.fc_"));
   assert.ok(fc.length > 200, "the FoodCost words were found");
   for (const [key, text] of fc) {
-    assert.doesNotMatch(text, /\b(buy|purchase|enrol(l)?|upgrade|subscribe|subscription|premium|unlock|website|class(es)?)\b|কিনুন|ক্রয়|ভর্তি|আপগ্রেড|সাবস্ক্রাইব|ওয়েবসাইট|ক্লাস/i, key);
+    assert.doesNotMatch(text, /\b(buy|purchase|enrol(l)?|upgrade|subscribe|subscription|premium|unlock|website|class(es)?)\b|mawahacademy\.com|https?:|www\.|কিনুন|ক্রয়|ভর্তি|আপগ্রেড|সাবস্ক্রাইব|ওয়েবসাইট|ক্লাস/i, key);
   }
   assert.equal(translate("en", "fc.limitReached", { limit: 3 }), "Free accounts keep 3 recipes. Delete one to save a new one.");
 });

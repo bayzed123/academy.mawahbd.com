@@ -80,6 +80,52 @@ test("a student costs cupcakes while typing, saves them, and the list shows the 
   await expect(page.getByText("Saved.")).toBeVisible();
   await expect(page).toHaveURL(/\/app\/foodcost\/\d+$/);
   await expect(page.getByRole("heading", { level: 1, name: `Cupcakes ${STAMP}` })).toBeVisible();
+
+  // Download PDF: the browser's print window (stood in for here) prints a copy of the result made for paper, which only printing shows
+  await page.evaluate(() => {
+    const w = window as unknown as { printed: number };
+    w.printed = 0;
+    window.print = () => void w.printed++;
+  });
+  await page.getByRole("button", { name: "Download PDF" }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { printed: number }).printed)).toBe(1);
+  await expect(page.getByText("The print window opens: choose “Save as PDF” there.", { exact: false })).toBeVisible();
+  const paper = page.locator(".fcr");
+  await expect(paper).toBeHidden(); // on the screen, the page stays as it was
+  expect(await page.title()).toBe(`FoodCost — Cupcakes ${STAMP}`); // the name the browser offers for the file
+  await page.emulateMedia({ media: "print" });
+  await expect(paper).toBeVisible();
+  await expect(page.locator("#root")).toBeHidden(); // nothing of the app is printed: no menu, no buttons, no form
+  await expect(paper.getByRole("heading", { level: 1 })).toHaveText(`Cupcakes ${STAMP}`);
+  await expect(paper).toContainText("MAWAH Academy · FoodCost");
+  await expect(paper.locator(".fcr-sub")).toContainText("Makes 12 cupcake");
+  const figs = paper.locator(".fcr-figs");
+  await expect(figs).toContainText("৳37.92 / cupcake");
+  await expect(figs).toContainText("৳65 / cupcake");
+  await expect(figs).toContainText("৳455");
+  const lines = paper.locator("table").first().locator("tbody tr");
+  await expect(lines).toHaveCount(2);
+  await expect(lines.first()).toContainText(FLOUR);
+  await expect(lines.first()).toContainText("500 g");
+  await expect(lines.first()).toContainText("৳60");
+  await expect(lines.nth(1)).toContainText("৳75");
+  await expect(paper).toContainText("৳22.08"); // the profit on each, at the real price of ৳60
+  await expect(paper).toContainText("36.8%");
+  await expect(paper).toContainText("Made with FoodCost on mawahacademy.com");
+  // the print style is one the site's security rules allow (by its fingerprint), so the paper really is styled: black on white, even at night
+  const h1 = await paper.getByRole("heading", { level: 1 }).evaluate((h) => ({ size: getComputedStyle(h).fontSize, color: getComputedStyle(h).color }));
+  expect(h1).toEqual({ size: "26.6667px", color: "rgb(23, 18, 15)" });
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(255, 255, 255)");
+  // and the PDF itself, kept with the test's results
+  const file = test.info().outputPath("recipe-en.pdf");
+  await page.pdf({ path: file, format: "A4", preferCSSPageSize: true, printBackground: true });
+  await test.info().attach("recipe-en.pdf", { path: file, contentType: "application/pdf" });
+  await page.emulateMedia({ media: null });
+  // a change to the recipe takes the paper copy away: printing the page later prints the page
+  await page.getByLabel("How many").fill("24");
+  await expect(page.locator(".fcr-host")).toHaveCount(0);
+  await page.getByLabel("How many").fill("12");
+
   // the list is the server's costing of what was saved
   await page.getByRole("link", { name: "FoodCost" }).first().click();
   const row = page.getByRole("link", { name: new RegExp(`Cupcakes ${STAMP}`) });
@@ -93,11 +139,27 @@ test("a student costs cupcakes while typing, saves them, and the list shows the 
   await page.getByLabel("How many").fill("1");
   await page.getByLabel("Line 1", { exact: true }).selectOption({ label: `${VANILLA} (no price)` });
   await page.locator("#fc-q0").fill("5");
-  await expect(page.getByText(`Line 1: ${VANILLA} has no price yet. Set your price under Ingredients & prices.`).first()).toBeVisible();
+  await expect(page.getByText(`Line 1: ${VANILLA} has no price yet. Press “Set price” on the line.`).first()).toBeVisible();
   await expect(result).toContainText("This is only part of the cost:");
   await page.locator("#fc-q0").fill("");
   await expect(page.getByText("Line 1: type how much.").first()).toBeVisible();
   await page.locator("#fc-q0").fill("5");
+  // …and its price is set right there on the line, without leaving the recipe: the pack starts in kg, as the line is weighed
+  const vanilla = page.locator(".fc-line").first();
+  await expect(vanilla).toContainText("No price yet");
+  await vanilla.getByRole("button", { name: "Set price" }).click();
+  const box = vanilla.getByRole("group", { name: `Set price: ${VANILLA}` });
+  await expect(box.getByLabel("Unit")).toHaveValue("kg");
+  await box.getByLabel("Pack size").fill("50");
+  await box.getByLabel("Unit").selectOption("g");
+  await box.getByLabel("Price (৳)").fill("250");
+  await box.getByLabel("Price (৳)").press("Enter"); // Enter saves the price, not the recipe
+  await expect(page.getByText("Price saved.")).toBeVisible();
+  await expect(vanilla).toContainText("Price: ৳250 for 50 g · My price");
+  await expect(result).not.toContainText("This is only part of the cost:");
+  await expect(result.getByRole("definition").first()).toHaveText("৳25"); // 5 g of a ৳250 pack of 50 g
+  await expect(page).toHaveURL(/\/app\/foodcost\/new$/);
+  await expect(vanilla.getByRole("button", { name: "Change price" })).toBeVisible();
 
   // Free keeps 3: two more saved, then the fourth is refused in plain words (nothing about buying)
   for (const n of [2, 3]) expect((await apiPost(page, "/fc/v1/recipes", { name: `Recipe ${n} ${STAMP}`, yield_qty: 1, yield_unit: "piece", items: [] })).status).toBe(201);
@@ -192,22 +254,23 @@ test("the starter list is ready, and a recipe's calories show beside its cost: e
   await useLang(ctx, "en");
   const page = await ctx.newPage();
   await registerStudent(page);
-  // the common ingredients are there from the start, with their calories per 100 g, and no price until the owner or the student sets one
+  // the common ingredients are there from the start, with their calories per 100 g and a Dhaka market price (the owner can change it)
   await page.goto("/app/foodcost/ingredients");
   await page.getByLabel("Search ingredients").fill("maida");
   const maida = page.locator(".fc-ing", { hasText: "All-purpose flour (maida)" });
   await expect(maida).toContainText("364 kcal per 100 g");
-  await expect(maida).toContainText("No price yet");
+  await expect(maida).toContainText("৳170 for 2 kg");
+  await expect(maida).toContainText("Dhaka average");
 
   await page.goto("/app/foodcost/new");
   await page.getByRole("textbox", { name: "Name", exact: true }).fill(`Plain cupcakes ${STAMP}`);
   await page.getByLabel("How many").fill("12");
   await page.getByLabel("Called").fill("cupcake");
-  await page.getByLabel("Line 1", { exact: true }).selectOption({ label: "All-purpose flour (maida) (no price)" });
+  await page.getByLabel("Line 1", { exact: true }).selectOption({ label: "All-purpose flour (maida)" });
   await page.locator("#fc-q0").fill("500");
   await page.getByRole("button", { name: "Add a line" }).click();
-  await page.getByLabel("Line 2", { exact: true }).selectOption({ label: "Egg (no price)" });
-  // no price yet, but an egg has a weight for one: it is counted by the piece
+  await page.getByLabel("Line 2", { exact: true }).selectOption({ label: "Egg" });
+  // eggs are sold by the dozen: they are counted by the piece
   await expect(page.locator("#fc-u1")).toHaveValue("piece");
   await page.locator("#fc-q1").fill("6");
   // 500 g of flour 1,820 kcal + 6 eggs (300 g) 429 kcal = 2,249 kcal: 187 a cupcake
@@ -217,9 +280,11 @@ test("the starter list is ready, and a recipe's calories show beside its cost: e
   await expect(food).toContainText("187 kcal");
   await expect(food).toContainText("2,249 kcal");
   await expect(food).toContainText("Protein");
-  // no prices yet: the cost says it is only part, and offers the way to set them
-  await expect(page.locator(".fc-result")).toContainText("This is only part of the cost:");
-  await expect(page.locator(".fc-result").getByRole("link", { name: "Set prices" })).toBeVisible();
+  // and the cost from the Dhaka prices at once: 500 g of a ৳170 2-kg pack ৳42.50 + 6 of a ৳150 dozen ৳75 = ৳117.50, ৳9.79 a cupcake
+  await expect(page.locator(".fc-line").first()).toContainText("Price: ৳170 for 2 kg · Dhaka average");
+  await expect(page.locator(".fc-result").getByRole("definition").first()).toHaveText("৳117.50");
+  await expect(page.locator(".fc-result")).toContainText("৳9.79 / cupcake");
+  await expect(page.locator(".fc-result")).not.toContainText("This is only part of the cost:");
   // an ingredient with no calorie figure is named, never guessed
   await page.getByRole("button", { name: "Add a line" }).click();
   await page.getByLabel("Line 3", { exact: true }).selectOption({ label: `${VANILLA} (no price)` });
@@ -257,5 +322,24 @@ test("the starter list is ready, and a recipe's calories show beside its cost: e
   await expect(bnFood).toContainText("প্রোটিন");
   expect(await phone.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
   expect(await serious(phone)).toEqual([]);
+  // the PDF in Bangla, from a phone: Bangla words and digits, the Dhaka prices, the calories
+  await phone.evaluate(() => {
+    window.print = () => undefined;
+  });
+  await phone.getByRole("button", { name: "PDF ডাউনলোড" }).click();
+  await phone.emulateMedia({ media: "print" });
+  const paper = phone.locator(".fcr");
+  await expect(paper).toBeVisible();
+  await expect(paper.getByRole("heading", { level: 1 })).toHaveText(`কাপকেক ${STAMP}`);
+  await expect(paper).toContainText("মাওয়াহ একাডেমি · ফুডকস্ট");
+  await expect(paper.locator(".fcr-sub")).toContainText("১২ পিস হয়");
+  await expect(paper.locator(".fcr-figs")).toContainText("৳৯.৭৯ / পিস");
+  await expect(paper.locator(".fcr-figs")).toContainText("১৮৭ ক্যালরি");
+  await expect(paper.locator("table").first().locator("tbody tr").first()).toContainText("৳৪২.৫০");
+  await expect(paper).toContainText("ঢাকার গড় দাম");
+  const file = test.info().outputPath("recipe-bn.pdf");
+  await phone.pdf({ path: file, format: "A4", preferCSSPageSize: true, printBackground: true });
+  await test.info().attach("recipe-bn.pdf", { path: file, contentType: "application/pdf" });
+  await phone.emulateMedia({ media: null });
   await bn.close();
 });

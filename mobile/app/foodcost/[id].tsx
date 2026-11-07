@@ -32,7 +32,10 @@ import {
   type FcUnit,
 } from "@mawah/shared/foodcost";
 import { api, ApiError, useResource } from "../../src/api";
+import type { FcReport, FcReportRow } from "@mawah/shared/foodcostReport";
 import { ask, codeText, problemText, say, useFc } from "../../src/components/FoodCost";
+import { LinePrice } from "../../src/components/FoodCostPrice";
+import { shareRecipePdf } from "../../src/foodcostPdf";
 import { CONTENT_MAX, GUTTER } from "../../src/lib/layout";
 import { useSession } from "../../src/session";
 import { errorKey } from "../../src/strings";
@@ -106,7 +109,7 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
   const [fieldErr, setFieldErr] = useState<Record<string, string>>({});
   const [problem, setProblem] = useState("");
   const [note, setNote] = useState("");
-  const [busy, setBusy] = useState<"" | "save" | "copy" | "delete">("");
+  const [busy, setBusy] = useState<"" | "save" | "copy" | "delete" | "pdf">("");
 
   const { input, rows } = useMemo(() => fcFormToInput(f), [f]);
   // the same costing as the server's, on every key press — and the calories, from the same lines
@@ -207,6 +210,103 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
 
   const yieldWhat = f.yieldLabel.trim() || unit(f.yieldUnit);
   const counted = FC_UNITS[f.yieldUnit].dim === "count";
+
+  /** The PDF: the recipe as it is on the screen now (saved or not), in the reader's language, in the website's page design. */
+  const pdf = async () => {
+    const label = f.yieldLabel.trim();
+    const title = input.name || t("fc.title");
+    const date = new Intl.DateTimeFormat(lang === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", year: "numeric" }).format(new Date());
+    const cal = (v: number | null | undefined) => (v === null || v === undefined ? "—" : kcal(v));
+    const priced = f.pct.trim() !== "";
+    const suggested: FcReportRow = { label: t(`fc.suggested.${f.mode}`, { pct: input.pricing.pct }), value: per(result.suggestedMinor, label, f.yieldUnit), tone: "accent" };
+    const headline: FcReportRow[] = [
+      { label: t("fc.cost"), value: per(result.perUnitMinor, label, f.yieldUnit) },
+      ...(priced ? [suggested] : []),
+      ...(food.perUnit && food.counted > 0 ? [{ label: t("fc.kcalPer", { what: yieldWhat }), value: cal(food.perUnit.kcal) }] : []),
+    ];
+    // three across at most, so a figure "per cupcake" stays on one line; the batch is always in the table below
+    if (headline.length < 3) headline.push({ label: t("fc.oneBatch"), value: money(result.batchMinor) });
+    const a = result.actual;
+    const summary: FcReportRow[] = [
+      { label: t("fc.oneBatch"), value: money(result.batchMinor) },
+      { label: t("fc.cost"), value: per(result.perUnitMinor, label, f.yieldUnit) },
+      ...(priced ? [suggested] : []),
+      ...(a
+        ? [
+            { label: a.profitMinor < 0 ? t("fc.lossEach") : t("fc.profitEach"), value: money(a.profitMinor), tone: a.profitMinor < 0 ? ("loss" as const) : undefined },
+            { label: t("fc.profitBatch"), value: money(a.profitBatchMinor), tone: a.profitBatchMinor < 0 ? ("loss" as const) : undefined },
+            { label: t("fc.realMargin"), value: a.marginPct === null ? "—" : `${digits(a.marginPct)}%` },
+          ]
+        : []),
+    ];
+    const split = (
+      [
+        ["ingredients", result.ingredientsMinor],
+        ["packaging", result.packagingMinor],
+        ["labour", result.labourMinor],
+        ["energy", result.energyMinor],
+        ["other", result.otherMinor],
+      ] as const
+    )
+      .filter(([k, v]) => k === "ingredients" || v > 0)
+      .map(([k, v]) => ({ label: k === "ingredients" ? t("fc.ingredientsCost") : t(`fc.kind.${k}`), value: money(v) }));
+    const figs = food.perUnit ?? food.batch;
+    const foodRows: FcReportRow[] =
+      food.counted > 0
+        ? [
+            ...(food.perUnit ? [{ label: t("fc.kcalPer", { what: yieldWhat }), value: cal(food.perUnit.kcal) }] : []),
+            { label: t("fc.kcalBatch"), value: cal(food.batch.kcal) },
+            ...FC_NUTRIENTS.filter((k) => k !== "kcal").map((k) => ({
+              label: `${FC_NUTRIENT_NAMES[k][lang].name} ${food.perUnit ? t("fc.perWhat", { what: yieldWhat }) : t("fc.perBatch")}`,
+              value: fcNutrientText(k, figs[k], lang) + (food.known[k] ? "" : " *"),
+            })),
+          ]
+        : [];
+    const report: FcReport = {
+      lang,
+      docTitle: `${t("fc.title")} — ${title}`,
+      brand: t("fc.report.brand"),
+      title,
+      subtitle: `${t("fc.makes", { qty: input.yield_qty, what: yieldWhat })} · ${date}`,
+      headline,
+      linesHeading: t("fc.lines"),
+      lineHeads: { n: "#", name: t("fc.report.item"), amount: t("fc.qty"), cost: t("fc.cost"), share: t("fc.report.share"), kcal: t("fc.report.kcal") },
+      lines: result.lines.map((l, k) => ({
+        n: digits(rows[k] + 1),
+        name: l.name,
+        amount: `${digits(l.qty)} ${unit(l.unit)}`,
+        cost: l.problem ? "—" : money(l.costMinor),
+        share: l.problem ? "—" : `${digits(l.sharePct)}%`,
+        kcal: cal(food.lines[k]?.kcal),
+        note: l.problem ? (l.problem === "no_price" ? t("fc.noPrice") : problemText({ code: l.problem, line: k }, result, rows, t)) : undefined,
+      })),
+      splitHeading: t("fc.report.split"),
+      split,
+      summaryHeading: t("fc.result"),
+      summary,
+      foodHeading: t("fc.food"),
+      food: foodRows,
+      notes: [
+        ...(!result.complete ? [`${t("fc.partialLong")} ${result.problems.map((p) => problemText(p, result, rows, t)).join(" ")}`] : []),
+        ...(food.counted > 0 && !food.complete
+          ? [`${t("fc.foodPartial")} ${food.problems.map((p) => t(`fc.fp.${p.code}`, { line: rows[p.line] + 1, name: result.lines[p.line]?.name ?? "" })).join(" ")}`]
+          : []),
+        ...(food.counted > 0 && FC_NUTRIENTS.some((k) => !food.known[k]) ? [t("fc.foodStar")] : []),
+        ...(food.counted > 0 ? [t("fc.foodSource")] : []),
+        t("fc.report.prices"),
+      ],
+      footer: t("fc.report.footer"),
+    };
+    setBusy("pdf");
+    setProblem("");
+    try {
+      await shareRecipePdf(report, title, t("fc.pdf"));
+    } catch {
+      setProblem(t("fc.pdfFailed"));
+    } finally {
+      setBusy("");
+    }
+  };
   const box = { borderWidth: 1, borderColor: c.line, borderRadius: RADIUS.m, padding: 12, gap: 10 } as const;
 
   return (
@@ -242,7 +342,8 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
               const ing = it.ref[0] === "i" ? ingredients.get(Number(it.ref.slice(1))) : undefined;
               const units = ing ? fcUnitsFor(fcIngredient(ing, lang)) : FC_UNIT_LIST;
               const shown = units.includes(it.unit) ? units : [it.unit, ...units];
-              const err = fieldErr[`item${n}`] ?? (line?.problem ? problemText({ code: line.problem, line: k }, result, rows, t) : "");
+              // "no price" is said by the line's price box, which offers to set it there and then
+              const err = fieldErr[`item${n}`] ?? (line?.problem && line.problem !== "no_price" ? problemText({ code: line.problem, line: k }, result, rows, t) : "");
               return (
                 <View key={n} style={box}>
                   <Choice label={t("fc.lineN", { n: n + 1 })} value={it.ref} options={whatOptions(it.ref)} placeholder={t("fc.choose")} onChange={(v) => choose(n, v)} searchable />
@@ -268,6 +369,7 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
                       {err}
                     </Txt>
                   ) : null}
+                  {ing ? <LinePrice i={ing} lineUnit={it.unit} onSaved={reload} /> : null}
                 </View>
               );
             })}
@@ -427,6 +529,10 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
                 </Txt>
               ) : null}
               <Btn title={saved ? t("fc.save") : t("fc.saveNew")} onPress={() => void save()} loading={busy === "save"} />
+              <Btn title={t("fc.pdf")} icon="download" kind="secondary" onPress={() => void pdf()} loading={busy === "pdf"} accessibilityHint={t("fc.pdfHint")} />
+              <Txt v="tiny" color={c.text3}>
+                {t("fc.pdfHint")}
+              </Txt>
               {saved ? (
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <Btn title={t("fc.copy")} kind="secondary" onPress={() => void copy()} loading={busy === "copy"} style={{ flex: 1 }} />
