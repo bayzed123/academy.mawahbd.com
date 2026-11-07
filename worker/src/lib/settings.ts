@@ -115,6 +115,11 @@ export interface Settings {
   sms: { enabled: boolean; sender_id: string; with_email: boolean; shop: boolean };
   /** the Android app (Admin → Android app): a short notice at the top of the app's Home (`notice_on` off hides it and keeps the words) */
   app: { notice_on: boolean; notice_bn: string; notice_en: string };
+  /**
+   * the Android app's notifications that go out by themselves (Admin → Android app → Notifications; services/push.ts): `new_class` — one of
+   * the app's free classes goes live (to everyone with the app); `new_lessons` — a lesson is added to a live class (to its students)
+   */
+  push: { new_class: boolean; new_lessons: boolean };
   onboarding: { dismissed: boolean };
 }
 
@@ -185,6 +190,7 @@ export const SETTING_DEFAULTS: Settings = {
   notifications: { emails: [], off: [] },
   sms: { enabled: true, sender_id: "", with_email: true, shop: true },
   app: { notice_on: false, notice_bn: "", notice_en: "" },
+  push: { new_class: true, new_lessons: true },
   onboarding: { dismissed: false },
 };
 

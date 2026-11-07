@@ -365,6 +365,24 @@ test("with no GOOGLE_SERVICE_ACCOUNT anywhere the script invents nothing", () =>
   const r = sb.run(["--ci", "--no-resources", "--secrets"]);
   assert.equal(r.code, 0, r.out);
   assert.ok(!("GOOGLE_SERVICE_ACCOUNT" in sb.state().secretValues));
+  assert.ok(!("FIREBASE_SERVICE_ACCOUNT" in sb.state().secretValues));
+});
+
+test("the Firebase key file (the app's notifications) comes from the GitHub secret FIREBASE_SERVICE_ACCOUNT the same way, and a wrong one never replaces it", () => {
+  const file = fakeGoogleKeyFile({ project_id: "mawah-academy-app", client_email: "firebase-adminsdk-x@mawah-academy-app.iam.gserviceaccount.com" });
+  const sb = sandbox();
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { FIREBASE_SERVICE_ACCOUNT: Buffer.from(file).toString("base64") });
+  assert.equal(r.code, 0, r.out);
+  const put = sb.state().secretValues.FIREBASE_SERVICE_ACCOUNT;
+  assert.ok(put && !put.includes("\n"), "one line");
+  assert.deepEqual(JSON.parse(put), JSON.parse(file));
+  assert.match(r.out, /FIREBASE_SERVICE_ACCOUNT created/);
+  assert.ok(!r.out.includes("QUJD") && !r.out.includes("PRIVATE KEY"), "no key material in the output");
+
+  const wrong = sb.run(["--ci", "--no-resources", "--secrets"], { FIREBASE_SERVICE_ACCOUNT: '{"project_info": {"project_id": "mawah-academy-app"}}' });
+  assert.equal(wrong.code, 0, wrong.out);
+  assert.match(wrong.out, /FIREBASE_SERVICE_ACCOUNT does not look right.*already on the Worker stays/s, "google-services.json is not the key");
+  assert.deepEqual(JSON.parse(sb.state().secretValues.FIREBASE_SERVICE_ACCOUNT), JSON.parse(file));
 });
 
 test("R2 not switched on: stops with the plain instruction", () => {

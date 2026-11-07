@@ -28,3 +28,6 @@ ios/
 # debug
 npm-debug.*
 *.orig.*
+
+# the Firebase project's file for notifications: written by the Android build from the GitHub secret GOOGLE_SERVICES_JSON, never committed
+google-services.json

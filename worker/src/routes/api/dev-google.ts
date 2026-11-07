@@ -8,7 +8,9 @@ import { DEV_WEBM } from "./dev-video";
  * it: worker/src/lib/ga4.ts only honours GOOGLE_API_BASE outside production). It lets the whole path — signing the note, the sign-in, the
  * report questions, the screen — be exercised without a Google account, and lets a test make "Google" say no in each of the ways it can
  * (see POST /api/dev/google/scenario). It checks only that the note is shaped as Google wants; the signature itself is checked in worker/test/analytics.test.ts.
- * It also stands in for Google Drive's `files.get` (see the end of this file): which file it is — and so how Drive answers — is told by the file's id.
+ * It also stands in for Google Drive's `files.get`: which file it is — and so how Drive answers — is told by the file's id; and for Firebase Cloud
+ * Messaging (the app's notifications, at the end of this file): it keeps what was "sent" and which phone is in which topic, for the tests to read
+ * (GET /api/dev/google/push). A phone address starting DEV_gone_ is one Google does not know.
  */
 export const devGoogle = new Hono<AppEnv>();
 
@@ -19,6 +21,8 @@ devGoogle.use("*", async (c, next) => {
 
 const ANALYTICS_SCOPE = "https://www.googleapis.com/auth/analytics.readonly";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging https://www.googleapis.com/auth/cloud-platform";
+const PASS: Record<string, string> = { [ANALYTICS_SCOPE]: "dev-pass", [DRIVE_SCOPE]: "dev-drive-pass", [FCM_SCOPE]: "dev-fcm-pass" };
 const SCENARIO_KEY = "dev:google:scenario";
 type Scenario = "ok" | "key_rejected" | "api_disabled" | "no_access" | "quota" | "down";
 
@@ -50,7 +54,8 @@ devGoogle.post("/token", async (c) => {
     form?.get("grant_type") === "urn:ietf:params:oauth:grant-type:jwt-bearer" &&
     header?.alg === "RS256" &&
     typeof claims?.iss === "string" &&
-    (claims.scope === ANALYTICS_SCOPE || claims.scope === DRIVE_SCOPE) &&
+    typeof claims.scope === "string" &&
+    claims.scope in PASS &&
     typeof claims.exp === "number" &&
     typeof claims.iat === "number" &&
     claims.exp > claims.iat &&
@@ -59,7 +64,7 @@ devGoogle.post("/token", async (c) => {
   if (!shaped) return c.json({ error: "invalid_request", error_description: "The signed note is not shaped as Google asks." }, 400);
   if (scenario === "down") return c.json({ error: "backend_error" }, 503);
   if (scenario === "key_rejected") return c.json({ error: "invalid_grant", error_description: "Invalid JWT Signature." }, 400);
-  return c.json({ access_token: claims?.scope === DRIVE_SCOPE ? "dev-drive-pass" : "dev-pass", expires_in: 3600, token_type: "Bearer" });
+  return c.json({ access_token: PASS[String(claims?.scope)], expires_in: 3600, token_type: "Bearer" });
 });
 
 type Req = {
@@ -196,4 +201,90 @@ devGoogle.get("/drive/v3/files/:id", (c) => {
   start = Math.max(0, start);
   end = Math.max(start, end);
   return new Response(bytes.slice(start, end + 1), { status: 206, headers: { ...base, "Content-Range": `bytes ${start}-${end}/${total}`, "Content-Length": String(end - start + 1) } });
+});
+
+/* ------------------------------------------------------------------------------------------------ Firebase Cloud Messaging (the app's notifications) */
+
+// one KV entry per notification sent and per (phone, topic): the app's calls come several at once, and a shared list would lose some
+const SENT_PREFIX = "dev:push:sent:";
+const TOPIC_PREFIX = "dev:push:topic:";
+type Env = AppEnv["Bindings"];
+const listAll = async (env: Env, prefix: string): Promise<string[]> => {
+  const names: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await env.KV.list({ prefix, cursor });
+    names.push(...page.keys.map((k) => k.name));
+    cursor = page.list_complete ? undefined : page.cursor;
+  } while (cursor);
+  return names.sort();
+};
+const fcmError = (status: number, statusText: string, message: string, reason?: string) =>
+  jsonReply({ error: { code: status, message, status: statusText, details: reason ? [{ "@type": "type.googleapis.com/google.rpc.ErrorInfo", reason }] : [] } }, status);
+
+/** What a test reads back: the notifications sent (oldest first) and each phone's topics. */
+devGoogle.get("/push", async (c) => {
+  const sentKeys = await listAll(c.env, SENT_PREFIX);
+  const sent = (await Promise.all(sentKeys.map((k) => c.env.KV.get(k)))).flatMap((v) => (v ? [JSON.parse(v) as unknown] : []));
+  const topics: Record<string, string[]> = {};
+  for (const k of await listAll(c.env, TOPIC_PREFIX)) {
+    const [token = "", topic = ""] = k.slice(TOPIC_PREFIX.length).split("|");
+    (topics[token] ??= []).push(topic);
+  }
+  return c.json({ ok: true, sent, topics });
+});
+devGoogle.delete("/push", async (c) => {
+  await Promise.all([...(await listAll(c.env, SENT_PREFIX)), ...(await listAll(c.env, TOPIC_PREFIX))].map((k) => c.env.KV.delete(k)));
+  return c.json({ ok: true });
+});
+
+devGoogle.post("/fcm/v1/projects/:project/:action", async (c) => {
+  if (c.req.param("action") !== "messages:send") return fcmError(404, "NOT_FOUND", "Not found");
+  if (c.req.header("authorization") !== "Bearer dev-fcm-pass") return fcmError(401, "UNAUTHENTICATED", "Request had invalid authentication credentials.");
+  const scenario = await scenarioOf(c);
+  if (scenario === "api_disabled")
+    return fcmError(403, "PERMISSION_DENIED", "Firebase Cloud Messaging API has not been used in project 123456 before or it is disabled.", "SERVICE_DISABLED");
+  if (scenario === "no_access") return fcmError(403, "PERMISSION_DENIED", "Permission 'cloudmessaging.messages.create' denied on resource (or it may not exist).");
+  if (scenario === "quota") return fcmError(429, "RESOURCE_EXHAUSTED", "Quota exceeded.");
+  if (scenario === "down") return fcmError(503, "UNAVAILABLE", "The service is currently unavailable.");
+  const body = (await c.req.json().catch(() => ({}))) as {
+    validate_only?: boolean;
+    message?: { topic?: string; condition?: string; notification?: { title?: string; body?: string }; data?: Record<string, unknown>; android?: { notification?: { channel_id?: string } } };
+  };
+  const m = body.message;
+  const shaped =
+    !!m &&
+    (typeof m.topic === "string") !== (typeof m.condition === "string") &&
+    !!m.notification?.title &&
+    !!m.notification.body &&
+    typeof m.data?.path === "string" &&
+    Object.values(m.data).every((v) => typeof v === "string") &&
+    m.android?.notification?.channel_id === "classes";
+  if (!shaped) return fcmError(400, "INVALID_ARGUMENT", "Request contains an invalid argument.");
+  const id = `${Date.now().toString().padStart(15, "0")}-${crypto.randomUUID()}`;
+  const name = `projects/${c.req.param("project")}/messages/${id}`;
+  if (body.validate_only) return c.json({ name });
+  const record = { project: c.req.param("project"), ...(m.topic ? { topic: m.topic } : { condition: m.condition }), title: m.notification!.title, body: m.notification!.body, data: m.data };
+  await c.env.KV.put(`${SENT_PREFIX}${id}`, JSON.stringify(record), { expirationTtl: 3600 });
+  return c.json({ name });
+});
+
+devGoogle.post("/iid/:op", async (c) => {
+  const op = c.req.param("op");
+  if (op !== "v1:batchAdd" && op !== "v1:batchRemove") return jsonReply({ error: "NOT_FOUND" }, 404);
+  if (c.req.header("authorization") !== "Bearer dev-fcm-pass" || c.req.header("access_token_auth") !== "true") return jsonReply({ error: "Unauthorized" }, 401);
+  if ((await scenarioOf(c)) === "down") return jsonReply({ error: "Service unavailable" }, 503);
+  const body = (await c.req.json().catch(() => ({}))) as { to?: string; registration_tokens?: string[] };
+  const topic = /^\/topics\/([A-Za-z0-9_.~%-]+)$/.exec(body.to ?? "")?.[1];
+  if (!topic || !Array.isArray(body.registration_tokens) || !body.registration_tokens.length) return jsonReply({ error: "InvalidParameters" }, 400);
+  const results = await Promise.all(
+    body.registration_tokens.map(async (token) => {
+      if (token.startsWith("DEV_gone_")) return { error: "NOT_FOUND" };
+      const key = `${TOPIC_PREFIX}${token}|${topic}`;
+      if (op === "v1:batchAdd") await c.env.KV.put(key, "1", { expirationTtl: 3600 });
+      else await c.env.KV.delete(key);
+      return {};
+    }),
+  );
+  return c.json({ results });
 });

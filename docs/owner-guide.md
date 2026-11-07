@@ -608,6 +608,27 @@
   * শুধু মালিক: প্রো দিতে পারেন।
 * **অ্যাকাউন্ট ডিলিট:** কেউ অ্যাকাউন্ট ডিলিট করলে তার ফুডকস্টের সবকিছু মুছে যায়: রেসিপি, নিজের উপকরণ ও নিজের দাম।
 
+## ৩৫. অ্যাপের নোটিফিকেশন — নতুন ক্লাস ও নতুন লেসনের খবর
+
+শিক্ষার্থীর ফোনে নোটিফিকেশন আসে — **অ্যাপ বন্ধ থাকলেও**। ফোন অফলাইন থাকলে আবার ইন্টারনেট পেলে আসে (এক সপ্তাহের মধ্যে)।
+
+**শিক্ষার্থী যা দেখেন:** অ্যাপের হোমে একবার একটি কার্ড আসে — **অনুমতি দিন**, **এখন না**, অথবা ✕। “অনুমতি দিন” চাপলে ফোন নিজে জিজ্ঞেস করে (Android 13 ও নতুন ফোনে)। পরে **প্রোফাইল → নোটিফিকেশন** সুইচ দিয়ে যেকোনো সময় চালু/বন্ধ করা যায়। নোটিফিকেশনে চাপলে সংশ্লিষ্ট ক্লাসটি খোলে। প্রতিটি ফোন তার নিজের ভাষায় পায়।
+
+**কী কী যায়** (অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → **নোটিফিকেশন**):
+* **নিজে থেকে:** অ্যাপের কোনো ফ্রি ক্লাস প্রথমবার চালু হলে — অ্যাপ আছে এমন সবাইকে (প্রতি ক্লাসে একবার); চালু ক্লাসে নতুন লেসন যোগ হলে — সেই ক্লাসের শিক্ষার্থীদের (প্রতি ক্লাসে ১২ ঘণ্টায় সর্বোচ্চ একবার, তাই এক সন্ধ্যায় দশটি লেসন দিলেও একটিই যায়)। দুটোই সুইচ দিয়ে বন্ধ করা যায়।
+* **আপনার নিজের:** **নোটিফিকেশন পাঠান** → কারা পাবে (অ্যাপ আছে এমন সবাই, অথবা একটি ক্লাসের শিক্ষার্থীরা) → ট্যাপ করলে কী খুলবে → বাংলা ও ইংরেজিতে শিরোনাম ও বার্তা → **এখনই পাঠান**। পাঠানো নোটিফিকেশন ফেরত নেওয়া যায় না। ভুল করে দুবার না যায়, তাই এক মিনিটের মধ্যে দ্বিতীয়টি পাঠানো যায় না।
+* **সম্প্রতি পাঠানো:** কী গেছে, কাকে, কে পাঠিয়েছেন, আর গেছে কি না (না গেলে কারণসহ)।
+* নোটিফিকেশনে কখনো কেনা বা দামের কথা থাকে না — গুগল প্লের নিয়ম।
+
+**একবার সেটআপ (Firebase, বিনামূল্যে):** বিস্তারিত ধাপ [android-app.md](android-app.md)-এর ৫ নম্বরে। সংক্ষেপে:
+1. console.firebase.google.com → নতুন প্রজেক্ট “MAWAH Academy” (Google Analytics লাগবে না)।
+2. **Add app → Android** → প্যাকেজ নাম ঠিক **`com.mawahacademy.app`** → **google-services.json** নামান → GitHub → Settings → Secrets → Actions → নতুন সিক্রেট **`GOOGLE_SERVICES_JSON`** = পুরো ফাইল।
+3. Firebase → ⚙ Project settings → **Service accounts → Generate new private key** → নামানো ফাইলটি GitHub সিক্রেট **`FIREBASE_SERVICE_ACCOUNT`**-এ রাখুন। এটি পাসওয়ার্ডের মতো — চ্যাটে বা ইমেইলে কখনো দেবেন না।
+4. GitHub → Actions → **Deploy** চালান, তারপর **Android app** চালান → নতুন AAB গুগল প্লেতে দিন। শিক্ষার্থীরা অ্যাপ আপডেট করলে নোটিফিকেশন পাবেন।
+5. অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → নোটিফিকেশন → **সংযোগ পরীক্ষা করুন** — “সংযোগ ঠিক আছে” দেখাবে। না দেখালে পাতাটি কারণ ও করণীয় বলে দেয়।
+
+সেটআপের আগে অ্যাপ আগের মতোই চলে, শুধু নোটিফিকেশনের কার্ড ও সুইচ দেখায় না। নোটিফিকেশন পাঠাতে পারেন মালিক ও কনটেন্ট ম্যানেজার; স্বয়ংক্রিয় সুইচ বদলাতে পারেন শুধু মালিক।
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -1211,3 +1232,33 @@ You keep the ingredients and prices on the **FoodCost** page in the Admin menu:
   * everyone else: look only;
   * only the owner: give Pro.
 * **Deleting an account** deletes all of that person's FoodCost data: their recipes, own ingredients and own prices.
+
+## 35. App notifications — news of new classes and new lessons
+
+Students get notifications on their phones — **even with the app closed**. A phone that is offline gets them when it is back online
+(within a week).
+
+**What students see:** Home shows a card once — **Allow**, **Not now**, or ✕. *Allow* makes the phone ask its own question (Android 13
+and newer). Later, **Profile → Notifications** switches them on and off at any time. Tapping one opens the class it is about. Each phone
+gets them in its own language.
+
+**What goes out** (Admin → Android app → **Notifications**):
+* **By themselves:** one of the app's free classes going live for the first time — to everyone with the app (once per class); a lesson
+  added to a live class — to its students (at most once in 12 hours per class, so ten lessons in an evening send one). Each has a switch.
+* **Your own:** **Send a notification** → who gets it (everyone with the app, or the students of one class) → what a tap opens → title and
+  message in Bangla and English → **Send now**. A notification cannot be taken back. A second one within a minute is refused, so a double
+  click never sends two.
+* **Sent lately:** what went, to whom, who sent it, and whether it went (with the reason when it did not).
+* Notifications never speak of buying or prices — a Google Play rule.
+
+**Setting up, once (Firebase, free):** the full steps are in [android-app.md](android-app.md), section 5. In short:
+1. console.firebase.google.com → a new project, *MAWAH Academy* (Google Analytics is not needed).
+2. **Add app → Android** → package name exactly **`com.mawahacademy.app`** → download **google-services.json** → GitHub → Settings →
+   Secrets → Actions → new secret **`GOOGLE_SERVICES_JSON`** = the whole file.
+3. Firebase → ⚙ Project settings → **Service accounts → Generate new private key** → put the downloaded file in the GitHub secret
+   **`FIREBASE_SERVICE_ACCOUNT`**. It is like a password — never paste it in a chat or an e-mail.
+4. GitHub → Actions → run **Deploy**, then **Android app** → upload the new AAB to Google Play. Students get notifications once they update.
+5. Admin → Android app → Notifications → **Check the connection** — it should say *Connected*. If not, the page says why and what to do.
+
+Until it is set up the app works as before; it just shows no notification card or switch. The owner and Content Managers can send
+notifications; only the owner can change the automatic switches.

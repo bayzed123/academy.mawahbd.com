@@ -190,6 +190,16 @@ html[lang=bn] .rail-in h3{letter-spacing:0;text-transform:none;font-size:.9rem}
 .app-classes li{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line)}
 .app-classes li:first-child{border-top:0}
 .app-classes .cell-title{flex:1;min-width:0}
+/* Admin → Android app → Notifications */
+.push-count{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;margin:0 0 6px}
+.push-count .icon{flex:none;color:var(--g-600)}
+.push-count b{display:block;color:var(--k-900)}
+.push-count small{color:var(--ink-3)}
+.push-sends{list-style:none;margin:8px 0 0;padding:0;display:grid}
+.push-sends li{display:flex;align-items:flex-start;gap:12px;padding:10px 4px;border-top:1px solid var(--line)}
+.push-sends li:first-child{border-top:0}
+.push-sends .cell-title{flex:1;min-width:0;display:grid;gap:2px}
+.push-sends .cell-title small{overflow-wrap:anywhere}
 .review-secret code.secret{display:inline-block;margin:0;padding:.35rem .7rem;font-size:1.05rem}
 .review-secret .row{flex-wrap:wrap;gap:8px;align-items:center}
 .danger-zone h3{margin:0 0 4px}

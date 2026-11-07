@@ -20,7 +20,7 @@ export interface DeletionResult {
  * (all of it or nothing):
  *  - removed: name, mobile number, e-mail, address, password, staff notes; lesson progress, questions under lessons, class reviews, material
  *    downloads, private-group requests, password codes and links, the chat assistant's hand-offs, FoodCost (the workspace with its recipes,
- *    own ingredients and own prices), and newsletter and "tell me when it opens"
+ *    own ingredients and own prices), the link to the phones it got the app's notifications on, and newsletter and "tell me when it opens"
  *    sign-ups with the same e-mail or number; the name in the activity log
  *  - ended: every sign-in (website and app), access to the classes, the certificates (the check page says the certificate is no longer valid)
  *  - kept, because tax and accounting law needs them: orders and payments (order and invoice number, class, amount, date, how it was paid,
@@ -63,6 +63,9 @@ export async function deleteStudentAccount(env: Env, id: number): Promise<Deleti
     db.prepare("DELETE FROM reset_codes WHERE student_id = ?").bind(id),
     db.prepare("DELETE FROM auth_tokens WHERE subject_type = 'student' AND subject_id = ?").bind(id),
     db.prepare("DELETE FROM chat_escalations WHERE student_id = ?").bind(id),
+    // the app's notifications: a phone the account was signed in on no longer belongs to anyone (it keeps the news it allowed; its classes'
+    // topics are dropped when the signed-out app next checks in)
+    db.prepare("UPDATE push_devices SET student_id = NULL WHERE student_id = ?").bind(id),
     // FoodCost Pro: the workspace and everything in it (recipes and their lines, own ingredients, own prices) go with it
     db.prepare("DELETE FROM fc_workspaces WHERE student_id = ?").bind(id),
     db.prepare("UPDATE activity_log SET actor_name = '' WHERE actor_type = 'student' AND actor_id = ?").bind(id),
