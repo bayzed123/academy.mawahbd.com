@@ -538,6 +538,10 @@
 * **অ্যাপে ক্লাস কেনা যায় না** — গুগল প্লের নিয়ম অনুযায়ী অ্যাপে কোনো ক্লাসের দাম বা কেনার বোতাম নেই। শিক্ষার্থীরা আগের মতো ওয়েবসাইটে কেনেন। শপের পণ্যে “অর্ডার করুন” চাপলে ওয়েবসাইটের নিরাপদ পাতা খোলে।
 * **আপলোড কী ও বিল্ড:** কীভাবে কী বানাবেন, GitHub-এ কোন ৪টি সিক্রেট দেবেন, আর কোথা থেকে `.aab` (গুগল প্লের জন্য) ও `.apk` (ফোনে ইনস্টলের জন্য) নামাবেন — সব ধাপ [android-app.md](android-app.md)-তে। কী ফাইল ও পাসওয়ার্ড কখনো চ্যাট, ইমেইল বা রিপোজিটরিতে দেবেন না।
 * **গুগল প্লে:** পার্সোনাল ডেভেলপার অ্যাকাউন্ট (১৩ নভেম্বর ২০২৩-এর পরে খোলা) হলে প্রোডাকশনের আগে **১২ জন টেস্টার টানা ১৪ দিন** ক্লোজড টেস্টে থাকতে হবে।
+* **ধাপে ধাপে প্রকাশ:** প্লে কনসোলের প্রতিটি ঘরে কী লিখবেন (বাংলা ও ইংরেজি লিস্টিং, অ্যাপ কনটেন্ট, ডেটা সেফটি, ক্লোজড টেস্ট,
+  প্রোডাকশনের আবেদন) আর *সেটিংস → পলিসি*-তে বসানোর নতুন রিফান্ড ও শর্তাবলির লেখা (ইকুইপমেন্ট শপ এখন চালু) — সব আছে [play-store.md](play-store.md)-এ।
+* **রাত বা দিন:** শিক্ষার্থী নিজে না বাছা পর্যন্ত অ্যাপ ফোনের সেটিং মেনে খোলে (ফোন লাইট মোডে থাকলে দিনের লুক); হোমের সূর্য/চাঁদ বোতাম আর
+  *প্রোফাইল → লুক* দিয়ে বদলানো যায়।
 
 ## ৩২. শিক্ষার্থীর অ্যাকাউন্ট ডিলিট করা (গুগল প্লের নিয়ম)
 
@@ -1165,6 +1169,11 @@ The app reads the **same server** as the website: a class, lesson, material or p
 * **Classes cannot be bought in the app.** Google Play's rule: the app shows no class price and no buy button. Students buy on the website, as now. In the shop, **Order now** opens the website's secure page.
 * **The upload key and the builds:** how to make the key, the 4 GitHub secrets, and where to download the `.aab` (for Google Play) and the `.apk` (to install on a phone) — every step is in [android-app.md](android-app.md). Never put the key file or its password in a chat, an e-mail or the repository.
 * **Google Play:** a personal developer account made after 13 Nov 2023 must run a **closed test with 12 testers for 14 days in a row** before production.
+* **Publishing, box by box:** [play-store.md](play-store.md) has the text for every Play Console box (Bangla and English listing,
+  App content, Data safety, the closed test, applying for production) and the refund and terms texts to paste in *Settings →
+  Policies* now that the Equipment Shop is open.
+* **Night or day:** the app opens in the look the phone is set to (light phone → day look) until the student chooses; the sun/moon
+  button on Home and *Profile → Look* switch it.
 
 ## 32. Deleting a student's account (a Google Play rule)
 

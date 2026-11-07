@@ -14,7 +14,8 @@ export function renderMarkdown(src: string, depth = 0): string {
   const out: string[] = [];
   const para: string[] = [];
   const flush = () => {
-    if (para.length) out.push(`<p>${inline(para.join(" "))}</p>`);
+    // a line break typed inside a paragraph stays a line break (owners type their policies and descriptions line by line in Admin)
+    if (para.length) out.push(`<p>${para.map(inline).join("<br>")}</p>`);
     para.length = 0;
   };
 
