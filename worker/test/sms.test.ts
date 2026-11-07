@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { allowVisitorSms, SMS_LAST_KEY, sendSms, smsBalance, smsEndpoints, smsProblem } from "../src/lib/sms";
-import { getSettings, setSetting } from "../src/lib/settings";
+import { allowVisitorSms, isMaskingSender, SMS_LAST_KEY, sendSms, smsBalance, smsEndpoints, smsProblem } from "../src/lib/sms";
+import { getSettings, resetSettingsCache, setSetting } from "../src/lib/settings";
+import { proofReceivedSms, receiptSms, rejectedSms, resetCodeSms, sharedNumberSms, smsText, testSms, wordsFor } from "../src/lib/smsText";
+import { tellStudent } from "../src/services/studentMessages";
 import { Client, env, json, loginStaff } from "./helpers";
 
 /*
@@ -337,6 +339,65 @@ describe("what a visitor may set off", () => {
   });
 });
 
+describe("a brand-name (masking) sender", () => {
+  it("is told apart from a number by the letters in it", () => {
+    for (const name of ["MAWAH", "My Shop", "MAWAH ACDMY", "M1"]) expect(isMaskingSender(name), name).toBe(true);
+    for (const number of ["8809601017241", "01700000000", "", null, undefined]) expect(isMaskingSender(number), String(number)).toBe(false);
+  });
+
+  it("gets every text in Bangla without the shop's name in front (the phone shows it); a number gets the student's language with it", () => {
+    const texts = [
+      smsText("en", (l) => resetCodeSms(l, { code: "123456" })),
+      smsText("en", (l) => receiptSms(l, { total: 1500, learnUrl: "https://mawahacademy.com/app/", code: "STU-000123" })),
+      smsText("en", (l) => proofReceivedSms(l, { total: 1500 })),
+      smsText("en", (l) => rejectedSms(l, { reason: "TrxID not found" })),
+      smsText("en", (l) => sharedNumberSms(l, { codes: ["STU-000001", "STU-000006"] })),
+      smsText("en", testSms),
+    ];
+    for (const t of texts) {
+      expect(wordsFor(t, "8809601017241")).toBe(t.build("en"));
+      expect(wordsFor(t, "8809601017241").startsWith("MAWAH Academy: ")).toBe(true);
+      expect(wordsFor(t, "")).toBe(t.build("en"));
+      const masked = wordsFor(t, "MAWAH");
+      expect(masked).toBe(t.build("bn").replace(/^মাওয়াহ একাডেমি: /, ""));
+      expect(masked).not.toMatch(/MAWAH Academy|মাওয়াহ একাডেমি/);
+    }
+    // a Bangla student gets Bangla from a number too, with the name
+    expect(wordsFor(smsText("bn", testSms), "8809601017241")).toBe("মাওয়াহ একাডেমি: পরীক্ষামূলক বার্তা — এসএমএস ঠিকমতো কাজ করছে।");
+    // the password code from a brand name is one SMS (a Bangla SMS holds 70 letters; with the name in front it took two)
+    expect(wordsFor(texts[0]!, "MAWAH").length).toBeLessThanOrEqual(70);
+    expect(resetCodeSms("bn", { code: "123456" }).length).toBeGreaterThan(70);
+  });
+
+  it("a student's text goes out in Bangla from a brand name, in their own language from a number — to the company as unicode with the sender", async () => {
+    await setSetting(env, "sms", { enabled: true, sender_id: "MAWAH", with_email: true, shop: true }, null);
+    resetSettingsCache();
+    const code = smsText("en", (l) => resetCodeSms(l, { code: "654321" }));
+    await tellStudent(env, { email: null, phone: "01711000131" }, { sms: code }, { smsAlso: true });
+    expect((await outboxTo("01711000131")).at(-1)?.text).toBe("পাসওয়ার্ড বদলানোর কোড 654321। ১৫ মিনিট চলবে। কাউকে জানাবেন না।");
+
+    withSecrets();
+    const calls = companySays(() => says(200, "SMS SUBMITTED: ID - C2000AB12"));
+    expect((await tellStudent(env, { email: null, phone: "01711000132" }, { sms: code }, { smsAlso: true })).sms).toMatchObject({ ok: true });
+    expect(calls[0]!.body).toMatchObject({ senderid: "MAWAH", type: "unicode", msg: "পাসওয়ার্ড বদলানোর কোড 654321। ১৫ মিনিট চলবে। কাউকে জানাবেন না।" });
+
+    await setSetting(env, "sms", { enabled: true, sender_id: "8809601017241", with_email: true, shop: true }, null);
+    resetSettingsCache();
+    await tellStudent(env, { email: null, phone: "01711000133" }, { sms: code }, { smsAlso: true });
+    expect(calls[1]!.body).toMatchObject({ senderid: "8809601017241", type: "text", msg: "MAWAH Academy: your password code is 654321. It works for 15 minutes. Do not share it with anyone." });
+  });
+
+  it("a brand name longer than a phone shows (11 characters) is refused when it is saved, in plain words; a number may be longer", async () => {
+    const admin = await owner();
+    const tooLong = await admin.put("/api/admin/settings/sms", { enabled: true, sender_id: "MAWAH Academy", with_email: true, shop: true });
+    expect(tooLong.status).toBe(422);
+    expect((await json(tooLong)).error.fields).toEqual({ sender_id: "masking_too_long" });
+    for (const fine of ["MAWAH ACDMY", "MAWAH", "8809601017241"]) {
+      expect((await admin.put("/api/admin/settings/sms", { enabled: true, sender_id: fine, with_email: true, shop: true })).status, fine).toBe(200);
+    }
+  });
+});
+
 describe("Settings → SMS", () => {
   it("the status is for the team to read; only the owner can check the credit or send a test", async () => {
     expect((await new Client().get("/api/admin/settings/sms")).status).toBe(401);
@@ -384,10 +445,10 @@ describe("Settings → SMS", () => {
     const admin = await owner();
     expect((await admin.put("/api/admin/settings/sms", { enabled: true, sender_id: "MAWAH", with_email: true, shop: true })).status).toBe(200);
 
-    // development: it lands in the outbox
+    // development: it lands in the outbox — in Bangla, since a brand name (masking) carries Bangla only, whatever the page's language
     const dev = await json(await admin.post("/api/admin/settings/sms/test", { to: "+8801711000009", lang: "en" }));
     expect(dev).toMatchObject({ sent: true, provider: "dev-outbox", to: "01711000009" });
-    expect((await outboxTo("01711000009")).at(-1)?.text).toContain("test message");
+    expect((await outboxTo("01711000009")).at(-1)?.text).toBe("পরীক্ষামূলক বার্তা — এসএমএস ঠিকমতো কাজ করছে।");
 
     // with the company: one request, to that number, with the sender name
     withSecrets();

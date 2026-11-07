@@ -8,7 +8,7 @@ import { addSeconds, all, first, nowIso, run } from "../../lib/db";
 import { HttpError, ok, parseBody } from "../../lib/http";
 import { toMe } from "../../lib/me";
 import { passwordResetMail } from "../../lib/mailer";
-import { resetCodeSms, sharedNumberSms } from "../../lib/smsText";
+import { resetCodeSms, sharedNumberSms, smsText } from "../../lib/smsText";
 import { addressSchema, emailSchema, langSchema, nameSchema, optionalEmailSchema, passwordSchema, phoneSchema, requiredPhoneSchema, turnstileField } from "../../lib/schemas";
 import { createSession, destroySession, viaApp } from "../../lib/session";
 import { verifyTurnstile } from "../../lib/turnstile";
@@ -237,7 +237,7 @@ authRoutes.post("/forgot", rateLimit("RL_AUTH"), async (c) => {
     const byNumber = parseLoginId(typed)?.kind === "phone";
     const ip = c.get("ip");
     c.executionCtx.waitUntil(
-      tellStudent(c.env, { email: student.email, phone: student.phone }, { mail: link ? passwordResetMail(lang, link, code) : undefined, sms: resetCodeSms(lang, { code }) }, { smsAlso: byNumber, capped: true }).then((told) =>
+      tellStudent(c.env, { email: student.email, phone: student.phone }, { mail: link ? passwordResetMail(lang, link, code) : undefined, sms: smsText(lang, (l) => resetCodeSms(l, { code })) }, { smsAlso: byNumber, capped: true }).then((told) =>
         // how it went, for the owner (Admin → Activity): a text or e-mail that could not be sent is the usual reason "the code never came"
         auditAs(c.env, { type: "system", id: null, name: "" }, { action: "student.password_code_sent", entity: "student", entityId: student.id, meta: toldMeta(told) }, ip),
       ),
@@ -250,7 +250,7 @@ authRoutes.post("/forgot", rateLimit("RL_AUTH"), async (c) => {
     if (shared) {
       const ip = c.get("ip");
       c.executionCtx.waitUntil(
-        tellStudent(c.env, { email: null, phone: shared.phone }, { sms: sharedNumberSms(body.lang, { codes: shared.ids.map(studentCode) }) }, { smsAlso: true, capped: true }).then((told) =>
+        tellStudent(c.env, { email: null, phone: shared.phone }, { sms: smsText(body.lang, (l) => sharedNumberSms(l, { codes: shared.ids.map(studentCode) })) }, { smsAlso: true, capped: true }).then((told) =>
           auditAs(c.env, { type: "system", id: null, name: "" }, { action: "student.password_ids_sent", entity: "student", entityId: shared.ids.join(","), meta: { accounts: shared.ids.length, sms: toldMeta(told).sms } }, ip),
         ),
       );

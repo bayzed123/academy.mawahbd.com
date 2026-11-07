@@ -1,5 +1,6 @@
 import { formatNumber } from "@mawah/shared";
 import type { Lang } from "../env";
+import { isMaskingSender } from "./sms";
 
 /*
  * The text messages students get. Short on purpose: a message that is all English letters is one SMS for 160 characters; one with
@@ -8,6 +9,25 @@ import type { Lang } from "../env";
  */
 
 const brand = (lang: Lang) => (lang === "bn" ? "মাওয়াহ একাডেমি" : "MAWAH Academy");
+
+/** A text message to send: built in the student's language — or in another, when the shop's sender asks for it (wordsFor). */
+export interface SmsText {
+  lang: Lang;
+  build: (lang: Lang) => string;
+}
+export const smsText = (lang: Lang, build: (lang: Lang) => string): SmsText => ({ lang, build });
+
+/**
+ * The words that go out from this sender. A number: the student's language, starting with the shop's name. A brand name (masking): Bangla,
+ * whatever the student's language — the SMS company refuses English from one — and without the shop's name in front, since the phone shows
+ * it as the sender already (which saves a whole SMS on the password code: 80 Bangla letters are two SMS, 63 are one).
+ */
+export function wordsFor(t: SmsText, sender: string | null | undefined): string {
+  if (!isMaskingSender(sender)) return t.build(t.lang);
+  const text = t.build("bn");
+  const named = `${brand("bn")}: `;
+  return text.startsWith(named) ? text.slice(named.length) : text;
+}
 const tk = (lang: Lang, amount: number) => (lang === "bn" ? `৳${formatNumber(Math.round(amount), "bn")}` : `Tk ${Math.round(amount)}`);
 
 /**

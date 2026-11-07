@@ -1,7 +1,7 @@
 import type { Env, Lang } from "../env";
 import { auditAs } from "../lib/audit";
 import { getSettings } from "../lib/settings";
-import { shopSms, type ShopTextStep } from "../lib/smsText";
+import { shopSms, smsText, type ShopTextStep } from "../lib/smsText";
 import { tellStudent, toldMeta } from "./studentMessages";
 
 /** What a text about a tools-shop order needs from the order. */
@@ -32,7 +32,7 @@ export async function textShopBuyer(env: Env, order: ShopTextOrder, step: ShopTe
   try {
     if (!order.phone || !(await getSettings(env)).sms.shop) return;
     const lang: Lang = order.locale === "en" ? "en" : "bn";
-    const sms = shopSms(lang, step, { code: order.public_id, total: order.total, cod: order.payment === "cod", courier: order.courier, tracking: order.courier_ref });
+    const sms = smsText(lang, (l) => shopSms(l, step, { code: order.public_id, total: order.total, cod: order.payment === "cod", courier: order.courier, tracking: order.courier_ref }));
     const told = await tellStudent(env, { email: null, phone: order.phone }, { sms }, { smsAlso: true, capped: opts.capped });
     await auditAs(env, SYSTEM, { action: "shop_orders.texted", entity: "shop_order", entityId: order.id, summary: `${order.public_id} · ${step}`, meta: { step, sms: toldMeta(told).sms } });
   } catch (err) {

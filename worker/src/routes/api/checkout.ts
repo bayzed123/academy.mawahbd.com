@@ -9,7 +9,7 @@ import { HttpError, ok, parseBody } from "../../lib/http";
 import { manualPaymentReceivedMail } from "../../lib/mailer";
 import { toMe } from "../../lib/me";
 import { addressSchema, langSchema, nameSchema, optionalEmailSchema, requiredPhoneSchema, turnstileField } from "../../lib/schemas";
-import { proofReceivedSms } from "../../lib/smsText";
+import { proofReceivedSms, smsText } from "../../lib/smsText";
 import { createSession } from "../../lib/session";
 import { getSettings } from "../../lib/settings";
 import { verifyTurnstile } from "../../lib/turnstile";
@@ -150,7 +150,7 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
     await audit(c, { action: withProof ? "checkout.manual_submitted" : "checkout.manual_started", entity: "order", entityId: order.id, meta: { method: proof.method } });
     if (withProof) {
       const mail = manualPaymentReceivedMail(student.locale, { name: student.name, total: formatMoney(quote.total, student.locale) });
-      c.executionCtx.waitUntil(tellStudent(c.env, student, { mail, sms: proofReceivedSms(student.locale, { total: quote.total }) }, { capped: true }).then(() => undefined));
+      c.executionCtx.waitUntil(tellStudent(c.env, student, { mail, sms: smsText(student.locale, (l) => proofReceivedSms(l, { total: quote.total })) }, { capped: true }).then(() => undefined));
       c.executionCtx.waitUntil(notifyProof(c.env, order.id));
     }
     const created = await first<{ pay_by: string }>(c.env.DB, "SELECT pay_by FROM orders WHERE id = ?", order.id);
@@ -266,7 +266,7 @@ checkoutRoutes.post("/:publicId/proof", requireStudent, async (c) => {
   if (firstProof && order) {
     const mail = manualPaymentReceivedMail(student.locale, { name: student.name, total: formatMoney(order.total, student.locale) });
     // the text goes to whatever number was typed at checkout, before any money is proven: it is capped like the other texts a visitor can set off
-    c.executionCtx.waitUntil(tellStudent(c.env, student, { mail, sms: proofReceivedSms(student.locale, { total: order.total }) }, { capped: true }).then(() => undefined));
+    c.executionCtx.waitUntil(tellStudent(c.env, student, { mail, sms: smsText(student.locale, (l) => proofReceivedSms(l, { total: order.total })) }, { capped: true }).then(() => undefined));
     c.executionCtx.waitUntil(notifyProof(c.env, id));
   }
   return ok(c, { order: { public_id: publicId, status: order?.status ?? "awaiting_verification" } });

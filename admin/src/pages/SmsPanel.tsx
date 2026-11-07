@@ -184,6 +184,13 @@ export function SmsPanel() {
         <Field id="sms-sender" label={t("adm.sms.senderId")} hint={t("adm.sms.senderHint")} error={senderError}>
           <TextInput id="sms-sender" autoComplete="off" maxLength={15} value={sender} error={senderError} disabled={!canWrite} onChange={(ev) => setSender(ev.target.value)} />
         </Field>
+        {/* a brand name (letters in it) changes what the texts say: worker/src/lib/smsText.ts wordsFor */}
+        {/[A-Za-z]/.test(sender) && (
+          <div className="notice" role="note">
+            <Icon name="chat" />
+            <p>{t("adm.sms.maskingNote")}</p>
+          </div>
+        )}
         <div className="row">
           <Button className="btn-primary" type="submit" busy={save.isPending} disabled={!canWrite}>
             {t("btn.save")}

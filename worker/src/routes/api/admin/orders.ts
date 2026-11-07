@@ -7,7 +7,7 @@ import { csvResponse, toCsv } from "../../../lib/csv";
 import { all, first, likeEscape, pageInfo, pageParams } from "../../../lib/db";
 import { HttpError, intParam, notFound, ok, parseBody } from "../../../lib/http";
 import { manualPaymentRejectedMail } from "../../../lib/mailer";
-import { rejectedSms } from "../../../lib/smsText";
+import { rejectedSms, smsText } from "../../../lib/smsText";
 import { tellStudent } from "../../../services/studentMessages";
 import { textSchema } from "../../../lib/schemas";
 import { requirePerm } from "../../../middleware/auth";
@@ -174,7 +174,7 @@ orders.post("/orders/:id/reject", requirePerm("orders:verify"), async (c) => {
     tellStudent(
       c.env,
       { email: order.customer_email, phone: order.customer_phone || student?.phone },
-      { mail: manualPaymentRejectedMail(lang, { name: order.customer_name, reason: body.reason }), sms: rejectedSms(lang, { reason: body.reason }) },
+      { mail: manualPaymentRejectedMail(lang, { name: order.customer_name, reason: body.reason }), sms: smsText(lang, (l) => rejectedSms(l, { reason: body.reason })) },
     ).then(() => undefined),
   );
   await audit(c, { action: "order.rejected", entity: "order", entityId: id, summary: body.reason });
