@@ -76,7 +76,14 @@ export function Choice<T extends string | number>({ label, value, options, onCha
           <Press onPress={close} accessibilityRole="button" accessibilityLabel={t("common.close")} scale={1} style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }}>
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)" }} />
           </Press>
-          <View style={{ maxHeight: "82%", backgroundColor: c.surface, borderTopLeftRadius: RADIUS.l, borderTopRightRadius: RADIUS.l, borderTopWidth: 1, borderColor: c.line, paddingBottom: insets.bottom + 8 }}>
+          {/* a list one searches is a tall sheet: its search box then sits near the top, above the keyboard (inside a pop-up Android does not
+              say where the keyboard is, so the sheet cannot move for it), and what matches shows right below the box */}
+          <View
+            style={[
+              searchable ? { height: "88%" } : { maxHeight: "82%" },
+              { backgroundColor: c.surface, borderTopLeftRadius: RADIUS.l, borderTopRightRadius: RADIUS.l, borderTopWidth: 1, borderColor: c.line, paddingBottom: insets.bottom + 8 },
+            ]}
+          >
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8 }}>
               <Txt v="heading" style={{ flex: 1 }} numberOfLines={2}>
                 {label}

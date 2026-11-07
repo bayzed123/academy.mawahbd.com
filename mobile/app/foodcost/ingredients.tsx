@@ -1,7 +1,23 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
-import { FC_UNITS, FC_UNIT_LIST, fcIngredient, fcParseNumber, fcParseTaka, fcTakaText, unitCost, type FcIngredientDTO, type FcUnit } from "@mawah/shared/foodcost";
+import {
+  FC_NUTRIENTS,
+  FC_NUTRIENT_NAMES,
+  FC_UNITS,
+  FC_UNIT_LIST,
+  fcIngredient,
+  fcNutrientText,
+  fcNutritionBoxes,
+  fcNutritionFromBoxes,
+  fcParseNumber,
+  fcParseTaka,
+  fcTakaText,
+  unitCost,
+  type FcIngredientDTO,
+  type FcNutrient,
+  type FcUnit,
+} from "@mawah/shared/foodcost";
 import { api, ApiError, useResource } from "../../src/api";
 import { ask, codeText, say, useFc } from "../../src/components/FoodCost";
 import { useSession } from "../../src/session";
@@ -57,7 +73,7 @@ export default function IngredientsScreen() {
   return (
     <>
       <Header title={t("fc.ingredients")} />
-      <Page under onRefresh={() => void list.refresh()} refreshing={list.refreshing}>
+      <Page under keyboard onRefresh={() => void list.refresh()} refreshing={list.refreshing}>
         {status !== "in" ? (
           <EmptyState icon="tag" title={t("fc.loggedOut.title")} body={t("fc.loggedOut.body")} action={{ title: t("home.login.cta"), onPress: () => router.push("/login") }} />
         ) : list.loading ? (
@@ -184,6 +200,9 @@ function IngredientRow({ i, changed }: { i: FcIngredientDTO; changed: (text: str
           {t("fc.dhakaAverage")}
         </Txt>
       ) : null}
+      <Txt v="tiny" color={c.text3}>
+        {i.nutrition?.kcal != null ? t("fc.kcalPer100", { kcal: fcNutrientText("kcal", i.nutrition.kcal, lang) }) : t("fc.noKcal")}
+      </Txt>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
         <Btn title={t("fc.setMyPrice")} kind="secondary" small onPress={() => setOpen((x) => !x)} accessibilityHint={name} />
         {i.price_source === "mine" && !i.own ? (
@@ -217,17 +236,32 @@ function IngredientRow({ i, changed }: { i: FcIngredientDTO; changed: (text: str
 }
 
 function AddIngredient({ onDone }: { onDone: (done?: string) => void }) {
-  const { t, c } = useFc();
+  const { t, c, lang } = useFc();
   const [names, setNames] = useState({ bn: "", en: "", category: "", gml: "", gpc: "" });
   const [d, setD] = useState<PriceDraft>(() => draftOf(null));
+  const [food, setFood] = useState(() => fcNutritionBoxes(null));
+  const [tried, setTried] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const typed = fcNutritionFromBoxes(food);
+  const foodError = (k: FcNutrient) =>
+    errors[`nutrition.${k}`] ?? (tried && typed.bad.includes(k) ? t(k === "kcal" && !food.kcal.trim() ? "fc.kcalFirst" : "fc.badFigure") : undefined);
   const add = async () => {
+    setTried(true);
+    if (typed.bad.length) return;
     setBusy(true);
     try {
       await api(PATH, {
         method: "POST",
-        body: { name_bn: names.bn.trim(), name_en: names.en.trim(), category: names.category.trim(), g_per_ml: fcParseNumber(names.gml), g_per_piece: fcParseNumber(names.gpc), price: d.taka.trim() ? priceBody(d) : null },
+        body: {
+          name_bn: names.bn.trim(),
+          name_en: names.en.trim(),
+          category: names.category.trim(),
+          g_per_ml: fcParseNumber(names.gml),
+          g_per_piece: fcParseNumber(names.gpc),
+          price: d.taka.trim() ? priceBody(d) : null,
+          nutrition: typed.nutrition,
+        },
       });
       onDone(t("fc.ingredientAdded"));
     } catch (e) {
@@ -249,6 +283,22 @@ function AddIngredient({ onDone }: { onDone: (done?: string) => void }) {
         {t("fc.itsPrice")}
       </Txt>
       <PriceFields d={d} onChange={setD} errors={errors} />
+      <Txt v="label" color={c.text2}>
+        {t("fc.nutritionOwn")}
+      </Txt>
+      <Txt v="tiny" color={c.text3}>
+        {t("fc.nutritionOwnHint")}
+      </Txt>
+      {FC_NUTRIENTS.map((k) => (
+        <Field
+          key={k}
+          label={`${FC_NUTRIENT_NAMES[k][lang].name} (${FC_NUTRIENT_NAMES[k][lang].unit})`}
+          value={food[k]}
+          keyboardType="decimal-pad"
+          onChangeText={(v) => setFood((x) => ({ ...x, [k]: v }))}
+          error={foodError(k)}
+        />
+      ))}
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Btn title={t("fc.addOwnSave")} loading={busy} onPress={() => void add()} style={{ flex: 1 }} />
         <Btn title={t("fc.cancel")} kind="ghost" onPress={() => onDone()} style={{ flex: 1 }} />

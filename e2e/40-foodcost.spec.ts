@@ -186,3 +186,76 @@ test("in Bangla on a 360 px phone: the tab, the list and the editor speak Bangla
   expect(await serious(page)).toEqual([]);
   await ctx.close();
 });
+
+test("the starter list is ready, and a recipe's calories show beside its cost: each line, one cupcake, the batch — in Bangla on a phone too", async ({ browser }) => {
+  const ctx = await browser.newContext({ locale: "en-US" });
+  await useLang(ctx, "en");
+  const page = await ctx.newPage();
+  await registerStudent(page);
+  // the common ingredients are there from the start, with their calories per 100 g, and no price until the owner or the student sets one
+  await page.goto("/app/foodcost/ingredients");
+  await page.getByLabel("Search ingredients").fill("maida");
+  const maida = page.locator(".fc-ing", { hasText: "All-purpose flour (maida)" });
+  await expect(maida).toContainText("364 kcal per 100 g");
+  await expect(maida).toContainText("No price yet");
+
+  await page.goto("/app/foodcost/new");
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill(`Plain cupcakes ${STAMP}`);
+  await page.getByLabel("How many").fill("12");
+  await page.getByLabel("Called").fill("cupcake");
+  await page.getByLabel("Line 1", { exact: true }).selectOption({ label: "All-purpose flour (maida) (no price)" });
+  await page.locator("#fc-q0").fill("500");
+  await page.getByRole("button", { name: "Add a line" }).click();
+  await page.getByLabel("Line 2", { exact: true }).selectOption({ label: "Egg (no price)" });
+  // no price yet, but an egg has a weight for one: it is counted by the piece
+  await expect(page.locator("#fc-u1")).toHaveValue("piece");
+  await page.locator("#fc-q1").fill("6");
+  // 500 g of flour 1,820 kcal + 6 eggs (300 g) 429 kcal = 2,249 kcal: 187 a cupcake
+  await expect(page.locator(".fc-line").first()).toContainText("1,820 kcal");
+  const food = page.locator(".fc-food");
+  await expect(food).toContainText("Calories per cupcake");
+  await expect(food).toContainText("187 kcal");
+  await expect(food).toContainText("2,249 kcal");
+  await expect(food).toContainText("Protein");
+  // no prices yet: the cost says it is only part, and offers the way to set them
+  await expect(page.locator(".fc-result")).toContainText("This is only part of the cost:");
+  await expect(page.locator(".fc-result").getByRole("link", { name: "Set prices" })).toBeVisible();
+  // an ingredient with no calorie figure is named, never guessed
+  await page.getByRole("button", { name: "Add a line" }).click();
+  await page.getByLabel("Line 3", { exact: true }).selectOption({ label: `${VANILLA} (no price)` });
+  await page.locator("#fc-q2").fill("5");
+  await expect(food).toContainText(`Line 3: ${VANILLA} has no calorie figure.`);
+  await page.getByRole("button", { name: "Remove line 3" }).click();
+  await expect(food).not.toContainText("has no calorie figure");
+  expect(await serious(page)).toEqual([]);
+  await page.getByRole("button", { name: "Save the recipe" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible();
+  await page.getByRole("link", { name: "FoodCost" }).first().click();
+  await expect(page.getByRole("link", { name: new RegExp(`Plain cupcakes ${STAMP}`) })).toContainText("187 kcal");
+  await ctx.close();
+
+  const bn = await browser.newContext({ locale: "bn-BD", viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true });
+  await useLang(bn, "bn");
+  const phone = await bn.newPage();
+  await registerStudent(phone);
+  const { ingredients } = await apiGet<{ ingredients: { id: number; name_en: string }[] }>(phone, "/fc/v1/ingredients");
+  const id = (en: string) => ingredients.find((i) => i.name_en === en)!.id;
+  const made = await apiPost(phone, "/fc/v1/recipes", {
+    name: `কাপকেক ${STAMP}`,
+    yield_qty: 12,
+    yield_unit: "piece",
+    items: [
+      { ingredient_id: id("All-purpose flour (maida)"), qty: 500, unit: "g" },
+      { ingredient_id: id("Egg"), qty: 6, unit: "piece" },
+    ],
+  });
+  expect(made.status).toBe(201);
+  await phone.goto(`/app/foodcost/${made.body.recipe.id}`);
+  const bnFood = phone.locator(".fc-food");
+  await expect(bnFood.getByRole("heading", { name: "ক্যালরি ও পুষ্টি" })).toBeVisible();
+  await expect(bnFood).toContainText("১৮৭ ক্যালরি");
+  await expect(bnFood).toContainText("প্রোটিন");
+  expect(await phone.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  expect(await serious(phone)).toEqual([]);
+  await bn.close();
+});

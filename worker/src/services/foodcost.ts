@@ -1,5 +1,9 @@
 import {
+  FC_NUTRIENTS,
+  FC_NUTRIENT_MAX,
   fcCostWith,
+  fcNutritionDTO,
+  fcNutritionWith,
   fcRecipe,
   fcRecipeLimit,
   type FcBook,
@@ -8,6 +12,7 @@ import {
   type FcIngredientDTO,
   type FcItemDTO,
   type FcMeDTO,
+  type FcNutritionDTO,
   type FcPlan,
   type FcPriceDTO,
   type FcPricingDTO,
@@ -16,6 +21,7 @@ import {
   type FcResult,
   type FcUnit,
 } from "@mawah/shared/foodcost";
+import { z } from "zod";
 import type { Env } from "../env";
 import { all, first, qs } from "../lib/db";
 
@@ -85,6 +91,13 @@ interface IngredientRow {
   g_per_piece: number | null;
   active: number;
   sort: number;
+  kcal: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  sugar_g: number | null;
+  fiber_g: number | null;
+  sodium_mg: number | null;
 }
 export interface PriceRow {
   ingredient_id: number;
@@ -132,10 +145,13 @@ function ingredientDTO(r: IngredientRow, defaults: Map<number, PriceRow>, mine: 
     price: priceDTO(own ?? def),
     price_source: own ? "mine" : def ? "default" : null,
     default_price: priceDTO(def),
+    nutrition: fcNutritionDTO(r),
   };
 }
 
-const INGREDIENT_COLS = "id, workspace_id, name_bn, name_en, category, g_per_ml, g_per_piece, active, sort";
+/** The nutrition columns of fc_ingredients (per 100 g), in the order FC_NUTRIENTS lists them. */
+export const NUTRITION_COLS = "kcal, protein_g, carbs_g, fat_g, sugar_g, fiber_g, sodium_mg";
+const INGREDIENT_COLS = `id, workspace_id, name_bn, name_en, category, g_per_ml, g_per_piece, active, sort, ${NUTRITION_COLS}`;
 
 /** Every ingredient a workspace may use — the shared list and its own — each with the price that counts for it. */
 export async function ingredientsFor(env: Env, workspaceId: number): Promise<FcIngredientDTO[]> {
@@ -149,6 +165,24 @@ export async function ingredientsFor(env: Env, workspaceId: number): Promise<FcI
 /** One ingredient the workspace may use (shared, or its own), or null. */
 export async function ingredientFor(env: Env, workspaceId: number, id: number): Promise<IngredientRow | null> {
   return first<IngredientRow>(env.DB, `SELECT ${INGREDIENT_COLS} FROM fc_ingredients WHERE id = ? AND (workspace_id IS NULL OR workspace_id = ?)`, id, workspaceId);
+}
+
+/**
+ * An ingredient's figures per 100 g (nutrition): each one, or null where it is not known. Figures without the calories mean nothing to a
+ * total, so they need them. The student API (own ingredients) and Admin → FoodCost (the shared list) check them with this.
+ */
+export const nutritionSchema = z
+  .object(
+    Object.fromEntries(FC_NUTRIENTS.map((k) => [k, z.number().finite().min(0, "invalid").max(FC_NUTRIENT_MAX[k], "too_big").nullable().default(null)])) as Record<
+      keyof FcNutritionDTO,
+      z.ZodDefault<z.ZodNullable<z.ZodNumber>>
+    >,
+  )
+  .refine((n) => n.kcal !== null || FC_NUTRIENTS.every((k) => n[k] === null), { message: "required", path: ["kcal"] });
+
+/** The statement's part that writes the nutrition columns, and its values (all null when `n` is null: the figures are removed). */
+export function nutritionSet(n: z.output<typeof nutritionSchema> | null): { sql: string; values: (number | null)[] } {
+  return { sql: FC_NUTRIENTS.map((k) => `${k} = ?`).join(", "), values: FC_NUTRIENTS.map((k) => n?.[k] ?? null) };
 }
 
 /* ------------------------------------------------------------------------------------------------------------------------------ recipes */
@@ -236,6 +270,7 @@ export function summaries(book: { ingredients: FcIngredientDTO[]; recipes: FcRec
   for (const r of book.recipes) for (const i of r.items) if (i.recipe_id !== null) usedBy.set(i.recipe_id, (usedBy.get(i.recipe_id) ?? 0) + 1);
   return book.recipes.map((r) => {
     const result = costWith(r, book);
+    const food = fcNutritionWith(r, book);
     return {
       id: r.id,
       name: r.name,
@@ -245,6 +280,7 @@ export function summaries(book: { ingredients: FcIngredientDTO[]; recipes: FcRec
       per_unit_minor: result.perUnitMinor,
       suggested_minor: result.suggestedMinor,
       complete: result.complete,
+      kcal_per_unit: food.complete && food.counted > 0 && food.perUnit ? food.perUnit.kcal : null,
       used_by: usedBy.get(r.id) ?? 0,
       updated_at: r.updated_at,
     };

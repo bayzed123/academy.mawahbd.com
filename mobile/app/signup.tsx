@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useRef, useState, type ComponentRef } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "../src/api";
 import { API_URL } from "../src/config";
@@ -12,6 +12,7 @@ import { errorKey, type StringKey } from "../src/strings";
 import { FONT, RADIUS } from "../src/theme";
 import { Btn } from "../src/ui/Btn";
 import { Icon } from "../src/ui/Icon";
+import { KeyboardScroll, KeyboardTextInput } from "../src/ui/KeyboardScroll";
 import { Press } from "../src/ui/Press";
 import { Txt } from "../src/ui/Txt";
 
@@ -89,8 +90,9 @@ export default function Signup() {
     ) : null;
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: insets.bottom + 24, gap: 16, width: "100%", maxWidth: 560, alignSelf: "center" }}>
+    // the box being typed in stays above the keyboard (Android draws edge to edge and no longer makes room by itself)
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <KeyboardScroll contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: insets.bottom + 24, gap: 16, width: "100%", maxWidth: 560, alignSelf: "center" }}>
         <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
           <Press onPress={close} accessibilityRole="button" accessibilityLabel={t("common.close")} hitSlop={8} style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.raised, alignItems: "center", justifyContent: "center" }}>
             <Icon name="close" size={20} color={c.text} />
@@ -110,13 +112,13 @@ export default function Signup() {
 
         <View style={{ gap: 8 }}>
           {label("name", "signup.name")}
-          <TextInput value={name} onChangeText={setName} autoCapitalize="words" autoComplete="name" textContentType="name" returnKeyType="next" onSubmitEditing={() => phoneRef.current?.focus()} accessibilityLabelledBy="su-name" style={[field, bad("name")]} maxLength={80} />
+          <KeyboardTextInput value={name} onChangeText={setName} autoCapitalize="words" autoComplete="name" textContentType="name" returnKeyType="next" onSubmitEditing={() => phoneRef.current?.focus()} accessibilityLabelledBy="su-name" style={[field, bad("name")]} maxLength={80} />
           {problem("name")}
         </View>
 
         <View style={{ gap: 8 }}>
           {label("phone", "signup.phone")}
-          <TextInput
+          <KeyboardTextInput
             ref={phoneRef}
             value={phone}
             onChangeText={setPhone}
@@ -136,7 +138,7 @@ export default function Signup() {
 
         <View style={{ gap: 8 }}>
           {label("email", "signup.email")}
-          <TextInput
+          <KeyboardTextInput
             ref={emailRef}
             value={email}
             onChangeText={setEmail}
@@ -161,7 +163,7 @@ export default function Signup() {
         <View style={{ gap: 8 }}>
           {label("password", "signup.password")}
           <View>
-            <TextInput
+            <KeyboardTextInput
               ref={pwRef}
               value={password}
               onChangeText={setPassword}
@@ -221,7 +223,7 @@ export default function Signup() {
             {t("signup.have")}
           </Txt>
         </Press>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardScroll>
+    </View>
   );
 }

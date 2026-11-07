@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { FC_MAX_DEPTH, FC_UNIT_LIST, type FcItemDTO, type FcUnit } from "@mawah/shared/foodcost";
+import { FC_MAX_DEPTH, FC_NUTRIENTS, FC_UNIT_LIST, type FcItemDTO, type FcUnit } from "@mawah/shared/foodcost";
 import type { AppEnv, Ctx } from "../../env";
 import { audit } from "../../lib/audit";
 import { all, first, nowIso, run } from "../../lib/db";
@@ -17,6 +17,8 @@ import {
   itemStatements,
   latestPrices,
   meDTO,
+  nutritionSchema,
+  nutritionSet,
   priceDTO,
   recipesOf,
   summaries,
@@ -89,6 +91,8 @@ const ingredientSchema = z
     g_per_ml: z.number().finite().positive().max(30).nullable().default(null),
     g_per_piece: z.number().finite().positive().max(100_000).nullable().default(null),
     price: priceSchema.nullish(),
+    // absent: left as it is (an app from before nutrition sends none); null: no figures
+    nutrition: nutritionSchema.nullish(),
   })
   .refine((i) => !!(i.name_bn || i.name_en), { message: "required", path: ["name_en"] });
 
@@ -182,15 +186,17 @@ fcRoutes.post("/ingredients", async (c) => {
   const body = await parseBody(c, ingredientSchema);
   const count = (await first<{ n: number }>(c.env.DB, "SELECT COUNT(*) AS n FROM fc_ingredients WHERE workspace_id = ?", w.id))?.n ?? 0;
   if (count >= OWN_INGREDIENTS) throw conflict("fc_too_many");
+  const n = nutritionSet(body.nutrition ?? null);
   const res = await run(
     c.env.DB,
-    "INSERT INTO fc_ingredients (workspace_id, name_bn, name_en, category, g_per_ml, g_per_piece) VALUES (?, ?, ?, ?, ?, ?)",
+    `INSERT INTO fc_ingredients (workspace_id, name_bn, name_en, category, g_per_ml, g_per_piece, ${FC_NUTRIENTS.join(", ")}) VALUES (?, ?, ?, ?, ?, ?, ${FC_NUTRIENTS.map(() => "?").join(", ")})`,
     w.id,
     body.name_bn,
     body.name_en,
     body.category,
     body.g_per_ml,
     body.g_per_piece,
+    ...n.values,
   );
   const ingredientId = res.meta.last_row_id as number;
   if (body.price) await addPrice(c, w, ingredientId, body.price);
@@ -209,14 +215,17 @@ fcRoutes.put("/ingredients/:id", async (c) => {
   const w = await ws(c);
   const row = await ownIngredient(c, w);
   const body = await parseBody(c, ingredientSchema);
+  // the figures change only when they are sent (an older app's form has no boxes for them)
+  const n = body.nutrition === undefined ? null : nutritionSet(body.nutrition);
   await run(
     c.env.DB,
-    "UPDATE fc_ingredients SET name_bn = ?, name_en = ?, category = ?, g_per_ml = ?, g_per_piece = ?, updated_at = ? WHERE id = ?",
+    `UPDATE fc_ingredients SET name_bn = ?, name_en = ?, category = ?, g_per_ml = ?, g_per_piece = ?, ${n ? `${n.sql}, ` : ""}updated_at = ? WHERE id = ?`,
     body.name_bn,
     body.name_en,
     body.category,
     body.g_per_ml,
     body.g_per_piece,
+    ...(n ? n.values : []),
     nowIso(),
     row.id,
   );

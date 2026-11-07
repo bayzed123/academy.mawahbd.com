@@ -1,7 +1,7 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useRef } from "react";
 import { View } from "react-native";
-import type { FcMeDTO, FcRecipeSummaryDTO } from "@mawah/shared/foodcost";
+import { fcNutrientText, type FcMeDTO, type FcRecipeSummaryDTO } from "@mawah/shared/foodcost";
 import { useResource } from "../../src/api";
 import { useFc } from "../../src/components/FoodCost";
 import { useSession } from "../../src/session";
@@ -24,7 +24,7 @@ function planText(me: FcMeDTO, t: ReturnType<typeof useFc>["t"]): string {
 
 /** FoodCost: one's recipes, what each costs and sells for (docs/foodcost.md). The same server and engine as the website. */
 export default function FoodCostTab() {
-  const { t, c, n, per, unit } = useFc();
+  const { t, c, n, per, unit, lang } = useFc();
   const { status } = useSession();
   const router = useRouter();
   const list = useResource<List>(status === "in" ? "/api/fc/v1/recipes" : null);
@@ -95,6 +95,14 @@ export default function FoodCostTab() {
                       <Txt v="label" color={c.accent}>
                         {per(r.suggested_minor, r.yield_label, r.yield_unit)}
                       </Txt>
+                    </View>
+                  ) : null}
+                  {r.kcal_per_unit !== null ? (
+                    <View>
+                      <Txt v="tiny" color={c.text3}>
+                        {t("fc.kcalShort")}
+                      </Txt>
+                      <Txt v="label">{fcNutrientText("kcal", r.kcal_per_unit, lang)}</Txt>
                     </View>
                   ) : null}
                 </View>

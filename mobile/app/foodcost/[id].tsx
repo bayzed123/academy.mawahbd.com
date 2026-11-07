@@ -1,10 +1,12 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef, useState, type ComponentRef } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   FC_COST_KINDS,
   FC_COST_PERS,
+  FC_NUTRIENTS,
+  FC_NUTRIENT_NAMES,
   FC_ROUND_STEPS,
   FC_UNITS,
   FC_UNIT_LIST,
@@ -14,12 +16,16 @@ import {
   fcFormToInput,
   fcIngredient,
   fcNewItem,
+  fcNutrientText,
+  fcNutritionWith,
   fcUnitsFor,
   type FcBook,
   type FcFormCost,
   type FcFormItem,
   type FcIngredientDTO,
   type FcMeDTO,
+  type FcNutrient,
+  type FcNutritionResult,
   type FcRecipeDTO,
   type FcRecipeForm,
   type FcResult,
@@ -37,6 +43,7 @@ import { Choice, type ChoiceOption } from "../../src/ui/Choice";
 import { Field } from "../../src/ui/Field";
 import { Header } from "../../src/ui/Header";
 import { Icon } from "../../src/ui/Icon";
+import { KeyboardScroll } from "../../src/ui/KeyboardScroll";
 import { Page } from "../../src/ui/Page";
 import { Press } from "../../src/ui/Press";
 import { CardSkeleton } from "../../src/ui/Skeleton";
@@ -102,8 +109,10 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
   const [busy, setBusy] = useState<"" | "save" | "copy" | "delete">("");
 
   const { input, rows } = useMemo(() => fcFormToInput(f), [f]);
-  // the same costing as the server's, on every key press
+  // the same costing as the server's, on every key press — and the calories, from the same lines
   const result = useMemo(() => fcCostWith({ id: saved?.id ?? 0, ...input }, book, lang), [input, book, lang, saved]);
+  const food = useMemo(() => fcNutritionWith({ id: saved?.id ?? 0, ...input }, book), [input, book, saved]);
+  const kcal = (v: number) => fcNutrientText("kcal", v, lang);
   const ingredients = useMemo(() => new Map(book.ingredients.map((i) => [i.id, i])), [book]);
   const name = (i: FcIngredientDTO) => (lang === "bn" ? i.name_bn || i.name_en : i.name_en || i.name_bn);
   const whatOptions = (current: string): ChoiceOption<string>[] => [
@@ -124,7 +133,8 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
     let u: FcUnit = f.items[n].unit;
     const ing = ref[0] === "i" ? ingredients.get(Number(ref.slice(1))) : undefined;
     const sub = ref[0] === "r" ? book.recipes.find((x) => x.id === Number(ref.slice(1))) : undefined;
-    const kind = ing?.price ? FC_UNITS[ing.price.pack_unit].dim : sub ? FC_UNITS[sub.yield_unit].dim : null;
+    // no price yet: something with a weight for one piece (an egg) is counted by the piece
+    const kind = ing?.price ? FC_UNITS[ing.price.pack_unit].dim : ing?.g_per_piece ? "count" : sub ? FC_UNITS[sub.yield_unit].dim : null;
     if (kind && FC_UNITS[u].dim !== kind) u = BASE[kind];
     setItem(n, { ref, unit: u });
   };
@@ -202,12 +212,11 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <Header title={saved ? saved.name : t("fc.newTitle")} right={<Btn title={t("fc.save")} small onPress={() => void save()} loading={busy === "save"} />} />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView
-          ref={scroll}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingHorizontal: GUTTER, paddingTop: 12, paddingBottom: 96 + insets.bottom, gap: 16, width: "100%", maxWidth: CONTENT_MAX + GUTTER * 2, alignSelf: "center" }}
-        >
+      {/* the box being typed in stays above the keyboard (Android draws edge to edge and no longer makes room by itself) */}
+      <KeyboardScroll
+        ref={scroll}
+        contentContainerStyle={{ paddingHorizontal: GUTTER, paddingTop: 12, paddingBottom: 96 + insets.bottom, gap: 16, width: "100%", maxWidth: CONTENT_MAX + GUTTER * 2, alignSelf: "center" }}
+      >
           <Card style={{ gap: 12 }}>
             <Txt v="heading">{t("fc.about")}</Txt>
             <Field label={t("fc.name")} value={f.name} maxLength={120} placeholder={t("fc.namePh")} onChangeText={(v) => set({ name: v })} error={fieldErr.name} />
@@ -249,9 +258,9 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
                       <Icon name="trash" size={20} color={c.bad} />
                     </Press>
                   </View>
-                  {line && !line.problem ? (
+                  {(line && !line.problem) || food.lines[k]?.kcal != null ? (
                     <Txt v="small" color={c.text2}>
-                      {money(line.costMinor)} · {t("fc.share", { pct: line.sharePct })}
+                      {[line && !line.problem ? `${money(line.costMinor)} · ${t("fc.share", { pct: line.sharePct })}` : "", food.lines[k]?.kcal != null ? kcal(food.lines[k].kcal!) : ""].filter(Boolean).join(" · ")}
                     </Txt>
                   ) : null}
                   {err ? (
@@ -426,8 +435,8 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
               ) : null}
             </Card>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <FoodCard food={food} result={result} rows={rows} what={yieldWhat} />
+      </KeyboardScroll>
 
       {/* the costs stay in sight while one types; a tap goes down to the whole picture */}
       <Press
@@ -448,6 +457,7 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
               </Txt>
             </Txt>
           ) : null}
+          {food.perUnit && food.counted > 0 ? <Txt v="label">{kcal(food.perUnit.kcal)}</Txt> : null}
           {!result.complete ? (
             <Txt v="small" color={c.bad}>
               {t("fc.partial")}
@@ -456,6 +466,57 @@ function RecipeForm({ book, saved, reload }: { book: Book; saved: FcRecipeDTO | 
         </View>
       </Press>
     </View>
+  );
+}
+
+/**
+ * The calories and nutrients, below the cost: one piece (when the batch is counted), 100 g (when its weight is known) and the batch. A
+ * figure some ingredient does not have is starred, and lines it could not count are named — never guessed.
+ */
+function FoodCard({ food, result, rows, what }: { food: FcNutritionResult; result: FcResult; rows: number[]; what: string }) {
+  const { t, c, lang } = useFc();
+  const text = (k: FcNutrient, v: number) => fcNutrientText(k, v, lang) + (food.known[k] ? "" : " *");
+  const figs = food.perUnit ?? food.per100g ?? food.batch;
+  const basis = food.perUnit ? t("fc.perWhat", { what }) : food.per100g ? t("fc.per100g") : t("fc.perBatch");
+  return (
+    <Card style={{ gap: 10 }}>
+      <Txt v="heading">{t("fc.food")}</Txt>
+      {food.counted === 0 && food.problems.length === 0 ? (
+        <Txt v="small" color={c.text3}>
+          {t("fc.foodNone")}
+        </Txt>
+      ) : (
+        <>
+          {food.perUnit ? <Figure label={t("fc.kcalPer", { what })} value={text("kcal", food.perUnit.kcal)} big /> : null}
+          {food.per100g ? <Figure label={t("fc.kcal100g")} value={text("kcal", food.per100g.kcal)} big={!food.perUnit} /> : null}
+          <Figure label={t("fc.kcalBatch")} value={text("kcal", food.batch.kcal)} />
+          <View style={{ height: 1, backgroundColor: c.line, marginVertical: 2 }} />
+          <Txt v="label" color={c.text2}>
+            {t("fc.nutrientsFor", { basis })}
+          </Txt>
+          {FC_NUTRIENTS.filter((k) => k !== "kcal").map((k) => (
+            <Figure key={k} label={FC_NUTRIENT_NAMES[k][lang].name} value={text(k, figs[k])} small />
+          ))}
+          {!food.complete ? (
+            <View style={{ borderRadius: RADIUS.m, borderWidth: 1, borderColor: c.bad, backgroundColor: c.badBg, padding: 12, gap: 6 }}>
+              <Txt v="label">{t("fc.foodPartial")}</Txt>
+              {food.problems.map((p, i) => (
+                <Txt key={i} v="small">
+                  • {t(`fc.fp.${p.code}`, { line: rows[p.line] + 1, name: result.lines[p.line]?.name ?? "" })}
+                </Txt>
+              ))}
+            </View>
+          ) : FC_NUTRIENTS.some((k) => !food.known[k]) ? (
+            <Txt v="tiny" color={c.text3}>
+              {t("fc.foodStar")}
+            </Txt>
+          ) : null}
+          <Txt v="tiny" color={c.text3}>
+            {t("fc.foodSource")}
+          </Txt>
+        </>
+      )}
+    </Card>
   );
 }
 

@@ -6,11 +6,16 @@ import {
   fcFormFromDTO,
   fcFormToInput,
   fcMoney,
+  fcNutrientText,
+  fcNutritionBoxes,
+  fcNutritionDTO,
+  fcNutritionFromBoxes,
   fcParseNumber,
   fcParseTaka,
   fcRecipeLimit,
   fcTakaText,
   fcUnitsFor,
+  nutritionOf,
   roundMinor,
   toBase,
   unitCost,
@@ -392,5 +397,98 @@ describe("what the screens share", () => {
     const out = fcFormToInput(form);
     expect(out.rows).toEqual([1]);
     expect(out.input).toMatchObject({ name: "Syrup", yield_qty: 1, items: [{ ingredient_id: 9, recipe_id: null, qty: 0, unit: "ml" }], pricing: { mode: "markup", pct: 0, actual_minor: null } });
+  });
+});
+
+describe("calories and nutrients", () => {
+  // figures per 100 g as the starter list has them (USDA); the test pantry's prices stay as they are
+  const fig = (kcal: number, protein_g: number, carbs_g: number, fat_g: number, sugar_g: number | null, fiber_g: number, sodium_mg: number) => ({ kcal, protein_g, carbs_g, fat_g, sugar_g, fiber_g, sodium_mg });
+  const FED = [
+    { ...FLOUR, nutrition: fig(364, 10.3, 76.3, 1.0, 0.3, 2.7, 2) },
+    { ...SUGAR, nutrition: fig(387, 0, 100, 0, 99.8, 0, 1) },
+    { ...BUTTER, nutrition: fig(717, 0.9, 0.1, 81.1, 0.1, 0, 11) },
+    { ...EGG, nutrition: fig(143, 12.6, 0.7, 9.5, 0.4, 0, 142) },
+    { ...MILK, nutrition: fig(61, 3.2, 4.8, 3.3, 5.1, 0, 43) },
+    VANILLA,
+  ];
+
+  it("counts each line, the batch, one piece and 100 g — the figures worked out by hand", () => {
+    // 500 g flour 1,820 kcal · 400 g sugar 1,548 · 250 g butter 1,792.5 · 6 eggs = 300 g, 429 · 240 ml milk = 247.2 g, 150.8 → 5,740.3 kcal
+    const r = nutritionOf({ ...CUPCAKES, outputG: 720 }, FED);
+    expect(r.lines.map((l) => [l.grams, l.kcal])).toEqual([
+      [500, 1820],
+      [400, 1548],
+      [250, 1793],
+      [300, 429],
+      [247.2, 151],
+    ]);
+    expect(r.batch).toEqual({ kcal: 5740, protein_g: 99.5, carbs_g: 795.7, fat_g: 244.4, sugar_g: 414.8, fiber_g: 13.5, sodium_mg: 574 });
+    // one of 12, and 100 g of the 720 g the batch weighs once baked
+    expect(r.perUnit).toEqual({ kcal: 478, protein_g: 8.3, carbs_g: 66.3, fat_g: 20.4, sugar_g: 34.6, fiber_g: 1.1, sodium_mg: 48 });
+    expect(r.per100g?.kcal).toBe(797);
+    expect([r.complete, r.counted, r.problems]).toEqual([true, 5, []]);
+    expect(Object.values(r.known).every(Boolean)).toBe(true);
+    // without its finished weight there is no "per 100 g" for a counted batch — never a guess
+    expect(nutritionOf(CUPCAKES, FED).per100g).toBeNull();
+  });
+
+  it("an ingredient with no figures, or one it cannot weigh, is reported and left out; the rest still counts", () => {
+    const r = nutritionOf({ ...CUPCAKES, items: [...CUPCAKES.items, { ingredientId: "vanilla", qty: 1, unit: "tsp" }, { ingredientId: "sugar", qty: 1, unit: "cup" }] }, FED);
+    expect(r.problems).toEqual([
+      { code: "no_figures", line: 5 },
+      { code: "no_weight", line: 6 }, // sugar has no density in this pantry: a cup of it cannot be weighed
+    ]);
+    expect(r.lines.slice(5)).toEqual([{ grams: null, kcal: null, problem: "no_figures" }, { grams: null, kcal: null, problem: "no_weight" }]);
+    expect(r.batch.kcal).toBe(5740);
+    expect([r.complete, r.counted, r.known.kcal, r.known.sodium_mg]).toEqual([false, 5, false, false]);
+    // an unknown ingredient and a quantity that is not a number, too
+    const odd = nutritionOf({ ...CUPCAKES, items: [{ ingredientId: "ghost", qty: 1, unit: "g" }, { ingredientId: "flour", qty: -1, unit: "g" }] }, FED);
+    expect(odd.problems.map((p) => p.code)).toEqual(["unknown_ingredient", "bad_qty"]);
+  });
+
+  it("a figure an ingredient lacks marks only that total as partial", () => {
+    const semolina = { id: "suji", name: "Semolina", price: null, gPerMl: 0.71, nutrition: fig(360, 12.7, 72.8, 1.1, null, 3.9, 1) };
+    const r = nutritionOf({ id: "halwa", name: "Halwa", yieldQty: 4, yieldUnit: "piece", items: [{ ingredientId: "suji", qty: 1, unit: "cup" }], costs: [] }, [semolina]);
+    // a cup of it: 240 ml × 0.71 = 170.4 g → 613 kcal
+    expect([r.lines[0].grams, r.batch.kcal, r.complete]).toEqual([170.4, 613, true]);
+    expect(r.known).toMatchObject({ kcal: true, sugar_g: false, protein_g: true });
+  });
+
+  it("a recipe inside a recipe passes on its share of the figures — and a yield by weight gives 100 g, not a piece", () => {
+    const buttercream: FcRecipe = {
+      id: "bc",
+      name: "Buttercream",
+      yieldQty: 800,
+      yieldUnit: "g",
+      items: [
+        { ingredientId: "butter", qty: 250, unit: "g" },
+        { ingredientId: "sugar", qty: 500, unit: "g" },
+      ],
+      costs: [],
+    }; // 1,792.5 + 1,935 = 3,727.5 kcal for 800 g
+    const own = nutritionOf(buttercream, FED);
+    expect([own.batch.kcal, own.perUnit, own.per100g?.kcal]).toEqual([3728, null, 466]);
+    const cake = nutritionOf({ ...CUPCAKES, items: [{ recipeId: "bc", qty: 200, unit: "g" }] }, FED, [buttercream]);
+    expect(cake.lines[0]).toEqual({ grams: 200, kcal: 932 }); // a quarter of it
+    // a buttercream missing a figure passes the problem on, counted as far as it goes
+    const short = { ...buttercream, items: [...buttercream.items, { ingredientId: "vanilla", qty: 5, unit: "ml" as const }] };
+    expect(nutritionOf({ ...CUPCAKES, items: [{ recipeId: "bc", qty: 200, unit: "g" }] }, FED, [short]).problems).toEqual([{ code: "sub_recipe_problem", line: 0 }]);
+    // a recipe that uses itself is reported, never followed
+    const a: FcRecipe = { id: "a", name: "A", yieldQty: 1, yieldUnit: "kg", items: [{ recipeId: "b", qty: 100, unit: "g" }], costs: [] };
+    const b: FcRecipe = { id: "b", name: "B", yieldQty: 1, yieldUnit: "kg", items: [{ recipeId: "a", qty: 100, unit: "g" }], costs: [] };
+    expect(nutritionOf(a, FED, [b]).problems).toEqual([{ code: "sub_recipe_problem", line: 0 }]);
+  });
+
+  it("reads the boxes people type, and sends figures only with the calories", () => {
+    expect(fcNutritionFromBoxes({ kcal: "৩৬৪", protein_g: "10.3", sodium_mg: "" })).toEqual({
+      nutrition: { kcal: 364, protein_g: 10.3, carbs_g: null, fat_g: null, sugar_g: null, fiber_g: null, sodium_mg: null },
+      bad: [],
+    });
+    expect(fcNutritionFromBoxes({})).toEqual({ nutrition: null, bad: [] });
+    expect(fcNutritionFromBoxes({ protein_g: "5" }).bad).toEqual(["kcal"]); // the others need the calories
+    expect(fcNutritionFromBoxes({ kcal: "abc", fat_g: "120" }).bad).toEqual(["kcal", "fat_g"]); // not a figure; more than 100 g in 100 g
+    expect(fcNutritionDTO({ kcal: null, protein_g: 5 })).toBeNull();
+    expect(fcNutritionBoxes(fcNutritionDTO({ kcal: 0, sodium_mg: 38758 }))).toMatchObject({ kcal: "0", sodium_mg: "38758", fat_g: "" });
+    expect([fcNutrientText("kcal", 478, "en"), fcNutrientText("kcal", 478, "bn"), fcNutrientText("protein_g", 8.3, "bn")]).toEqual(["478 kcal", "৪৭৮ ক্যালরি", "৮.৩ গ্রাম"]);
   });
 });

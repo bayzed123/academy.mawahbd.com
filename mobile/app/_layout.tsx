@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { APP_FONTS } from "../src/fonts";
 import { PrefsProvider, usePrefs } from "../src/prefs";
 import { NotificationTaps, PUSH_BUILT, PushProvider } from "../src/push";
 import { SessionProvider, useSession } from "../src/session";
@@ -14,12 +15,8 @@ export { ErrorBoundary } from "expo-router";
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  // only the three weights the app uses (the font package's index would pull in all five)
-  const [fonts] = useFonts({
-    HindSiliguri_400Regular: require("@expo-google-fonts/hind-siliguri/400Regular/HindSiliguri_400Regular.ttf"),
-    HindSiliguri_600SemiBold: require("@expo-google-fonts/hind-siliguri/600SemiBold/HindSiliguri_600SemiBold.ttf"),
-    HindSiliguri_700Bold: require("@expo-google-fonts/hind-siliguri/700Bold/HindSiliguri_700Bold.ttf"),
-  });
+  // the three weights the app uses are built into the Android app (nothing to load: ready at once); the web build loads them (src/fonts.ts)
+  const [fonts] = useFonts(APP_FONTS);
   return (
     <SafeAreaProvider>
       <PrefsProvider>

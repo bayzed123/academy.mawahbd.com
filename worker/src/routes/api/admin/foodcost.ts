@@ -1,14 +1,14 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { studentCode } from "@mawah/shared";
-import { FC_UNIT_LIST, type FcUnit } from "@mawah/shared/foodcost";
+import { FC_NUTRIENTS, FC_UNIT_LIST, fcNutritionDTO, type FcUnit } from "@mawah/shared/foodcost";
 import type { AppEnv, Ctx } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { all, first, likeEscape, nowIso, run } from "../../../lib/db";
 import { HttpError, intParam, notFound, ok, parseBody } from "../../../lib/http";
 import { textSchema } from "../../../lib/schemas";
 import { requirePerm } from "../../../middleware/auth";
-import { latestPrices, planNow, priceDTO, type PriceRow } from "../../../services/foodcost";
+import { latestPrices, NUTRITION_COLS, nutritionSchema, nutritionSet, planNow, priceDTO, type PriceRow } from "../../../services/foodcost";
 
 /*
  * Admin → FoodCost (docs/foodcost.md): the shared ingredient list every user's recipes start from, with its default prices (the current
@@ -35,6 +35,8 @@ const ingredientSchema = z
     sort: z.number().int().min(0).max(99_999).default(100),
     active: z.boolean().default(true),
     price: priceSchema.nullish(),
+    // per 100 g; absent: left as it is, null: no figures
+    nutrition: nutritionSchema.nullish(),
   })
   .refine((i) => !!(i.name_bn || i.name_en), { message: "required", path: ["name_en"] });
 
@@ -49,19 +51,31 @@ interface SharedRow {
   sort: number;
   prices: number;
   used_in: number;
+  kcal: number | null;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  sugar_g: number | null;
+  fiber_g: number | null;
+  sodium_mg: number | null;
 }
 
 async function sharedList(c: Ctx, ids?: number[]) {
   const rows = await all<SharedRow>(
     c.env.DB,
-    `SELECT i.id, i.name_bn, i.name_en, i.category, i.g_per_ml, i.g_per_piece, i.active, i.sort,
+    `SELECT i.id, i.name_bn, i.name_en, i.category, i.g_per_ml, i.g_per_piece, i.active, i.sort, ${NUTRITION_COLS.split(", ").map((k) => `i.${k}`).join(", ")},
             (SELECT COUNT(*) FROM fc_prices p WHERE p.ingredient_id = i.id AND p.workspace_id IS NULL) AS prices,
             (SELECT COUNT(DISTINCT it.recipe_id) FROM fc_recipe_items it JOIN fc_recipes r ON r.id = it.recipe_id WHERE it.ingredient_id = i.id AND r.deleted_at IS NULL) AS used_in
      FROM fc_ingredients i WHERE i.workspace_id IS NULL ${ids ? `AND i.id IN (${ids.map(() => "?").join(",")})` : ""} ORDER BY i.sort, i.name_en, i.name_bn, i.id`,
     ...(ids ?? []),
   );
   const { defaults } = await latestPrices(c.env, null, ids);
-  return rows.map((r) => ({ ...r, active: !!r.active, default_price: priceDTO(defaults.get(r.id)) }));
+  return rows.map(({ kcal, protein_g, carbs_g, fat_g, sugar_g, fiber_g, sodium_mg, ...r }) => ({
+    ...r,
+    active: !!r.active,
+    default_price: priceDTO(defaults.get(r.id)),
+    nutrition: fcNutritionDTO({ kcal, protein_g, carbs_g, fat_g, sugar_g, fiber_g, sodium_mg }),
+  }));
 }
 
 async function addDefaultPrice(c: Ctx, ingredientId: number, p: z.output<typeof priceSchema>) {
@@ -90,9 +104,11 @@ fcAdmin.get("/fc/ingredients", requirePerm("fc:read"), async (c) => ok(c, { item
 
 fcAdmin.post("/fc/ingredients", requirePerm("fc:write"), async (c) => {
   const body = await parseBody(c, ingredientSchema);
+  const n = nutritionSet(body.nutrition ?? null);
   const res = await run(
     c.env.DB,
-    "INSERT INTO fc_ingredients (workspace_id, name_bn, name_en, category, g_per_ml, g_per_piece, sort, active) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)",
+    `INSERT INTO fc_ingredients (workspace_id, name_bn, name_en, category, g_per_ml, g_per_piece, sort, active, ${FC_NUTRIENTS.join(", ")})
+     VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ${FC_NUTRIENTS.map(() => "?").join(", ")})`,
     body.name_bn,
     body.name_en,
     body.category,
@@ -100,6 +116,7 @@ fcAdmin.post("/fc/ingredients", requirePerm("fc:write"), async (c) => {
     body.g_per_piece,
     body.sort,
     body.active ? 1 : 0,
+    ...n.values,
   );
   const id = res.meta.last_row_id as number;
   if (body.price) await addDefaultPrice(c, id, body.price);
@@ -111,9 +128,11 @@ fcAdmin.post("/fc/ingredients", requirePerm("fc:write"), async (c) => {
 fcAdmin.put("/fc/ingredients/:id", requirePerm("fc:write"), async (c) => {
   const row = await sharedIngredient(c);
   const body = await parseBody(c, ingredientSchema);
+  const n = body.nutrition === undefined ? null : nutritionSet(body.nutrition);
   await run(
     c.env.DB,
-    "UPDATE fc_ingredients SET name_bn = ?, name_en = ?, category = ?, g_per_ml = ?, g_per_piece = ?, sort = ?, active = ?, updated_at = ? WHERE id = ? AND workspace_id IS NULL",
+    `UPDATE fc_ingredients SET name_bn = ?, name_en = ?, category = ?, g_per_ml = ?, g_per_piece = ?, sort = ?, active = ?, ${n ? `${n.sql}, ` : ""}updated_at = ?
+     WHERE id = ? AND workspace_id IS NULL`,
     body.name_bn,
     body.name_en,
     body.category,
@@ -121,6 +140,7 @@ fcAdmin.put("/fc/ingredients/:id", requirePerm("fc:write"), async (c) => {
     body.g_per_piece,
     body.sort,
     body.active ? 1 : 0,
+    ...(n ? n.values : []),
     nowIso(),
     row.id,
   );

@@ -62,6 +62,8 @@ export interface FcIngredient {
   gPerPiece?: number | null;
   /** null: no price yet */
   price: FcPrice | null;
+  /** its figures per 100 g (calories, protein …); null or no kcal: none */
+  nutrition?: FcNutrition | null;
 }
 
 /** One line of a recipe: an ingredient, or another recipe, and how much of it. */
@@ -215,6 +217,26 @@ interface Book {
   recipes: ReadonlyMap<string, FcRecipe>;
 }
 
+/**
+ * How much of another recipe's batch a line uses (¼ = a quarter of it): in its own yield's terms, or by weight through its finished weight.
+ * null when they cannot meet. The cost and the nutrition share a recipe inside a recipe out the same way.
+ */
+function shareOf(item: FcItem, sub: FcRecipe): number | null {
+  const subDim = FC_UNITS[sub.yieldUnit].dim;
+  const itemDim = FC_UNITS[item.unit].dim;
+  if (itemDim === subDim) return toBase(item.qty, item.unit) / toBase(sub.yieldQty, sub.yieldUnit);
+  if (itemDim === "mass" && subDim === "count" && positive(sub.outputG)) return toBase(item.qty, item.unit) / sub.outputG;
+  return null;
+}
+
+/** What a batch of the recipe weighs in grams, when it is known: a yield by weight, or the finished weight of a counted one. */
+function batchGrams(recipe: Pick<FcRecipe, "yieldQty" | "yieldUnit" | "outputG">): number | null {
+  if (!(positive(recipe.yieldQty) && isFcUnit(recipe.yieldUnit))) return null;
+  const dim = FC_UNITS[recipe.yieldUnit].dim;
+  if (dim === "mass") return toBase(recipe.yieldQty, recipe.yieldUnit);
+  return dim === "count" && positive(recipe.outputG) ? recipe.outputG : null;
+}
+
 function cost(recipe: FcRecipe, book: Book, stack: string[]): FcResult {
   const problems: FcProblem[] = [];
   const key = String(recipe.id);
@@ -239,12 +261,7 @@ function cost(recipe: FcRecipe, book: Book, stack: string[]): FcResult {
       if (path.includes(String(sub.id))) return fail("cycle");
       if (path.length >= FC_MAX_DEPTH) return fail("too_deep");
       if (!(positive(sub.yieldQty) && isFcUnit(sub.yieldUnit))) return fail("sub_recipe_problem");
-      // how much of the sub-recipe's batch this line uses: in its own yield's terms, or by weight through its finished weight
-      const subDim = FC_UNITS[sub.yieldUnit].dim;
-      const subYield = toBase(sub.yieldQty, sub.yieldUnit);
-      let share: number | null = null;
-      if (FC_UNITS[item.unit].dim === subDim) share = toBase(item.qty, item.unit) / subYield;
-      else if (FC_UNITS[item.unit].dim === "mass" && subDim === "count" && positive(sub.outputG)) share = toBase(item.qty, item.unit) / sub.outputG;
+      const share = shareOf(item, sub);
       if (share === null) return fail("unit_mismatch");
       // its whole batch (ingredients and its own labour, gas …), shared out by how much of it is used here
       const inner = cost(sub, book, path);
@@ -343,6 +360,172 @@ export function costRecipe(recipe: FcRecipe, ingredients: Iterable<FcIngredient>
   return cost(recipe, book, []);
 }
 
+/* ------------------------------------------------------------------------------------------------------------------------------------
+ * Nutrition: calories and nutrients from each ingredient's figures per 100 g (the starter list's come from USDA's food tables; a user
+ * types their own), through the same units and the same sharing of a recipe inside a recipe as the cost. A line it cannot weigh (a cup
+ * of something with no density), or an ingredient with no figures, is reported and left out — never guessed — and each total says
+ * whether it is the whole of it.
+ * ---------------------------------------------------------------------------------------------------------------------------------- */
+
+/** What is counted, per 100 g of an ingredient: energy in kcal, sodium in mg, the rest in grams. */
+export const FC_NUTRIENTS = ["kcal", "protein_g", "carbs_g", "fat_g", "sugar_g", "fiber_g", "sodium_mg"] as const;
+export type FcNutrient = (typeof FC_NUTRIENTS)[number];
+/** An ingredient's figures per 100 g; null or missing = not known. Without kcal it counts as having none. */
+export type FcNutrition = Partial<Record<FcNutrient, number | null>>;
+export type FcNutrients = Record<FcNutrient, number>;
+/** The highest figure per 100 g each nutrient can have (salt is 38,758 mg of sodium; nothing is over 900 kcal or 100 g). */
+export const FC_NUTRIENT_MAX: Record<FcNutrient, number> = { kcal: 900, protein_g: 100, carbs_g: 100, fat_g: 100, sugar_g: 100, fiber_g: 100, sodium_mg: 40_000 };
+
+export type FcNutritionProblemCode =
+  | "no_figures" // the ingredient has no calorie figure
+  | "no_weight" // a volume or pieces of it, with no density / weight of one piece to weigh it
+  | "unknown_ingredient"
+  | "unknown_recipe"
+  | "bad_qty"
+  | "cycle"
+  | "too_deep"
+  | "sub_recipe_problem"; // the recipe used here is missing figures of its own (it is counted as far as it goes)
+
+export interface FcNutritionLine {
+  /** what the line weighs; null when it cannot be weighed */
+  grams: number | null;
+  /** its calories, rounded; null when not known */
+  kcal: number | null;
+  problem?: FcNutritionProblemCode;
+}
+
+export interface FcNutritionResult {
+  lines: FcNutritionLine[];
+  /** the whole batch, as far as it is known (kcal and mg whole, grams to one decimal) */
+  batch: FcNutrients;
+  /** one yield unit (a piece, a cake …) when the yield is counted */
+  perUnit: FcNutrients | null;
+  /** 100 g of what the batch makes, when its weight is known: a yield by weight, or the finished weight */
+  per100g: FcNutrients | null;
+  /** for each nutrient: every line had its figure, so its total is the whole of it */
+  known: Record<FcNutrient, boolean>;
+  /** lines that were counted */
+  counted: number;
+  problems: { code: FcNutritionProblemCode; line: number }[];
+  /** every line was counted: the calories are the whole of them */
+  complete: boolean;
+}
+
+const zeroNutrients = (): FcNutrients => ({ kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, sugar_g: 0, fiber_g: 0, sodium_mg: 0 });
+/** kcal and mg to the whole number, grams to one decimal. */
+const roundNutrients = (n: FcNutrients, by = 1): FcNutrients =>
+  Object.fromEntries(FC_NUTRIENTS.map((k) => [k, k === "kcal" || k === "sodium_mg" ? Math.round(Number((n[k] / by).toFixed(6))) : round1(n[k] / by)])) as FcNutrients;
+const figure = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v >= 0;
+
+/** The batch's figures, unrounded, so a recipe inside another one is shared out before anything is rounded. */
+interface RawNutrition {
+  lines: FcNutritionLine[];
+  batch: FcNutrients;
+  known: Record<FcNutrient, boolean>;
+  counted: number;
+  problems: { code: FcNutritionProblemCode; line: number }[];
+}
+
+function nutrition(recipe: FcRecipe, book: Book, stack: string[]): RawNutrition {
+  const path = [...stack, String(recipe.id)];
+  const batch = zeroNutrients();
+  const known = Object.fromEntries(FC_NUTRIENTS.map((k) => [k, true])) as Record<FcNutrient, boolean>;
+  const problems: RawNutrition["problems"] = [];
+  let counted = 0;
+  const unknownAll = () => FC_NUTRIENTS.forEach((k) => (known[k] = false));
+
+  const lines = recipe.items.map((item, i): FcNutritionLine => {
+    const fail = (code: FcNutritionProblemCode, grams: number | null = null): FcNutritionLine => {
+      problems.push({ code, line: i });
+      unknownAll();
+      return { grams, kcal: null, problem: code };
+    };
+    if (!positive(item.qty) || !isFcUnit(item.unit)) return fail("bad_qty");
+
+    if (item.recipeId != null) {
+      const sub = book.recipes.get(String(item.recipeId));
+      if (!sub) return fail("unknown_recipe");
+      if (path.includes(String(sub.id))) return fail("cycle");
+      if (path.length >= FC_MAX_DEPTH) return fail("too_deep");
+      if (!(positive(sub.yieldQty) && isFcUnit(sub.yieldUnit))) return fail("sub_recipe_problem");
+      const share = shareOf(item, sub);
+      const weight = batchGrams(sub);
+      const grams = FC_UNITS[item.unit].dim === "mass" ? toBase(item.qty, item.unit) : share !== null && weight !== null ? share * weight : null;
+      if (share === null) return fail("no_weight");
+      // its whole batch's figures, shared out by how much of it is used here — as far as they go
+      const inner = nutrition(sub, book, path);
+      for (const k of FC_NUTRIENTS) {
+        batch[k] += inner.batch[k] * share;
+        if (!inner.known[k]) known[k] = false;
+      }
+      counted++;
+      const line: FcNutritionLine = { grams: grams === null ? null : round1(grams), kcal: Math.round(inner.batch.kcal * share) };
+      if (inner.problems.length) {
+        problems.push({ code: "sub_recipe_problem", line: i });
+        return { ...line, problem: "sub_recipe_problem" };
+      }
+      return line;
+    }
+
+    const ing = item.ingredientId != null ? book.ingredients.get(String(item.ingredientId)) : undefined;
+    if (!ing) return fail("unknown_ingredient");
+    const grams = convert(item.qty, item.unit, "mass", ing);
+    const n = ing.nutrition;
+    // no figures at all is the first thing to say: weighing it would not help
+    if (!n || !figure(n.kcal)) return fail("no_figures", grams === null ? null : round1(grams));
+    if (grams === null) return fail("no_weight");
+    for (const k of FC_NUTRIENTS) {
+      const v = n[k];
+      if (figure(v)) batch[k] += (v * grams) / 100;
+      else known[k] = false;
+    }
+    counted++;
+    return { grams: round1(grams), kcal: Math.round((n.kcal * grams) / 100) };
+  });
+
+  return { lines, batch, known, counted, problems };
+}
+
+/**
+ * The calories and nutrients of a recipe: the batch, one yield unit (when it is counted: a piece, a cake) and 100 g (when its weight is
+ * known). `ingredients` and `recipes` are what its lines may name, as for costRecipe. Never throws for bad input: it reports it.
+ */
+export function nutritionOf(recipe: FcRecipe, ingredients: Iterable<FcIngredient>, recipes: Iterable<FcRecipe> = []): FcNutritionResult {
+  const book: Book = {
+    ingredients: new Map([...ingredients].map((i) => [String(i.id), i])),
+    recipes: new Map([...recipes, recipe].map((r) => [String(r.id), r])),
+  };
+  const raw = nutrition(recipe, book, []);
+  const counts = positive(recipe.yieldQty) && isFcUnit(recipe.yieldUnit) && FC_UNITS[recipe.yieldUnit].dim === "count";
+  const grams = batchGrams(recipe);
+  return {
+    lines: raw.lines,
+    batch: roundNutrients(raw.batch),
+    perUnit: counts ? roundNutrients(raw.batch, recipe.yieldQty) : null,
+    per100g: grams ? roundNutrients(raw.batch, grams / 100) : null,
+    known: raw.known,
+    counted: raw.counted,
+    problems: raw.problems,
+    complete: raw.problems.length === 0,
+  };
+}
+
+/** Each nutrient's name and unit for people, in both languages. */
+export const FC_NUTRIENT_NAMES: Record<FcNutrient, Record<Lang, { name: string; unit: string }>> = {
+  kcal: { bn: { name: "ক্যালরি", unit: "ক্যালরি" }, en: { name: "Calories", unit: "kcal" } },
+  protein_g: { bn: { name: "প্রোটিন", unit: "গ্রাম" }, en: { name: "Protein", unit: "g" } },
+  carbs_g: { bn: { name: "শর্করা", unit: "গ্রাম" }, en: { name: "Carbohydrate", unit: "g" } },
+  fat_g: { bn: { name: "চর্বি", unit: "গ্রাম" }, en: { name: "Fat", unit: "g" } },
+  sugar_g: { bn: { name: "চিনি (শর্করার অংশ)", unit: "গ্রাম" }, en: { name: "of which sugar", unit: "g" } },
+  fiber_g: { bn: { name: "আঁশ", unit: "গ্রাম" }, en: { name: "Fibre", unit: "g" } },
+  sodium_mg: { bn: { name: "সোডিয়াম", unit: "মিলিগ্রাম" }, en: { name: "Sodium", unit: "mg" } },
+};
+
+/** "245 kcal" / "২৪৫ ক্যালরি", "3.2 g" / "৩.২ গ্রাম": a figure as the engine rounds it, in the reader's digits. */
+export function fcNutrientText(k: FcNutrient, value: number, lang: Lang): string {
+  return `${formatNumber(value, lang)} ${FC_NUTRIENT_NAMES[k][lang].unit}`;
+}
+
 /** "৳৭৪.১৭" / "৳74.17", whole amounts without the paisa ("৳১,২০০"); other currencies with their own sign. */
 export function fcMoney(minor: number, lang: Lang, currency: FcCurrency = "BDT"): string {
   const c = FC_CURRENCIES[currency];
@@ -398,7 +581,12 @@ export interface FcIngredientDTO {
   price_source: "mine" | "default" | null;
   /** the shared default (Admin), shown next to one's own price */
   default_price: FcPriceDTO | null;
+  /** its figures per 100 g; null when it has no calorie figure */
+  nutrition: FcNutritionDTO | null;
 }
+
+/** An ingredient's figures per 100 g, as the API sends them: each one, or null where it is not known. */
+export type FcNutritionDTO = Record<FcNutrient, number | null>;
 
 export interface FcItemDTO {
   ingredient_id: number | null;
@@ -448,6 +636,8 @@ export interface FcRecipeSummaryDTO {
   per_unit_minor: number | null;
   suggested_minor: number | null;
   complete: boolean;
+  /** the calories of one yield unit when the yield is counted and every line has its figure; else null */
+  kcal_per_unit: number | null;
   /** other recipes of the workspace use this one (it cannot be deleted while they do) */
   used_by: number;
   updated_at: string;
@@ -474,7 +664,17 @@ export function fcIngredient(d: FcIngredientDTO, lang: Lang): FcIngredient {
     gPerMl: d.g_per_ml,
     gPerPiece: d.g_per_piece,
     price: priceOf(d.price),
+    nutrition: d.nutrition,
   };
+}
+
+/**
+ * An ingredient's figures as stored and sent: null unless it has a calorie figure (without one, the others alone mean nothing to a total).
+ * `row` has the database's columns (per 100 g).
+ */
+export function fcNutritionDTO(row: Partial<Record<FcNutrient, number | null>>): FcNutritionDTO | null {
+  if (!figure(row.kcal)) return null;
+  return Object.fromEntries(FC_NUTRIENTS.map((k) => [k, figure(row[k]) ? row[k] : null])) as FcNutritionDTO;
 }
 
 /** A recipe from the API (or a form shaped like it), for the engine. */
@@ -530,6 +730,15 @@ export function fcCostWith(recipe: Parameters<typeof fcRecipe>[0], book: FcBook,
   );
 }
 
+/** The calories and nutrients of one recipe against a workspace's book, like fcCostWith (the recipe as given wins over its saved copy). */
+export function fcNutritionWith(recipe: Parameters<typeof fcRecipe>[0], book: FcBook): FcNutritionResult {
+  return nutritionOf(
+    fcRecipe(recipe),
+    book.ingredients.map((i) => fcIngredient(i, "en")),
+    book.recipes.filter((r) => r.id !== recipe.id).map(fcRecipe),
+  );
+}
+
 /** A number people type ("120", "115.50", "১২০.৫০", "1,200"); null when it is not one, or not above zero unless `zero` is allowed. */
 export function fcParseNumber(text: string, zero = false): number | null {
   const t = fromBnDigits(text.trim()).replace(/,/g, "");
@@ -542,6 +751,33 @@ export function fcParseNumber(text: string, zero = false): number | null {
 export function fcParseTaka(text: string): number | null {
   const n = fcParseNumber(text, true);
   return n === null ? null : Math.round(n * 100);
+}
+
+/**
+ * The nutrition boxes as typed (per 100 g) → what the API takes. An empty box is "not known"; `bad` lists the boxes that are not a figure
+ * (or are above what 100 g can hold) — and the calories, when other boxes are filled without them (the others alone mean nothing).
+ */
+export function fcNutritionFromBoxes(boxes: Partial<Record<FcNutrient, string>>): { nutrition: FcNutritionDTO | null; bad: FcNutrient[] } {
+  const bad: FcNutrient[] = [];
+  const out = Object.fromEntries(FC_NUTRIENTS.map((k) => [k, null])) as FcNutritionDTO;
+  let any = false;
+  for (const k of FC_NUTRIENTS) {
+    const text = (boxes[k] ?? "").trim();
+    if (!text) continue;
+    const n = fcParseNumber(text, true);
+    if (n === null || n > FC_NUTRIENT_MAX[k]) bad.push(k);
+    else {
+      out[k] = n;
+      any = true;
+    }
+  }
+  if (any && out.kcal === null && !bad.includes("kcal")) bad.unshift("kcal");
+  return { nutrition: any && out.kcal !== null ? out : null, bad };
+}
+
+/** An ingredient's figures → the boxes to edit them in (empty where not known). */
+export function fcNutritionBoxes(n: FcNutritionDTO | null | undefined): Record<FcNutrient, string> {
+  return Object.fromEntries(FC_NUTRIENTS.map((k) => [k, n?.[k] == null ? "" : String(n[k])])) as Record<FcNutrient, string>;
 }
 
 /** Paisa → the taka to put back in a box ("120", "115.5"), in plain digits. */

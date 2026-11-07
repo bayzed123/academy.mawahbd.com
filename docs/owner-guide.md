@@ -568,8 +568,14 @@
 ফুডকস্ট হলো রেসিপির খরচ ও লাভের হিসাব করার টুল ([পরিকল্পনা](foodcost.md))। শিক্ষার্থীরা এটি পায় ওয়েবসাইটের স্টুডেন্ট এরিয়ায় আর অ্যান্ড্রয়েড অ্যাপে, দুই জায়গাতেই **ফুডকস্ট** ট্যাবে:
 
 * **আমার রেসিপি:** প্রতিটি রেসিপির খরচ আর বিক্রির দাম। ফ্রি অ্যাকাউন্টে ৩টি রেসিপি সেভ হয়, MAWAH শিক্ষার্থীদের কোনো সীমা নেই।
-* **রেসিপি:** উপকরণ (আপনার তালিকা থেকে) আর পরিমাণ, প্যাকেজিং, শ্রম, গ্যাস; টাইপ করার সাথে সাথে খরচ, প্রতি পিসের খরচ আর লাভ রেখে দাম দেখায়।
+* **রেসিপি:** উপকরণ (আপনার তালিকা থেকে) আর পরিমাণ, প্যাকেজিং, শ্রম, গ্যাস; টাইপ করার সাথে সাথে খরচ, প্রতি পিসের খরচ আর লাভ রেখে দাম দেখায়। খরচের পাশেই **ক্যালরি ও পুষ্টি**: প্রতি পিসে, প্রতি ১০০ গ্রামে (শেষ ওজন দিলে) আর পুরো ব্যাচে ক্যালরি, প্রোটিন, শর্করা, চর্বি, চিনি, আঁশ ও সোডিয়াম।
 * **উপকরণ ও দাম:** আপনার রাখা ঢাকার গড় দাম চলে, যতক্ষণ না শিক্ষার্থী নিজের কেনা দাম বসায়। নিজের দাম শুধু তার নিজের রেসিপিতে চলে।
+
+**শুরুর তালিকা:** ৪৫টি সাধারণ বেকিং উপকরণ আগে থেকেই তালিকায় আছে (ময়দা, আটা, চিনি, ডিম, বাটার, দুধ, ক্রিম, চকলেট, বাদাম…)। প্রতিটির বাংলা ও ইংরেজি নাম, কাপ বা পিসের ওজন আর প্রতি ১০০ গ্রামের পুষ্টি (USDA-র খাদ্যতালিকা থেকে) দেওয়া। **দাম দেওয়া নেই**, কারণ ওয়েবসাইট কখনো বানানো দাম দেখায় না। তাই একবার এটা করুন:
+
+1. অ্যাডমিন → **ফুডকস্ট** → **উপকরণ** খুলুন।
+2. প্রতিটি উপকরণে **সম্পাদনা** চাপুন, এখনকার ঢাকার গড় দাম দিন (যেমন “১ কেজি ৳১২০”)। অথবা **তালিকা পেস্ট করুন** দিয়ে একসাথে সব দাম দিন: একই নাম দিলে নতুন উপকরণ যোগ হয় না, শুধু দাম বসে।
+3. দাম না দেওয়া পর্যন্ত শিক্ষার্থী রেসিপির খরচে দেখবে “এখনো দাম নেই” আর **দাম বসান** বোতাম। ক্যালরি তখনও দেখায়।
 
 অ্যাডমিন মেনুর **ফুডকস্ট** পাতায় আপনি উপকরণ ও দাম রাখেন:
 
@@ -578,6 +584,8 @@
   * **১ মিলিতে কত গ্রাম (ঘনত্ব):** যেমন ময়দা ≈ ০.৫৩। এটা থাকলে কেজিতে দাম দেওয়া উপকরণ রেসিপিতে কাপ বা চামচে ব্যবহার করা যায়;
   * **এক পিসে কত গ্রাম:** যেমন ডিম ≈ ৫০। এটা থাকলে ডজনে দাম দেওয়া ডিম ওজনে ব্যবহার করা যায়;
   * **ডিফল্ট দাম:** এক প্যাকের এখনকার ঢাকার গড় দাম, যেমন “১ কেজি ৳১২০”, কোথা থেকে আর কোন তারিখের।
+
+  * **পুষ্টি, প্রতি ১০০ গ্রামে:** ক্যালরি, প্রোটিন, শর্করা, চর্বি, চিনি, আঁশ, সোডিয়াম, প্যাকেটের লেবেল বা খাদ্যতালিকা থেকে। আগে ক্যালরি দিন, অন্যগুলো এর সাথে লাগে।
 
   না জানা ঘর ফাঁকা রাখুন। রেসিপি তখন অনুমান না করে বলে দেবে কী নেই।
 * **দাম বদলাতে:** উপকরণে **সম্পাদনা** চাপুন, নতুন দাম লিখে **নতুন দাম সেভ করুন** চাপুন। নতুনটাই চলবে, আগেরগুলো **আগের দাম** তালিকায় থেকে যায়। তালিকায় প্রতিটি দামের পাশে দেখায় প্রতি গ্রাম, মিলি বা পিসে কত পড়ে।
@@ -598,6 +606,7 @@
   * প্রতি মাসে পুরো শীটটি আবার পেস্ট করতে পারেন: যে দাম বদলায়নি তা আবার সেভ হয় না, তাই আগের দামের তালিকায় শুধু আসল বদলগুলো থাকে।
   * লম্বা তালিকাও চলবে: পেজ নিজেই ২০০টি করে সারি ভাগ করে পাঠায়।
 * **ব্যবহারকারী ট্যাব:** কারা ফুডকস্ট খুলেছেন, তাদের প্ল্যান আর কয়টি রেসিপি আছে। কারও রেসিপি বা দাম এখানে কখনো দেখা যায় না।
+* **ক্যালরি সম্পর্কে:** এগুলো খাদ্যতালিকা থেকে নেওয়া ধারণা, ল্যাবের পরীক্ষা নয়। কাপে বা পিসে মাপা উপকরণের ওজন জানতে ঘনত্ব বা পিসের ওজন লাগে; না থাকলে রেসিপি বলে দেয় কোন লাইনটি ধরা হয়নি। অ্যাপ কারও শরীর বা খাওয়ার কোনো তথ্য রাখে না, শুধু রেসিপির হিসাব।
 * **প্ল্যান:**
   * ফ্রি প্ল্যানে ৩টি রেসিপি রাখা যায়।
   * MAWAH-এর স্টুডেন্টদের কোনো সীমা নেই। ওয়েবসাইটে ক্লাস কেনা বা স্টাফের দেওয়া ক্লাস থাকলেই স্টুডেন্ট। অ্যাপের ফ্রি ক্লাস এতে গোনা হয় না।
@@ -1188,9 +1197,19 @@ Android app, on a **FoodCost** tab in both:
 
 * **My recipes:** what each recipe costs and what to sell it for. A free account keeps 3 recipes; MAWAH students have no limit.
 * **A recipe:** ingredients (from your list) and amounts, packaging, labour and gas; as they type it shows the cost of the batch and of
-  one piece, and a price with their profit.
+  one piece, and a price with their profit. Beside the cost: **Calories & nutrition** for one piece, for 100 g (when the finished weight is
+  given) and for the batch: calories, protein, carbohydrate, fat, sugar, fibre and sodium.
 * **Ingredients & prices:** your Dhaka average counts until a student types the price they paid. Their own price counts in their own
   recipes only.
+
+**The starter list:** 45 common baking ingredients are on the list from the start (flour, atta, sugar, eggs, butter, milk, cream, chocolate,
+nuts …), each with its Bangla and English name, what a cup or a piece weighs, and its nutrition per 100 g (from USDA's food tables). **They
+have no prices**, because the site never shows a made-up price. So once:
+
+1. Open Admin → **FoodCost** → **Ingredients**.
+2. Press **Edit** on each one and give today's Dhaka average (for example "৳120 for 1 kg"). Or give all the prices at once with **Paste a
+   list**: a name already on the list gets its price and is not added again.
+3. Until then a student's recipe says "No price yet" with a **Set prices** button. The calories still show.
 
 You keep the ingredients and prices on the **FoodCost** page in the Admin menu:
 
@@ -1198,7 +1217,9 @@ You keep the ingredients and prices on the **FoodCost** page in the Admin menu:
   * its name in Bangla and in English, and a category (Flour, Dairy …);
   * **Grams in 1 ml (density):** for example flour ≈ 0.53. With it, an ingredient priced by the kg can be used by the cup or the spoon;
   * **Grams in one piece:** for example an egg ≈ 50. With it, eggs priced by the dozen can be used by weight;
-  * **the default price:** today's average Dhaka price of one pack, for example "৳120 for 1 kg", with where and the date.
+  * **the default price:** today's average Dhaka price of one pack, for example "৳120 for 1 kg", with where and the date;
+  * **Nutrition, per 100 g:** calories, protein, carbohydrate, fat, sugar, fibre and sodium, from the pack's label or a food table. The
+    calories come first; the others need them.
 
   Leave empty what you do not know. A recipe then says what is missing instead of guessing.
 * **Changing a price:** press **Edit**, type the new price and press **Save the new price**. The newest counts, and the older ones stay under
@@ -1222,6 +1243,9 @@ You keep the ingredients and prices on the **FoodCost** page in the Admin menu:
     changes.
   * A long list is fine: the page sends it in parts of 200 rows.
 * **Users tab:** who has opened FoodCost, their plan and how many recipes they keep. Nobody's recipes or prices are ever shown here.
+* **About the calories:** they are estimates from food tables, not a laboratory test. An ingredient measured by the cup or the piece needs
+  its density or piece weight to be weighed; without it, the recipe names the line it could not count. The app keeps nothing about
+  anyone's body or eating, only the recipe's figures.
 * **Plans:**
   * Free keeps 3 recipes.
   * MAWAH students have no limit. A student is someone with a class bought on the website, or one given by staff. A free class of the app

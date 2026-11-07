@@ -59,5 +59,7 @@ test("every problem FoodCost's engine can report, every kind of cost and what a 
   const kinds = list(/export const FC_COST_KINDS[^=]*= \[([^\]]+)\]/);
   const pers = list(/export const FC_COST_PERS = \[([^\]]+)\]/);
   assert.ok(problems.length >= 10 && kinds.length === 4 && pers.length === 3, "the lists were found");
-  for (const key of [...problems.map((p) => `fc.p.${p}`), ...kinds.map((k) => `fc.kind.${k}`), ...pers.map((p) => `fc.per.${p}`)]) assert.ok(key in en, key);
+  const food = list(/export type FcNutritionProblemCode =([\s\S]*?);/);
+  assert.ok(food.length >= 6, "the nutrition problems were found");
+  for (const key of [...problems.map((p) => `fc.p.${p}`), ...food.map((p) => `fc.fp.${p}`), ...kinds.map((k) => `fc.kind.${k}`), ...pers.map((p) => `fc.per.${p}`)]) assert.ok(key in en, key);
 });

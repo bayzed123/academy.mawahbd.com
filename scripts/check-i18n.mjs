@@ -115,6 +115,10 @@ const fcApi = readFileSync(resolve(root, "worker/src/routes/api/foodcost.ts"), "
 const fcRefusals = [...new Set([...fcApi.matchAll(/(?<!entity: )"(fc_[a-z_]+)"/g)].map((m) => m[1]))]; // not the activity log's names
 if (fcRefusals.length < 5) fail(`routes/api/foodcost.ts: the refusal parse looks wrong (${fcRefusals.length})`);
 need(app, "FoodCost problems", fcProblems.map((p) => `app.fc.p.${p}`));
+// …and every line the calories could not count
+const fcFoodProblems = listOf(/export type FcNutritionProblemCode =([\s\S]*?);/);
+if (fcFoodProblems.length < 6) fail(`foodcost.ts: the nutrition problem parse looks wrong (${fcFoodProblems.length})`);
+need(app, "FoodCost nutrition problems", fcFoodProblems.map((p) => `app.fc.fp.${p}`));
 need(app, "FoodCost costs", [...fcKinds.map((k) => `app.fc.kind.${k}`), ...fcPers.map((p) => `app.fc.per.${p}`), ...["markup", "margin"].flatMap((m) => [`app.fc.mode.${m}`, `app.fc.mode.${m}.d`, `app.fc.suggested.${m}`])]);
 need(app, "FoodCost refusals", fcRefusals.map((c) => `err.${c}`));
 

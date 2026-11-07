@@ -1,7 +1,23 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fromBnDigits } from "@mawah/shared";
-import { FC_UNITS, FC_UNIT_LIST, FC_UNIT_NAMES, fcMoney, isFcUnit, unitCost, type FcPriceDTO, type FcUnit } from "@mawah/shared/foodcost";
+import {
+  FC_NUTRIENTS,
+  FC_NUTRIENT_NAMES,
+  FC_UNITS,
+  FC_UNIT_LIST,
+  FC_UNIT_NAMES,
+  fcMoney,
+  fcNutrientText,
+  fcNutritionBoxes,
+  fcNutritionFromBoxes,
+  isFcUnit,
+  unitCost,
+  type FcNutrient,
+  type FcNutritionDTO,
+  type FcPriceDTO,
+  type FcUnit,
+} from "@mawah/shared/foodcost";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -25,6 +41,8 @@ interface SharedIngredient {
   prices: number;
   used_in: number;
   default_price: FcPriceDTO | null;
+  /** per 100 g; null: no calorie figure */
+  nutrition: FcNutritionDTO | null;
 }
 interface WorkspaceRow {
   id: number;
@@ -111,6 +129,7 @@ function Ingredients() {
                 <th>{t("adm.fc.colPrice")}</th>
                 <th>{t("adm.fc.colUnitCost")}</th>
                 <th>{t("adm.fc.colMeasures")}</th>
+                <th>{t("adm.fc.colKcal")}</th>
                 <th>{t("adm.fc.colUsed")}</th>
                 <th>{t("adm.fc.colStatus")}</th>
                 <th />
@@ -143,6 +162,7 @@ function Ingredients() {
                     <td>
                       {i.g_per_ml ? `${num(i.g_per_ml)} g/ml` : "—"} · {i.g_per_piece ? `${num(i.g_per_piece)} g` : "—"}
                     </td>
+                    <td>{i.nutrition?.kcal != null ? fcNutrientText("kcal", i.nutrition.kcal, lang) : <Chip tone="warn">{t("adm.fc.noKcal")}</Chip>}</td>
                     <td>{num(i.used_in)}</td>
                     <td>{i.active ? <Chip tone="ok">{t("adm.fc.on")}</Chip> : <Chip>{t("adm.fc.off")}</Chip>}</td>
                     <td>
@@ -197,8 +217,14 @@ function IngredientEditor({ ingredient, onSaved }: { ingredient: SharedIngredien
     active: ingredient?.active ?? true,
   });
   const [price, setPrice] = useState({ pack_qty: "1", pack_unit: "kg" as FcUnit, taka: "", supplier: "", bought_on: "" });
+  // the figures per 100 g, as typed
+  const [food, setFood] = useState(() => fcNutritionBoxes(ingredient?.nutrition));
+  const [tried, setTried] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (k: keyof typeof f, v: string | boolean) => setF((x) => ({ ...x, [k]: v }));
+  const typedFood = fcNutritionFromBoxes(food);
+  const foodError = (k: FcNutrient) =>
+    errors[`nutrition.${k}`] ?? (tried && typedFood.bad.includes(k) ? t(k === "kcal" && food.kcal.trim() === "" ? "adm.fc.kcalFirst" : "adm.fc.badFigure") : undefined);
   const history = useQuery({
     queryKey: ["fc-price-history", ingredient?.id],
     queryFn: () => adm<{ history: FcPriceDTO[] }>(`/fc/ingredients/${ingredient!.id}/prices`),
@@ -216,6 +242,7 @@ function IngredientEditor({ ingredient, onSaved }: { ingredient: SharedIngredien
 
   const save = useMutation({
     mutationFn: () => {
+      if (typedFood.bad.length) throw new Error("nutrition");
       const body = {
         name_bn: f.name_bn.trim(),
         name_en: f.name_en.trim(),
@@ -224,6 +251,7 @@ function IngredientEditor({ ingredient, onSaved }: { ingredient: SharedIngredien
         g_per_piece: toNumber(f.g_per_piece),
         sort: Math.max(0, Math.round(Number(fromBnDigits(f.sort)) || 0)),
         active: f.active,
+        nutrition: typedFood.nutrition,
         // a new ingredient may come with its first price; an existing one gets a new price with its own button
         ...(ingredient ? {} : { price: priceBody() }),
       };
@@ -234,7 +262,8 @@ function IngredientEditor({ ingredient, onSaved }: { ingredient: SharedIngredien
       refresh();
       onSaved();
     },
-    onError: (e) => setErrors(fieldErrors(e)),
+    // a box that is not a figure is shown under it already (foodError); nothing was sent
+    onError: (e) => (e instanceof ApiError ? setErrors(fieldErrors(e)) : undefined),
   });
   const newPrice = useMutation({
     mutationFn: () => adm(`/fc/ingredients/${ingredient!.id}/price`, { method: "POST", json: priceBody() }),
@@ -251,6 +280,7 @@ function IngredientEditor({ ingredient, onSaved }: { ingredient: SharedIngredien
     <form
       onSubmit={(ev) => {
         ev.preventDefault();
+        setTried(true);
         save.mutate();
       }}
       noValidate
@@ -279,6 +309,18 @@ function IngredientEditor({ ingredient, onSaved }: { ingredient: SharedIngredien
         <Switch id="fc-active" checked={f.active} disabled={!canWrite} onChange={(v) => set("active", v)} label={t("adm.fc.active")} />
         <p className="hint">{t("adm.fc.activeHint")}</p>
       </div>
+
+      <section style={{ marginTop: 18 }} aria-labelledby="fc-food-title">
+        <h3 id="fc-food-title">{t("adm.fc.nutrition")}</h3>
+        <p className="hint">{t("adm.fc.nutritionHint")}</p>
+        <div className="form-grid">
+          {FC_NUTRIENTS.map((k) => (
+            <Field key={k} id={`fc-n-${k}`} label={`${FC_NUTRIENT_NAMES[k][lang].name} (${FC_NUTRIENT_NAMES[k][lang].unit})`} error={foodError(k)}>
+              <TextInput id={`fc-n-${k}`} inputMode="decimal" value={food[k]} disabled={!canWrite} error={foodError(k)} onChange={(e) => setFood((x) => ({ ...x, [k]: e.target.value }))} />
+            </Field>
+          ))}
+        </div>
+      </section>
 
       <section style={{ marginTop: 18 }} aria-labelledby="fc-price-title">
         <h3 id="fc-price-title">{t("adm.fc.price")}</h3>

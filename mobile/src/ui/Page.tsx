@@ -3,6 +3,7 @@ import { RefreshControl, ScrollView, View, type StyleProp, type ViewStyle } from
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePrefs } from "../prefs";
 import { CONTENT_MAX, GUTTER } from "../lib/layout";
+import { KeyboardScroll } from "./KeyboardScroll";
 import { Txt } from "./Txt";
 
 interface Props {
@@ -14,22 +15,28 @@ interface Props {
   under?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
   scroll?: boolean;
+  /** the page has text boxes: the one being typed in is kept above the keyboard */
+  keyboard?: boolean;
 }
 
 /** A screen's scrolling body: the theme's background, room for the phone's status bar and the tab bar, and pull-to-refresh. */
-export function Page({ children, onRefresh, refreshing = false, under, contentStyle, scroll = true }: Props) {
+export function Page({ children, onRefresh, refreshing = false, under, contentStyle, scroll = true, keyboard }: Props) {
   const { c } = usePrefs();
   const insets = useSafeAreaInsets();
   // on a tablet the content is a centred column (src/lib/layout.ts); on a phone this is the full width
   const pad = { paddingTop: under ? 8 : insets.top + 12, paddingBottom: 32, paddingHorizontal: GUTTER, gap: 20, width: "100%", maxWidth: CONTENT_MAX + GUTTER * 2, alignSelf: "center" } as const;
   if (!scroll) return <View style={[{ flex: 1, backgroundColor: c.bg }, pad, contentStyle]}>{children}</View>;
+  const refresh = onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} colors={[c.accent]} progressBackgroundColor={c.surface} /> : undefined;
+  if (keyboard)
+    return (
+      <View style={{ flex: 1, backgroundColor: c.bg }}>
+        <KeyboardScroll contentContainerStyle={[pad, contentStyle]} refreshControl={refresh} showsVerticalScrollIndicator={false}>
+          {children}
+        </KeyboardScroll>
+      </View>
+    );
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: c.bg }}
-      contentContainerStyle={[pad, contentStyle]}
-      refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} colors={[c.accent]} progressBackgroundColor={c.surface} /> : undefined}
-      showsVerticalScrollIndicator={false}
-    >
+    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={[pad, contentStyle]} refreshControl={refresh} showsVerticalScrollIndicator={false}>
       {children}
     </ScrollView>
   );
