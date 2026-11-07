@@ -406,8 +406,10 @@ p.free-note.is-done .icon{color:inherit}
 .fc-crumb{margin:0 0 .3rem;font-size:.95rem}
 .fc-grid{display:grid;gap:18px;align-items:start}
 .fc-main{display:grid;gap:18px;min-width:0}
-.fc-main>.panel+.panel{margin-top:0}
-@media (min-width:1000px){.fc-grid{grid-template-columns:minmax(0,1fr) 340px}.fc-side{position:sticky;top:84px}}
+.fc-main>.panel+.panel,.fc-side>.panel+.panel{margin-top:0}
+.fc-side{display:grid;gap:18px;min-width:0}
+/* on a wide screen the cost and the calories stay in sight while one types; taller than the window, they scroll on their own */
+@media (min-width:1000px){.fc-grid{grid-template-columns:minmax(0,1fr) 340px}.fc-side{position:sticky;top:84px;max-height:calc(100vh - 100px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}}
 .fc-yield,.fc-mode{border:0;margin:0;padding:0;min-width:0}
 .fc-yield legend,.fc-mode legend{font-weight:700;margin-bottom:.5rem;padding:0}
 .fc-yield-row,.fc-price-fields{display:grid;gap:0 12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:start}

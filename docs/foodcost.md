@@ -23,7 +23,7 @@ calculation code, tables and API, so it can later become a separate app without 
 | **1b** | Database tables (migration `0025`), the API (`/api/fc/v1`), Admin → FoodCost (ingredients and default prices, a pasted list, the users and their plan), plans and limits, account deletion | built |
 | **1c + 1d** | The screens, on the website (`/app/foodcost`) and in the Android app, each with a **FoodCost** tab, in Bangla and English: my recipes with the plan; the recipe editor, costing live while one types (the same engine as the server, `fcCostWith`) with the cost and price kept in sight on a phone; ingredients & prices (the Dhaka average or one's own price, one's own ingredients) | built |
 | 1e | The report: print / save as PDF on the website, share as PDF from the app | next |
-| 2 | Nutrition: calories, protein, carbs, fat, fiber, sugar and sodium per piece; a nutrition label | after real use of phase 1 |
+| **2** | Nutrition: calories, protein, carbohydrate, fat, sugar, fibre and sodium for each line, one piece, 100 g and the batch, beside the cost (`nutritionOf`, the same engine); a starter list of 45 common baking ingredients with their figures (migration `0027`) | built |
 | 3 | Other currencies in use (USD, GBP, EUR, AED), teams, a paid plan, a separate app | later |
 
 ## How the calculation works (phase 1a)
@@ -66,6 +66,36 @@ The engine is plain TypeScript with no database or screen in it, so the same num
 `worker/test/foodcost-engine.test.ts` checks all of this with figures worked out by hand. It has 16 tests, for example 12 vanilla cupcakes:
 ৳490 of ingredients, ৳10 a box each, 2 hours at ৳100, ৳50 of gas and ৳30 more come to ৳890 a batch, so ৳74.17 a piece.
 
+## Nutrition (phase 2) and the starter list
+
+**What is counted.** Each ingredient has its figures per 100 g: calories (kcal), protein, carbohydrate, fat, sugar (part of the carbohydrate)
+and fibre in grams, sodium in mg (the `fc_ingredients` columns `kcal` … `sodium_mg`).
+
+- **Each line** is weighed in grams, through the same units as the cost: a cup of flour through its density, eggs through the weight of one.
+  Its figures are the ingredient's per 100 g × the grams ÷ 100.
+- **The batch** is the sum of the lines. **One piece** is the batch ÷ the yield, when the yield is counted (12 cupcakes). **100 g** is the
+  batch ÷ its weight: a yield by weight (800 g of buttercream), or the finished weight of a counted one. Without a finished weight there is
+  no "per 100 g": the engine does not guess the weight lost in the oven.
+- **A recipe inside a recipe** passes on its share of the figures, shared out exactly as its cost is (by weight, or by its own pieces).
+- **Rounding:** calories and sodium to the whole number, grams to one decimal; one piece and 100 g are worked out from the batch before it is
+  rounded.
+- **Never a guess:** an ingredient with no calorie figure ("no figures"), or one measured in a way it cannot be weighed (a cup of something
+  with no density: "no weight"), is reported and left out, and the total says it is only part of it. A figure one ingredient lacks (the
+  table gives none) marks only that nutrient's total as partial (a star on the screens).
+- **The figures are a guide, not a laboratory test**, and the screens say so. FoodCost stores nothing about anyone's body or eating, only a
+  recipe's figures. This is not a calorie tracker (which would be health data, with extra Google Play rules).
+
+**The starter list** (migration `0027_foodcost_starter.sql`): 45 common baking ingredients in 9 groups (flour, sugar, dairy and eggs, fats,
+baking aids, chocolate, nuts and dried fruit, fruit, spices), each with its Bangla and English name, its density or piece weight from USDA's
+cup and teaspoon weights, and its figures per 100 g from **USDA FoodData Central (SR Legacy, public domain)**; empty where the table gives
+none (semolina's sugar, yeast's sugar, shortening's sodium). **No prices:** the owner sets the Dhaka average, and each user can type their
+own. A name already on the shared list is left as it is, so the owner's own entries win and the list never adds a name twice. Staff can
+correct any figure in Admin → FoodCost, and a user can give their own ingredients figures from the pack's label.
+
+**Where it shows:** the recipe editor (website and app) shows each line's calories next to its cost, a **Calories & nutrition** panel beside
+the cost, and the calories of one piece in the bar at the bottom of a phone; the recipe list shows the calories of one piece when every
+line has its figure (`kcal_per_unit`); the ingredient lists show the calories per 100 g.
+
 ## The database (phase 1b, migration `0025_foodcost.sql`)
 
 All tables start with `fc_`. Every recipe belongs to a **workspace**: each user gets a personal one, and a bakery team can share one later
@@ -74,7 +104,7 @@ with no database change.
 | Table | What it keeps |
 |---|---|
 | `fc_workspaces` | owner (student account), name, **plan** (`free` · `pro`), plan end date and how it was given (admin / website / Google Play), currency |
-| `fc_ingredients` | name in Bangla and English, category, density (g/ml), weight of one piece, the nutrition columns for phase 2 (empty until then); `workspace_id` empty = the shared list kept in Admin, set = a user's own ingredient |
+| `fc_ingredients` | name in Bangla and English, category, density (g/ml), weight of one piece, its nutrition per 100 g (`kcal`, `protein_g`, `carbs_g`, `fat_g`, `sugar_g`, `fiber_g`, `sodium_mg`; NULL = not known); `workspace_id` empty = the shared list kept in Admin, set = a user's own ingredient |
 | `fc_prices` | the price of a pack (amount, unit, paisa, currency), supplier and date. One row per change, so there is a history. Rows with no workspace are the **Admin default** (Dhaka average); a workspace's newest row **replaces the default for that user only**. |
 | `fc_recipes` | workspace, name, notes, yield (amount and unit, a label such as "slice"), the batch's finished weight, the extra costs and the pricing choice, timestamps, soft delete |
 | `fc_recipe_items` | the lines: an ingredient or another recipe, the amount and the unit, in order |
@@ -84,10 +114,14 @@ with no database change.
 - `GET /me`: plan, limit, how many recipes are saved, and whether the user counts as a MAWAH student.
 - `GET /book`: everything the screens cost with while one types: the plan, every ingredient with the price that counts, every recipe in full.
 - `GET /prices/:ingredient`: your own price history for an ingredient, with the current Admin default.
-- `GET /ingredients`: the shared list plus the user's own, each with the price that applies to this user (theirs, else the default).
-- `POST /ingredients`: add your own ingredient.
+- `GET /ingredients`: the shared list plus the user's own, each with the price that applies to this user (theirs, else the default), and its
+  `nutrition` per 100 g (null without a calorie figure).
+- `POST /ingredients`: add your own ingredient, with its `nutrition` if known (figures need the calories; each is checked against what 100 g
+  can hold). `PUT /ingredients/:id` without `nutrition` leaves the figures as they are (an older app sends none); `nutrition: null` removes
+  them.
 - `PUT /prices/:ingredient`: set your own price. `DELETE /prices/:ingredient`: go back to the Admin default.
-- `GET /recipes`, `POST /recipes`, `GET /recipes/:id`, `PUT /recipes/:id`, `DELETE /recipes/:id`, `POST /recipes/:id/duplicate`.
+- `GET /recipes`, `POST /recipes`, `GET /recipes/:id`, `PUT /recipes/:id`, `DELETE /recipes/:id`, `POST /recipes/:id/duplicate`. The list carries
+  `kcal_per_unit` (the calories of one piece, when every line has its figure).
 - The server costs a saved recipe with the same engine and returns the results. The screens also run the engine while you type, so the
   numbers change at once.
 - **Admin** (`/api/admin/fc/...`):

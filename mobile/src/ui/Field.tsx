@@ -2,6 +2,7 @@ import type { ComponentProps } from "react";
 import { TextInput, View, type StyleProp, type ViewStyle } from "react-native";
 import { usePrefs } from "../prefs";
 import { FONT, RADIUS } from "../theme";
+import { useKeyboardField } from "./KeyboardScroll";
 import { Txt } from "./Txt";
 
 type Props = ComponentProps<typeof TextInput> & {
@@ -13,8 +14,10 @@ type Props = ComponentProps<typeof TextInput> & {
 };
 
 /** A box to type in with its label above and its error (or a hint) below — the label is also what a screen reader says. */
-export function Field({ label, error, hint, box, style, ...rest }: Props) {
+export function Field({ label, error, hint, box, style, onFocus, onBlur, ...rest }: Props) {
   const { c } = usePrefs();
+  // inside a KeyboardScroll, the box being typed in is kept above the keyboard
+  const kb = useKeyboardField();
   return (
     <View style={[{ gap: 6 }, box]}>
       <Txt v="label" color={c.text2}>
@@ -25,6 +28,14 @@ export function Field({ label, error, hint, box, style, ...rest }: Props) {
         accessibilityLabel={label}
         accessibilityHint={error ?? hint}
         {...rest}
+        onFocus={(e) => {
+          kb?.focused();
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          kb?.blurred();
+          onBlur?.(e);
+        }}
         style={[
           {
             backgroundColor: c.surface,

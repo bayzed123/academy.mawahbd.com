@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   FC_COST_KINDS,
   FC_COST_PERS,
+  FC_NUTRIENTS,
+  FC_NUTRIENT_NAMES,
   FC_ROUND_STEPS,
   FC_UNITS,
   FC_UNIT_LIST,
@@ -15,6 +17,10 @@ import {
   fcIngredient,
   fcMoney,
   fcNewItem,
+  fcNutrientText,
+  fcNutritionFromBoxes,
+  fcNutritionBoxes,
+  fcNutritionWith,
   fcParseNumber,
   fcParseTaka,
   fcTakaText,
@@ -26,6 +32,8 @@ import {
   type FcFormItem,
   type FcIngredientDTO,
   type FcMeDTO,
+  type FcNutrient,
+  type FcNutritionResult,
   type FcProblem,
   type FcRecipeDTO,
   type FcRecipeForm,
@@ -56,7 +64,9 @@ function useFc() {
   /** "৳37.92 / cupcake", "৳0.55 / g"; "—" while there is nothing to share out */
   const per = (minor: number | null, label: string, u: FcUnit) => (minor === null ? "—" : `${money(minor)} / ${label || unit(u)}`);
   const num = (n: number) => (lang === "bn" ? n.toLocaleString("bn-BD", { maximumFractionDigits: 2 }) : n.toLocaleString("en-US", { maximumFractionDigits: 2 }));
-  return { lang, t, money, unit, per, num };
+  /** "245 kcal", "3.2 g" in the reader's digits */
+  const nutrient = (k: FcNutrient, v: number) => fcNutrientText(k, v, lang);
+  return { lang, t, money, unit, per, num, nutrient };
 }
 
 /* --------------------------------------------------------------------------------------------------------------------- my recipes */
@@ -78,7 +88,7 @@ function PlanLine({ me }: { me: FcMeDTO }) {
 }
 
 export function FcHome() {
-  const { t, per, unit, num } = useFc();
+  const { t, per, unit, num, nutrient } = useFc();
   const q = useQuery({ queryKey: ["fc", "recipes"], queryFn: () => api<{ recipes: FcRecipeSummaryDTO[]; me: FcMeDTO }>("/fc/v1/recipes") });
   return (
     <>
@@ -120,6 +130,11 @@ export function FcHome() {
                       {r.suggested_minor !== null && (
                         <span className="fc-fig">
                           <small>{t("app.fc.priceAt")}</small> <b>{per(r.suggested_minor, r.yield_label, r.yield_unit)}</b>
+                        </span>
+                      )}
+                      {r.kcal_per_unit !== null && (
+                        <span className="fc-fig">
+                          <small>{t("app.fc.kcalShort")}</small> <b>{nutrient("kcal", r.kcal_per_unit)}</b>
                         </span>
                       )}
                       {!r.complete && <span className="chip pending">{t("app.fc.partial")}</span>}
@@ -164,11 +179,80 @@ function problemText(p: FcProblem, result: FcResult, rows: number[], fc: Pick<Re
   const name = p.line !== undefined ? (result.lines[p.line]?.name ?? "") : "";
   return fc.t(`app.fc.p.${p.code}` as "app.fc.p.bad_qty", { line, cost: p.cost !== undefined ? fc.num(p.cost + 1) : "", name });
 }
+/** A line the calories could not count, in words (named as the cost names it). */
+function foodProblemText(p: FcNutritionResult["problems"][number], result: FcResult, rows: number[], fc: Pick<ReturnType<typeof useFc>, "t" | "num">): string {
+  return fc.t(`app.fc.fp.${p.code}` as "app.fc.fp.bad_qty", { line: fc.num(rows[p.line] + 1), name: result.lines[p.line]?.name ?? "" });
+}
+
+/**
+ * The calories and nutrients, beside the cost: one piece (when the batch is counted), 100 g (when its weight is known) and the batch. A
+ * figure some ingredient does not have is starred, and lines it could not count are named — never guessed.
+ */
+function FoodPanel({ food, result, rows, what }: { food: FcNutritionResult; result: FcResult; rows: number[]; what: string }) {
+  const { t, num, lang, nutrient } = useFc();
+  const figs = food.perUnit ?? food.per100g ?? food.batch;
+  const basis = food.perUnit ? t("app.fc.perWhat", { what }) : food.per100g ? t("app.fc.per100g") : t("app.fc.perBatch");
+  const star = (k: FcNutrient) => (food.known[k] ? "" : " *");
+  return (
+    <section className="panel fc-food" aria-labelledby="fc-h-food">
+      <h2 id="fc-h-food">{t("app.fc.food")}</h2>
+      {food.counted === 0 && food.problems.length === 0 ? (
+        <p className="muted">{t("app.fc.foodNone")}</p>
+      ) : (
+        <>
+          <dl className="fc-figs" aria-live="polite">
+            {food.perUnit && (
+              <div className="big">
+                <dt>{t("app.fc.kcalPer", { what })}</dt>
+                <dd>{nutrient("kcal", food.perUnit.kcal) + star("kcal")}</dd>
+              </div>
+            )}
+            {food.per100g && (
+              <div className={food.perUnit ? "" : "big"}>
+                <dt>{t("app.fc.kcal100g")}</dt>
+                <dd>{nutrient("kcal", food.per100g.kcal) + star("kcal")}</dd>
+              </div>
+            )}
+            <div>
+              <dt>{t("app.fc.kcalBatch")}</dt>
+              <dd>{nutrient("kcal", food.batch.kcal) + star("kcal")}</dd>
+            </div>
+          </dl>
+          <table className="fc-split">
+            <caption>{t("app.fc.nutrientsFor", { basis })}</caption>
+            <tbody>
+              {FC_NUTRIENTS.filter((k) => k !== "kcal").map((k) => (
+                <tr key={k}>
+                  <th scope="row">{FC_NUTRIENT_NAMES[k][lang].name}</th>
+                  <td>{nutrient(k, figs[k]) + star(k)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!food.complete ? (
+            <div className="fc-warn" role="status">
+              <b>{t("app.fc.foodPartial")}</b>
+              <ul>
+                {food.problems.map((p, n) => (
+                  <li key={n}>{foodProblemText(p, result, rows, { t, num })}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            FC_NUTRIENTS.some((k) => !food.known[k]) && <p className="hint">{t("app.fc.foodStar")}</p>
+          )}
+          <p className="hint">{t("app.fc.foodSource")}</p>
+        </>
+      )}
+    </section>
+  );
+}
+
 /** A field's error code in words: "required" and "invalid" have their own words, anything else its error message. */
 const codeText = (code: string, t: ReturnType<typeof useFc>["t"], err: (c: string) => string) => (code === "required" ? t("err.required") : err(code === "invalid" ? "validation" : code));
 
 function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) {
-  const { t, lang, money, unit, per, num } = useFc();
+  const { t, lang, money, unit, per, num, nutrient } = useFc();
   const { err } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
@@ -187,6 +271,8 @@ function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) 
   const { input, rows } = useMemo(() => fcFormToInput(f), [f]);
   // the same costing the server does, on every key press
   const result = useMemo(() => fcCostWith({ id: saved?.id ?? 0, ...input }, book, lang), [input, book, lang, saved]);
+  // …and the calories, from the same lines
+  const food = useMemo(() => fcNutritionWith({ id: saved?.id ?? 0, ...input }, book), [input, book, saved]);
   const ingredients = useMemo(() => new Map(book.ingredients.map((i) => [i.id, i])), [book]);
   const others = book.recipes.filter((r) => r.id !== saved?.id);
   const categories = useMemo(() => {
@@ -207,7 +293,8 @@ function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) 
     let u: FcUnit = f.items[n].unit;
     const ing = ref[0] === "i" ? ingredients.get(Number(ref.slice(1))) : undefined;
     const sub = ref[0] === "r" ? book.recipes.find((x) => x.id === Number(ref.slice(1))) : undefined;
-    const kind = ing?.price ? FC_UNITS[ing.price.pack_unit].dim : sub ? FC_UNITS[sub.yield_unit].dim : null;
+    // no price yet: something with a weight for one piece (an egg) is counted by the piece
+    const kind = ing?.price ? FC_UNITS[ing.price.pack_unit].dim : ing?.g_per_piece ? "count" : sub ? FC_UNITS[sub.yield_unit].dim : null;
     if (kind && FC_UNITS[u].dim !== kind) u = BASE[kind];
     setItem(n, { ref, unit: u });
   };
@@ -382,6 +469,7 @@ function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) 
                           <small className="muted">{t("app.fc.share", { pct: num(line.sharePct) })}</small>
                         </>
                       )}
+                      {k >= 0 && food.lines[k]?.kcal != null && <small className="muted">{nutrient("kcal", food.lines[k].kcal!)}</small>}
                     </div>
                     <button
                       type="button"
@@ -577,6 +665,11 @@ function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) 
                     <li key={n}>{problemText(p, result, rows, { t, num })}</li>
                   ))}
                 </ul>
+                {result.problems.some((p) => p.code === "no_price") && (
+                  <Link className="btn btn-outline btn-sm" to="/foodcost/ingredients">
+                    <Icon name="tag" /> {t("app.fc.setPrices")}
+                  </Link>
+                )}
               </div>
             )}
             {result.complete && result.problems.length > 0 && (
@@ -619,6 +712,7 @@ function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) 
               )}
             </div>
           </div>
+          <FoodPanel food={food} result={result} rows={rows} what={yieldWhat} />
         </aside>
       </div>
 
@@ -637,6 +731,11 @@ function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) 
         {f.pct.trim() !== "" && (
           <span>
             {t("app.fc.priceAt")} <b>{per(result.suggestedMinor, f.yieldLabel.trim(), f.yieldUnit)}</b>
+          </span>
+        )}
+        {food.perUnit && food.counted > 0 && (
+          <span>
+            <b>{nutrient("kcal", food.perUnit.kcal)}</b>
           </span>
         )}
         {!result.complete && <span className="chip pending">{t("app.fc.partial")}</span>}
@@ -749,6 +848,8 @@ function IngredientRow({ i }: { i: FcIngredientDTO }) {
           {i.price_source === "mine" && i.default_price && !i.own && (
             <small className="muted"> · {t("app.fc.averageIs", { price: fcMoney(i.default_price.price_minor, lang), qty: String(i.default_price.pack_qty), unit: FC_UNIT_NAMES[i.default_price.pack_unit][lang] })}</small>
           )}
+          <br />
+          <small className="muted">{i.nutrition?.kcal != null ? t("app.fc.kcalPer100", { kcal: fcNutrientText("kcal", i.nutrition.kcal, lang) }) : t("app.fc.noKcal")}</small>
         </span>
         <span className="row">
           <button type="button" className="btn btn-outline btn-sm" aria-expanded={open} aria-label={`${t("app.fc.setMyPrice")} — ${name}`} onClick={() => setOpen((x) => !x)}>
@@ -792,13 +893,18 @@ function IngredientRow({ i }: { i: FcIngredientDTO }) {
 }
 
 function AddIngredient({ onDone }: { onDone: () => void }) {
-  const { t } = useFc();
+  const { t, lang } = useFc();
   const { err } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
   const [names, setNames] = useState({ bn: "", en: "", category: "", gml: "", gpc: "" });
   const [d, setD] = useState<PriceDraft>(() => draftOf(null));
+  const [food, setFood] = useState(() => fcNutritionBoxes(null));
+  const [tried, setTried] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const typed = fcNutritionFromBoxes(food);
+  const foodError = (k: FcNutrient) =>
+    errors[`nutrition.${k}`] ?? (tried && typed.bad.includes(k) ? t(k === "kcal" && !food.kcal.trim() ? "app.fc.kcalFirst" : "app.fc.badFigure") : undefined);
   const add = useMutation({
     mutationFn: () =>
       api("/fc/v1/ingredients", {
@@ -809,6 +915,7 @@ function AddIngredient({ onDone }: { onDone: () => void }) {
           g_per_ml: fcParseNumber(names.gml),
           g_per_piece: fcParseNumber(names.gpc),
           price: d.taka.trim() ? priceBody(d) : null,
+          nutrition: typed.nutrition,
         },
       }),
     onSuccess: () => {
@@ -828,7 +935,8 @@ function AddIngredient({ onDone }: { onDone: () => void }) {
       noValidate
       onSubmit={(ev) => {
         ev.preventDefault();
-        add.mutate();
+        setTried(true);
+        if (!typed.bad.length) add.mutate();
       }}
     >
       <h2>{t("app.fc.addOwn")}</h2>
@@ -851,6 +959,15 @@ function AddIngredient({ onDone }: { onDone: () => void }) {
       </div>
       <h3>{t("app.fc.itsPrice")}</h3>
       <PriceFields id="fc-n-p" d={d} onChange={setD} errors={errors} />
+      <h3>{t("app.fc.nutritionOwn")}</h3>
+      <p className="hint">{t("app.fc.nutritionOwnHint")}</p>
+      <div className="fc-price-fields">
+        {FC_NUTRIENTS.map((k) => (
+          <Field key={k} id={`fc-n-${k}`} label={`${FC_NUTRIENT_NAMES[k][lang].name} (${FC_NUTRIENT_NAMES[k][lang].unit})`} error={foodError(k)}>
+            <TextInput id={`fc-n-${k}`} inputMode="decimal" value={food[k]} error={foodError(k)} onChange={(e) => setFood((x) => ({ ...x, [k]: e.target.value }))} />
+          </Field>
+        ))}
+      </div>
       <div className="row">
         <Button type="submit" busy={add.isPending}>
           {t("app.fc.addOwnSave")}

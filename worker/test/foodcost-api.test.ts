@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { costRecipe, fcCostWith, fcIngredient, fcRecipe, type FcIngredientDTO, type FcRecipeDTO } from "@mawah/shared/foodcost";
+import { costRecipe, fcCostWith, fcIngredient, fcNutritionWith, fcRecipe, type FcIngredientDTO, type FcRecipeDTO, type FcRecipeSummaryDTO } from "@mawah/shared/foodcost";
 import { Client, env, json, loginStaff, registerStudent } from "./helpers";
 
 /*
@@ -359,6 +359,87 @@ describe("Admin → FoodCost", () => {
     const long = await cm.post("/api/admin/fc/ingredients/import", { rows: Array.from({ length: 201 }, (_, i) => ({ name_en: `Too many ${stamp} ${i}` })) });
     expect(long.status).toBe(422);
     expect((await json(long)).error.fields).toMatchObject({ rows: "too_many" });
+  });
+});
+
+describe("the starter list and calories", () => {
+  const starter = async (c: Client) => ((await json(await c.get(fc("/ingredients")))).ingredients as FcIngredientDTO[]).filter((i) => !i.own);
+  const named = (list: FcIngredientDTO[], en: string) => list.find((i) => i.name_en === en)!;
+  const seed = () => (env as unknown as { TEST_MIGRATIONS: { name: string; queries: string[] }[] }).TEST_MIGRATIONS.find((m) => m.name.startsWith("0027_"))!;
+  /** the English names the starter list adds, read from its migration */
+  const starterNames = () => seed().queries.flatMap((q) => [...q.matchAll(/lower\('((?:[^']|'')+)'\)/g)].map((m) => m[1].replace(/''/g, "'")));
+
+  it("a new student finds the common baking ingredients ready: both names, how much a cup or a piece weighs, calories — and no made-up price", async () => {
+    const { client } = await student();
+    const list = await starter(client);
+    const flour = named(list, "All-purpose flour (maida)");
+    expect(flour).toMatchObject({ name_bn: "ময়দা", g_per_ml: 0.53, active: true, nutrition: { kcal: 364, protein_g: 10.3, carbs_g: 76.3, fat_g: 1, sodium_mg: 2 } });
+    expect(named(list, "Egg")).toMatchObject({ name_bn: "ডিম", g_per_piece: 50, nutrition: { kcal: 143 } });
+    // 45 of them (the names the migration adds), each with calories; prices are the owner's to set (the Dhaka average), never invented here
+    const theirs = starterNames();
+    expect(theirs).toHaveLength(45);
+    for (const en of theirs) {
+      const i = named(list, en);
+      expect(i.nutrition?.kcal, en).toBeTypeOf("number");
+      expect(i.default_price, en).toBeNull();
+    }
+    // a figure the food table does not give stays empty, never guessed
+    expect(named(list, "Semolina (suji)").nutrition).toMatchObject({ kcal: 360, sugar_g: null });
+  });
+
+  it("the starter list is added once: run again, it adds no name twice, and an owner's own entry with the same name is kept", async () => {
+    const count = async () => (await env.DB.prepare("SELECT COUNT(*) AS n FROM fc_ingredients WHERE workspace_id IS NULL").first<{ n: number }>())!.n;
+    const before = await count();
+    for (const q of seed().queries) await env.DB.prepare(q).run();
+    expect(await count()).toBe(before);
+  });
+
+  it("a recipe's calories come with its costing: each line, one piece, and the list of recipes", async () => {
+    const { client } = await student();
+    const list = await starter(client);
+    const flour = named(list, "All-purpose flour (maida)");
+    const egg = named(list, "Egg");
+    const res = await client.post(fc("/recipes"), cupcakes(flour.id, egg.id));
+    expect(res.status, await res.clone().text()).toBe(201);
+    // 500 g flour 1,820 kcal + 6 eggs (300 g) 429 kcal = 2,249 kcal for 12: 187 a cupcake
+    const book = await json(await client.get(fc("/book")));
+    const saved = (book.recipes as FcRecipeDTO[])[0];
+    const food = fcNutritionWith(saved, book);
+    expect([food.batch.kcal, food.perUnit?.kcal, food.lines.map((l) => l.kcal)]).toEqual([2249, 187, [1820, 429]]);
+    // the list shows it too, as the server works it out — but not its price: there is none yet
+    const summary = ((await json(await client.get(fc("/recipes")))).recipes as FcRecipeSummaryDTO[])[0];
+    expect(summary).toMatchObject({ kcal_per_unit: 187, complete: false });
+  });
+
+  it("one's own ingredient can carry its figures: checked, kept when an older app sends none, removed when told", async () => {
+    const { client } = await student();
+    const add = await client.post(fc("/ingredients"), { name_en: "Compound chocolate", nutrition: { kcal: 520, fat_g: 30, sugar_g: 55 } });
+    expect(add.status, await add.clone().text()).toBe(201);
+    const own = (await json(add)).ingredient as FcIngredientDTO;
+    expect(own.nutrition).toEqual({ kcal: 520, protein_g: null, carbs_g: null, fat_g: 30, sugar_g: 55, fiber_g: null, sodium_mg: null });
+    // figures without the calories, more than 100 g in 100 g, a negative figure: refused, with the box named
+    for (const nutrition of [{ protein_g: 5 }, { kcal: 300, fat_g: 120 }, { kcal: -1 }, { kcal: 1200 }]) {
+      const bad = await client.post(fc("/ingredients"), { name_en: "Bad", nutrition });
+      expect(bad.status, JSON.stringify(nutrition)).toBe(422);
+      expect(Object.keys((await json(bad)).error.fields ?? {}).some((k: string) => k.startsWith("nutrition.")), JSON.stringify(nutrition)).toBe(true);
+    }
+    // a change that sends no figures (an app from before) keeps them; null removes them
+    await client.put(fc(`/ingredients/${own.id}`), { name_en: "Compound chocolate (dark)" });
+    const kept = ((await json(await client.get(fc("/ingredients")))).ingredients as FcIngredientDTO[]).find((i) => i.id === own.id)!;
+    expect(kept).toMatchObject({ name_en: "Compound chocolate (dark)", nutrition: { kcal: 520 } });
+    expect((await json(await client.put(fc(`/ingredients/${own.id}`), { name_en: "Compound chocolate", nutrition: null }))).ingredient.nutrition).toBeNull();
+  });
+
+  it("staff keep the shared list's figures in Admin → FoodCost", async () => {
+    const cm = (await loginStaff("content_manager")).client;
+    const item = await shared(cm, `Glucose syrup ${Date.now()}`, null, { nutrition: { kcal: 316, carbs_g: 79 } });
+    expect((item as unknown as { nutrition: unknown }).nutrition).toMatchObject({ kcal: 316, carbs_g: 79, fat_g: null });
+    const put = await cm.put(`/api/admin/fc/ingredients/${item.id}`, { name_en: `Glucose syrup ${Date.now()}`, nutrition: { kcal: 300, carbs_g: 75, sugar_g: 40 } });
+    expect((await json(put)).item.nutrition).toMatchObject({ kcal: 300, sugar_g: 40 });
+    // the list shows every shared ingredient's figures, the starter ones included
+    const items = (await json(await cm.get("/api/admin/fc/ingredients"))).items as { name_en: string; nutrition: { kcal: number } | null }[];
+    expect(items.find((i) => i.name_en === "Sugar")!.nutrition!.kcal).toBe(387);
+    expect((await cm.put(`/api/admin/fc/ingredients/${item.id}`, { name_en: "Glucose", nutrition: { fat_g: 1 } })).status).toBe(422);
   });
 });
 

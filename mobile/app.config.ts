@@ -49,7 +49,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: { bundler: "metro", output: "single", favicon: "./assets/favicon.png" },
   plugins: [
     "expo-router",
-    "expo-font",
+    // the three weights the app uses, built into the app: there the moment it opens, nothing read while it starts (src/fonts.ts). Android
+    // finds each by its file name, which is the name the styles use (src/theme.ts FONT)
+    [
+      "expo-font",
+      {
+        fonts: [
+          "./node_modules/@expo-google-fonts/hind-siliguri/400Regular/HindSiliguri_400Regular.ttf",
+          "./node_modules/@expo-google-fonts/hind-siliguri/600SemiBold/HindSiliguri_600SemiBold.ttf",
+          "./node_modules/@expo-google-fonts/hind-siliguri/700Bold/HindSiliguri_700Bold.ttf",
+        ],
+      },
+    ],
     "expo-web-browser",
     "expo-sharing",
     "expo-image",

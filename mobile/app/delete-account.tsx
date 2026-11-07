@@ -54,7 +54,7 @@ export default function DeleteAccount() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <Header title={t("del.title")} />
-      <Page under>
+      <Page under keyboard>
         {status !== "in" || !me ? (
           <Card style={{ gap: 12 }}>
             <Txt v="body" color={c.text2}>

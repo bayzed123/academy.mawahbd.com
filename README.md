@@ -38,10 +38,10 @@ Requires **Node.js ≥ 20.19** (22 recommended). Local D1/KV/R2 run on your mach
 |---|---|
 | `npm run dev` | Everything for local work: builds, migrates a local database, runs the Worker (8787) and hot-reload servers for the student app (5173) and admin (5174) |
 | `npm run typecheck` | `tsc` in all four workspaces (required before any deploy) |
-| `npm test` | i18n completeness, script tests, and **829 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
-| `npm run build && npm run test:e2e` | **216 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows (typed key by key, like a person), accessibility (axe), 360 px phones |
+| `npm test` | i18n completeness, script tests, and **839 Vitest tests inside the real Workers runtime** (routes, money, security, admin, contracts, plus guards enumerated from the router and production-mode hardening) and **palette/brand checks** (contrast ratios, logo and icon files) |
+| `npm run build && npm run test:e2e` | **217 Playwright tests** against a real Worker on a fresh seeded database: enrol → pay → learn → certificate, the admin workflows (typed key by key, like a person), accessibility (axe), 360 px phones |
 | `npm run lighthouse:local` | Core Web Vitals gate on the public pages (mobile profile) |
-| `cd mobile && npm ci && npm run check` | The Android app: TypeScript and its own 16 tests (Bangla/English texts complete, no class price or "buy" wording, the video player choice, website links, the tablet layout). The build itself runs in GitHub Actions (*Android app* workflow) |
+| `cd mobile && npm ci && npm run check` | The Android app: TypeScript and its own 26 tests (Bangla/English texts complete, no class price or "buy" wording, the video player choice, website links, the tablet layout, the keyboard). The build itself runs in GitHub Actions (*Android app* workflow) |
 | `npm run setup:cloudflare -- --secrets` | Only for deploying from your own computer: creates D1/KV/R2, fills `wrangler.toml`, sets the secrets (`--dry-run` first). **GitHub’s Deploy workflow does all of this by itself** — see [deployment.md](docs/deployment.md) |
 | `npm run db:migrate:remote` · `npm run deploy` | Apply migrations / build and deploy (normally done by GitHub Actions on every push to `main`) |
 | `npm run check:i18n` · `npm run brand:assets` | Bangla/English dictionary check · rebuild every logo, icon and social-share file from `brand/mawah-logo.jpg` |

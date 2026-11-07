@@ -120,6 +120,12 @@ files' signatures afterwards.
          functionality**: the address Google's Firebase Cloud Messaging gives the app, kept with the app's language and, when signed
          in, the account, so notifications reach the phone. Not shared.
      * The app collects no location, contacts, photos, files or audio, no advertising ID, and has no advertising or analytics library.
+     * **Health and fitness:** none. FoodCost shows the calories and nutrients of a *recipe* (from food tables and what the user typed
+       for an ingredient); it keeps nothing about anyone's body, diet, eating or activity, so the Data safety form has no health data.
+   * **Health apps declaration** (App content → *Health apps*, asked of every app): FoodCost's calories are recipe information for
+     bakers, not tracking of what a person eats. If the form asks whether the app has health features, the honest answer is that it
+     shows recipe nutrition; when a category must be picked, *Nutrition and weight management* is the closest one. It brings no extra
+     requirement for an app that stores no health data, but read Google's wording on the day: it changes.
    * **Account deletion:** in the app *Profile → Delete my account*; on the web **https://mawahacademy.com/account/delete** (give this
      address under *Delete account URL*). Deleting removes the name, number, e-mail, address, password, progress, questions, reviews and FoodCost data, unlinks the phones it got notifications on,
      ends every sign-in, and keeps orders and payments for tax records (the page says so, as Google requires). Staff can also delete an
