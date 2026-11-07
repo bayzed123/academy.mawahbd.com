@@ -32,6 +32,14 @@ export interface SmsResult {
 export const smsConfigured = (env: Env): boolean => !!(env.SMS_API_KEY?.trim() && env.SMS_API_URL?.trim());
 
 /**
+ * A "masking" sender ID: a brand name (MAWAH) that phones show in place of a number. In Bangladesh a non-masking sender ID is a number
+ * (8809601…) and a masking one has letters. MRAM's panel (like the others of its kind) refuses English text from a masking sender (error
+ * 1012, "Masking SMS must be sent in Bengali"), so texts from one go out in Bangla (smsText.ts wordsFor). Phones show at most 11 characters.
+ */
+export const isMaskingSender = (sender: string | null | undefined): boolean => /[A-Za-z]/.test(sender ?? "");
+export const MASKING_MAX = 11;
+
+/**
  * Where the company's addresses are. The owner may have saved the company's website address, its sending address, or one of its example
  * links — with or without the leading "https://" (a bare name like msg.example.com is taken as https). Plain http is refused.
  */

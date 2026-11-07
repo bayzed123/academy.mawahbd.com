@@ -8,8 +8,8 @@ import { all } from "../../../lib/db";
 import { HttpError, ok, parseBody } from "../../../lib/http";
 import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_TEST_KEY, mailProblem, sendMail, testMail, type MailLastTest } from "../../../lib/mailer";
 import { buttonLinkSchema, emailSchema, langSchema, requiredPhoneSchema, textSchema } from "../../../lib/schemas";
-import { SMS_LAST_KEY, sendSms, smsBalance, smsConfigured, smsEndpoints, type SmsLast } from "../../../lib/sms";
-import { testSms } from "../../../lib/smsText";
+import { isMaskingSender, MASKING_MAX, SMS_LAST_KEY, sendSms, smsBalance, smsConfigured, smsEndpoints, type SmsLast } from "../../../lib/sms";
+import { smsText, testSms, wordsFor } from "../../../lib/smsText";
 import { getSettings, SETTING_KEYS, setSetting, type SettingKey } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
 import { rateLimit } from "../../../middleware/ratelimit";
@@ -157,7 +157,18 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     off: z.array(z.enum(NOTIFY_KINDS)).max(NOTIFY_KINDS.length).transform((a) => [...new Set(a)]),
   }),
   // the sender ID is the short name the SMS company approved for the shop (letters and digits); empty = the company's own default
-  sms: z.object({ enabled: z.boolean(), sender_id: z.string().trim().max(15, "too_long").regex(/^[A-Za-z0-9 ._-]*$/, "invalid_id"), with_email: z.boolean(), shop: z.boolean() }),
+  // a brand name ("masking": letters in it) is at most 11 characters — all a phone shows; a number sender ID is up to 15 digits
+  sms: z.object({
+    enabled: z.boolean(),
+    sender_id: z
+      .string()
+      .trim()
+      .max(15, "too_long")
+      .regex(/^[A-Za-z0-9 ._-]*$/, "invalid_id")
+      .refine((v) => !isMaskingSender(v) || v.length <= MASKING_MAX, "masking_too_long"),
+    with_email: z.boolean(),
+    shop: z.boolean(),
+  }),
   // the Android app's notice: switched on only with words in both languages (the app shows the one the student reads)
   app: z
     .object({ notice_on: z.boolean(), notice_bn: textSchema(240), notice_en: textSchema(240) })
@@ -328,7 +339,8 @@ settings.post("/settings/sms/test", requirePerm("settings:write"), rateLimit("RL
   const body = await parseBody(c, smsTestSchema);
   await underHourlyCap(c, "smstest", 6);
   const sender = (await getSettings(c.env, { fresh: true })).sms.sender_id;
-  const sent = await sendSms(c.env, { to: body.to, text: testSms(body.lang) }, { sender });
+  // the words a real text from this sender would carry: Bangla from a brand name (smsText.ts wordsFor)
+  const sent = await sendSms(c.env, { to: body.to, text: wordsFor(smsText(body.lang, testSms), sender) }, { sender });
   // the audit trail records that a test happened and how it ended — never the number or the company's words
   await audit(c, { action: "sms.tested", entity: "settings", entityId: "sms", meta: { ok: sent.ok, problem: sent.problem ?? null, provider: sent.provider } });
   const { ok: delivered, ...rest } = sent;
