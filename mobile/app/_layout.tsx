@@ -6,6 +6,7 @@ import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PrefsProvider, usePrefs } from "../src/prefs";
+import { NotificationTaps, PUSH_BUILT, PushProvider } from "../src/push";
 import { SessionProvider, useSession } from "../src/session";
 
 export { ErrorBoundary } from "expo-router";
@@ -23,7 +24,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <PrefsProvider>
         <SessionProvider>
-          <Shell fonts={fonts} />
+          <PushProvider>
+            <Shell fonts={fonts} />
+          </PushProvider>
         </SessionProvider>
       </PrefsProvider>
     </SafeAreaProvider>
@@ -50,6 +53,7 @@ function Shell({ fonts }: { fonts: boolean }) {
         <Stack.Screen name="login" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="signup" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
       </Stack>
+      {PUSH_BUILT ? <NotificationTaps /> : null}
     </>
   );
 }

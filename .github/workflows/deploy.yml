@@ -126,8 +126,9 @@ jobs:
       # the repository secret of that name looks like a Resend key it is set on the Worker at every deploy, so changing or rotating the
       # key is one edit of the GitHub secret and one run of Deploy. With no such GitHub secret, a key set in Cloudflare is left alone.
       # The same goes for SMS_API_KEY / SMS_API_URL (the SMS company), SSLCOMMERZ_STORE_ID / SSLCOMMERZ_STORE_PASSWORD (online payments),
-      # GOOGLE_SERVICE_ACCOUNT (the whole key file of the Google service account that reads the Analytics numbers for Admin → Analytics) and
-      # the couriers' keys and webhook secrets (STEADFAST_* and PATHAO_*: Admin → Shop → Orders → Send to Steadfast / Pathao).
+      # GOOGLE_SERVICE_ACCOUNT (the whole key file of the Google service account that reads the Analytics numbers for Admin → Analytics),
+      # FIREBASE_SERVICE_ACCOUNT (the Firebase project's own key file: the Android app's notifications) and the couriers' keys and webhook
+      # secrets (STEADFAST_* and PATHAO_*: Admin → Shop → Orders → Send to Steadfast / Pathao).
       - name: Give the Worker its secrets
         env:
           SETUP_TOKEN: ${{ secrets.SETUP_TOKEN }}
@@ -137,6 +138,7 @@ jobs:
           SSLCOMMERZ_STORE_ID: ${{ secrets.SSLCOMMERZ_STORE_ID }}
           SSLCOMMERZ_STORE_PASSWORD: ${{ secrets.SSLCOMMERZ_STORE_PASSWORD }}
           GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           STEADFAST_API_KEY: ${{ secrets.STEADFAST_API_KEY }}
           STEADFAST_SECRET_KEY: ${{ secrets.STEADFAST_SECRET_KEY }}
           STEADFAST_WEBHOOK_TOKEN: ${{ secrets.STEADFAST_WEBHOOK_TOKEN }}

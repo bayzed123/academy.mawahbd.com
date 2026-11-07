@@ -95,6 +95,13 @@ const OPTIONAL_SECRETS = [
     normalize: serviceAccountFile,
     hint: "the whole key file (.json) of the Google service account, as it was downloaded — not a part of it, and not the account's e-mail address alone",
   },
+  // the Android app's notifications: the Firebase project's own key file (Firebase console → Project settings → Service accounts)
+  {
+    name: "FIREBASE_SERVICE_ACCOUNT",
+    valid: (v) => serviceAccountFile(v) !== null,
+    normalize: serviceAccountFile,
+    hint: "the whole key file (.json) from Firebase → Project settings → Service accounts → Generate new private key, as it was downloaded",
+  },
   // the couriers (Admin → Shop → Orders → Send to Steadfast / Pathao): keys from their panels, and the webhook secrets the owner made up
   { name: "STEADFAST_API_KEY", valid: (v) => /^[\x21-\x7e]{8,200}$/.test(v), hint: "the API Key from the Steadfast panel, with no spaces" },
   { name: "STEADFAST_SECRET_KEY", valid: (v) => /^[\x21-\x7e]{8,200}$/.test(v), hint: "the Secret Key from the Steadfast panel, with no spaces" },

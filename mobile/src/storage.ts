@@ -35,4 +35,7 @@ export const KEYS = {
   me: "mawah.me",
   lang: "mawah.lang",
   look: "mawah.look",
+  /** notifications: what the person chose (on / off / later), and the address Google gave this copy of the app */
+  push: "mawah.push",
+  pushToken: "mawah.pushToken",
 } as const;

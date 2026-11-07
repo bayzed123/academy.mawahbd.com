@@ -1,11 +1,13 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import type { AppEnv, Ctx } from "../../env";
 import { audit } from "../../lib/audit";
 import { first, nowIso, run } from "../../lib/db";
-import { forbidden, notFound, ok } from "../../lib/http";
+import { forbidden, notFound, ok, parseBody } from "../../lib/http";
 import { loadStudent, requireStudent } from "../../middleware/auth";
 import { rateLimit } from "../../middleware/ratelimit";
 import { getCourseBySlug, getCurriculum, listCourses } from "../../services/catalog";
+import { forgetDevice, PUSH_TOKEN_RE, registerDevice, syncStudentDevices, unregisterDevice } from "../../services/push";
 
 /*
  * The Android app's free classes (Admin → Classes → "Where is this class shown?" → Android app). They are free there and nowhere else:
@@ -57,7 +59,33 @@ appRoutes.post("/courses/:slug/join", requireStudent, rateLimit("RL_FORM"), asyn
       course.id,
       nowIso(),
     );
-    if ((res.meta.changes ?? 0) > 0) await audit(c, { action: "enrollment.joined_free", entity: "course", entityId: course.id, summary: course.title_en, meta: { via: "app" } });
+    if ((res.meta.changes ?? 0) > 0) {
+      await audit(c, { action: "enrollment.joined_free", entity: "course", entityId: course.id, summary: course.title_en, meta: { via: "app" } });
+      // the student's phones start getting this class's new lessons now, not at the app's next start
+      c.executionCtx.waitUntil(syncStudentDevices(c.env, me.id).catch(() => undefined));
+    }
   }
   return ok(c, { joined: true, slug: course.slug });
+});
+
+/*
+ * Notifications (services/push.ts). A phone that allowed them hands over the address Google gave it — at every start of the app, at sign-in
+ * and sign-out, and when the language changes — and gets news in that language; while a student is signed in on it, also their classes' new
+ * lessons. `previous`: the address it had before, when Google gave it a new one. Turning them off in the app takes the phone off everything.
+ */
+const tokenSchema = z.string().trim().regex(PUSH_TOKEN_RE, "invalid_token");
+
+// No form limit here: a phone network shows many students as one address, and they all check in when a notification brings them back at
+// once. The API's own limit still applies; an address Google does not know is never kept, and nothing is kept before notifications are set up.
+appRoutes.post("/push", loadStudent, async (c) => {
+  const body = await parseBody(c, z.object({ token: tokenSchema, lang: z.enum(["bn", "en"]), previous: tokenSchema.optional() }));
+  if (body.previous && body.previous !== body.token) await forgetDevice(c.env, body.previous);
+  const r = await registerDevice(c.env, { token: body.token, studentId: c.get("student")?.id ?? null, lang: body.lang });
+  return ok(c, { registered: r.registered });
+});
+
+appRoutes.post("/push/off", async (c) => {
+  const body = await parseBody(c, z.object({ token: tokenSchema }));
+  await unregisterDevice(c.env, body.token);
+  return ok(c);
 });

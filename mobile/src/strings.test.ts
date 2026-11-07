@@ -43,6 +43,14 @@ test("FoodCost never offers to buy, upgrade or unlock anything, nor points to th
   assert.equal(translate("en", "fc.limitReached", { limit: 3 }), "Free accounts keep 3 recipes. Delete one to save a new one.");
 });
 
+test("the notifications' words offer nothing to buy, and say how to turn them off (Google Play: the person stays in control)", () => {
+  const push = [...Object.entries(en), ...Object.entries(bn)].filter(([key]) => key.startsWith("push."));
+  assert.ok(push.length >= 20, "the notification words were found");
+  for (const [key, text] of push) assert.doesNotMatch(text, /\b(buy|purchase|price|pay|offer|discount|upgrade|subscribe|premium|unlock)\b|কিনুন|ক্রয়|দাম|অফার|ছাড়/i, key);
+  assert.match(en["push.card.body"], /turn it off any time in Profile/);
+  assert.match(bn["push.card.body"], /প্রোফাইল থেকে যেকোনো সময় বন্ধ/);
+});
+
 test("every problem FoodCost's engine can report, every kind of cost and what a cost is counted for has words in the app", () => {
   // read from the shared engine's source (the website and the server read the same lists), so a new one cannot be forgotten
   const source = readFileSync(new URL("../../shared/src/foodcost.ts", import.meta.url), "utf8");

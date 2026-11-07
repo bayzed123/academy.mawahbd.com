@@ -7,6 +7,7 @@ import { HttpError } from "../../../lib/http";
 import { slugSchema, textSchema, optionalUrl } from "../../../lib/schemas";
 import { uniqueSlug } from "../../../lib/slug";
 import { notifyLaunch } from "../../../services/launch";
+import { announceNewClass } from "../../../services/push";
 
 /* ============================================================================================== shared bits */
 const imageKey = (folder: string) =>
@@ -328,11 +329,15 @@ export const courses = crudRoutes({
     }
     return data;
   },
-  async afterSave(c, row, _data, kind) {
+  async afterSave(c, row, _data, kind, existing) {
     // flipping a Coming Soon class live (by any route) tells everyone who asked to be notified
     if (kind === "update" && row.status === "published") {
       const waiting = await first<{ n: number }>(c.env.DB, "SELECT COUNT(*) AS n FROM notify_signups WHERE course_id = ? AND notified_at IS NULL", row.id);
       if ((waiting?.n ?? 0) > 0) c.executionCtx.waitUntil(notifyLaunch(c.env, row.id).then(() => undefined));
+    }
+    // the first time one of the Android app's free classes goes live, everyone with the app gets a notification (services/push.ts)
+    if (row.status === "published" && row.channel === "app" && !existing?.published_at) {
+      c.executionCtx.waitUntil(announceNewClass(c.env, row.id as number).then(() => undefined, () => undefined));
     }
   },
   async canDelete(c, row) {

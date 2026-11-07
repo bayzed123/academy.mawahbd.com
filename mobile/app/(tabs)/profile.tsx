@@ -5,7 +5,9 @@ import { Alert, Platform, View } from "react-native";
 import { useResource } from "../../src/api";
 import { API_URL, APP_VERSION } from "../../src/config";
 import { siteLinks, telLink, whatsappLink } from "../../src/lib/links";
+import { PushSetting } from "../../src/components/PushCard";
 import { openApp, openPage } from "../../src/open";
+import { usePush } from "../../src/push";
 import { usePrefs, type LookPref } from "../../src/prefs";
 import { useSession } from "../../src/session";
 import { RADIUS } from "../../src/theme";
@@ -20,6 +22,7 @@ import { Txt } from "../../src/ui/Txt";
 export default function Profile() {
   const { c, t, lang, setLang, lookPref, setLookPref } = usePrefs();
   const { status, me, logout } = useSession();
+  const push = usePush();
   const router = useRouter();
   const signedIn = status === "in" && !!me;
   const site = useResource<SiteInfo>("/api/site");
@@ -92,6 +95,12 @@ export default function Profile() {
           onChange={(v) => setLookPref(v as LookPref)}
         />
       </Group>
+
+      {push.available ? (
+        <Group title={t("push.title")}>
+          <PushSetting />
+        </Group>
+      ) : null}
 
       {signedIn ? (
         <Group title={t("profile.certificates")}>

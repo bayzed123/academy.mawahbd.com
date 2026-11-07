@@ -58,6 +58,12 @@ export interface Env {
   /** the Google service-account key file (a Secret): the file's text, or that text in base64 */
   GOOGLE_SERVICE_ACCOUNT?: string;
   /**
+   * The Android app's notifications (lib/fcm.ts): the key file of the Firebase project's own service account (Firebase console → Project
+   * settings → Service accounts → Generate new private key), a Secret like the one above. Without it, GOOGLE_SERVICE_ACCOUNT is used (then its
+   * Google Cloud project must be the Firebase project). The project the notifications go out from is the one the key file names.
+   */
+  FIREBASE_SERVICE_ACCOUNT?: string;
+  /**
    * The couriers (Admin → Shop → Orders → Send to Steadfast / Pathao), all secrets; a courier without its keys is simply not offered.
    * Steadfast: the API key and secret key from its panel, and the long random token the owner made up and gave Steadfast as its
    * webhook's "Auth Token (Bearer)". Pathao: the client id and secret from its Developer API page (with the login e-mail and password
