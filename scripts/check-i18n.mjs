@@ -118,6 +118,20 @@ need(app, "FoodCost problems", fcProblems.map((p) => `app.fc.p.${p}`));
 need(app, "FoodCost costs", [...fcKinds.map((k) => `app.fc.kind.${k}`), ...fcPers.map((p) => `app.fc.per.${p}`), ...["markup", "margin"].flatMap((m) => [`app.fc.mode.${m}`, `app.fc.mode.${m}.d`, `app.fc.suggested.${m}`])]);
 need(app, "FoodCost refusals", fcRefusals.map((c) => `err.${c}`));
 
+// The Android app's notifications: every way Firebase can say no is explained (Admin → Android app → Check the connection), and every kind
+// of notification in the "Sent lately" list has a name
+const fcmSource = readFileSync(resolve(root, "worker/src/lib/fcm.ts"), "utf8");
+const pushProblems = [...(/export type PushProblem =([\s\S]*?);/.exec(fcmSource)?.[1] ?? "").matchAll(/\| "([a-z_]+)"/g)].map((m) => m[1]);
+if (pushProblems.length < 10) fail(`fcm.ts: the problem list parse looks wrong (${pushProblems.length})`);
+need(admin, "notification problems", pushProblems.flatMap((p) => [`adm.push.p.${p}.title`, `adm.push.p.${p}.body`]));
+const pushSource = readFileSync(resolve(root, "worker/src/services/push.ts"), "utf8");
+const pushKinds = [...(/export type PushKind =([^;]+);/.exec(pushSource)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+if (pushKinds.length < 3) fail(`services/push.ts: the kind list parse looks wrong (${pushKinds.length})`);
+need(admin, "notification kinds", pushKinds.map((k) => `adm.push.kind.${k}`));
+const pushRefusals = [...readFileSync(resolve(root, "worker/src/routes/api/admin/app.ts"), "utf8").matchAll(/conflict\("([a-z_]+)"\)|\{ course_id: "([a-z_]+)" \}/g)].map((m) => m[1] ?? m[2]);
+if (pushRefusals.length < 4) fail(`admin/app.ts: the refusal parse looks wrong (${pushRefusals.length})`);
+need(admin, "notification refusals", pushRefusals.filter((c) => c !== "required").map((c) => `err.${c}`));
+
 // every error code the Worker can throw should have a translation in both UIs (generic is the safety net, but specific is kinder)
 const codes = new Set();
 for (const f of ["worker/src/routes/api/auth.ts", "worker/src/routes/api/checkout.ts", "worker/src/routes/api/student.tsx", "worker/src/services/orders.ts", "worker/src/services/learning.ts", "worker/src/services/payments/bkash.ts"]) {

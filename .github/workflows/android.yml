@@ -74,6 +74,37 @@ jobs:
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "Version $name ($code)"
 
+      # Notifications (docs/android-app.md, "Notifications"): the Firebase project's google-services.json, from the repository secret
+      # GOOGLE_SERVICES_JSON (the file itself, or that file in base64). Without it the app is built without notifications — it works the
+      # same and never offers them. The file must be the one made for this app (package com.mawahacademy.app).
+      - name: Firebase file for notifications
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          rm -f google-services.json
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::notice title=No notifications in this build::Add the GitHub secret GOOGLE_SERVICES_JSON (docs/android-app.md) to build the app with notifications."
+            exit 0
+          fi
+          node -e '
+            const raw = (process.env.GOOGLE_SERVICES_JSON || "").trim();
+            let text = raw;
+            if (!raw.startsWith("{")) { try { text = Buffer.from(raw.replace(/\s+/g, ""), "base64").toString("utf8"); } catch { text = ""; } }
+            let j = null;
+            try { j = JSON.parse(text); } catch { j = null; }
+            const pkgs = (j && Array.isArray(j.client) ? j.client : []).map((c) => c && c.client_info && c.client_info.android_client_info && c.client_info.android_client_info.package_name);
+            if (!j || !j.project_info || !j.project_info.project_id) {
+              console.log("::error title=GOOGLE_SERVICES_JSON is not a google-services.json::Firebase console → Project settings → Your apps → the Android app → download google-services.json, and save the whole file as that secret.");
+              process.exit(1);
+            }
+            if (!pkgs.includes("com.mawahacademy.app")) {
+              console.log("::error title=google-services.json is for another app::It has no Android app with the package com.mawahacademy.app. In Firebase, add an Android app with exactly that package name, then download its file again.");
+              process.exit(1);
+            }
+            require("fs").writeFileSync("google-services.json", JSON.stringify(j, null, 2));
+            console.log("Notifications: Firebase project " + j.project_info.project_id);
+          '
+
       - name: Make the Android project (expo prebuild)
         run: npx expo prebuild --platform android --clean --no-install
 

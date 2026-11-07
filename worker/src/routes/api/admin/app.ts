@@ -1,17 +1,22 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { NO_EMAIL_DOMAIN, studentCode } from "@mawah/shared";
 import type { AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { hashPassword, randomString } from "../../../lib/crypto";
 import { all, first, nowIso, run } from "../../../lib/db";
-import { ok } from "../../../lib/http";
+import { checkConnection, pushSetup } from "../../../lib/fcm";
+import { conflict, HttpError, ok, parseBody } from "../../../lib/http";
+import { textSchema } from "../../../lib/schemas";
 import { getSettings } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
 import { rateLimit } from "../../../middleware/ratelimit";
+import { pushOverview, sendPush } from "../../../services/push";
 
 /*
  * Admin → Android app: the app's free classes, how much the app is used, its notice (Admin → Settings key `app`, saved with the usual
- * PUT /settings/app), and the test account Google Play's reviewers sign in with (Play Console → App content → App access).
+ * PUT /settings/app), its notifications (sent from here; the automatic ones are switched with PUT /settings/push), and the test account
+ * Google Play's reviewers sign in with (Play Console → App content → App access).
  */
 export const appAdmin = new Hono<AppEnv>();
 
@@ -55,6 +60,7 @@ appAdmin.get("/app", requirePerm("courses:read"), async (c) => {
     getSettings(c.env, { fresh: true }),
   ]);
   return ok(c, {
+    push: await pushOverview(c.env),
     classes,
     numbers: { days: DAYS, sign_ins: numbers?.sign_ins ?? 0, sign_ups: numbers?.sign_ups ?? 0, joins: numbers?.joins ?? 0, learners: numbers?.learners ?? 0 },
     notice: s.app,
@@ -103,4 +109,62 @@ appAdmin.post("/app/review-account", requirePerm("settings:write"), rateLimit("R
   // the activity log names the account, never the password
   await audit(c, { action: existing ? "app.review_account_reset" : "app.review_account_created", entity: "student", entityId: id, summary: studentCode(id) });
   return ok(c, { code: studentCode(id), password, created: !existing });
+});
+
+/* ------------------------------------------------------------------------------------------------ notifications */
+
+/** two sends this close together are almost always one double click */
+const RESEND_GAP_S = 60;
+
+const pushSchema = z.object({
+  // everyone with the app, or the students of one class
+  audience: z.enum(["all", "class"]),
+  // the class a tap opens (for everyone: optional — without one a tap opens the app's Home)
+  course_id: z.union([z.number().int().positive(), z.null()]),
+  // a phone shows about 40 letters of a title and two lines of the text before it is opened
+  title_bn: textSchema(65, 1),
+  body_bn: textSchema(240, 1),
+  title_en: textSchema(65, 1),
+  body_en: textSchema(240, 1),
+});
+
+/**
+ * Staff's own notification. The students of one class open their class with a tap; for everyone, a tap opens one of the app's free classes,
+ * a website class's free demo (the app shows those, never a price) or the app's Home.
+ */
+appAdmin.post("/app/push", requirePerm("courses:publish"), rateLimit("RL_FORM"), async (c) => {
+  const body = await parseBody(c, pushSchema);
+  if (!pushSetup(c.env).ok) throw conflict("push_not_ready");
+  if (body.audience === "class" && !body.course_id) throw new HttpError(422, "validation", "validation", { course_id: "required" });
+  let path = "/";
+  if (body.course_id) {
+    const course = await first<{ id: number; slug: string; status: string; channel: string; demo_url: string | null }>(
+      c.env.DB,
+      "SELECT id, slug, status, channel, demo_url FROM courses WHERE id = ? AND deleted_at IS NULL",
+      body.course_id,
+    );
+    if (!course || course.status !== "published") throw new HttpError(422, "validation", "validation", { course_id: "not_live" });
+    if (body.audience === "class") path = `/course/${course.slug}`;
+    else if (course.channel === "app") path = `/free/${course.slug}`;
+    else if (course.demo_url) path = `/demo/${course.slug}`;
+    else throw new HttpError(422, "validation", "validation", { course_id: "not_in_app" });
+  }
+  const since = nowIso(new Date(Date.now() - RESEND_GAP_S * 1000));
+  if (await first(c.env.DB, "SELECT id FROM push_sends WHERE kind = 'manual' AND created_at > ? LIMIT 1", since)) throw conflict("push_too_soon");
+  const sent = await sendPush(c.env, {
+    kind: "manual",
+    courseId: body.course_id,
+    audience: body.audience,
+    text: { title_bn: body.title_bn, body_bn: body.body_bn, title_en: body.title_en, body_en: body.body_en },
+    path,
+    staffId: c.get("staff")!.id,
+  });
+  await audit(c, { action: "push.sent", entity: "push", entityId: sent.id, summary: body.title_en, meta: { audience: body.audience, course_id: body.course_id, status: sent.status, problem: sent.problem } });
+  return ok(c, { send: sent });
+});
+
+/** Check the connection: Google checks a notification in full (the key, the project, the right to send) and delivers it to no one. */
+appAdmin.post("/app/push/check", requirePerm("courses:publish"), rateLimit("RL_FORM"), async (c) => {
+  const r = await checkConnection(c.env);
+  return ok(c, r.ok ? { connected: true, project: r.project, account: r.email } : { connected: false, problem: r.problem, detail: r.detail ?? null });
 });

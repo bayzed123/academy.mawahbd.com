@@ -165,6 +165,8 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
       if (v.notice_on && !v.notice_bn) ctx.addIssue({ code: "custom", path: ["notice_bn"], message: "required" });
       if (v.notice_on && !v.notice_en) ctx.addIssue({ code: "custom", path: ["notice_en"], message: "required" });
     }),
+  // the app's automatic notifications (a new free class; new lessons in a class): each can be switched off
+  push: z.object({ new_class: z.boolean(), new_lessons: z.boolean() }),
   onboarding: z.object({ dismissed: z.boolean() }),
 };
 

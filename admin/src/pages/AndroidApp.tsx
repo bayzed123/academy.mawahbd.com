@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
+import { AppNotifications, type PushOverview } from "../components/AppNotifications";
 import { CourseStateChip } from "../components/CourseState";
 import { Button, Empty, ErrorState, Field, Icon, KV, Kpi, PageHeader, Panel, Spinner, Switch, TextArea, useConfirm, useFieldErrors, useToast } from "../components/ui";
 
@@ -17,6 +18,7 @@ interface AppClass {
   students: number;
 }
 interface AppOverview {
+  push: PushOverview;
   classes: AppClass[];
   numbers: { days: number; sign_ins: number; sign_ups: number; joins: number; learners: number };
   notice: { notice_on: boolean; notice_bn: string; notice_en: string };
@@ -30,7 +32,7 @@ interface ReviewSecret {
 
 /**
  * Admin → Android app. The app's free classes (a class becomes one in its editor: "Where is this class shown?" → Android app only), how
- * much the app is used, the notice at the top of its Home, and the test account Google Play's reviewers sign in with.
+ * much the app is used, its notifications, the notice at the top of its Home, and the test account Google Play's reviewers sign in with.
  */
 export function AndroidApp() {
   const { t, pick, num, lang } = useI18n();
@@ -90,6 +92,8 @@ export function AndroidApp() {
           </ul>
         )}
       </Panel>
+
+      <AppNotifications push={d.push} />
 
       <div className="grid-2">
         <Panel title={t("adm.app.notice")}>

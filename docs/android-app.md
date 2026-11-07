@@ -22,6 +22,10 @@ It is a **study app**: students buy classes on the website, as today, and study 
   gas, markup or margin, one's real price), with the cost and price in a bar at the bottom; ingredients & prices (the Dhaka average the
   owner keeps, or one's own price). Free keeps 3 recipes, said plainly with nothing about buying; MAWAH students have no limit.
   The same server and the same costing as the website ([foodcost.md](foodcost.md)).
+* **Notifications** (once Firebase is set up: [section 5](#5-notifications-firebase-once)): Home offers them once — **Allow** (the phone then
+  asks its own question), **Not now**, or ✕ — and *Profile → Notifications* switches them on and off. They arrive with the app closed:
+  a new free class going live (to everyone), a new lesson in a class (to its students, at most once in 12 hours per class), and the
+  owner's own from *Admin → Android app → Notifications*. A tap opens the class. Each phone gets them in its own language.
 * **Shop:** the equipment shop with categories. **Order now** opens the product on the website's secure page (cash on delivery or online).
 * **Profile:** student ID, language (বাংলা / English), look (night / day / like the phone), certificates, WhatsApp / call / Messenger /
   e-mail, policies, log out, and **Delete my account** (Google Play rule; see below).
@@ -112,9 +116,12 @@ files' signatures afterwards.
        * Financial info: **Purchase history** (classes and orders)
        * App activity: **Other user-generated content** (questions, reviews, and FoodCost recipes, ingredients and prices),
          **App interactions** (lessons finished, downloads)
-     * The app collects no location, contacts, photos, files, audio or device identifiers, and has no advertising or analytics library.
+       * Device or other IDs: **Device or other IDs** — *optional* (only when the person allows notifications), for **App
+         functionality**: the address Google's Firebase Cloud Messaging gives the app, kept with the app's language and, when signed
+         in, the account, so notifications reach the phone. Not shared.
+     * The app collects no location, contacts, photos, files or audio, no advertising ID, and has no advertising or analytics library.
    * **Account deletion:** in the app *Profile → Delete my account*; on the web **https://mawahacademy.com/account/delete** (give this
-     address under *Delete account URL*). Deleting removes the name, number, e-mail, address, password, progress, questions, reviews and FoodCost data,
+     address under *Delete account URL*). Deleting removes the name, number, e-mail, address, password, progress, questions, reviews and FoodCost data, unlinks the phones it got notifications on,
      ends every sign-in, and keeps orders and payments for tax records (the page says so, as Google requires). Staff can also delete an
      account on request (*Admin → Students → Delete account*).
    * **Privacy policy** covers the app: a section about the Android app and deleting an account is always shown under the privacy text.
@@ -131,6 +138,34 @@ files' signatures afterwards.
    | Terms (for the listing text, if you link it) | https://mawahacademy.com/policies/terms |
    | Contact | https://mawahacademy.com/contact (and the support e-mail from Settings → Contact) |
 7. Target API level: the app targets **Android 16 (API 36)**, which Google requires for new apps.
+
+## 5. Notifications (Firebase, once)
+
+Google delivers Android notifications through **Firebase Cloud Messaging** (free). Set it up once; until then the app builds and works the
+same and simply never offers notifications, and *Admin → Android app → Notifications* says what is missing.
+
+1. Open **https://console.firebase.google.com** with the Google account you use for the website → **Create a project** → name it
+   *MAWAH Academy* → Google Analytics for this project: **off** (not needed) → **Create project**.
+2. In the project: **Add app → Android** → *Android package name*: **`com.mawahacademy.app`** (exactly) → nickname *MAWAH Academy* →
+   **Register app** → **Download google-services.json** → skip the remaining steps (the build does them).
+3. GitHub → **Settings → Secrets and variables → Actions → New repository secret**: name **`GOOGLE_SERVICES_JSON`**, value: the whole
+   `google-services.json` (open it in Notepad, select all, copy). The Android build checks it is the file for `com.mawahacademy.app`.
+4. Firebase → ⚙ **Project settings → Service accounts → Generate new private key → Generate key**: a `.json` file downloads. New
+   repository secret **`FIREBASE_SERVICE_ACCOUNT`** = that whole file. It is a password: never paste it in a chat or an e-mail.
+5. Firebase → ⚙ **Project settings → Cloud Messaging**: *Firebase Cloud Messaging API (V1)* should say **Enabled** (if not: ⋮ → *Manage
+   API in Google Cloud Console* → **Enable**).
+6. GitHub → **Actions → Deploy → Run workflow** (gives the website its key), then **Actions → Android app → Run workflow** (builds the app
+   with notifications) → upload the new AAB to Google Play. People get notifications once they have this version of the app.
+7. **Admin → Android app → Notifications → Check the connection**: it should say *Connected*. Then on a phone with the new app: Home →
+   **Allow**, and send yourself a test from the same page.
+
+What goes out: a new free class going live (everyone, once per class), a new lesson in a live class (its students, at most once in 12
+hours per class) — each can be switched off on that page — and the owner's own (everyone, or one class's students; a tap opens Home, a
+free class or a demo, or the class). Nothing in them is about buying (Google Play rule above). Every one is listed under *Sent lately*.
+
+How it works: the app gives the website the address Google made for it, with its language; the website adds it to Firebase "topics" —
+`lang-bn` / `lang-en`, and `class-<id>` for each class the signed-in student studies — and sends one message per language to a topic, or
+to "this class and this language". The code: `worker/src/lib/fcm.ts`, `worker/src/services/push.ts`, `mobile/src/push.tsx`.
 
 ## For developers
 
@@ -166,6 +201,9 @@ npx expo start           # then press "a" for an Android emulator, or scan the Q
 * Only **live** app classes are in the app: a draft or "coming soon" app class is not shown there yet.
 * `/api/site` may be kept for up to a minute, so a new notice reaches open apps within about a minute.
 * "Forgot password" opens the website's page in the browser.
+* Notifications need the internet: a phone that is offline gets them when it is back online, if that is within a week (older news is
+  dropped). Some phone makers' battery savers can hold them back until the app is opened. A phone that turned them off in its own
+  settings gets none (Profile then offers *Open settings*). A test build (no `GOOGLE_SERVICES_JSON`) has no notifications.
 * Shop orders are placed on the website's page (opened from the app), not in an in-app cart.
 * If Cloudflare Turnstile (the website's optional bot check) is switched on, logging in from the app stops working until the app gets a
   way to answer it.
@@ -179,6 +217,7 @@ npx expo start           # then press "a" for an Android emulator, or scan the Q
 * **অ্যাপের ফ্রি ক্লাস:** অ্যাডমিন → ক্লাস → নতুন ক্লাস → “ক্লাসটি কোথায় দেখানো হবে?” → **শুধু অ্যান্ড্রয়েড অ্যাপে — ফ্রি** (অথবা অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → **ফ্রি ক্লাস যোগ করুন**)। ক্লাসটি অ্যাপে সবার জন্য ফ্রি; ওয়েবসাইটে কখনো দেখানো বা বিক্রি হয় না। শিক্ষার্থী অ্যাপে “ফ্রি শুরু করুন” চাপলেই ক্লাসটি তাঁর হয়ে যায় (কোনো অর্ডার নেই)। অ্যাকাউন্ট না থাকলে অ্যাপেই **ফ্রি অ্যাকাউন্ট খুলুন** — নাম, মোবাইল নম্বর, পাসওয়ার্ড (ইমেইল চাইলে)।
 * **গুগল প্লের টেস্ট অ্যাকাউন্ট:** অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → **টেস্ট অ্যাকাউন্ট তৈরি করুন** → যে স্টুডেন্ট আইডি ও পাসওয়ার্ড দেখাবে (শুধু একবার), সেটি Play Console → App content → App access-এ দিন। হারালে “নতুন পাসওয়ার্ড” চাপুন।
 * **অ্যাপের নোটিশ:** অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → নোটিশ (বাংলা ও ইংরেজি) → “নোটিশ দেখান” → সংরক্ষণ। এক মিনিটের মধ্যে অ্যাপের হোমে দেখা যায়।
+* **নোটিফিকেশন (একবার সেটআপ, উপরে ৫ নম্বর):** console.firebase.google.com → নতুন প্রজেক্ট → Android অ্যাপ যোগ করুন (প্যাকেজ নাম ঠিক `com.mawahacademy.app`) → `google-services.json` নামিয়ে GitHub সিক্রেট **`GOOGLE_SERVICES_JSON`**-এ পুরো ফাইলটি রাখুন → Project settings → Service accounts → **Generate new private key** → সেই ফাইলটি GitHub সিক্রেট **`FIREBASE_SERVICE_ACCOUNT`**-এ রাখুন (এটি পাসওয়ার্ডের মতো — চ্যাটে কখনো দেবেন না) → Actions → **Deploy** ও **Android app** চালান → নতুন AAB প্লেতে দিন → অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → নোটিফিকেশন → **সংযোগ পরীক্ষা করুন**। অ্যাপ বন্ধ থাকলেও নোটিফিকেশন আসে; ফোন অফলাইন থাকলে এক সপ্তাহের মধ্যে ইন্টারনেট পেলে আসে।
 * **আপলোড কী:** নিজের কম্পিউটারে `mobile/scripts/make-upload-key.ps1` চালান (উপরে ১ নম্বর)। তারপর GitHub → Settings → Secrets and variables → Actions-এ ৪টি সিক্রেট দিন (উপরে ২ নম্বর)। কী ফাইল ও পাসওয়ার্ড কখনো রিপোজিটরি বা চ্যাটে দেবেন না; দুই জায়গায় ব্যাকআপ রাখুন।
 * **বিল্ড:** GitHub → Actions → Android app → Run workflow → শেষ হলে Artifacts থেকে `.aab` (গুগল প্লের জন্য) ও `.apk` (ফোনে সরাসরি ইনস্টলের জন্য) নামান।
 * **গুগল প্লে:** পার্সোনাল অ্যাকাউন্ট (১৩ নভেম্বর ২০২৩-এর পরে খোলা) হলে প্রোডাকশনের আগে **১২ জন টেস্টার, টানা ১৪ দিন** ক্লোজড টেস্ট লাগবে — আগে থেকেই টেস্টার জোগাড় শুরু করুন।

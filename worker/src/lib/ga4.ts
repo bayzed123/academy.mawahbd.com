@@ -38,6 +38,8 @@ export interface ServiceAccount {
   client_email: string;
   private_key: string;
   private_key_id?: string;
+  /** the Google Cloud project the account belongs to (the key file says): where the app's notifications are sent from (lib/fcm.ts) */
+  project_id?: string;
 }
 
 export type Failure = { ok: false; problem: Ga4Problem; detail?: string; status?: number };
@@ -51,11 +53,16 @@ export const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 const GOOGLE_DATA = "https://analyticsdata.googleapis.com/v1beta";
 const GOOGLE_DRIVE = "https://www.googleapis.com/drive/v3";
+/** Firebase Cloud Messaging (the app's notifications) and the address that adds phones to its topics */
+const GOOGLE_FCM = "https://fcm.googleapis.com/v1";
+const GOOGLE_IID = "https://iid.googleapis.com/iid/v1";
 
 /** Google's addresses. Only a development or test machine may point them at a stand-in (the dev Worker itself); the real site never can. */
-export function endpoints(env: Env): { token: string; data: string; drive: string } {
+export function endpoints(env: Env): { token: string; data: string; drive: string; fcm: string; iid: string } {
   const base = !isProd(env) ? (env.GOOGLE_API_BASE ?? "").trim().replace(/\/+$/, "") : "";
-  return base ? { token: `${base}/token`, data: `${base}/v1beta`, drive: `${base}/drive/v3` } : { token: GOOGLE_TOKEN, data: GOOGLE_DATA, drive: GOOGLE_DRIVE };
+  return base
+    ? { token: `${base}/token`, data: `${base}/v1beta`, drive: `${base}/drive/v3`, fcm: `${base}/fcm/v1`, iid: `${base}/iid/v1` }
+    : { token: GOOGLE_TOKEN, data: GOOGLE_DATA, drive: GOOGLE_DRIVE, fcm: GOOGLE_FCM, iid: GOOGLE_IID };
 }
 
 export const propertyId = (env: Env): string => (env.GA_PROPERTY_ID ?? "").replace(/\D/g, "");
@@ -89,7 +96,16 @@ export function parseServiceAccount(raw: unknown): { ok: true; account: ServiceA
   if (!j || (j.type !== undefined && j.type !== "service_account") || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !/-----BEGIN PRIVATE KEY-----[\s\S]+-----END PRIVATE KEY-----/.test(key)) {
     return { ok: false, problem: "key_invalid" };
   }
-  return { ok: true, account: { client_email: email, private_key: key, ...(typeof j.private_key_id === "string" ? { private_key_id: j.private_key_id } : {}) } };
+  const project = typeof j.project_id === "string" && /^[a-z][a-z0-9-]{4,61}[a-z0-9]$/.test(j.project_id) ? j.project_id : "";
+  return {
+    ok: true,
+    account: {
+      client_email: email,
+      private_key: key,
+      ...(typeof j.private_key_id === "string" ? { private_key_id: j.private_key_id } : {}),
+      ...(project ? { project_id: project } : {}),
+    },
+  };
 }
 
 /** The address the owner must add to Google Analytics → Admin → Property access management. It is not a secret. */
@@ -142,9 +158,12 @@ export function forgetPass(): void {
   passes.clear();
 }
 
-/** A pass for `scope` — kept an hour, signed for again shortly before it runs out. (Exported for lib/drive.ts.) */
-export async function googleToken(env: Env, scope: string = SCOPE): Promise<Answer<string>> {
-  const parsed = parseServiceAccount(env.GOOGLE_SERVICE_ACCOUNT);
+/**
+ * A pass for `scope` — kept an hour, signed for again shortly before it runs out. (Exported for lib/drive.ts and lib/fcm.ts.) `key` is the key
+ * file to sign with: the shop's GOOGLE_SERVICE_ACCOUNT unless another is given (the app's notifications may use the Firebase project's own).
+ */
+export async function googleToken(env: Env, scope: string = SCOPE, key: unknown = env.GOOGLE_SERVICE_ACCOUNT): Promise<Answer<string>> {
+  const parsed = parseServiceAccount(key);
   if (!parsed.ok) return { ok: false, problem: parsed.problem };
   const { account } = parsed;
   const kept = passes.get(scope);

@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { FlatList, useWindowDimensions, View } from "react-native";
 import { useResource } from "../../src/api";
 import { CourseArt, DemoCard, FreeCard, MyCourseCard, ProductCard } from "../../src/components/Cards";
+import { PushCard } from "../../src/components/PushCard";
 import { whatsappLink } from "../../src/lib/links";
 import { contentWidth, gridColumns, tileWidth } from "../../src/lib/layout";
 import { openApp } from "../../src/open";
@@ -80,6 +81,8 @@ export default function Home() {
           </Txt>
         </View>
       ) : null}
+
+      <PushCard />
 
       {signedIn ? (
         mine.loading ? (

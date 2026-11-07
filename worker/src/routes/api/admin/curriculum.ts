@@ -12,6 +12,7 @@ import { optionalUrl, textSchema } from "../../../lib/schemas";
 import { bumpContentVersion } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
 import { refreshCourseStats } from "../../../services/catalog";
+import { announceNewLesson } from "../../../services/push";
 
 /**
  * Curriculum builder API: modules -> lessons -> downloadable resources.
@@ -184,6 +185,10 @@ curriculum.post("/courses/:id/lessons", requirePerm("courses:write"), async (c) 
   const id = res.meta.last_row_id as number;
   await touched(c, course.id);
   await audit(c, { action: "lesson.created", entity: "lesson", entityId: id, summary: body.title_en, meta: { course: course.slug } });
+  // a live class's students get a notification on the app (at most one every few hours per class: services/push.ts)
+  if (course.status === "published") {
+    c.executionCtx.waitUntil(announceNewLesson(c.env, course.id, { title_bn: body.title_bn, title_en: body.title_en }).then(() => undefined, () => undefined));
+  }
   return ok(c, { lesson: await first(c.env.DB, "SELECT * FROM lessons WHERE id = ?", id) }, 201);
 });
 

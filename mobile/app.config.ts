@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { ConfigContext, ExpoConfig } from "expo/config";
 import pkg from "./package.json";
 
@@ -7,7 +9,10 @@ import pkg from "./package.json";
  * Set by the Android build workflow (.github/workflows/android.yml):
  *  - ANDROID_VERSION_CODE: a higher number for every build (Google refuses an upload whose number it has seen before)
  *  - EXPO_PUBLIC_API_URL: only to point a test build at another server; the real app talks to https://mawahacademy.com
+ *  - mobile/google-services.json: the Firebase project's file for the app's notifications, written from the GitHub secret GOOGLE_SERVICES_JSON
+ *    (docs/android-app.md). Without it the app builds and works the same, and never offers notifications (`extra.push` is false).
  */
+const firebaseFile = existsSync(join(typeof __dirname === "string" ? __dirname : process.cwd(), "google-services.json"));
 const versionCode = Number(process.env.ANDROID_VERSION_CODE ?? "1");
 if (!Number.isInteger(versionCode) || versionCode < 1 || versionCode > 2_100_000_000) throw new Error(`Bad ANDROID_VERSION_CODE: ${process.env.ANDROID_VERSION_CODE}`);
 
@@ -26,8 +31,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     versionCode,
     adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#000000" },
     predictiveBackGestureEnabled: false,
-    // the app needs the internet and nothing else: no camera, microphone, location, contacts or files
+    ...(firebaseFile ? { googleServicesFile: "./google-services.json" } : {}),
+    // the app needs the internet and its notifications, nothing else: no camera, microphone, location, contacts or files, no advertising ID,
+    // and nothing that starts it with the phone (Google delivers the notifications itself)
     blockedPermissions: [
+      "com.google.android.gms.permission.AD_ID",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
       "android.permission.RECORD_AUDIO",
       "android.permission.READ_EXTERNAL_STORAGE",
       "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -48,9 +57,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ["expo-video", { supportsBackgroundPlayback: false, supportsPictureInPicture: false }],
     ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 220, resizeMode: "contain", backgroundColor: "#000000" }],
     "expo-system-ui",
+    // notifications: the small white icon in the status bar (assets/notification-icon.png), tinted with the app's colour, and the channel
+    // they are filed under (the app makes it, by this id, before it asks to show them: src/push.tsx)
+    ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#FF5722", defaultChannel: "classes" }],
     "./plugins/with-release-signing.js",
   ],
   extra: {
     apiUrl: process.env.EXPO_PUBLIC_API_URL || "https://mawahacademy.com",
+    // this build can get notifications (it has the Firebase file)
+    push: firebaseFile,
   },
 });
