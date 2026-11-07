@@ -46,7 +46,8 @@ export function KeyboardScroll({ ref, style, onScroll, children, ...rest }: Prop
   const reveal = useCallback(() => {
     setTimeout(() => {
       const top = keyboardTop.current;
-      const field = TextInput.State.currentlyFocusedInput();
+      // (the web build used for testing has no TextInput.State: there the browser keeps the focused box in sight itself)
+      const field = TextInput.State?.currentlyFocusedInput?.();
       if (top === null || !owns.current || !field || !outer.current) return;
       outer.current.measureInWindow((_x, y, _w, h) => {
         if (!(h > 0)) return;

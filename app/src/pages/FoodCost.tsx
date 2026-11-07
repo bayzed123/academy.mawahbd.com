@@ -44,6 +44,7 @@ import {
 import { api, ApiError } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { Button, Empty, ErrorState, Field, Icon, Spinner, TextInput, useToast } from "../components/ui";
+import { FC_REPORT_PRINT_CSS, fcReportBody, type FcReport, type FcReportRow } from "@mawah/shared/foodcostReport";
 
 /*
  * FoodCost (docs/foodcost.md): what a recipe costs and what to sell it for. The same engine runs here while one types, on the server when a
@@ -55,6 +56,8 @@ type Saved = { recipe: FcRecipeDTO; result: FcResult };
 const BOOK = ["fc", "book"] as const;
 /** The unit a price is shared out per, by kind: a gram, a millilitre, a piece. */
 const BASE = { mass: "g", volume: "ml", count: "piece" } as const satisfies Record<string, FcUnit>;
+/** the pack a new price starts with, by how the line is measured */
+const PACK = { mass: "kg", volume: "l", count: "piece" } as const satisfies Record<string, FcUnit>;
 const ingName = (i: Pick<FcIngredientDTO, "name_bn" | "name_en">, lang: "bn" | "en") => (lang === "bn" ? i.name_bn || i.name_en : i.name_en || i.name_bn);
 
 function useFc() {
@@ -251,6 +254,53 @@ function FoodPanel({ food, result, rows, what }: { food: FcNutritionResult; resu
 /** A field's error code in words: "required" and "invalid" have their own words, anything else its error message. */
 const codeText = (code: string, t: ReturnType<typeof useFc>["t"], err: (c: string) => string) => (code === "required" ? t("err.required") : err(code === "invalid" ? "validation" : code));
 
+let printedTitle: string | null = null;
+
+/** The printed copy goes (and the page's own title comes back) once the recipe changes or the page closes. */
+function clearReport() {
+  document.querySelector(".fcr-host")?.remove();
+  document.querySelector("style[data-fc-report]")?.remove();
+  document.documentElement.classList.remove("fcr-printing");
+  if (printedTitle !== null) {
+    document.title = printedTitle;
+    printedTitle = null;
+  }
+}
+
+/**
+ * The browser's own "Save as PDF", like the certificate: this page itself is printed, and a print style shows only the report. (A phone's
+ * browser may print the whole page from a hidden frame, so the report is not printed from one.) The copy stays, hidden, until the recipe
+ * changes: a phone's print window can still be laying the pages out after window.print() has returned.
+ */
+function printReport(report: FcReport) {
+  clearReport();
+  const style = document.createElement("style");
+  style.setAttribute("data-fc-report", "");
+  style.textContent = FC_REPORT_PRINT_CSS;
+  document.head.appendChild(style);
+  const host = document.createElement("div");
+  host.className = "fcr-host";
+  host.innerHTML = fcReportBody(report);
+  document.body.appendChild(host);
+  document.documentElement.classList.add("fcr-printing");
+  printedTitle = document.title;
+  // the browser offers the page's title as the PDF's file name
+  document.title = report.docTitle;
+  window.addEventListener(
+    "afterprint",
+    () => {
+      if (printedTitle !== null) document.title = printedTitle;
+    },
+    { once: true },
+  );
+  // the report's bold and Bangla letters must be in before the pages are laid out (they are, whenever the page has shown them)
+  const faces = ["400", "600", "700"].map((w) => `${w} 16px "Hind Siliguri"`);
+  const sample = "অআ Aa ৳";
+  const fonts = document.fonts;
+  if (!fonts || faces.every((f) => fonts.check(f, sample))) window.print();
+  else void Promise.all(faces.map((f) => fonts.load(f, sample))).finally(() => window.print());
+}
+
 function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) {
   const { t, lang, money, unit, per, num, nutrient } = useFc();
   const { err } = useI18n();
@@ -267,6 +317,10 @@ function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) 
     document.body.classList.add("has-fcbar");
     return () => document.body.classList.remove("has-fcbar");
   }, []);
+  // the PDF's printed copy goes once the recipe changes or the page closes, so printing the page later prints the page
+  useEffect(() => {
+    return clearReport;
+  }, [f]);
 
   const { input, rows } = useMemo(() => fcFormToInput(f), [f]);
   // the same costing the server does, on every key press
@@ -362,6 +416,89 @@ function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) 
   };
 
   const yieldWhat = f.yieldLabel.trim() || unit(f.yieldUnit);
+
+  /** The PDF: the recipe as it is on the screen now (saved or not), in the reader's language. */
+  const pdf = () => {
+    const unitLabel = f.yieldLabel.trim();
+    const date = new Intl.DateTimeFormat(lang === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "long", year: "numeric" }).format(new Date());
+    const name = f.name.trim() || t("app.fc.title");
+    const kcal = (v: number | null | undefined) => (v === null || v === undefined ? "—" : nutrient("kcal", v));
+    const headline: FcReportRow[] = [{ label: t("app.fc.costPer"), value: per(result.perUnitMinor, unitLabel, f.yieldUnit) }];
+    if (f.pct.trim() !== "") headline.push({ label: t(`app.fc.suggested.${f.mode}`, { pct: num(input.pricing.pct) }), value: per(result.suggestedMinor, unitLabel, f.yieldUnit), tone: "accent" });
+    if (food.perUnit && food.counted > 0) headline.push({ label: t("app.fc.kcalPer", { what: yieldWhat }), value: kcal(food.perUnit.kcal) });
+    // three across at most, so a figure "per cupcake" stays on one line; the batch is always in the table below
+    if (headline.length < 3) headline.push({ label: t("app.fc.oneBatch"), value: money(result.batchMinor) });
+    const summary: FcReportRow[] = [
+      { label: t("app.fc.oneBatch"), value: money(result.batchMinor) },
+      { label: t("app.fc.costPer"), value: per(result.perUnitMinor, unitLabel, f.yieldUnit) },
+    ];
+    if (f.pct.trim() !== "") summary.push({ label: t(`app.fc.suggested.${f.mode}`, { pct: num(input.pricing.pct) }), value: per(result.suggestedMinor, unitLabel, f.yieldUnit), tone: "accent" });
+    if (result.actual) {
+      const a = result.actual;
+      summary.push(
+        { label: a.profitMinor < 0 ? t("app.fc.lossEach") : t("app.fc.profitEach"), value: money(a.profitMinor), tone: a.profitMinor < 0 ? "loss" : undefined },
+        { label: t("app.fc.profitBatch"), value: money(a.profitBatchMinor), tone: a.profitBatchMinor < 0 ? "loss" : undefined },
+        { label: t("app.fc.realMargin"), value: a.marginPct === null ? "—" : `${num(a.marginPct)}%` },
+      );
+    }
+    const split = (
+      [
+        ["ingredients", result.ingredientsMinor],
+        ["packaging", result.packagingMinor],
+        ["labour", result.labourMinor],
+        ["energy", result.energyMinor],
+        ["other", result.otherMinor],
+      ] as const
+    )
+      .filter(([k, v]) => k === "ingredients" || v > 0)
+      .map(([k, v]) => ({ label: k === "ingredients" ? t("app.fc.ingredientsCost") : t(`app.fc.kind.${k}`), value: money(v) }));
+    const figs = food.perUnit ?? food.batch;
+    const foodRows: FcReportRow[] =
+      food.counted > 0
+        ? [
+            ...(food.perUnit ? [{ label: t("app.fc.kcalPer", { what: yieldWhat }), value: kcal(food.perUnit.kcal) }] : []),
+            { label: t("app.fc.kcalBatch"), value: kcal(food.batch.kcal) },
+            ...FC_NUTRIENTS.filter((k) => k !== "kcal").map((k) => ({
+              label: `${FC_NUTRIENT_NAMES[k][lang].name} ${food.perUnit ? t("app.fc.perWhat", { what: yieldWhat }) : t("app.fc.perBatch")}`,
+              value: nutrient(k, figs[k]) + (food.known[k] ? "" : " *"),
+            })),
+          ]
+        : [];
+    const report: FcReport = {
+      lang,
+      docTitle: `${t("app.fc.title")} — ${name}`,
+      brand: t("app.fc.report.brand"),
+      title: name,
+      subtitle: `${t("app.fc.makes", { qty: num(fcParseNumber(f.yieldQty) ?? 0), what: yieldWhat })} · ${date}`,
+      headline,
+      linesHeading: t("app.fc.lines"),
+      lineHeads: { n: "#", name: t("app.fc.report.item"), amount: t("app.fc.qty"), cost: t("app.fc.costPer"), share: t("app.fc.report.share"), kcal: t("app.fc.report.kcal") },
+      lines: result.lines.map((l, k) => ({
+        n: num(rows[k] + 1),
+        name: l.name,
+        amount: `${num(l.qty)} ${unit(l.unit)}`,
+        cost: l.problem ? "—" : money(l.costMinor),
+        share: l.problem ? "—" : `${num(l.sharePct)}%`,
+        kcal: kcal(food.lines[k]?.kcal),
+        note: l.problem ? (l.problem === "no_price" ? t("app.fc.noPrice") : problemText({ code: l.problem, line: k }, result, rows, { t, num })) : undefined,
+      })),
+      splitHeading: t("app.fc.split"),
+      split,
+      summaryHeading: t("app.fc.result"),
+      summary,
+      foodHeading: t("app.fc.food"),
+      food: foodRows,
+      notes: [
+        ...(!result.complete ? [t("app.fc.partialLong") + " " + result.problems.map((p) => problemText(p, result, rows, { t, num })).join(" ")] : []),
+        ...(food.counted > 0 && !food.complete ? [`${t("app.fc.foodPartial")} ${food.problems.map((p) => foodProblemText(p, result, rows, { t, num })).join(" ")}`] : []),
+        ...(food.counted > 0 && FC_NUTRIENTS.some((k) => !food.known[k]) ? [t("app.fc.foodStar")] : []),
+        ...(food.counted > 0 ? [t("app.fc.foodSource")] : []),
+        t("app.fc.report.prices"),
+      ],
+      footer: t("app.fc.report.footer"),
+    };
+    printReport(report);
+  };
   const counted = FC_UNITS[f.yieldUnit].dim === "count";
 
   return (
@@ -479,11 +616,12 @@ function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) 
                     >
                       <Icon name="trash" />
                     </button>
-                    {(fieldErr[`item${n}`] || line?.problem) && (
+                    {(fieldErr[`item${n}`] || (line?.problem && line.problem !== "no_price")) && (
                       <p className="err-text fc-line-err" role="alert">
                         {fieldErr[`item${n}`] ?? problemText({ code: line!.problem!, line: k }, result, rows, { t, num })}
                       </p>
                     )}
+                    {ing && <LinePrice i={ing} n={n} lineUnit={it.unit} />}
                   </li>
                 );
               })}
@@ -688,6 +826,9 @@ function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) 
               <Button type="submit" busy={save.isPending}>
                 {saved ? t("app.fc.save") : t("app.fc.saveNew")}
               </Button>
+              <Button type="button" className="btn-outline" onClick={pdf} aria-describedby="fc-pdf-hint">
+                <Icon name="download" /> {t("app.fc.pdf")}
+              </Button>
               {saved && (
                 <>
                   <Button type="button" className="btn-outline" busy={copy.isPending} onClick={() => copy.mutate()}>
@@ -711,6 +852,9 @@ function RecipeForm({ book, saved }: { book: Book; saved: FcRecipeDTO | null }) 
                 </>
               )}
             </div>
+            <p id="fc-pdf-hint" className="hint fc-pdf-hint">
+              {t("app.fc.pdfHint")}
+            </p>
           </div>
           <FoodPanel food={food} result={result} rows={rows} what={yieldWhat} />
         </aside>
@@ -756,7 +900,7 @@ const draftOf = (i: FcIngredientDTO | null): PriceDraft => ({
 });
 const priceBody = (d: PriceDraft) => ({ pack_qty: fcParseNumber(d.qty) ?? 0, pack_unit: d.unit, price_minor: fcParseTaka(d.taka) ?? -1, supplier: d.supplier.trim(), bought_on: d.day || null });
 
-function PriceFields({ id, d, onChange, errors }: { id: string; d: PriceDraft; onChange: (d: PriceDraft) => void; errors: Record<string, string> }) {
+function PriceFields({ id, d, onChange, errors, compact }: { id: string; d: PriceDraft; onChange: (d: PriceDraft) => void; errors: Record<string, string>; compact?: boolean }) {
   const { t, unit } = useFc();
   return (
     <div className="fc-price-fields">
@@ -775,12 +919,92 @@ function PriceFields({ id, d, onChange, errors }: { id: string; d: PriceDraft; o
       <Field id={`${id}-p`} label={t("app.fc.priceTk")} required error={errors.price_minor}>
         <TextInput id={`${id}-p`} inputMode="decimal" value={d.taka} onChange={(e) => onChange({ ...d, taka: e.target.value })} error={errors.price_minor} />
       </Field>
-      <Field id={`${id}-s`} label={t("app.fc.supplier")}>
-        <TextInput id={`${id}-s`} value={d.supplier} maxLength={80} onChange={(e) => onChange({ ...d, supplier: e.target.value })} />
-      </Field>
-      <Field id={`${id}-d`} label={t("app.fc.boughtOn")}>
-        <TextInput id={`${id}-d`} type="date" value={d.day} onChange={(e) => onChange({ ...d, day: e.target.value })} />
-      </Field>
+      {!compact && (
+        <>
+          <Field id={`${id}-s`} label={t("app.fc.supplier")}>
+            <TextInput id={`${id}-s`} value={d.supplier} maxLength={80} onChange={(e) => onChange({ ...d, supplier: e.target.value })} />
+          </Field>
+          <Field id={`${id}-d`} label={t("app.fc.boughtOn")}>
+            <TextInput id={`${id}-d`} type="date" value={d.day} onChange={(e) => onChange({ ...d, day: e.target.value })} />
+          </Field>
+        </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Under a recipe line: the price its cost comes from (the Dhaka average or one's own), and setting one's own right there, without leaving
+ * the recipe. It is not a form of its own (the recipe is one): Enter in it saves the price, not the recipe.
+ */
+function LinePrice({ i, n, lineUnit }: { i: FcIngredientDTO; n: number; lineUnit: FcUnit }) {
+  const { t, lang, money, unit, num } = useFc();
+  const { err } = useI18n();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  // no price yet: the pack is weighed, measured or counted as the line is, so the new price fits the line at once
+  const first = (): PriceDraft => (i.price ? draftOf(i) : { ...draftOf(null), unit: PACK[FC_UNITS[lineUnit].dim] });
+  const [d, setD] = useState<PriceDraft>(first);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const save = useMutation({
+    mutationFn: () => api(`/fc/v1/prices/${i.id}`, { method: "PUT", json: priceBody({ ...d, supplier: i.price_source === "mine" ? d.supplier : "", day: "" }) }),
+    onSuccess: () => {
+      setOpen(false);
+      setErrors({});
+      void qc.invalidateQueries({ queryKey: ["fc"] });
+      toast(t("app.fc.priceSaved"));
+    },
+    onError: (e) => setErrors(fieldsOf(e, t, err)),
+  });
+  const priceText = i.price ? t("app.fc.priceFor", { price: money(i.price.price_minor), qty: num(i.price.pack_qty), unit: unit(i.price.pack_unit) }) : "";
+  return (
+    <div className="fc-line-price">
+      {i.price ? (
+        <small className="muted">
+          {t("app.fc.linePrice", { price: priceText, source: i.price_source === "mine" ? t("app.fc.myPrice") : t("app.fc.dhakaAverage") })}
+        </small>
+      ) : (
+        <small className="err-text">{t("app.fc.noPrice")}</small>
+      )}
+      <button
+        type="button"
+        className={i.price ? "btn btn-ghost btn-sm" : "btn btn-outline btn-sm"}
+        aria-expanded={open}
+        aria-controls={`fc-lp${n}`}
+        onClick={() => {
+          setD(first());
+          setErrors({});
+          setOpen((x) => !x);
+        }}
+      >
+        {i.price ? t("app.fc.changePrice") : t("app.fc.setPrice")}
+      </button>
+      {open && (
+        <div
+          id={`fc-lp${n}`}
+          role="group"
+          aria-label={`${t("app.fc.setPrice")}: ${ingName(i, lang)}`}
+          className="fc-line-price-form"
+          onKeyDown={(ev) => {
+            if (ev.key === "Enter" && (ev.target as HTMLElement).tagName === "INPUT") {
+              ev.preventDefault();
+              save.mutate();
+            }
+          }}
+        >
+          <PriceFields id={`fc-lp${n}`} d={d} onChange={setD} errors={errors} compact />
+          <p className="hint">{i.own ? t("app.fc.ownPriceHint") : t("app.fc.myPriceHint")}</p>
+          <div className="row">
+            <Button type="button" className="btn-primary btn-sm" busy={save.isPending} onClick={() => save.mutate()}>
+              {t("app.fc.savePrice")}
+            </Button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>
+              {t("app.fc.cancel")}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

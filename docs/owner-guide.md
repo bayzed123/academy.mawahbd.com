@@ -573,13 +573,16 @@
 
 * **আমার রেসিপি:** প্রতিটি রেসিপির খরচ আর বিক্রির দাম। ফ্রি অ্যাকাউন্টে ৩টি রেসিপি সেভ হয়, MAWAH শিক্ষার্থীদের কোনো সীমা নেই।
 * **রেসিপি:** উপকরণ (আপনার তালিকা থেকে) আর পরিমাণ, প্যাকেজিং, শ্রম, গ্যাস; টাইপ করার সাথে সাথে খরচ, প্রতি পিসের খরচ আর লাভ রেখে দাম দেখায়। খরচের পাশেই **ক্যালরি ও পুষ্টি**: প্রতি পিসে, প্রতি ১০০ গ্রামে (শেষ ওজন দিলে) আর পুরো ব্যাচে ক্যালরি, প্রোটিন, শর্করা, চর্বি, চিনি, আঁশ ও সোডিয়াম।
+  * প্রতিটি উপকরণের লাইনের নিচে লেখা থাকে কোন দামে হিসাব হচ্ছে (ঢাকার গড় না নিজের দাম)। দাম না থাকলে সেখানেই **দাম দিন** বোতাম: রেসিপি ছেড়ে কোথাও যেতে হয় না।
+  * **PDF ডাউনলোড:** হিসাবের ফল PDF হয়ে যায় (রেসিপির নাম, প্রতিটি উপকরণের খরচ, মোট খরচ, দাম, লাভ, ক্যালরি)। ওয়েবসাইটে প্রিন্টের জানালা খোলে, সেখানে **Save as PDF** বাছতে হয়। অ্যাপে PDF তৈরি হয়ে শেয়ারের তালিকা খোলে: Files, Drive বা WhatsApp-এ রাখা বা পাঠানো যায়।
 * **উপকরণ ও দাম:** আপনার রাখা ঢাকার গড় দাম চলে, যতক্ষণ না শিক্ষার্থী নিজের কেনা দাম বসায়। নিজের দাম শুধু তার নিজের রেসিপিতে চলে।
 
-**শুরুর তালিকা:** ৪৫টি সাধারণ বেকিং উপকরণ আগে থেকেই তালিকায় আছে (ময়দা, আটা, চিনি, ডিম, বাটার, দুধ, ক্রিম, চকলেট, বাদাম…)। প্রতিটির বাংলা ও ইংরেজি নাম, কাপ বা পিসের ওজন আর প্রতি ১০০ গ্রামের পুষ্টি (USDA-র খাদ্যতালিকা থেকে) দেওয়া। **দাম দেওয়া নেই**, কারণ ওয়েবসাইট কখনো বানানো দাম দেখায় না। তাই একবার এটা করুন:
+**শুরুর তালিকা:** ৪৫টি সাধারণ বেকিং উপকরণ আগে থেকেই তালিকায় আছে (ময়দা, আটা, চিনি, ডিম, বাটার, দুধ, ক্রিম, চকলেট, বাদাম…)। প্রতিটির বাংলা ও ইংরেজি নাম, কাপ বা পিসের ওজন আর প্রতি ১০০ গ্রামের পুষ্টি (USDA-র খাদ্যতালিকা থেকে) দেওয়া। **প্রতিটির ঢাকার দামও দেওয়া আছে (৭ নভেম্বর ২০২৬)**: ঢাকার বাজারদরের প্রতিবেদন (TBS, অক্টোবর ২০২৬-এর শেষ) বা Chaldal-এর দাম থেকে। তাই রেসিপির খরচ সাথে সাথেই আসে। একবার মিলিয়ে নিন:
 
 1. অ্যাডমিন → **ফুডকস্ট** → **উপকরণ** খুলুন।
-2. প্রতিটি উপকরণে **সম্পাদনা** চাপুন, এখনকার ঢাকার গড় দাম দিন (যেমন “১ কেজি ৳১২০”)। অথবা **তালিকা পেস্ট করুন** দিয়ে একসাথে সব দাম দিন: একই নাম দিলে নতুন উপকরণ যোগ হয় না, শুধু দাম বসে।
-3. দাম না দেওয়া পর্যন্ত শিক্ষার্থী রেসিপির খরচে দেখবে “এখনো দাম নেই” আর **দাম বসান** বোতাম। ক্যালরি তখনও দেখায়।
+2. যে দাম বাজারের সাথে মেলে না, তাতে **সম্পাদনা** চাপুন, নতুন দাম দিয়ে **নতুন দাম সেভ করুন** চাপুন। নতুনটাই চলে, আগেরটা **আগের দাম**-এ থাকে। অথবা **তালিকা পেস্ট করুন** দিয়ে একসাথে সব দাম দিন।
+3. কয়েকটি দাম Chaldal-এর নির্দিষ্ট ব্র্যান্ডের, বাজারের চেয়ে বেশি হতে পারে: ওটস (Quaker, ১ কেজি ৳১,২৪৯), ডালডা (Aseel, ৫০০ গ্রাম ৳৭৫০), ডার্ক চকলেট (Lindt, ১০০ গ্রাম ৳৪১৫), আখরোট, ক্রিম চিজ। এগুলো আপনার শিক্ষার্থীরা যে দামে কেনে সেই দামে বদলে দিন।
+4. আপনার বসানো দাম ওয়েবসাইট আপডেট হলেও কখনো বদলায় না।
 
 অ্যাডমিন মেনুর **ফুডকস্ট** পাতায় আপনি উপকরণ ও দাম রাখেন:
 
@@ -1208,17 +1211,25 @@ Android app, on a **FoodCost** tab in both:
 * **A recipe:** ingredients (from your list) and amounts, packaging, labour and gas; as they type it shows the cost of the batch and of
   one piece, and a price with their profit. Beside the cost: **Calories & nutrition** for one piece, for 100 g (when the finished weight is
   given) and for the batch: calories, protein, carbohydrate, fat, sugar, fibre and sodium.
+  * Under each ingredient's line: the price it is costed at (the Dhaka average or their own). With no price yet, a **Set price** button is
+    right there: nobody has to leave the recipe.
+  * **Download PDF:** the result as a PDF (the recipe's name, each ingredient's cost, the total, the price, the profit, the calories). On
+    the website the print window opens: choose **Save as PDF**. In the app the PDF is made and the share sheet opens: keep it in Files or
+    Drive, or send it on WhatsApp.
 * **Ingredients & prices:** your Dhaka average counts until a student types the price they paid. Their own price counts in their own
   recipes only.
 
 **The starter list:** 45 common baking ingredients are on the list from the start (flour, atta, sugar, eggs, butter, milk, cream, chocolate,
-nuts …), each with its Bangla and English name, what a cup or a piece weighs, and its nutrition per 100 g (from USDA's food tables). **They
-have no prices**, because the site never shows a made-up price. So once:
+nuts …), each with its Bangla and English name, what a cup or a piece weighs, and its nutrition per 100 g (from USDA's food tables). **Each
+also has a Dhaka price (7 November 2026)**, from the Dhaka market price report (TBS, late October 2026) or Chaldal's listing, so recipes
+are costed at once. Check them once:
 
 1. Open Admin → **FoodCost** → **Ingredients**.
-2. Press **Edit** on each one and give today's Dhaka average (for example "৳120 for 1 kg"). Or give all the prices at once with **Paste a
-   list**: a name already on the list gets its price and is not added again.
-3. Until then a student's recipe says "No price yet" with a **Set prices** button. The calories still show.
+2. Where a price differs from the market, press **Edit**, type the new price and press **Save the new price**. The newest counts; the old
+   one stays under **Earlier prices**. Or give all the prices at once with **Paste a list**.
+3. A few are one brand's price on Chaldal and may be above the market: oats (Quaker, ৳1,249 for 1 kg), dalda (Aseel, ৳750 for 500 g),
+   dark chocolate (Lindt, ৳415 for 100 g), walnuts, cream cheese. Change them to what your students pay.
+4. A price you set is never changed by an update of the site.
 
 You keep the ingredients and prices on the **FoodCost** page in the Admin menu:
 

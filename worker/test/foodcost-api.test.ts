@@ -369,22 +369,42 @@ describe("the starter list and calories", () => {
   /** the English names the starter list adds, read from its migration */
   const starterNames = () => seed().queries.flatMap((q) => [...q.matchAll(/lower\('((?:[^']|'')+)'\)/g)].map((m) => m[1].replace(/''/g, "'")));
 
-  it("a new student finds the common baking ingredients ready: both names, how much a cup or a piece weighs, calories — and no made-up price", async () => {
+  it("a new student finds the common baking ingredients ready: both names, how much a cup or a piece weighs, calories and a Dhaka price", async () => {
     const { client } = await student();
     const list = await starter(client);
     const flour = named(list, "All-purpose flour (maida)");
     expect(flour).toMatchObject({ name_bn: "ময়দা", g_per_ml: 0.53, active: true, nutrition: { kcal: 364, protein_g: 10.3, carbs_g: 76.3, fat_g: 1, sodium_mg: 2 } });
     expect(named(list, "Egg")).toMatchObject({ name_bn: "ডিম", g_per_piece: 50, nutrition: { kcal: 143 } });
-    // 45 of them (the names the migration adds), each with calories; prices are the owner's to set (the Dhaka average), never invented here
+    // 45 of them (the names the migration adds), each with calories and a Dhaka price (0028) that says where and when it was checked
     const theirs = starterNames();
     expect(theirs).toHaveLength(45);
     for (const en of theirs) {
       const i = named(list, en);
       expect(i.nutrition?.kcal, en).toBeTypeOf("number");
-      expect(i.default_price, en).toBeNull();
+      expect(i.price_source, en).toBe("default");
+      expect(i.default_price, en).toMatchObject({ bought_on: "2026-11-07", supplier: expect.stringMatching(/^(Chaldal|Dhaka market report)/) });
+      expect(i.default_price!.price_minor, en).toBeGreaterThan(0);
     }
+    expect(flour.default_price).toMatchObject({ pack_qty: 2, pack_unit: "kg", price_minor: tk(170) });
+    expect(named(list, "Egg").default_price).toMatchObject({ pack_qty: 12, pack_unit: "piece", price_minor: tk(150) });
+    // a banana is counted by the piece, and a piece has a weight, so a recipe may say "3" or "300 g"
+    expect(named(list, "Banana (ripe)")).toMatchObject({ g_per_piece: 100, default_price: { pack_unit: "piece" } });
     // a figure the food table does not give stays empty, never guessed
     expect(named(list, "Semolina (suji)").nutrition).toMatchObject({ kcal: 360, sugar_g: null });
+  });
+
+  it("the Dhaka prices are added once and never replace a price the owner set", async () => {
+    const prices = (env as unknown as { TEST_MIGRATIONS: { name: string; queries: string[] }[] }).TEST_MIGRATIONS.find((m) => m.name.startsWith("0028_"))!;
+    const count = async () => (await env.DB.prepare("SELECT COUNT(*) AS n FROM fc_prices WHERE workspace_id IS NULL").first<{ n: number }>())!.n;
+    const before = await count();
+    for (const q of prices.queries) await env.DB.prepare(q).run();
+    expect(await count()).toBe(before);
+    // the owner's own default (a newer row) is the one that counts, and running the file again leaves it so
+    const { client } = await student();
+    const flourId = named(await starter(client), "All-purpose flour (maida)").id;
+    await env.DB.prepare("INSERT INTO fc_prices (ingredient_id, workspace_id, pack_qty, pack_unit, price_minor) VALUES (?, NULL, 1, 'kg', ?)").bind(flourId, tk(90)).run();
+    for (const q of prices.queries) await env.DB.prepare(q).run();
+    expect(named(await starter(client), "All-purpose flour (maida)").default_price).toMatchObject({ pack_qty: 1, pack_unit: "kg", price_minor: tk(90) });
   });
 
   it("the starter list is added once: run again, it adds no name twice, and an owner's own entry with the same name is kept", async () => {
@@ -406,9 +426,11 @@ describe("the starter list and calories", () => {
     const saved = (book.recipes as FcRecipeDTO[])[0];
     const food = fcNutritionWith(saved, book);
     expect([food.batch.kcal, food.perUnit?.kcal, food.lines.map((l) => l.kcal)]).toEqual([2249, 187, [1820, 429]]);
-    // the list shows it too, as the server works it out — but not its price: there is none yet
+    // the list shows it too, as the server works it out, and its cost from the Dhaka prices: complete, the same as the screens' engine
     const summary = ((await json(await client.get(fc("/recipes")))).recipes as FcRecipeSummaryDTO[])[0];
-    expect(summary).toMatchObject({ kcal_per_unit: 187, complete: false });
+    const cost = fcCostWith(saved, book);
+    expect(cost.complete).toBe(true);
+    expect(summary).toMatchObject({ kcal_per_unit: 187, complete: true, per_unit_minor: cost.perUnitMinor });
   });
 
   it("one's own ingredient can carry its figures: checked, kept when an older app sends none, removed when told", async () => {
