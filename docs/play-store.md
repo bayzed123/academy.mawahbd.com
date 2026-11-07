@@ -41,6 +41,10 @@ Play Console → **Create app**:
 
 Add a translation: **Manage translations → English (United States) – en-US**, and fill the same boxes in English.
 
+> **Google Play's payments rule:** the listing (like the app) must never point people to paying for classes outside Google Play, so
+> it never says where or how classes are bought. Students simply sign in to watch their classes. Equipment Shop products are
+> physical goods, so ordering them on the website is allowed.
+
 | Box | Bangla (bn-BD) | English (en-US) |
 |---|---|---|
 | App name (max 30) | `মাওয়াহ একাডেমি` | `MAWAH Academy` |
@@ -64,14 +68,15 @@ Add a translation: **Manage translations → English (United States) – en-US**
 • রেসিপির পিডিএফসহ ক্লাসের ম্যাটেরিয়াল ডাউনলোড করুন
 • ক্লাস শেষ করলে সার্টিফিকেট পান
 • অ্যাপের জন্য বানানো ফ্রি ক্লাস — লাগবে শুধু একটি ফ্রি অ্যাকাউন্ট
-• ক্লাস কেনার আগে ফ্রি ডেমো লেসন দেখুন
+• ফ্রি ডেমো লেসন দেখুন
 
 ফুডকস্ট: রেসিপির খরচ হিসাব
-• উপকরণ আর আপনার কেনা দাম লিখুন
+• ৪৫টি সাধারণ উপকরণে ঢাকার বাজারদর আগে থেকেই দেওয়া, চাইলে নিজের কেনা দাম বসান
 • পুরো ব্যাচ আর প্রতি পিস বা স্লাইসের খরচ দেখুন
 • প্যাকেজিং, আপনার সময় আর ওভেনের গ্যাস বা বিদ্যুতের খরচ যোগ করুন
 • যত লাভ চান, সেই হিসাবে বিক্রির দাম জেনে নিন
 • প্রতি পিসের ক্যালরি ও পুষ্টি (প্রোটিন, শর্করা, চর্বি, চিনি, আঁশ, সোডিয়াম) দেখুন, খাদ্য-তালিকা থেকে হিসাব করা
+• পুরো হিসাব PDF করে রাখুন, বা হোয়াটসঅ্যাপে পাঠান
 
 ইকুইপমেন্ট শপ
 • MAWAH-এর বেকিং সরঞ্জাম ও উপকরণ, সারা বাংলাদেশে ডেলিভারি
@@ -80,10 +85,9 @@ Add a translation: **Manage translations → English (United States) – en-US**
 আপনার মতো করে
 • বাংলা বা English
 • রাতের লুক বা দিনের লুক — ফোনের সেটিং মেনে, বা নিজের পছন্দে
-• নতুন ফ্রি ক্লাস আর নতুন লেসনের নোটিফিকেশন (শুধু আপনি অনুমতি দিলে)
 • কোনো বিজ্ঞাপন নেই
 
-ক্লাস কেনা হয় mawahacademy.com-এ, আর একই অ্যাকাউন্টে অ্যাপে খোলে। অ্যাপেই যেকোনো সময় অ্যাকাউন্ট ডিলিট করতে পারেন (প্রোফাইল → আমার অ্যাকাউন্ট ডিলিট করুন)।
+মাওয়াহ একাডেমির শিক্ষার্থীরা নিজের অ্যাকাউন্টে লগ ইন করে নিজের সব ক্লাস অ্যাপেই দেখতে পারেন। অ্যাপেই যেকোনো সময় অ্যাকাউন্ট ডিলিট করতে পারেন (প্রোফাইল → আমার অ্যাকাউন্ট ডিলিট করুন)।
 
 প্রশ্ন থাকলে অ্যাপের প্রোফাইল থেকে হোয়াটসঅ্যাপে লিখুন, অথবা দেখুন mawahacademy.com/contact
 ```
@@ -99,14 +103,15 @@ WHAT YOU CAN DO
 • Download class materials such as recipe PDFs
 • Get a certificate when you finish a class
 • Start free classes made for the app; all you need is a free account
-• Watch free demo lessons before you buy a class
+• Watch free demo lessons
 
 FOODCOST: RECIPE COSTING
-• Add your ingredients and the prices you pay
+• Dhaka market prices are already filled in for 45 common ingredients, or use the prices you pay
 • See the cost of the whole batch and of each piece or slice
 • Add packaging, your time and the oven's gas or electricity
 • Get a selling price from the profit you want
 • See the calories and nutrition (protein, carbohydrate, fat, sugar, fibre, sodium) of each piece, worked out from food tables
+• Save the whole result as a PDF, or send it on WhatsApp
 
 EQUIPMENT SHOP
 • MAWAH's baking tools and ingredients, delivered across Bangladesh
@@ -115,13 +120,16 @@ EQUIPMENT SHOP
 MADE FOR YOU
 • Bangla or English
 • Night look or day look: it follows your phone, or your own choice
-• Notifications about new free classes and new lessons (only if you allow them)
 • No ads
 
-Classes are bought on mawahacademy.com and open in the app with the same account. You can delete your account at any time in the app (Profile → Delete my account).
+MAWAH Academy students sign in with their own account to watch all their classes in the app. You can delete your account at any time in the app (Profile → Delete my account).
 
 Questions? Message us on WhatsApp from the app's Profile page, or visit mawahacademy.com/contact
 ```
+
+**Once notifications work** (the `GOOGLE_SERVICES_JSON` secret is added and that build is uploaded), add this line under
+*আপনার মতো করে* / *MADE FOR YOU*: `• নতুন ফ্রি ক্লাস আর নতুন লেসনের নোটিফিকেশন (শুধু আপনি অনুমতি দিলে)` /
+`• Notifications about new free classes and new lessons (only if you allow them)`. Until then the listing does not promise them.
 
 ### App category and contact details (Store settings)
 
@@ -170,13 +178,18 @@ website). *Web browser or search engine?* **No**. Expected result: rated for eve
 **No.**
 
 ### Data safety
+**The quick way:** Data safety → **Import from CSV** → upload [`play/data-safety.csv`](play/data-safety.csv) → **Import**, then check
+each page and **Save**. It is Google's own template with the answers below filled in (`true`/`false` like Google's sample). If the app
+starts collecting something new, change it here first.
+
 | Question | Answer |
 |---|---|
 | Does your app collect or share any of the required user data types? | **Yes** |
 | Is all of the user data collected by your app encrypted in transit? | **Yes** |
 | Which methods of account creation does your app support? | **Username and password** (the mobile number or student ID, and a password) |
 | Delete account URL | `https://mawahacademy.com/en/account/delete` |
-| Can users delete some data without deleting the account? | **Yes**, in the app itself: FoodCost recipes, prices and ingredients each have Delete, and turning notifications off deletes the phone's address (the link box can stay empty) |
+| Can users delete some data without deleting the account? | **Yes**, in the app itself: FoodCost recipes, prices and ingredients each have Delete, and turning notifications off deletes the phone's address. Delete data URL: `https://mawahacademy.com/en/policies/privacy` (it says how to ask for any deletion) |
+| Can users log in with accounts created outside the app? | **Leave it empty.** Google allows this question only for apps without their own sign-up (the import says *You cannot answer PSL_HAS_OUTSIDE_APP_ACCOUNTS*). |
 
 Data types — tick **Collected**, never **Shared** (the hosting, SMS and payment services work for us, which Google does not count as
 sharing); *Processed ephemerally?* **No** for each; purposes **App functionality** and **Account management**:
@@ -190,7 +203,7 @@ sharing); *Processed ephemerally?* **No** for each; purposes **App functionality
 | Financial info → **Purchase history** (the classes the account owns) | Required | App functionality |
 | App activity → **App interactions** (lessons finished, free classes started, downloads) | Required | App functionality |
 | App activity → **Other user-generated content** (FoodCost recipes, ingredients, prices) | Optional | App functionality |
-| Device or other IDs → **Device or other IDs** (the notification address from Firebase) | Optional | App functionality |
+| Device or other IDs → **Device or other IDs** (the notification address from Firebase) | Optional | App functionality, Developer communications (news of new classes and lessons) |
 
 Not collected: location, contacts, photos and videos, audio, files, calendar, messages, web browsing, **health and fitness**, app info and
 performance (no crash reporting or analytics in the app), advertising ID.
