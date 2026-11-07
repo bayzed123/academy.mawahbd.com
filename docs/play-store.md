@@ -19,6 +19,11 @@ signing the app is explained in [android-app.md](android-app.md).
    ID** and **password** now. The password is shown only once; *New password* makes another one.
 4. Update your website texts (section 9): the refund and terms pages still say kits and tools cannot be ordered, but the
    Equipment Shop is open.
+5. **Notifications:** add the GitHub secret `GOOGLE_SERVICES_JSON` *before* the build you upload (otherwise that build has no
+   notifications; the Android app run says "No notifications in this build"). Take the file from the Firebase project that is the
+   same Google Cloud project as the website's Google key (*Admin → Android app → Check the connection* names it): Project settings →
+   Your apps → Add app → Android → `com.mawahacademy.app` → download `google-services.json`. No second key is needed
+   ([android-app.md](android-app.md), section 5).
 
 ## 1. Create the app
 
@@ -380,7 +385,7 @@ MAWAH Academy এই ওয়েবসাইটে এবং অ্যান্
 
 ## 10. Checklist
 
-- [ ] PR merged; Android app run green; `.aab` downloaded (not `TEST-KEY`)
+- [ ] `GOOGLE_SERVICES_JSON` secret added, then PR merged; Android app run green; `.aab` downloaded (not `TEST-KEY`)
 - [ ] Test account made (student ID + password copied)
 - [ ] Refund and terms texts pasted in Admin (section 9)
 - [ ] App created; store listing in Bangla and English; graphics uploaded

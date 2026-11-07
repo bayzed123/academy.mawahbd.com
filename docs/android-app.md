@@ -163,8 +163,14 @@ same and simply never offers notifications, and *Admin → Android app → Notif
    **Register app** → **Download google-services.json** → skip the remaining steps (the build does them).
 3. GitHub → **Settings → Secrets and variables → Actions → New repository secret**: name **`GOOGLE_SERVICES_JSON`**, value: the whole
    `google-services.json` (open it in Notepad, select all, copy). The Android build checks it is the file for `com.mawahacademy.app`.
-4. Firebase → ⚙ **Project settings → Service accounts → Generate new private key → Generate key**: a `.json` file downloads. New
-   repository secret **`FIREBASE_SERVICE_ACCOUNT`** = that whole file. It is a password: never paste it in a chat or an e-mail.
+4. The key the website sends with. **If the Firebase project is the same Google Cloud project as the website's Google key** (the
+   `GOOGLE_SERVICE_ACCOUNT` secret that Analytics and Drive use), skip this step: with `FIREBASE_SERVICE_ACCOUNT` left empty the
+   website sends with that key (`lib/fcm.ts` `pushSetup`), and that account only needs the role **Firebase Cloud Messaging API
+   Admin** (Google Cloud → IAM). This is how mawahacademy.com is set up. Otherwise: Firebase → ⚙ **Project settings → Service
+   accounts → Generate new private key → Generate key**, and save the whole `.json` file as the repository secret
+   **`FIREBASE_SERVICE_ACCOUNT`**. Either key is a password: never paste it in a chat or an e-mail.
+   The `google-services.json` of step 2 must come from that same project, or phones sign up with a project the website does not
+   send from.
 5. Firebase → ⚙ **Project settings → Cloud Messaging**: *Firebase Cloud Messaging API (V1)* should say **Enabled** (if not: ⋮ → *Manage
    API in Google Cloud Console* → **Enable**).
 6. GitHub → **Actions → Deploy → Run workflow** (gives the website its key), then **Actions → Android app → Run workflow** (builds the app
