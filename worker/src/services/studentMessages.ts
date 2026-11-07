@@ -3,6 +3,7 @@ import type { Env } from "../env";
 import { sendMail, type MailMessage, type MailResult } from "../lib/mailer";
 import { getSettings } from "../lib/settings";
 import { allowVisitorSms, sendSms, type SmsResult } from "../lib/sms";
+import { wordsFor, type SmsText } from "../lib/smsText";
 
 /** How to reach a student: the e-mail they gave (a buyer who gave none has a made-up one, which counts as none) and their mobile number. */
 export interface Reach {
@@ -34,7 +35,7 @@ export function toldMeta(told: Told): { sms: string; email: string } {
  * and per day for the whole site, so nobody can run up the SMS bill or flood a stranger's phone. Never throws: a message that cannot be
  * sent must not break the payment or the page it comes from.
  */
-export async function tellStudent(env: Env, who: Reach, msg: { mail?: Omit<MailMessage, "to">; sms?: string }, opts: { smsAlso?: boolean; capped?: boolean } = {}): Promise<Told> {
+export async function tellStudent(env: Env, who: Reach, msg: { mail?: Omit<MailMessage, "to">; sms?: SmsText }, opts: { smsAlso?: boolean; capped?: boolean } = {}): Promise<Told> {
   const told: Told = { mail: null, sms: null };
   const hasEmail = !!who.email && !isNoEmail(who.email);
   try {
@@ -42,7 +43,8 @@ export async function tellStudent(env: Env, who: Reach, msg: { mail?: Omit<MailM
     if (msg.sms && who.phone) {
       const s = (await getSettings(env)).sms;
       if (s.enabled && (!hasEmail || s.with_email || opts.smsAlso) && (!opts.capped || (await allowVisitorSms(env, who.phone)))) {
-        told.sms = await sendSms(env, { to: who.phone, text: msg.sms }, { sender: s.sender_id });
+        // the words depend on the sender: a brand name (masking) only carries Bangla (smsText.ts)
+        told.sms = await sendSms(env, { to: who.phone, text: wordsFor(msg.sms, s.sender_id) }, { sender: s.sender_id });
       }
     }
   } catch (err) {

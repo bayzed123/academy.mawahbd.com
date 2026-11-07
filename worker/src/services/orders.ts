@@ -7,7 +7,7 @@ import { all, first, nowIso, qs, run } from "../lib/db";
 import { sniffImage } from "../lib/files";
 import { conflict, HttpError, notFound } from "../lib/http";
 import { orderReceiptMail } from "../lib/mailer";
-import { receiptSms } from "../lib/smsText";
+import { receiptSms, smsText } from "../lib/smsText";
 import { createPasswordResetLink } from "./auth";
 import { notices, notifyOwner } from "./notify";
 import { tellStudent, toldMeta } from "./studentMessages";
@@ -498,7 +498,7 @@ export async function sendReceipt(env: Env, orderId: number): Promise<void> {
   const told = await tellStudent(
     env,
     { email: order.customer_email, phone: order.customer_phone || student?.phone },
-    { mail, sms: receiptSms(lang, { total: order.total, learnUrl: `${env.SITE_URL}/app/`, code: studentCode(order.student_id), setPasswordUrl }) },
+    { mail, sms: smsText(lang, (l) => receiptSms(l, { total: order.total, learnUrl: `${env.SITE_URL}/app/`, code: studentCode(order.student_id), setPasswordUrl })) },
   );
   // how it went, for the owner (Admin → Activity): a receipt that could not be sent is the usual reason "I paid and heard nothing"
   await auditAs(env, { type: "system", id: null, name: "" }, { action: "order.receipt_sent", entity: "order", entityId: orderId, summary: order.public_id, meta: toldMeta(told) });

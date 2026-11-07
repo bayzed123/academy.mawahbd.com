@@ -23,7 +23,7 @@ import { generatePublicOrderId } from "../lib/crypto";
 import { all, first, nowIso, qs } from "../lib/db";
 import { conflict, HttpError } from "../lib/http";
 import { welcomeMail } from "../lib/mailer";
-import { inviteSms } from "../lib/smsText";
+import { inviteSms, smsText } from "../lib/smsText";
 import { emailSchema } from "../lib/schemas";
 import { createPasswordResetLink } from "./auth";
 import { allocate } from "./orders";
@@ -277,7 +277,7 @@ export async function inviteStudent(env: Env, studentId: number, mode: "email" |
   const told = await tellStudent(
     env,
     mode === "sms" ? { email: null, phone: s.phone } : { email: s.email, phone: null },
-    mode === "sms" ? { sms: inviteSms(s.locale, { link, days: INVITE_DAYS }) } : { mail: welcomeMail(s.locale, s.name, link, INVITE_DAYS) },
+    mode === "sms" ? { sms: smsText(s.locale, (l) => inviteSms(l, { link, days: INVITE_DAYS })) } : { mail: welcomeMail(s.locale, s.name, link, INVITE_DAYS) },
     { smsAlso: true },
   );
   return { sent: !!(told.mail?.ok || told.sms?.ok), days: INVITE_DAYS };

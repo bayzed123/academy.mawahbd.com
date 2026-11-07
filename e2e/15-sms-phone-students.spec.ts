@@ -40,7 +40,15 @@ test("Settings → SMS: says what is connected, keeps the sender name, and sends
   await admin.getByLabel("Sender name (sender ID)").fill("not<valid>");
   await admin.getByRole("button", { name: "Save" }).first().click();
   await expect(admin.getByRole("alert").first()).toBeVisible();
+  // a brand name (masking) longer than a phone shows is refused in plain words
+  await admin.getByLabel("Sender name (sender ID)").fill("MAWAH Academy");
+  await admin.getByRole("button", { name: "Save" }).first().click();
+  await expect(admin.getByText(/A brand name can be at most 11 characters/).first()).toBeVisible();
+  // a number as the sender: no note; a brand name: the note says the texts go out in Bangla
+  await admin.getByLabel("Sender name (sender ID)").fill("8809601017241");
+  await expect(admin.getByText(/every text goes out in Bangla/)).toHaveCount(0);
   await admin.getByLabel("Sender name (sender ID)").fill("MAWAH");
+  await expect(admin.getByRole("note").filter({ hasText: "every text goes out in Bangla" })).toBeVisible();
   await admin.getByRole("button", { name: "Save" }).first().click();
 
   // the shop buyers' texts have a switch of their own, on to begin with, and the choice is kept (a person presses the switch's label)
@@ -68,7 +76,8 @@ test("Settings → SMS: says what is connected, keeps the sender name, and sends
   await admin.getByLabel("Send a test message to this number").fill(phone);
   await admin.getByRole("button", { name: "Send test message" }).click();
   await expect(admin.getByText("Test mode: the message was kept, not sent.")).toBeVisible();
-  await expect.poll(async () => (await outbox(phone)).some((m) => m.sms && /test message/.test(m.text))).toBe(true);
+  // from a brand name the test message is in Bangla, without the shop's name in front (the phone shows it)
+  await expect.poll(async () => (await outbox(phone)).some((m) => m.sms && m.text === "পরীক্ষামূলক বার্তা — এসএমএস ঠিকমতো কাজ করছে।")).toBe(true);
 
   // checking the credit without the secrets says what to do, in plain words
   await admin.getByRole("button", { name: "Check my SMS credit" }).click();
