@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { studentCode } from "@mawah/shared";
+import { PROOF_RETENTION_DAYS, studentCode } from "@mawah/shared";
 import { ACCOUNT_DELETION_TEXT, PRIVACY_APP_TEXT } from "../src/content/pageTexts";
 import { renderMarkdown } from "../src/lib/markdown";
+import { GUEST_KEEP_DAYS } from "../src/services/guests";
 import { SETTING_DEFAULTS, setSetting } from "../src/lib/settings";
 import { Client, env, firstCourse, json, loginStaff, registerStudent } from "./helpers";
 
@@ -195,11 +196,26 @@ describe("the web pages Google Play is given", () => {
     // the live site keeps its own privacy text (saved in Admin): the app section is added under it
     await setSetting(env, "policies", { ...SETTING_DEFAULTS.policies, privacy_en: "Privacy Policy\nOur own short text." }, null);
     const own = await (await new Client().get("/en/policies/privacy")).text();
-    expect(own).toContain("Our own short text.");
+    expect(own).toContain("Privacy Policy<br>Our own short text."); // typed line by line in Admin: the lines stay lines
     expect(own).toContain("The MAWAH Academy app for Android");
     // an owner who wrote it all themselves (with the link) gets no second copy
     await setSetting(env, "policies", { ...SETTING_DEFAULTS.policies, privacy_en: "Everything, including [deleting](/en/account/delete)." }, null);
     expect(await (await new Client().get("/en/policies/privacy")).text()).not.toContain("The MAWAH Academy app for Android");
     await setSetting(env, "policies", SETTING_DEFAULTS.policies, null);
+  });
+
+  it("the app section answers what Google Play's User Data policy asks a privacy page, in both languages", async () => {
+    // who gets what (couriers for shop orders, the website's analytics and Meta Pixel), how long it is kept, where, children, who to ask, and when
+    const needs = {
+      en: ["## Who receives information", "Couriers (Steadfast or Pathao)", "Meta Pixel", "Firebase Cloud Messaging", "## How long we keep information", "30 days without use", "90 days after the order is settled", "## Where it is stored", "## Children", "children under 13", "## Privacy questions", "last updated on 7 November 2026", "no health or fitness information", "(/en/account/delete)"],
+      bn: ["## কারা তথ্য পায়", "কুরিয়ার (স্টেডফাস্ট বা পাঠাও)", "Meta Pixel", "Firebase Cloud Messaging", "## কতদিন তথ্য রাখা হয়", "৩০ দিন ব্যবহার না হলে", "নিষ্পত্তির ৯০ দিন পর", "## তথ্য কোথায় থাকে", "## শিশুরা", "১৩ বছরের কম", "## গোপনীয়তা নিয়ে প্রশ্ন", "৭ নভেম্বর, ২০২৬", "স্বাস্থ্য বা ফিটনেসের তথ্য নেয় না", "(/account/delete)"],
+    } as const;
+    for (const lang of ["bn", "en"] as const) for (const n of needs[lang]) expect(PRIVACY_APP_TEXT[lang], `${lang}: ${n}`).toContain(n);
+    // the two languages say the same things: the same sections, the same bullets
+    const shape = (s: string) => [s.match(/^## /gm)?.length, s.match(/^- /gm)?.length];
+    expect(shape(PRIVACY_APP_TEXT.bn)).toEqual(shape(PRIVACY_APP_TEXT.en));
+    // the numbers it states are the ones the code uses
+    expect(PROOF_RETENTION_DAYS).toBe(90);
+    expect(GUEST_KEEP_DAYS).toBe(30);
   });
 });

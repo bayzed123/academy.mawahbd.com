@@ -178,6 +178,24 @@ jobs:
           apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
           "$apksigner" verify --print-certs "$apk" | grep -m1 "certificate DN" || { echo "::error::The APK is not signed"; exit 1; }
           if "$apksigner" verify --print-certs "$apk" | grep -q "Android Debug"; then echo "::error::The APK is signed with the debug key"; exit 1; fi
+          # what Google Play reads from the file: the package name (it can never change), the Android level it targets and the permissions
+          # it asks for, which must leave out every one the privacy policy and the Data safety answers say the app never uses
+          # (docs/play-store.md)
+          aapt2=$(ls -d "$ANDROID_HOME"/build-tools/*/aapt2 | sort -V | tail -1)
+          badging=$("$aapt2" dump badging "$apk")
+          pkg=$(printf '%s\n' "$badging" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          target=$(printf '%s\n' "$badging" | sed -n "s/^targetSdkVersion:'\([0-9]*\)'.*/\1/p")
+          perms=$("$aapt2" dump permissions "$apk" | sed -n "s/^uses-permission: name='\([^']*\)'.*/\1/p" | sort -u | paste -sd ' ' -)
+          echo "Package: $pkg, target SDK: $target"
+          echo "Permissions: $perms"
+          [ "$pkg" = com.mawahacademy.app ] || { echo "::error::The package name is '$pkg', not com.mawahacademy.app"; exit 1; }
+          for bad in com.google.android.gms.permission.AD_ID android.permission.CAMERA android.permission.RECORD_AUDIO \
+            android.permission.ACCESS_FINE_LOCATION android.permission.ACCESS_COARSE_LOCATION android.permission.READ_CONTACTS \
+            android.permission.READ_EXTERNAL_STORAGE android.permission.READ_MEDIA_IMAGES android.permission.READ_MEDIA_VIDEO \
+            android.permission.SYSTEM_ALERT_WINDOW; do
+            case " $perms " in *" $bad "*) echo "::error::The app asks for $bad, which the privacy policy and the Data safety answers say it does not use"; exit 1;; esac
+          done
+          { echo "pkg=$pkg"; echo "target=$target"; echo "perms=$perms"; } >> "$GITHUB_OUTPUT"
           base="mawah-academy-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}"
           [ "${{ steps.key.outputs.kind }}" = upload ] || base="$base-TEST-KEY"
           mkdir -p "$RUNNER_TEMP/out"
@@ -217,6 +235,9 @@ jobs:
               echo "| Signed with | a **test key**: install the APK on a phone to try it; Google Play will refuse this AAB |"
             fi
             echo "| Key fingerprint (SHA-256) | \`${{ steps.key.outputs.sha256 }}\` |"
+            echo "| Package | \`${{ steps.out.outputs.pkg }}\` |"
+            echo "| Targets | Android API ${{ steps.out.outputs.target }} |"
+            echo "| Permissions | ${{ steps.out.outputs.perms }} |"
             echo ""
             echo "Download: this page → **Artifacts**. The \`.aab\` goes to Play Console; the \`.apk\` installs straight on a phone."
           } >> "$GITHUB_STEP_SUMMARY"

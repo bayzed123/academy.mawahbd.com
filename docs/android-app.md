@@ -81,7 +81,10 @@ GitHub → the repository → **Settings → Secrets and variables → Actions �
    * `…-aab`: the **AAB**, the file you upload to Google Play.
    * `…-apk`: the **APK**, to install straight on a phone (the phone asks to allow installing from this source once).
 3. The run's summary says which key signed it. Before the 4 secrets exist, and in every pull request, a throwaway **test key** signs it:
-   the APK installs and works, but Google Play refuses that AAB (its file name ends in `TEST-KEY`).
+   the APK installs and works, but Google Play refuses that AAB (its file name ends in `TEST-KEY`). The summary also shows what
+   Google reads from the file: the package (`com.mawahacademy.app`), the Android level it targets and the permissions it asks for.
+   The build stops if the package is wrong or a permission the privacy policy says the app never uses (camera, microphone,
+   location, contacts, photos, advertising ID …) creeps in through a library.
 
 The version code (a number Google needs to grow with every upload) is set by the workflow from the time of the build. The version name
 people see (1.0.0) is `version` in `mobile/package.json`: raise it for a new release.
@@ -91,13 +94,16 @@ files' signatures afterwards.
 
 ## 4. Google Play: the first release
 
+Every Play Console box, with the text to paste (listing in Bangla and English, App content, Data safety, the closed test, applying
+for production): **[play-store.md](play-store.md)**. The short version:
+
 1. Play Console → **Create app**: name *MAWAH Academy*, default language *Bangla* (bn-BD), *App*, *Free*.
 2. **Testing → Internal testing → Create release** → upload the AAB. Google turns on **Play App Signing** with your upload key.
 3. **Personal developer account made after 13 Nov 2023?** Google asks for a **closed test with at least 12 testers opted in for 14 days in
    a row** before production. Start it early (*Testing → Closed testing*); keep updating the build during the 14 days.
    An organization account (needs a free D-U-N-S number) does not have this rule.
 4. **App content** (Policy → App content):
-   * **Privacy policy:** `https://mawahacademy.com/policies/privacy`
+   * **Privacy policy:** `https://mawahacademy.com/en/policies/privacy` (English; the Bangla page is the same without `/en`)
    * **App access:** some screens need a login → *All or some functionality is restricted* → **Admin → Android app → Google Play test
      account → Make the test account**, and give Google its **student ID** (as the username) and the **password** shown (shown once:
      copy it at once; *New password* makes another and signs the old one out everywhere). Instructions for the reviewer, in English:
@@ -114,8 +120,8 @@ files' signatures afterwards.
        account is made in the app — *Make a free account* — or on the website):
        * Personal info: **Name**, **Phone number**, **Email address** (only when given: it is optional), **User IDs** (the student ID)
        * Financial info: **Purchase history** (classes and orders)
-       * App activity: **Other user-generated content** (questions, reviews, and FoodCost recipes, ingredients and prices),
-         **App interactions** (lessons finished, downloads)
+       * App activity: **Other user-generated content** (FoodCost recipes, ingredients and prices; questions and reviews are
+         written on the website, not in the app), **App interactions** (lessons finished, free classes started, downloads)
        * Device or other IDs: **Device or other IDs** — *optional* (only when the person allows notifications), for **App
          functionality**: the address Google's Firebase Cloud Messaging gives the app, kept with the app's language and, when signed
          in, the account, so notifications reach the phone. Not shared.
@@ -130,7 +136,8 @@ files' signatures afterwards.
      address under *Delete account URL*). Deleting removes the name, number, e-mail, address, password, progress, questions, reviews and FoodCost data, unlinks the phones it got notifications on,
      ends every sign-in, and keeps orders and payments for tax records (the page says so, as Google requires). Staff can also delete an
      account on request (*Admin → Students → Delete account*).
-   * **Privacy policy** covers the app: a section about the Android app and deleting an account is always shown under the privacy text.
+   * **Privacy policy** covers the app: a section about the Android app, who receives information, how long it is kept, where it is
+     stored, children, deleting an account and who to ask is always shown under the privacy text (`PRIVACY_APP_TEXT`).
 5. **Store listing:** name (30 letters), short description (80), full description, the 512×512 icon (`mobile/assets/icon.png` resized),
    a 1024×500 feature graphic and 2–8 screenshots each for phone, 7-inch tablet and 10-inch tablet, in Bangla and English (PNG or JPEG
    without transparency; the long side at most twice the short side).

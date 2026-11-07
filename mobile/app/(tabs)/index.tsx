@@ -23,7 +23,7 @@ import { CardSkeleton, Skeleton } from "../../src/ui/Skeleton";
 import { Txt } from "../../src/ui/Txt";
 
 export default function Home() {
-  const { c, t, lang } = usePrefs();
+  const { c, t, lang, setLookPref } = usePrefs();
   const { status, me } = useSession();
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -71,6 +71,16 @@ export default function Home() {
             {t("home.welcomeSub")}
           </Txt>
         </View>
+        {/* day or night in one tap (Profile → Look also offers "like my phone") */}
+        <Press
+          onPress={() => setLookPref(c.look === "night" ? "day" : "night")}
+          accessibilityRole="button"
+          accessibilityLabel={c.look === "night" ? t("home.toDay") : t("home.toNight")}
+          hitSlop={6}
+          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.raised, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" }}
+        >
+          <Icon name={c.look === "night" ? "sun" : "moon"} size={20} color={c.text} />
+        </Press>
       </View>
 
       {notice ? (

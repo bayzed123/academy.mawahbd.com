@@ -21,12 +21,15 @@ interface Prefs {
 
 const PrefsContext = createContext<Prefs | null>(null);
 
-/** Language (Bangla first, like the website) and look (night by default, like the website), remembered on the phone. */
+/**
+ * Language (Bangla first, like the website) and look, remembered on the phone. The look follows the phone (day when the phone is set to
+ * light, else night) until the student chooses one, as the website follows the device until the visitor chooses.
+ */
 export function PrefsProvider({ children }: { children: ReactNode }) {
   const system = useColorScheme();
   const [ready, setReady] = useState(false);
   const [lang, setLangState] = useState<Lang>("bn");
-  const [lookPref, setLookState] = useState<LookPref>("night");
+  const [lookPref, setLookState] = useState<LookPref>("system");
 
   useEffect(() => {
     void (async () => {
