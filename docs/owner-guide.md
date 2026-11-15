@@ -631,7 +631,7 @@
 **শিক্ষার্থী যা দেখেন:** অ্যাপের হোমে একবার একটি কার্ড আসে — **অনুমতি দিন**, **এখন না**, অথবা ✕। “অনুমতি দিন” চাপলে ফোন নিজে জিজ্ঞেস করে (Android 13 ও নতুন ফোনে)। পরে **প্রোফাইল → নোটিফিকেশন** সুইচ দিয়ে যেকোনো সময় চালু/বন্ধ করা যায়। নোটিফিকেশনে চাপলে সংশ্লিষ্ট ক্লাসটি খোলে। প্রতিটি ফোন তার নিজের ভাষায় পায়।
 
 **কী কী যায়** (অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → **নোটিফিকেশন**):
-* **নিজে থেকে:** অ্যাপের কোনো ফ্রি ক্লাস প্রথমবার চালু হলে — অ্যাপ আছে এমন সবাইকে (প্রতি ক্লাসে একবার); চালু ক্লাসে নতুন লেসন যোগ হলে — সেই ক্লাসের শিক্ষার্থীদের (প্রতি ক্লাসে ১২ ঘণ্টায় সর্বোচ্চ একবার, তাই এক সন্ধ্যায় দশটি লেসন দিলেও একটিই যায়)। দুটোই সুইচ দিয়ে বন্ধ করা যায়।
+* **নিজে থেকে:** নতুন ক্লাস চালু হলে — অ্যাপ আছে এমন সবাইকে (প্রতি ক্লাসে একবার): অ্যাপের ফ্রি ক্লাস প্রথমবার চালু হলে, আর ওয়েবসাইটের নতুন ক্লাস চালু হলে **যদি তার ফ্রি ডেমো থাকে** (ডেমো ভিডিও বা ফ্রি প্রিভিউ লেসন — চাপলে অ্যাপে ফ্রি ডেমো খোলে, দাম কখনো দেখায় না)। ডেমো ছাড়া চালু করলে পরে (চালুর ১৪ দিনের মধ্যে) ডেমো যোগ করলেই তখন যায়। চালু ক্লাসে নতুন লেসন যোগ হলে — সেই ক্লাসের শিক্ষার্থীদের (প্রতি ক্লাসে ১২ ঘণ্টায় সর্বোচ্চ একবার, তাই এক সন্ধ্যায় দশটি লেসন দিলেও একটিই যায়)। দুটোই সুইচ দিয়ে বন্ধ করা যায়।
 * **আপনার নিজের:** **নোটিফিকেশন পাঠান** → কারা পাবে (অ্যাপ আছে এমন সবাই, অথবা একটি ক্লাসের শিক্ষার্থীরা) → ট্যাপ করলে কী খুলবে → বাংলা ও ইংরেজিতে শিরোনাম ও বার্তা → **এখনই পাঠান**। পাঠানো নোটিফিকেশন ফেরত নেওয়া যায় না। ভুল করে দুবার না যায়, তাই এক মিনিটের মধ্যে দ্বিতীয়টি পাঠানো যায় না।
 * **সম্প্রতি পাঠানো:** কী গেছে, কাকে, কে পাঠিয়েছেন, আর গেছে কি না (না গেলে কারণসহ)।
 * নোটিফিকেশনে কখনো কেনা বা দামের কথা থাকে না — গুগল প্লের নিয়ম।
@@ -644,6 +644,14 @@
 5. অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → নোটিফিকেশন → **সংযোগ পরীক্ষা করুন** — “সংযোগ ঠিক আছে” দেখাবে। না দেখালে পাতাটি কারণ ও করণীয় বলে দেয়।
 
 সেটআপের আগে অ্যাপ আগের মতোই চলে, শুধু নোটিফিকেশনের কার্ড ও সুইচ দেখায় না। নোটিফিকেশন পাঠাতে পারেন মালিক ও কনটেন্ট ম্যানেজার; স্বয়ংক্রিয় সুইচ বদলাতে পারেন শুধু মালিক।
+
+**অ্যাপের ঘণ্টা (নোটিফিকেশন বার):** অ্যাপের হোমের ওপরে, দিন/রাত বোতামের পাশে একটি ঘণ্টা — কয়টি নতুন তা লাল সংখ্যায় দেখায়, আর হোমে সবচেয়ে নতুনটি একটি বারে দেখা যায়। ঘণ্টায় চাপলে গত ৬০ দিনে পাঠানো সব নোটিফিকেশন (সবার জন্য খবর, আর শিক্ষার্থীর নিজের ক্লাসের খবর) একসাথে দেখা যায়; চাপলে সংশ্লিষ্ট ক্লাস খোলে। যে নোটিফিকেশন ফোনে পৌঁছায়নি (“সম্প্রতি পাঠানো”-তে ব্যর্থ), বা যে ক্লাস বন্ধ করা হয়েছে, তা তালিকায় থাকে না।
+
+## ৩৬. ফ্রি ক্লাস বোতাম, পেইড/ফ্রি আলাদা, আর ইউটিউবের মতো লেসন পাতা
+
+* **ফ্রি ক্লাস বোতাম:** ওয়েবসাইটের প্রতিটি পাতার ওপরে দিন/রাত বোতামের পাশে **ফ্রি ক্লাস** (মেনু ও ফুটারেও)। এটি **/free-classes** পাতা খোলে: প্রথমে ফ্রি ক্লাসগুলো (দাম ০ — এক ক্লিকে ভর্তি), তারপর প্রতিটি পেইড ক্লাসের ফ্রি ডেমো। কোনো ক্লাসের দাম ০ করলে বা ডেমো ভিডিও দিলে নিজে থেকেই এখানে দেখায়। অ্যাপে হোমের ওপরে একই বোতাম — অ্যাপের ফ্রি ক্লাস আর ফ্রি ডেমোগুলো দেখায়।
+* **ভর্তির পর আলাদা বাটন:** শিক্ষার্থীর **আমার ক্লাস** পাতায় দুটি বোতাম — **পেইড কোর্স** ও **ফ্রি ক্লাস** (সংখ্যাসহ)। অ্যাপে প্রথমটির নাম **আমার কোর্স** — গুগল প্লের নিয়মে অ্যাপে কেনা-বেচার কথা থাকে না। কুপন দিয়ে ৳০-তে পাওয়া পেইড ক্লাস পেইড কোর্সেই থাকে।
+* **লেসন পাতা (ইউটিউবের মতো):** ভিডিওর ঠিক নিচে লেসনের নাম, “পর্ব ৩ / ১২”, **সম্পন্ন** আর **পরের পর্ব** বোতাম; তার নিচে ক্লাসের সব লেসন এক সারিতে (ডানে-বাঁয়ে সরানো যায়, যেটি চলছে সেটি চিহ্নিত)। লেসনের লেখা নিচে একটি বাক্সে কয়েক লাইনে ভাঁজ করা থাকে — **আরও দেখুন** চাপলে পুরোটা। **পরের পর্ব** চাপলে লেসনটি সম্পন্নও হয়।
 
 # English
 
@@ -1287,8 +1295,10 @@ and newer). Later, **Profile → Notifications** switches them on and off at any
 gets them in its own language.
 
 **What goes out** (Admin → Android app → **Notifications**):
-* **By themselves:** one of the app's free classes going live for the first time — to everyone with the app (once per class); a lesson
-  added to a live class — to its students (at most once in 12 hours per class, so ten lessons in an evening send one). Each has a switch.
+* **By themselves:** a new class going live — to everyone with the app (once per class): one of the app's free classes the first time it
+  goes live, and a new website class **when it has a free demo** (a demo video or a free preview lesson — a tap opens the free demo in the
+  app, never a price). A class put live without a demo is announced once a demo is added, within 14 days of going live. A lesson added
+  to a live class — to its students (at most once in 12 hours per class, so ten lessons in an evening send one). Each has a switch.
 * **Your own:** **Send a notification** → who gets it (everyone with the app, or the students of one class) → what a tap opens → title and
   message in Bangla and English → **Send now**. A notification cannot be taken back. A second one within a minute is refused, so a double
   click never sends two.
@@ -1306,3 +1316,20 @@ gets them in its own language.
 
 Until it is set up the app works as before; it just shows no notification card or switch. The owner and Content Managers can send
 notifications; only the owner can change the automatic switches.
+
+**The bell (the notification bar in the app):** at the top of the app's Home, beside the night / day button — a red number says how many
+are new, and the newest one shows in a bar on Home. The bell lists every notification of the last 60 days (news for everyone, and the
+student's own classes' news); a tap opens what it is about. One that never reached phones (*failed* under *Sent lately*), or one about a
+class that was taken down, is not listed.
+
+## 36. The Free classes button, paid and free apart, and the lesson page like YouTube
+
+* **Free classes button:** on every page of the website, beside the night / day button (and in the menu and the footer). It opens
+  **/free-classes**: first the free classes (price 0 — enrolled in one click), then the free demo of each paid class. A class appears there
+  by itself once its price is 0 or it has a demo video. The app has the same button at the top of Home: its free classes and free demos.
+* **Separate buttons after enrolling:** the student's **My Learning** has two buttons — **Paid classes** and **Free classes** (with how
+  many). In the app the first is called **My courses**: a Google Play rule keeps buying out of the app. A paid class got for ৳0 with a coupon
+  stays under paid classes.
+* **The lesson page, like YouTube:** right under the video, the lesson's title, "Part 3 of 12", **Mark as complete** and **Next part**; under
+  them every lesson of the class in one row that slides sideways (the one playing is marked). The lesson's text sits below in a box folded to a
+  few lines — **Show more** opens it. **Next part** also marks the lesson complete.

@@ -101,7 +101,9 @@ export function Shell() {
                   {t(x.key)}
                 </NavLink>
               ))}
-            <a href={`${home === "/" ? "" : home}/courses`}>{t("app.nav.browse")}</a>
+            <a className="nav-browse" href={`${home === "/" ? "" : home}/courses`}>
+              {t("app.nav.browse")}
+            </a>
             {shop && (
               <a className="nav-shop" href={shopHref} {...shopOut}>
                 <Icon name="shop" /> {shopLabel}
@@ -117,6 +119,11 @@ export function Shell() {
           <button type="button" className="lang-btn" onClick={switchLang} lang={lang === "bn" ? "en" : "bn"}>
             {t("lang.switch")}
           </button>
+          {/* every free class in one place (the website's Free classes page), beside the night / day switch — as in the site's header */}
+          <a className="free-btn" href={`${home === "/" ? "" : home}/free-classes`} title={t("app.nav.free")}>
+            <Icon name="gift" />
+            <span className="free-label">{t("app.nav.free")}</span>
+          </a>
           <ThemeToggle />
           {student ? (
             <details className="user-menu">
@@ -136,6 +143,9 @@ export function Shell() {
                 </Link>
                 <a href={`${home === "/" ? "" : home}/courses`}>
                   <Icon name="search" /> {t("app.nav.browse")}
+                </a>
+                <a className="menu-free" href={`${home === "/" ? "" : home}/free-classes`}>
+                  <Icon name="gift" /> {t("app.nav.free")}
                 </a>
                 {shop && (
                   <a href={shopHref} {...shopOut}>

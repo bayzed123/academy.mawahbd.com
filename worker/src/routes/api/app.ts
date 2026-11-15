@@ -7,7 +7,7 @@ import { forbidden, notFound, ok, parseBody } from "../../lib/http";
 import { loadStudent, requireStudent } from "../../middleware/auth";
 import { rateLimit } from "../../middleware/ratelimit";
 import { getCourseBySlug, getCurriculum, listCourses } from "../../services/catalog";
-import { forgetDevice, PUSH_TOKEN_RE, registerDevice, syncStudentDevices, unregisterDevice } from "../../services/push";
+import { forgetDevice, inboxFor, PUSH_TOKEN_RE, registerDevice, syncStudentDevices, unregisterDevice } from "../../services/push";
 
 /*
  * The Android app's free classes (Admin → Classes → "Where is this class shown?" → Android app). They are free there and nowhere else:
@@ -82,6 +82,15 @@ appRoutes.post("/push", loadStudent, async (c) => {
   if (body.previous && body.previous !== body.token) await forgetDevice(c.env, body.previous);
   const r = await registerDevice(c.env, { token: body.token, studentId: c.get("student")?.id ?? null, lang: body.lang });
   return ok(c, { registered: r.registered });
+});
+
+/**
+ * The bell on the app's Home: the notifications sent lately — the news for everyone and, for a signed-in student, their own classes' news —
+ * newest first. What was read is the phone's own business (it remembers the newest one it has shown), so nothing is kept here.
+ */
+appRoutes.get("/notifications", loadStudent, async (c) => {
+  c.header("Cache-Control", "private, no-store");
+  return ok(c, { notifications: await inboxFor(c.env, c.get("student")?.id ?? null) });
 });
 
 appRoutes.post("/push/off", async (c) => {

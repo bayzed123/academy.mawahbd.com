@@ -51,7 +51,7 @@ export async function myCourses(env: Env, studentId: number): Promise<MyCourseDT
     env.DB,
     `SELECT e.enrolled_at,
             c.id, c.slug, c.title_bn, c.title_en, c.short_bn, c.short_en, c.banner_key, c.icon, c.price, c.status, c.level,
-            c.rating_avg, c.rating_count, c.lesson_count, c.featured,
+            c.rating_avg, c.rating_count, c.lesson_count, c.featured, (c.price = 0 OR c.channel = 'app') AS is_free,
             cat.slug AS cat_slug, cat.name_bn AS cat_name_bn, cat.name_en AS cat_name_en, cat.accent AS cat_accent, cat.icon AS cat_icon,
             (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS total,
             (SELECT COUNT(*) FROM lesson_progress lp WHERE lp.student_id = e.student_id AND lp.course_id = c.id) AS done,
@@ -75,6 +75,7 @@ export async function myCourses(env: Env, studentId: number): Promise<MyCourseDT
       enrolled_at: r.enrolled_at as string,
       certificate_code: (r.cert_code as string | null) ?? null,
       resume_lesson_id: (r.resume_lesson as number | null) ?? null,
+      free: !!r.is_free,
     };
   });
 }

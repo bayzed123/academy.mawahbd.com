@@ -77,3 +77,19 @@ export interface StudentMaterial {
 export interface Materials {
   materials: StudentMaterial[];
 }
+
+/** One notification the app was sent (GET /api/app/notifications): the bell on Home and the Notifications screen. */
+export interface InboxItem {
+  id: number;
+  kind: "manual" | "new_class" | "new_lessons";
+  title_bn: string;
+  body_bn: string;
+  title_en: string;
+  body_en: string;
+  /** what a tap opens: Home ("/"), a free class, a class's free demo, or one of the student's classes (src/lib/pushPath.ts checks it) */
+  path: string;
+  created_at: string;
+}
+export interface InboxAnswer {
+  notifications: InboxItem[];
+}

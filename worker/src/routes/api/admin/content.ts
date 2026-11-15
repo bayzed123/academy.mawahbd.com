@@ -335,8 +335,9 @@ export const courses = crudRoutes({
       const waiting = await first<{ n: number }>(c.env.DB, "SELECT COUNT(*) AS n FROM notify_signups WHERE course_id = ? AND notified_at IS NULL", row.id);
       if ((waiting?.n ?? 0) > 0) c.executionCtx.waitUntil(notifyLaunch(c.env, row.id).then(() => undefined));
     }
-    // the first time one of the Android app's free classes goes live, everyone with the app gets a notification (services/push.ts)
-    if (row.status === "published" && row.channel === "app" && !existing?.published_at) {
+    // a new class going live: everyone with the app gets a notification (services/push.ts) — one of the Android app's free classes the first
+    // time it goes live; a website class while it is new and once the app can show it by a free demo (so adding its demo soon after counts)
+    if (row.status === "published" && (row.channel === "app" ? !existing?.published_at : true)) {
       c.executionCtx.waitUntil(announceNewClass(c.env, row.id as number).then(() => undefined, () => undefined));
     }
   },

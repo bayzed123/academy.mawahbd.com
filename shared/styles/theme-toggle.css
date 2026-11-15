@@ -11,3 +11,10 @@
 .theme-toggle .theme-label { white-space: nowrap; }
 @media (max-width: 760px) { .theme-toggle .theme-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
 @media (prefers-reduced-motion: reduce) { .theme-toggle { transition: none; } }
+
+/* "Free classes" beside the night / day button (the site's header and the student app's): an orange outline, so the free classes are one tap
+   away from every page. Kept short: these rules are inlined into every page of the site (its home page has an HTML budget). */
+.free-btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 44px; min-width: 44px; padding: .3rem .85rem; border: 1.5px solid var(--o-500); border-radius: 999px; color: var(--o-200); font-weight: 700; font-size: .92rem; line-height: 1.2; text-decoration: none; white-space: nowrap; }
+.free-btn .icon { width: 1.15em; height: 1.15em; flex: none; }
+.free-btn:hover, .free-btn[aria-current="page"] { background: rgba(255,255,255,.08); border-color: var(--o-400); color: #fff; }
+.menu-free { color: var(--o-200); }

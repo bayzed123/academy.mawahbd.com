@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Link } from "react-router";
+import { useMemo, type KeyboardEvent } from "react";
+import { Link, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import type { CourseStatus, CurriculumModuleDTO, MyCourseDTO, OrderDTO } from "@mawah/shared";
 import { api } from "../lib/api";
@@ -18,6 +18,24 @@ export function MyLearning() {
   // a manual payment that was started and not finished yet (the order page has the payment details and the countdown)
   const unfinished = useMemo(() => orders.data?.filter((o) => o.gateway === "manual" && o.status === "pending" && !!o.pay_by && Date.parse(o.pay_by) > Date.now()) ?? [], [orders.data]);
   const home = lang === "en" ? "/en" : "";
+  // paid classes and free classes under two separate buttons; the choice is in the address (?tab=free), so a link can open either one
+  const [params, setParams] = useSearchParams();
+  const paid = useMemo(() => courses.data?.filter((m) => !m.free) ?? [], [courses.data]);
+  const free = useMemo(() => courses.data?.filter((m) => !!m.free) ?? [], [courses.data]);
+  const asked = params.get("tab");
+  // with nothing asked for, the paid classes — unless the student has only free ones
+  const tab: Tab = asked === "free" || asked === "paid" ? asked : paid.length === 0 && free.length > 0 ? "free" : "paid";
+  const choose = (next: Tab) =>
+    setParams(
+      (p) => {
+        const out = new URLSearchParams(p);
+        out.set("tab", next);
+        return out;
+      },
+      { replace: true },
+    );
+  const shown = tab === "free" ? free : paid;
+  const n = (v: number) => (lang === "bn" ? toBn(v) : String(v));
 
   return (
     <>
@@ -59,13 +77,37 @@ export function MyLearning() {
       {courses.data?.length === 0 && (
         <Empty icon="book" title={t("app.learning.empty.title")}>
           <p>{t("app.learning.empty.body")}</p>
-          <a className="btn btn-primary btn-lg" href={`${home}/courses`}>
-            {t("app.nav.browse")}
-          </a>
+          <div className="row center">
+            <a className="btn btn-primary btn-lg" href={`${home}/courses`}>
+              {t("app.nav.browse")}
+            </a>
+            <a className="btn btn-outline btn-lg" href={`${home}/free-classes`}>
+              <Icon name="gift" /> {t("app.learning.free.browse")}
+            </a>
+          </div>
         </Empty>
       )}
-      <div className="grid">
-        {courses.data?.map((m, i) => {
+      {!!courses.data?.length && (
+        <LearningTabs
+          tab={tab}
+          onChoose={choose}
+          labels={{ paid: t("app.learning.tab.paid"), free: t("app.learning.tab.free") }}
+          counts={{ paid: n(paid.length), free: n(free.length) }}
+          label={t("app.learning.tabs")}
+        />
+      )}
+      {!!courses.data?.length && shown.length === 0 && (
+        <div id={`learning-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`}>
+          <Empty icon={tab === "free" ? "gift" : "book"} title={t(tab === "free" ? "app.learning.free.empty.title" : "app.learning.paid.empty.title")}>
+            <p>{t(tab === "free" ? "app.learning.free.empty.body" : "app.learning.paid.empty.body")}</p>
+            <a className="btn btn-primary btn-lg" href={tab === "free" ? `${home}/free-classes` : `${home}/courses`}>
+              {tab === "free" ? t("app.learning.free.browse") : t("app.nav.browse")}
+            </a>
+          </Empty>
+        </div>
+      )}
+      <div className="grid" {...(shown.length ? { id: `learning-${tab}`, role: "tabpanel", "aria-labelledby": `tab-${tab}` } : {})}>
+        {shown.map((m, i) => {
           const done = m.progress.pct >= 100;
           const cta = m.resume_lesson_id && m.progress.done > 0 && !done ? `/learn/${m.course.slug}/${m.resume_lesson_id}` : `/learn/${m.course.slug}`;
           return (
@@ -75,6 +117,11 @@ export function MyLearning() {
                   <Banner course={m.course} />
                 </Link>
                 {m.course.category && <span className="chip-cat">{pick(m.course.category, "name")}</span>}
+                {m.free && (
+                  <span className="chip-free">
+                    <Icon name="gift" /> {t("label.free")}
+                  </span>
+                )}
                 <div className="card-body">
                   <h3 className="card-title">
                     <Link to={`/learn/${m.course.slug}`}>{pick(m.course, "title")}</Link>
@@ -109,6 +156,43 @@ export function MyLearning() {
 
 const BN = "০১২৩৪৫৬৭৮৯";
 const toBn = (n: number) => String(n).replace(/\d/g, (d) => BN[Number(d)]);
+
+type Tab = "paid" | "free";
+const TABS: Tab[] = ["paid", "free"];
+
+/** "Paid classes" and "Free classes": two buttons (a tab list: the arrow keys move between them, as screen readers expect). */
+function LearningTabs({ tab, onChoose, labels, counts, label }: { tab: Tab; onChoose: (t: Tab) => void; labels: Record<Tab, string>; counts: Record<Tab, string>; label: string }) {
+  const onKey = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    const at = TABS.indexOf(tab);
+    const next = e.key === "Home" ? TABS[0] : e.key === "End" ? TABS[TABS.length - 1] : TABS[(at + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length];
+    onChoose(next);
+    document.getElementById(`tab-${next}`)?.focus();
+  };
+  return (
+    <div className="learn-tabs" role="tablist" aria-label={label}>
+      {TABS.map((x) => (
+        <button
+          key={x}
+          id={`tab-${x}`}
+          type="button"
+          role="tab"
+          aria-selected={tab === x}
+          aria-controls={tab === x ? `learning-${x}` : undefined}
+          tabIndex={tab === x ? 0 : -1}
+          className={`learn-tab${x === "free" ? " is-free" : ""}`}
+          onClick={() => onChoose(x)}
+          onKeyDown={onKey}
+        >
+          <Icon name={x === "free" ? "gift" : "book"} />
+          <span>{labels[x]}</span>
+          <b className="learn-tab-n">{counts[x]}</b>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /** Lesson to open when the student presses "Resume": first unfinished, unlocked lesson (else the first lesson). */
 export function resumeLessonId(curriculum: CurriculumModuleDTO[]): number | null {

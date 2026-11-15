@@ -61,12 +61,13 @@ describe("the night / day switch on the site", () => {
         // a drawn moon and sun written into the button (never a text symbol, never the sprite a browser may keep for a day)
         `<svg class="icon i-moon" viewBox="0 0 24 24"><path d="${THEME_ICON.moon}"></path></svg>` +
         `<svg class="icon i-sun" viewBox="0 0 24 24"><path d="${THEME_ICON.sun}"></path></svg>` +
-        '</span><span class="theme-label">Theme</span></button>',
+        // its name for screen readers only: beside it, "Free classes" needs the room
+        '</span><span class="theme-label vh">Theme</span></button>',
     );
     expect(en.indexOf('<button class="theme-toggle"')).toBeGreaterThan(en.indexOf('<a class="lang-toggle"'));
     const bn = await (await new Client().get("/")).text();
     expect(button(bn)).toContain('data-light-label="লাইট মোড চালু করুন" data-dark-label="ডার্ক মোড চালু করুন"');
-    expect(button(bn)).toContain('<span class="theme-label">থিম</span>');
+    expect(button(bn)).toContain('<span class="theme-label vh">থিম</span>');
   });
 
   it("keeps the day look's rules in a cached file of their own, while every page carries the Theme button's look", () => {

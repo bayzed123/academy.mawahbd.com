@@ -1,3 +1,4 @@
+import { externalEmbed } from "@mawah/shared";
 import type { Env } from "../env";
 import { all, first, nowIso, run, safeJson } from "../lib/db";
 import { fcmSend, pushSetup, topicChange, type PushProblem } from "../lib/fcm";
@@ -9,9 +10,11 @@ import { getSettings } from "../lib/settings";
  *    is signed in on it, each class they study (class-<id>). The app hands its address over at every start, at sign-in and sign-out and when
  *    the language changes; only the difference is sent to Google;
  *  - staff send their own from Admin → Android app, to everyone or to one class's students; two go out by themselves (each can be switched
- *    off there): one of the app's free classes going live (to everyone, once per class) and a new lesson in a live class (to its students, at
- *    most once in NEW_LESSONS_GAP_H hours per class, so a teacher adding ten lessons in an evening sends one);
- *  - every send is written down (push_sends), with how it went.
+ *    off there): a new class going live (to everyone, once per class: one of the app's free classes, or a website class the app can show by
+ *    its free demo) and a new lesson in a live class (to its students, at most once in NEW_LESSONS_GAP_H hours per class, so a teacher adding
+ *    ten lessons in an evening sends one);
+ *  - every send is written down (push_sends), with how it went; the app's Notifications screen lists the ones that reached phones
+ *    (inboxFor: news for everyone, and the student's own classes').
  * Nothing here is ever about buying: the texts speak of classes and lessons, which Google Play allows the app to announce.
  */
 
@@ -31,6 +34,11 @@ export const NEW_LESSONS_GAP_H = 12;
 export const ACTIVE_DAYS = 60;
 /** how long Google keeps a notification for a phone that is offline: a week (after that, news is old) */
 const TTL_SECONDS = 7 * 86_400;
+/** a website class is announced only while it is new: it went live at most this many days ago (saving an old class is not news) */
+export const NEW_CLASS_DAYS = 14;
+/** the app's Notifications screen: what was sent in this many days, at most INBOX_MAX of them, the newest first */
+export const INBOX_DAYS = 60;
+export const INBOX_MAX = 30;
 
 interface DeviceRow {
   id: number;
@@ -211,6 +219,13 @@ export const AUTO_TEXT = {
     title_en: "A new free class is here",
     body_en: `${title.en} — start it now in the app.`,
   }),
+  /** a website class: the app shows it by its free demo (never a price), so that is what the notification offers */
+  new_demo: (title: { bn: string; en: string }): PushText => ({
+    title_bn: "নতুন ক্লাস এসেছে",
+    body_bn: `${title.bn} — অ্যাপে ফ্রি ডেমো দেখুন।`,
+    title_en: "A new class is here",
+    body_en: `${title.en} — watch its free demo in the app.`,
+  }),
   new_lessons: (course: { bn: string; en: string }, lesson: { bn: string; en: string }): PushText => ({
     title_bn: `নতুন লেসন: ${course.bn}`,
     body_bn: lesson.bn,
@@ -227,26 +242,43 @@ interface CourseRow {
   status: string;
   channel: string;
   deleted_at: string | null;
+  demo_url: string | null;
+  published_at: string | null;
 }
 
 const courseRow = (env: Env, id: number) =>
-  first<CourseRow>(env.DB, "SELECT id, slug, title_bn, title_en, status, channel, deleted_at FROM courses WHERE id = ?", id);
+  first<CourseRow>(env.DB, "SELECT id, slug, title_bn, title_en, status, channel, deleted_at, demo_url, published_at FROM courses WHERE id = ?", id);
+
+/** The app can show a website class by its free demo: a demo video it plays, or a free preview lesson (app/demo/[slug].tsx). */
+async function hasFreeDemo(env: Env, course: CourseRow): Promise<boolean> {
+  if (course.demo_url && externalEmbed(course.demo_url)) return true;
+  return !!(await first(env.DB, "SELECT id FROM lessons WHERE course_id = ? AND is_preview = 1 LIMIT 1", course.id));
+}
 
 /**
- * One of the app's free classes went live for the first time: everyone with the app hears of it (once per class, ever). A class sold on the
- * website is not announced in the app — Google Play does not let an app point people to buying outside it; staff may still write their own.
+ * A new class went live: everyone with the app hears of it (once per class, ever). One of the app's free classes is announced the first time it
+ * goes live, and a tap opens it. A class sold on the website is announced only by its free demo, which the app shows without a price — Google
+ * Play does not let an app point people to buying outside it — and only while it is new (NEW_CLASS_DAYS): one without a demo is not announced
+ * (it is, once a demo is added in time), and staff may still write their own.
  */
 export async function announceNewClass(env: Env, courseId: number): Promise<PushSendRow | null> {
   if (!pushSetup(env).ok || !(await getSettings(env)).push.new_class) return null;
   const course = await courseRow(env, courseId);
-  if (!course || course.deleted_at || course.status !== "published" || course.channel !== "app") return null;
+  if (!course || course.deleted_at || course.status !== "published") return null;
+  const app = course.channel === "app";
+  if (!app) {
+    const live = course.published_at ? Date.parse(course.published_at) : NaN;
+    if (!Number.isFinite(live) || live < Date.now() - NEW_CLASS_DAYS * 86_400_000) return null;
+  }
   if (await first(env.DB, "SELECT id FROM push_sends WHERE kind = 'new_class' AND course_id = ? AND status = 'sent' LIMIT 1", courseId)) return null;
+  if (!app && !(await hasFreeDemo(env, course))) return null;
+  const title = { bn: course.title_bn, en: course.title_en };
   return sendPush(env, {
     kind: "new_class",
     courseId,
     audience: "all",
-    text: AUTO_TEXT.new_class({ bn: course.title_bn, en: course.title_en }),
-    path: `/free/${course.slug}`,
+    text: app ? AUTO_TEXT.new_class(title) : AUTO_TEXT.new_demo(title),
+    path: app ? `/free/${course.slug}` : `/demo/${course.slug}`,
     staffId: null,
   });
 }
@@ -267,6 +299,37 @@ export async function announceNewLesson(env: Env, courseId: number, lesson: { ti
     path: `/course/${course.slug}`,
     staffId: null,
   });
+}
+
+/* ---------------------------------------------------------------------------------------------------- the app's Notifications screen */
+
+export interface InboxItem extends PushText {
+  id: number;
+  kind: PushKind;
+  /** what a tap opens in the app: Home ("/"), a free class, a class's free demo, or one of the student's classes */
+  path: string;
+  created_at: string;
+}
+
+/**
+ * The notifications a person with the app was sent, for the bell on its Home: the news for everyone and — for a signed-in student — their
+ * own classes' news. Only the ones that reached phones (status "sent"), from the last INBOX_DAYS days, and never one about a class that is no
+ * longer live (taken down or deleted): its tap would open nothing.
+ */
+export async function inboxFor(env: Env, studentId: number | null): Promise<InboxItem[]> {
+  const since = nowIso(new Date(Date.now() - INBOX_DAYS * 86_400_000));
+  return all<InboxItem>(
+    env.DB,
+    `SELECT p.id, p.kind, p.title_bn, p.body_bn, p.title_en, p.body_en, p.path, p.created_at
+     FROM push_sends p LEFT JOIN courses c ON c.id = p.course_id
+     WHERE p.status = 'sent' AND p.created_at >= ?
+       AND ((p.course_id IS NULL AND p.path = '/') OR (c.id IS NOT NULL AND c.deleted_at IS NULL AND c.status = 'published'))
+       AND (p.audience = 'all' OR (p.audience = 'class' AND EXISTS (SELECT 1 FROM enrollments e WHERE e.student_id = ? AND e.course_id = p.course_id AND e.status = 'active')))
+     ORDER BY p.id DESC LIMIT ?`,
+    since,
+    studentId ?? -1,
+    INBOX_MAX,
+  );
 }
 
 /* ---------------------------------------------------------------------------------------------------- Admin → Android app */

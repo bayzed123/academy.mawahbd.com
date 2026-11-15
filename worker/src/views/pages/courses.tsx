@@ -36,6 +36,7 @@ export function CoursesPage({ ctx, data }: { ctx: PageCtx; data: ListData }) {
   return (
     <Layout
       ctx={ctx}
+      list
       title={title}
       description={activeCat ? loc(activeCat, "blurb", lang) || t("meta.courses.desc") : t("meta.courses.desc")}
       noindex={!!data.q || data.page > 1 || data.sort !== "featured"}
