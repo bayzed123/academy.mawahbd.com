@@ -223,6 +223,7 @@ body.has-buybar .floats{bottom:calc(86px + env(safe-area-inset-bottom))}
 @media (min-width:1180px){
   .nav{gap:16px}
   .nav-links{gap:14px}
+  .nav-actions>.btn{padding-inline:.6rem}
 }
 @media (max-width:760px){
   .site-header .brand-text{display:none}
