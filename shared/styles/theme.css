@@ -188,3 +188,9 @@
 :root[data-theme="light"] .topbar { --tb-box: #ffffff; --tb-digit: #0f0708; --tb-unit: #b50f12; }
 :root[data-theme="light"] .topbar a.btn-primary,
 :root[data-theme="light"] .topbar a.btn-primary:hover { background: #ffffff; border-color: #ffffff; color: #0f0708; }
+/* the "Free classes" button by day (shared/styles/theme-toggle.css: by night) */
+:root[data-theme="light"] .free-btn { color: var(--red-700); border-color: var(--red-700); background: var(--red-50); }
+:root[data-theme="light"] .free-btn:hover,
+:root[data-theme="light"] .free-btn[aria-current="page"] { color: var(--red-800); background: var(--red-100); border-color: var(--red-800); }
+:root[data-theme="light"] .menu-panel .menu-free,
+:root[data-theme="light"] .menu-pop .menu-free { color: var(--red-700); }

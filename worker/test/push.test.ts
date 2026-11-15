@@ -555,6 +555,45 @@ describe("notifications that go out by themselves", () => {
     });
   });
 
+  it("a new website class is announced by its free demo (no price): once, only while it is new, and only once the app can show a demo", async () => {
+    await ready(async () => {
+      standIn();
+      const { client } = await loginStaff("content_manager");
+      // live without a demo: nothing yet — the app could not show it
+      const cls = await makeClass(client, { channel: "website", price: 1500 });
+      await sleep(300);
+      expect(await sendsOf("new_class", cls.id)).toHaveLength(0);
+      // its demo is added soon after: announced then, and a tap opens the free demo
+      await client.patch(`/api/admin/courses/${cls.id}`, { demo_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
+      const [row] = await eventually(async () => {
+        const r = await sendsOf("new_class", cls.id);
+        return r.length ? r : null;
+      });
+      expect(row).toMatchObject({ status: "sent", audience: "all", path: `/demo/${cls.slug}`, title_en: "A new class is here" });
+      const { sent } = await google();
+      expect(sent.find((x) => x.topic === "lang-bn")).toMatchObject({ title: "নতুন ক্লাস এসেছে", body: `${cls.title_bn} — অ্যাপে ফ্রি ডেমো দেখুন।`, data: { kind: "new_class", path: `/demo/${cls.slug}` } });
+      // saved again: never a second time
+      await client.patch(`/api/admin/courses/${cls.id}`, { short_en: "Now with pictures" });
+      await sleep(300);
+      expect(await sendsOf("new_class", cls.id)).toHaveLength(1);
+
+      // a class that went live long ago is not news, demo or not
+      const old = await makeClass(client, { channel: "website", price: 900 });
+      await env.DB.prepare("UPDATE courses SET published_at = '2020-01-01T00:00:00Z' WHERE id = ?").bind(old.id).run();
+      await client.patch(`/api/admin/courses/${old.id}`, { demo_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
+      await sleep(300);
+      expect(await sendsOf("new_class", old.id)).toHaveLength(0);
+
+      // a free preview lesson is a free demo too
+      const withPreview = await makeClass(client, { channel: "website", price: 700, status: "draft" });
+      const mod = await json(await client.post(`/api/admin/courses/${withPreview.id}/modules`, { title_bn: "শুরু", title_en: "Start", drip_days: 0 }));
+      await client.post(`/api/admin/courses/${withPreview.id}/lessons`, { module_id: mod.module.id, title_bn: "ক", title_en: "A", type: "text", is_preview: true });
+      await client.patch(`/api/admin/courses/${withPreview.id}`, { status: "published" });
+      await eventually(async () => (await sendsOf("new_class", withPreview.id)).length === 1);
+      expect((await sendsOf("new_class", withPreview.id))[0]).toMatchObject({ path: `/demo/${withPreview.slug}` });
+    });
+  });
+
   it("the switches are saved on their own, so saving the app's notice never turns them back on", async () => {
     const { client } = await loginStaff();
     expect((await client.put("/api/admin/settings/push", { new_class: false, new_lessons: true })).status).toBe(200);
@@ -564,12 +603,63 @@ describe("notifications that go out by themselves", () => {
   });
 
   it("the automatic texts speak of classes and lessons only — never of buying", () => {
-    const texts = [AUTO_TEXT.new_class({ bn: "কেক", en: "Cake" }), AUTO_TEXT.new_lessons({ bn: "কেক", en: "Cake" }, { bn: "ক্রিম", en: "Cream" })];
+    const texts = [AUTO_TEXT.new_class({ bn: "কেক", en: "Cake" }), AUTO_TEXT.new_demo({ bn: "কেক", en: "Cake" }), AUTO_TEXT.new_lessons({ bn: "কেক", en: "Cake" }, { bn: "ক্রিম", en: "Cream" })];
     for (const t of texts) {
       for (const v of Object.values(t)) {
         expect(v).not.toMatch(/\b(buy|purchase|price|pay|enrol(l)?|upgrade|subscribe|premium|unlock|website|taka|৳)\b|কিনুন|ক্রয়|দাম|টাকা|ভর্তি|ওয়েবসাইট/i);
       }
     }
+  });
+});
+
+describe("the app's Notifications screen (the bell on Home)", () => {
+  const inbox = async (token?: string) => {
+    const res = await new Client().fetch("/api/app/notifications", { headers: token ? bearer(token) : {} });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toContain("no-store");
+    return (await json(res)).notifications as { id: number; kind: string; path: string; title_en: string; title_bn: string; body_en: string; created_at: string }[];
+  };
+
+  it("lists the news for everyone and, for a signed-in student, their own classes' news — newest first, only what reached phones", async () => {
+    await ready(async () => {
+      standIn();
+      const { client } = await loginStaff("super_admin");
+      await env.DB.prepare("DELETE FROM push_sends").run();
+      const mine = await makeClass(client);
+      const other = await makeClass(client);
+      await eventually(async () => (await sendsOf("new_class", other.id)).length === 1);
+      const me = await appStudent();
+      await new Client().fetch(`/api/app/courses/${mine.slug}/join`, { method: "POST", json: {}, headers: bearer(me.token) });
+
+      // what staff sent (written straight in: the send itself is tested above)
+      const sentOne = (o: { audience: "all" | "class"; course?: { id: number; slug: string }; title_en: string; status?: string }) =>
+        env.DB.prepare("INSERT INTO push_sends (kind, course_id, audience, title_bn, body_bn, title_en, body_en, path, status, problem) VALUES ('manual', ?, ?, 'ক', 'খ', ?, 'x', ?, ?, ?)")
+          .bind(o.course?.id ?? null, o.audience, o.title_en, o.course ? `/course/${o.course.slug}` : "/", o.status ?? "sent", o.status === "failed" ? "network" : null)
+          .run();
+      await sentOne({ audience: "all", title_en: "Live tonight" });
+      await sentOne({ audience: "class", course: mine, title_en: "Mine only" });
+      await sentOne({ audience: "class", course: other, title_en: "Others only" });
+      // one that Google refused never reached a phone: not listed
+      await sentOne({ audience: "all", title_en: "Failed one", status: "failed" });
+
+      const signedIn = await inbox(me.token);
+      expect(signedIn.map((x) => x.title_en)).toEqual(expect.arrayContaining(["Live tonight", "Mine only", "A new free class is here"]));
+      expect(signedIn.map((x) => x.title_en)).not.toContain("Others only");
+      expect(signedIn.map((x) => x.title_en)).not.toContain("Failed one");
+      expect(signedIn.map((x) => x.id)).toEqual([...signedIn.map((x) => x.id)].sort((a, b) => b - a));
+      expect(signedIn.find((x) => x.title_en === "Mine only")).toMatchObject({ path: `/course/${mine.slug}`, kind: "manual" });
+
+      // signed out: the news for everyone only
+      const guest = await inbox();
+      expect(guest.map((x) => x.title_en)).toContain("Live tonight");
+      expect(guest.map((x) => x.title_en)).not.toContain("Mine only");
+
+      // a class taken down: its news goes from the list (a tap would open nothing); old news is gone too
+      await client.patch(`/api/admin/courses/${other.id}`, { status: "archived" });
+      expect((await inbox(me.token)).filter((x) => x.path === `/free/${other.slug}`)).toHaveLength(0);
+      await env.DB.prepare("UPDATE push_sends SET created_at = '2020-01-01T00:00:00Z' WHERE title_en = 'Live tonight'").run();
+      expect((await inbox(me.token)).map((x) => x.title_en)).not.toContain("Live tonight");
+    });
   });
 });
 

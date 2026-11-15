@@ -1,0 +1,38 @@
+/* MAWAH Academy — the lists' own look (scripts/build-marketing.mjs → LIST_CSS): sent only with the pages that show a list to search, filter
+   and page through — the classes, the Free classes page, the Equipment Shop's lists (and its page while it is closed) — so the home page and
+   every other page carry none of it (the home page has an HTML budget: e2e/01-public.spec.ts). */
+/* a small label in a pill with a dot, like "Opening soon" */
+.pill-badge,.page-hero .pill-badge{display:inline-flex;align-items:center;gap:.5rem;margin:0 0 .9rem;padding:.3rem .9rem;border:1px solid rgba(255,255,255,.14);border-radius:999px;color:var(--o-300);font-size:.8rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+html[lang=bn] .pill-badge,html[lang=bn] .page-hero .pill-badge{font-size:.92rem;letter-spacing:0;text-transform:none}
+.pill-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--o-500)}
+/* the Equipment Shop's page while it is closed */
+.shop-soon .wrap{display:grid;justify-items:center;text-align:center;padding-block:clamp(48px,9vw,110px)}
+.shop-soon p{margin-inline:auto}
+.shop-soon .crumbs{margin-bottom:1.4rem}
+.shop-soon .hero-cta{margin:1.6rem 0 .8rem}
+.shop-soon .muted{color:var(--ink-3)}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:24px}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:.45rem;min-height:44px;padding:.35rem 1rem;border-radius:999px;border:1.5px solid var(--edge);background:var(--paper);color:var(--ink);text-decoration:none;font-weight:600;font-size:.94rem;transition:border-color .3s,background .3s,color .3s,box-shadow .3s}
+.pill:hover{border-color:rgba(255,255,255,.5);color:#fff}
+.pill[aria-current=true]{background:var(--o-500);border-color:var(--o-500);color:var(--on-accent)}
+.pill .dot{width:9px;height:9px;border-radius:50%;background:var(--accent,var(--o-500))}
+.pill[aria-current=true] .dot{background:var(--on-accent)}
+.searchbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.searchbar .input{flex:1 1 220px}
+.pager{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:36px;flex-wrap:wrap}
+.pager span{color:var(--ink-3);font-size:.94rem}
+@media (max-width:699px){
+  /* one scrollable row of category chips: when the web font swaps in, nothing below can jump (CLS) */
+  .filters{flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:12px}
+  .pills{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;margin-inline:-16px;padding:2px 16px 6px;-webkit-mask-image:linear-gradient(90deg,#000 92%,transparent);mask-image:linear-gradient(90deg,#000 92%,transparent)}
+  .pills::-webkit-scrollbar{display:none}
+  .pill{flex:0 0 auto;white-space:nowrap}
+}
+.pill-shop{border-color:var(--g-500);background:var(--g-100);color:var(--g-900)}
+.pill-shop:hover{border-color:var(--g-700);color:var(--k-950);background:var(--g-300)}
+.pill-shop .icon:last-of-type{width:.8em;height:.8em;opacity:.75}
+/* ---------- the Free classes page (views/pages/free.tsx) ---------- */
+.free-after{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 20px;padding:18px 22px;border:1px dashed var(--line-2);border-radius:var(--r)}
+.free-after p{display:flex;align-items:flex-start;gap:.6rem;margin:0;max-width:62ch;color:var(--ink-2)}
+.free-after p .icon{flex:none;width:1.3em;height:1.3em;margin-top:.2em;color:var(--o-500,var(--red-600))}

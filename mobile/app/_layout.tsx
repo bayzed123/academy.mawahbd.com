@@ -6,6 +6,7 @@ import * as SystemUI from "expo-system-ui";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { APP_FONTS } from "../src/fonts";
+import { InboxProvider } from "../src/inbox";
 import { PrefsProvider, usePrefs } from "../src/prefs";
 import { NotificationTaps, PUSH_BUILT, PushProvider } from "../src/push";
 import { SessionProvider, useSession } from "../src/session";
@@ -22,7 +23,9 @@ export default function RootLayout() {
       <PrefsProvider>
         <SessionProvider>
           <PushProvider>
-            <Shell fonts={fonts} />
+            <InboxProvider>
+              <Shell fonts={fonts} />
+            </InboxProvider>
           </PushProvider>
         </SessionProvider>
       </PrefsProvider>

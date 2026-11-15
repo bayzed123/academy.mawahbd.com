@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type MouseEvent } from "react";
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CertificateDTO, LessonContentDTO, Progress } from "@mawah/shared";
@@ -7,12 +7,14 @@ import { api, ApiError } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { Button, ErrorState, Icon, Spinner, useToast } from "../components/ui";
 import { Downloads, LessonBody, LessonMedia, Questions } from "../components/LessonView";
-import { courseKey, CurriculumList, useCourseView, type CourseView } from "./Course";
+import { DescriptionBox, LessonRail, railLessons } from "../components/LessonRail";
+import { courseKey, useCourseView, type CourseView } from "./Course";
 
 export function LessonPlayer() {
   const { slug = "", lessonId = "" } = useParams();
   const id = Number(lessonId);
-  const { t, pick, date } = useI18n();
+  const { t, pick, date, lang } = useI18n();
+  const num = (v: number) => (lang === "bn" ? String(v).replace(/\d/g, (d) => BN[Number(d)]) : String(v));
   const toast = useToast();
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -82,67 +84,81 @@ export function LessonPlayer() {
   const l = lesson.data;
   const v = view.data;
   const all = v.progress.pct >= 100;
+  const lessons = railLessons(v.curriculum);
+  const at = lessons.findIndex((x) => x.id === id);
+  const next = l.next_id ? lessons.find((x) => x.id === l.next_id) : undefined;
+  // "next part" also counts this lesson as done, so progress follows the student without extra taps
+  const goNext = (e: MouseEvent) => {
+    if (!l.next_id || l.completed) return;
+    e.preventDefault();
+    toggle.mutate(true, { onSuccess: () => navigate(`/learn/${slug}/${l.next_id}`) });
+  };
 
+  // like a video site: the video, its title and the way on (done · previous · next part), then every lesson of the class in one row, then
+  // the lesson's own words folded to a few lines, the downloads and the questions
   return (
-    <div className="layout-player">
-      <div>
-        <p className="small">
-          <Link className="link" to={`/learn/${slug}`}>
-            ← {pick(v.course, "title")}
-          </Link>
-        </p>
-        {v.certificate && all && (
-          <div className="celebrate">
-            <Icon name="award" />
-            <div>
-              <b>{t("app.lesson.certEarned")}</b> <Link to="/certificates">{t("app.course.certificate.get")}</Link>
-            </div>
+    <div className="watch">
+      <p className="small watch-back">
+        <Link className="link" to={`/learn/${slug}`}>
+          ← {pick(v.course, "title")}
+        </Link>
+      </p>
+      {v.certificate && all && (
+        <div className="celebrate">
+          <Icon name="award" />
+          <div>
+            <b>{t("app.lesson.certEarned")}</b> <Link to="/certificates">{t("app.course.certificate.get")}</Link>
           </div>
+        </div>
+      )}
+      <LessonMedia lesson={l} />
+      <div className="watch-head">
+        {at >= 0 && (
+          <p className="watch-part">
+            {t("app.lesson.part", { n: num(at + 1), total: num(lessons.length) })}
+            {lessons[at] && pick(lessons[at].module, "title") ? <> · {pick(lessons[at].module, "title")}</> : null}
+          </p>
         )}
-        <LessonMedia lesson={l} />
-        <div className="player-bar">
-          <h1 className="player-title">{pick(l, "title")}</h1>
-          <Button className={l.completed ? "btn-outline" : "btn-primary"} busy={toggle.isPending} onClick={() => toggle.mutate(!l.completed)}>
+        <h1 className="player-title">{pick(l, "title")}</h1>
+        <div className="watch-actions">
+          <Button className={`btn-outline watch-done${l.completed ? " is-done" : ""}`} busy={toggle.isPending} onClick={() => toggle.mutate(!l.completed)}>
             <Icon name="check" /> {l.completed ? t("app.lesson.done") : t("app.lesson.markDone")}
           </Button>
+          <div className="watch-nav">
+            {l.prev_id ? (
+              <Link className="btn btn-outline" to={`/learn/${slug}/${l.prev_id}`} aria-label={t("app.lesson.prevPart")}>
+                <Icon name="chevron" className="is-back" /> <span className="watch-prev-label">{t("app.lesson.prevPart")}</span>
+              </Link>
+            ) : null}
+            {l.next_id ? (
+              <Link className="btn btn-primary watch-next" to={`/learn/${slug}/${l.next_id}`} onClick={goNext}>
+                {t("app.lesson.nextPart")} <Icon name="chevron" className="is-on" />
+              </Link>
+            ) : (
+              <span className="watch-last">{t("app.lesson.lastPart")}</span>
+            )}
+          </div>
         </div>
-        <LessonBody lesson={l} />
-        <div className="row between mt mb">
-          {l.prev_id ? (
-            <Link className="btn btn-outline" to={`/learn/${slug}/${l.prev_id}`}>
-              ← {t("app.lesson.prev")}
-            </Link>
-          ) : (
-            <span />
-          )}
-          {l.next_id ? (
-            <Link
-              className="btn btn-dark"
-              to={`/learn/${slug}/${l.next_id}`}
-              onClick={(e) => {
-                // "next" also counts the lesson as done, so progress follows the student without extra taps
-                if (!l.completed) {
-                  e.preventDefault();
-                  toggle.mutate(true, { onSuccess: () => navigate(`/learn/${slug}/${l.next_id}`) });
-                }
-              }}
-            >
-              {t("app.lesson.next")} →
-            </Link>
-          ) : null}
-        </div>
-        <Downloads lesson={l} />
-        <Questions lessonId={l.id} />
+        {next && (
+          <p className="watch-upnext">
+            <b>{t("app.lesson.nextPart")}:</b> {pick(next, "title")}
+          </p>
+        )}
       </div>
-      <aside aria-label={t("app.course.curriculum")}>
-        <section className="panel">
-          <h2>{t("app.course.curriculum")}</h2>
-          <CurriculumList view={v} slug={slug} currentId={id} />
-        </section>
-      </aside>
+      <LessonRail lessons={lessons} slug={slug} currentId={id} />
+      <DescriptionBox lesson={l} />
+      <Downloads lesson={l} />
+      <Questions lessonId={l.id} />
+      <p className="watch-all">
+        <Link className="btn btn-ghost" to={`/learn/${slug}`}>
+          <Icon name="list" /> {t("app.lesson.allLessons")}
+        </Link>
+      </p>
     </div>
   );
 }
+
+const BN = "০১২৩৪৫৬৭৮৯";
 
 /** Free preview lessons: watchable without an account — the strongest "try before you buy". */
 export function Preview() {

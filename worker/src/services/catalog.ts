@@ -93,6 +93,10 @@ export interface ListOptions {
   ids?: number[];
   /** "website" (the default): the classes sold on the website; "app": the Android app's free classes */
   channel?: CourseChannel;
+  /** only the classes that cost nothing (price 0: enrolled in one click, no payment step) */
+  free?: boolean;
+  /** only the paid classes with a demo anyone can watch (the Free classes page's second row; `has_demo` on the card has the final word) */
+  demo?: boolean;
 }
 
 export async function listCourses(env: Env, o: ListOptions = {}): Promise<{ items: CourseCardDTO[]; total: number }> {
@@ -104,6 +108,8 @@ export async function listCourses(env: Env, o: ListOptions = {}): Promise<{ item
     params.push(o.category);
   }
   if (o.featuredOnly) where.push("c.featured = 1");
+  if (o.free) where.push("c.price = 0");
+  if (o.demo) where.push("c.price > 0 AND c.demo_url <> ''");
   if (o.level) {
     where.push("c.level = ?");
     params.push(o.level);

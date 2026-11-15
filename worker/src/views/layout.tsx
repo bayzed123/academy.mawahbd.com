@@ -3,7 +3,7 @@ import { loc, readSslLogo, SSL_BANNER, THEME_ICON, waNumber } from "@mawah/share
 import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
-import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, FONTS_CSS, GALLERY_JS, LANDING_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_FONTS_BN_CSS, SITE_FONTS_EN_CSS, SITE_JS, THEME_CSS, THEME_JS, VIDEO_CSS } from "../generated/assets";
+import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, FONTS_CSS, GALLERY_JS, LANDING_CSS, LIST_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_FONTS_BN_CSS, SITE_FONTS_EN_CSS, SITE_JS, THEME_CSS, THEME_JS, VIDEO_CSS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
 import { DEVELOPER, PAY_LOGOS } from "./footer-data";
@@ -32,6 +32,8 @@ export interface LayoutProps {
   landing?: boolean;
   /** the class page: send its own CSS (marketing/course.css) */
   course?: boolean;
+  /** a page with a list to search, filter and page through (the classes, the Free classes page, the shop's lists): marketing/list.css */
+  list?: boolean;
   /** a video shown as a picture to play (the home page's videos, a class's demo): send its CSS (marketing/video.css) */
   videos?: boolean;
   /** a certificate, an invoice or the certificate check: send the documents' CSS (marketing/doc.css) */
@@ -243,6 +245,7 @@ export function Layout(props: LayoutProps) {
         {props.landing && <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />}
         {props.videos && <style dangerouslySetInnerHTML={{ __html: VIDEO_CSS }} />}
         {props.course && <style dangerouslySetInnerHTML={{ __html: COURSE_CSS }} />}
+        {props.list && <style dangerouslySetInnerHTML={{ __html: LIST_CSS }} />}
         {props.doc && <style dangerouslySetInnerHTML={{ __html: DOC_CSS }} />}
         {/* the visitor's night or day look, set before anything is drawn (marketing/theme.js); a certificate or an invoice keeps its own paper.
             The day look's rules (shared/styles/theme.css) are a cached file of their own rather than part of every page: they hold up the page
@@ -288,6 +291,11 @@ export function Layout(props: LayoutProps) {
                       <Icon name="globe" />
                       {t("lang.switch")}
                     </a>
+                    {/* every free class in one place (views/pages/free.tsx), beside the night / day switch */}
+                    <a class="free-btn" href={ctx.href("/free-classes")} aria-current={ctx.path === "/free-classes" ? "page" : undefined}>
+                      <Icon name="gift" />
+                      <span class="free-label">{t("nav.free")}</span>
+                    </a>
                     <button
                       class="theme-toggle"
                       type="button"
@@ -305,7 +313,8 @@ export function Layout(props: LayoutProps) {
                           <path d={THEME_ICON.sun} />
                         </svg>
                       </span>
-                      <span class="theme-label">{t("theme.label")}</span>
+                      {/* the name, for screen readers only: beside it "Free classes" needs the room (marketing/site.css) */}
+                      <span class="theme-label vh">{t("theme.label")}</span>
                     </button>
                     <a class="btn btn-gold btn-sm" data-guest href="/app/login">
                       {t("btn.login")}
@@ -318,6 +327,10 @@ export function Layout(props: LayoutProps) {
                         <Icon name="menu" />
                       </summary>
                       <div class="menu-panel">
+                        <a class="menu-free" href={ctx.href("/free-classes")}>
+                          <Icon name="gift" />
+                          {t("nav.free")}
+                        </a>
                         {nav.map((n) => (
                           <a href={n.href}>{n.label}</a>
                         ))}
@@ -381,6 +394,9 @@ export function Layout(props: LayoutProps) {
                 <div>
                   <p class="foot-h">{t("footer.classes")}</p>
                   <ul>
+                    <li>
+                      <a href={ctx.href("/free-classes")}>{t("nav.free")}</a>
+                    </li>
                     {ctx.categories.map((c) => (
                       <li>
                         <a href={ctx.href(`/courses?cat=${c.slug}`)}>{loc(c, "name", lang)}</a>

@@ -34,6 +34,7 @@ import { ProductPage, ShopPage, ShopSoonPage } from "../views/pages/shop";
 import { SHOP_SORTS, freeOffer, productReviews, relatedProducts, shopCategories, shopProduct, shopProducts, storePayments, type ShopSort } from "../services/shop";
 import { CoursePage, RelatedFragment, ReviewList } from "../views/pages/course";
 import { FaqPage } from "../views/pages/faq";
+import { FreeClassesPage } from "../views/pages/free";
 import type { CertArtData } from "../views/certificate";
 import { HomePage, type HomeVideo } from "../views/pages/home";
 import { LandingPage } from "../views/pages/landing";
@@ -125,6 +126,16 @@ export function pageRoutes(lang: Lang) {
       return renderHtml(c, ctx, <CoursesPage ctx={ctx} data={{ courses: items, total, page, perPage, cat, q: search, sort, level }} />);
     });
   });
+
+  /* every free class of the website in one place (the header's "Free classes" button): the free classes, then the paid classes' free demos */
+  r.get("/free-classes", (c) =>
+    cachedPage(c, { ttl: 120 }, async () => {
+      const ctx = await pageCtxFor(c, lang, "/free-classes");
+      const [free, demos] = await Promise.all([listCourses(c.env, { free: true, perPage: 60 }), listCourses(c.env, { demo: true, perPage: 60 })]);
+      // the card's own rule decides which demos really play on the class page (a link the page cannot play is not offered)
+      return renderHtml(c, ctx, <FreeClassesPage ctx={ctx} data={{ free: free.items, demos: demos.items.filter((x) => x.has_demo) }} />);
+    }),
+  );
 
   /* the Equipment Shop: open only while the owner has it open (Admin → Shop → Settings); before that its page says it opens soon */
   const shopList = (c: C, categorySlug: string | null) => {

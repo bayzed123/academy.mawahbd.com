@@ -46,6 +46,7 @@ seoRoutes.get("/sitemap.xml", (c) =>
     const entries: { path: string; lastmod?: string; priority: string }[] = [
       { path: "/", priority: "1.0" },
       { path: "/courses", priority: "0.9" },
+      { path: "/free-classes", priority: "0.8" },
       ...cats.map((x) => ({ path: `/courses?cat=${x.slug}`, priority: "0.7" })),
       ...courses.map((x) => ({ path: `/courses/${x.slug}`, lastmod: x.updated_at, priority: "0.9" })),
       { path: "/blog", priority: "0.6" },

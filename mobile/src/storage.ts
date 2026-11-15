@@ -38,4 +38,6 @@ export const KEYS = {
   /** notifications: what the person chose (on / off / later), and the address Google gave this copy of the app */
   push: "mawah.push",
   pushToken: "mawah.pushToken",
+  /** the newest notification the bell has shown (its id): newer ones count as new */
+  inboxSeen: "mawah.inboxSeen",
 } as const;

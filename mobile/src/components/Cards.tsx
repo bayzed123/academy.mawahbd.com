@@ -77,12 +77,12 @@ export function MyCourseCard({ item, onPress, wide }: { item: MyCourseDTO; onPre
 }
 
 /** A class with a free demo (no price: classes are not sold in the app). */
-export function DemoCard({ course, onPress }: { course: CourseCardDTO; onPress: () => void }) {
+export function DemoCard({ course, onPress, width = 230 }: { course: CourseCardDTO; onPress: () => void; width?: number }) {
   const { c, t, lang } = usePrefs();
   return (
-    <Press onPress={onPress} accessibilityRole="button" accessibilityLabel={loc(course, "title", lang)} style={{ width: 230, backgroundColor: c.surface, borderRadius: RADIUS.l, borderWidth: 1, borderColor: c.line, overflow: "hidden" }}>
+    <Press onPress={onPress} accessibilityRole="button" accessibilityLabel={loc(course, "title", lang)} style={{ width, backgroundColor: c.surface, borderRadius: RADIUS.l, borderWidth: 1, borderColor: c.line, overflow: "hidden" }}>
       <View>
-        <CourseArt course={course} height={130} />
+        <CourseArt course={course} height={Math.round(width * 0.565)} />
         <View style={{ position: "absolute", left: 10, bottom: 10, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: c.accent, paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.pill }}>
           <Icon name="play" size={12} color={c.onAccent} />
           <Txt v="tiny" color={c.onAccent}>
@@ -105,12 +105,12 @@ export function DemoCard({ course, onPress }: { course: CourseCardDTO; onPress: 
 }
 
 /** One of the app's free classes (Admin → Android app): no price anywhere, only "Free". */
-export function FreeCard({ course, onPress }: { course: CourseCardDTO; onPress: () => void }) {
+export function FreeCard({ course, onPress, width = 230 }: { course: CourseCardDTO; onPress: () => void; width?: number }) {
   const { c, t, lang } = usePrefs();
   return (
-    <Press onPress={onPress} accessibilityRole="button" accessibilityLabel={`${loc(course, "title", lang)}, ${t("free.badge")}`} style={{ width: 230, backgroundColor: c.surface, borderRadius: RADIUS.l, borderWidth: 1, borderColor: c.line, overflow: "hidden" }}>
+    <Press onPress={onPress} accessibilityRole="button" accessibilityLabel={`${loc(course, "title", lang)}, ${t("free.badge")}`} style={{ width, backgroundColor: c.surface, borderRadius: RADIUS.l, borderWidth: 1, borderColor: c.line, overflow: "hidden" }}>
       <View>
-        <CourseArt course={course} height={130} />
+        <CourseArt course={course} height={Math.round(width * 0.565)} />
         <View style={{ position: "absolute", left: 10, bottom: 10, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: c.ok, paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.pill }}>
           <Icon name="gift" size={12} color={c.onAccent} />
           <Txt v="tiny" color={c.onAccent}>

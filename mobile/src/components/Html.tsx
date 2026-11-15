@@ -9,7 +9,7 @@ import { usePrefs } from "../prefs";
  * A lesson's notes (HTML made by the website from the owner's text). Drawn by the phone's web engine at its full height, inside the
  * screen's own scrolling, in the website's font; a link in it opens in the browser, never inside this box.
  */
-export function Html({ html }: { html: string }) {
+export function Html({ html, onHeight }: { html: string; /** the notes' full height once drawn (the lesson screen folds long notes) */ onHeight?: (height: number) => void }) {
   const { c } = usePrefs();
   const [height, setHeight] = useState(80);
   const css = useMemo(
@@ -50,7 +50,10 @@ if(window.ResizeObserver){new ResizeObserver(send).observe(document.body)}window
         scrollEnabled={false}
         onMessage={(e) => {
           const h = Number(e.nativeEvent.data);
-          if (Number.isFinite(h) && h > 0) setHeight(h + 8);
+          if (Number.isFinite(h) && h > 0) {
+            setHeight(h + 8);
+            onHeight?.(h + 8);
+          }
         }}
         onShouldStartLoadWithRequest={allow}
         setSupportMultipleWindows={false}

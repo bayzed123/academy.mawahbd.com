@@ -9,14 +9,19 @@ class, a lesson, a price or a banner in Admin, the app shows it at once. You onl
 
 It is a **study app**: students buy classes on the website, as today, and study in the app. It also has **free classes of its own**.
 
-* **Home:** the app's notice (when the owner sets one), "continue where you stopped", my classes, the **free classes**, the free demo
-  classes and the shop.
+* **Home:** at the top a **Free classes** button (the app's free classes and every free demo, on one screen) and a **bell** beside the
+  night / day button; then the newest notification not seen yet in a bar, the app's notice (when the owner sets one), "continue where you
+  stopped", my classes, the **free classes**, the free demo classes and the shop.
 * **Free classes** (Admin → Android app): a class whose editor says *Where is this class shown? → Android app only — free*. It is free in
   the app for anyone with an account, and the website never lists, shows or sells it. The student taps **Start for free**: the class is
   theirs at once (no order, nothing bought) and opens like any other class. Signed out, the same button opens **Make a free account**:
   name, mobile number and password (an e-mail only if they want); they log in later with the number or their student ID.
-* **My classes → a class:** progress, lessons by part, class materials (files, links, live classes, private groups), the certificate.
-* **A lesson:** the video in the phone's own player (full screen, smooth), "Mark as done", the notes, downloads, next/previous lesson.
+* **My classes:** two buttons — **My courses** and **Free classes** (one of the app's free classes, or a website class that costs
+  nothing). The first is not called "paid": nothing in the app speaks of buying. **→ a class:** progress, lessons by part, class materials
+  (files, links, live classes, private groups), the certificate.
+* **A lesson**, laid out like a video app: the video in the phone's own player (full screen, smooth), "Part 3 of 12", "Mark as done",
+  **Next part** (which also marks it done) and Previous part, then every lesson of the class in one sideways row (the one playing marked),
+  the notes folded to a few lines (**Show more**), downloads.
   Screenshots and screen recordings are blacked out while a lesson is open.
 * **FoodCost** (its own tab): one's recipes and what each costs and sells for; a recipe costed while one types (lines, packaging, labour,
   gas, markup or margin, one's real price), with the cost and price in a bar at the bottom; ingredients & prices (the Dhaka average the
@@ -24,8 +29,10 @@ It is a **study app**: students buy classes on the website, as today, and study 
   The same server and the same costing as the website ([foodcost.md](foodcost.md)).
 * **Notifications** (once Firebase is set up: [section 5](#5-notifications-firebase-once)): Home offers them once — **Allow** (the phone then
   asks its own question), **Not now**, or ✕ — and *Profile → Notifications* switches them on and off. They arrive with the app closed:
-  a new free class going live (to everyone), a new lesson in a class (to its students, at most once in 12 hours per class), and the
-  owner's own from *Admin → Android app → Notifications*. A tap opens the class. Each phone gets them in its own language.
+  a new class going live (to everyone: a new free class, or a new website class by its free demo — never a price), a new lesson in a
+  class (to its students, at most once in 12 hours per class), and the owner's own from *Admin → Android app → Notifications*. A tap opens
+  the class. Each phone gets them in its own language. The **bell** on Home lists the ones of the last 60 days (`GET /api/app/notifications`:
+  the news for everyone and the student's own classes'), with how many are new — what was read is remembered on the phone only.
 * **Shop:** the equipment shop with categories. **Order now** opens the product on the website's secure page (cash on delivery or online).
 * **Profile:** student ID, language (বাংলা / English), look (night / day / like the phone), certificates, WhatsApp / call / Messenger /
   e-mail, policies, log out, and **Delete my account** (Google Play rule; see below).

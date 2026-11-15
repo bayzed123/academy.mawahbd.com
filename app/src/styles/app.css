@@ -163,7 +163,6 @@ textarea.input{resize:vertical;min-height:4.4rem;font:inherit;line-height:1.5}
 .state .icon{width:14px;height:14px;stroke-width:3}
 .state.done{background:var(--g-400);border-color:var(--g-600);color:var(--k-950)}
 .state.lock{border-style:dashed;color:var(--ink-3)}
-.layout-player{display:grid;gap:22px}
 .video-frame{position:relative;aspect-ratio:16/9;border-radius:20px;overflow:hidden;background:var(--k-950);box-shadow:var(--sh-2)}
 .video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .video-frame video{position:absolute;inset:0;width:100%;height:100%;background:#000}
@@ -308,6 +307,32 @@ p.free-note.is-done .icon{color:inherit}
 @media (min-width:640px){
   .user-menu .name{display:inline}
 }
+/* The "Free classes" button beside night / day (components/Shell.tsx) takes room the header did not have to spare, so — measured at every
+   width, both languages, signed in: beside the tab links (900px and wider) the logo stands alone, the night / day button shows its moon or sun
+   only and the Free classes button its gift only (their names stay for screen readers and as a tooltip; the avatar's menu has "Free classes"
+   in words); up to 1200px the links sit closer and the avatar loses the name beside it, and up to 1060px "Browse classes" waits in the avatar's
+   menu; below 500px the button keeps its gift only too. The logo is never squeezed out of shape. */
+.app-header .brand img{object-fit:contain}
+@media (min-width:900px){
+  .app-header .brand-text{display:none}
+  .app-header .theme-toggle .theme-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+}
+@media (min-width:900px) and (max-width:1199px){
+  .app-nav{gap:12px}
+  .app-nav .nav-links{gap:14px}
+  .user-menu .name{display:none} /* the round initial stays: the menu is still named "Profile" */
+}
+@media (min-width:900px) and (max-width:1059px){
+  .app-nav .nav-links .nav-browse{display:none}
+}
+@media (max-width:499px),(min-width:900px){
+  .app-header .free-btn{padding-inline:0;width:44px}
+  .app-header .free-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+}
+@media (max-width:400px){
+  .app-nav{gap:6px}
+  .app-header .lang-btn{padding-inline:.6rem}
+}
 @media (min-width:900px){
   .nav-links{display:flex}
   .tabbar{display:none}
@@ -315,10 +340,6 @@ p.free-note.is-done .icon{color:inherit}
   .toasts{bottom:24px}
   .checkout{grid-template-columns:minmax(0,1fr) 380px}
   .checkout .sticky{position:sticky;top:88px}
-}
-@media (min-width:1000px){
-  .layout-player{grid-template-columns:minmax(0,1fr) 360px}
-  .layout-player aside{position:sticky;top:84px;max-height:calc(100vh - 100px);overflow:auto}
 }
 @media print{
   .app-header,.tabbar,.app-foot,.toasts{display:none!important}
@@ -477,3 +498,104 @@ ul.fc-warn{padding-left:1.8rem}
   body.has-tabbar .fc-bar{bottom:calc(58px + env(safe-area-inset-bottom));padding-bottom:8px}
   body.has-tabbar.has-fcbar .floats{bottom:calc(132px + env(safe-area-inset-bottom))}
 }
+
+/* ---------- My Learning: paid classes and free classes under two buttons (pages/Learning.tsx) ---------- */
+.learn-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-width:520px;margin:0 0 20px;padding:5px;border-radius:999px;background:var(--card,#111);border:1px solid var(--line)}
+.learn-tab{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:46px;padding:.35rem .9rem;border:0;border-radius:999px;background:transparent;color:var(--ink-2);font:inherit;font-weight:700;font-size:.98rem;cursor:pointer;transition:background-color .18s var(--ease-out),color .18s var(--ease-out)}
+.learn-tab .icon{width:1.15em;height:1.15em;flex:none}
+.learn-tab:hover{color:var(--ink)}
+.learn-tab[aria-selected=true]{background:var(--o-500,var(--red-700));color:var(--on-accent,#fff)}
+.learn-tab-n{min-width:1.7em;padding:0 .45em;border-radius:999px;background:rgba(255,255,255,.12);font-size:.82rem;line-height:1.6}
+.learn-tab[aria-selected=true] .learn-tab-n{background:rgba(0,0,0,.22)}
+.chip-free{position:absolute;right:12px;top:12px;z-index:2;display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .7rem;border-radius:999px;background:var(--o-500,var(--red-700));color:var(--on-accent,#fff);font-size:.8rem;font-weight:700}
+.chip-free .icon{width:1em;height:1em}
+:root[data-theme="light"] .learn-tabs{background:var(--paper)}
+:root[data-theme="light"] .learn-tab-n{background:var(--ivory-2)}
+:root[data-theme="light"] .learn-tab[aria-selected=true] .learn-tab-n{background:rgba(0,0,0,.18)}
+:root[data-theme="light"] .chip-free,:root[data-theme="light"] .learn-tab[aria-selected=true]{background:var(--red-700);color:#fff}
+@media (prefers-reduced-motion:reduce){.learn-tab{transition:none}}
+/* a phone: each button's name stays on one line (the count says the rest) */
+@media (max-width:420px){
+  .learn-tab{gap:.4rem;padding-inline:.5rem;font-size:.93rem;white-space:nowrap}
+  .learn-tab .icon{display:none}
+}
+
+/* ---------- the lesson player, like a video site (pages/Lesson.tsx, components/LessonRail.tsx) ----------
+   the video, then its title and the way on (done · previous · next part), then every lesson of the class in one sideways row, then the
+   lesson's words folded to a few lines. One column on every screen, so the lessons are always right under the video. */
+.watch{display:grid;gap:18px;max-width:1040px;margin-inline:auto}
+.watch>*{min-width:0}
+.watch-back{margin:0}
+.watch-head{display:grid;gap:10px}
+.watch-part{margin:0;font-size:.88rem;font-weight:700;color:var(--o-300,var(--red-700));letter-spacing:.01em}
+.watch-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.watch-nav{display:flex;flex-wrap:wrap;gap:10px;margin-inline-start:auto}
+.watch-actions .btn .icon{width:1.1em;height:1.1em}
+.watch-actions .icon.is-back{transform:rotate(90deg)}
+.watch-actions .icon.is-on{transform:rotate(-90deg)}
+.watch-done.is-done{border-color:var(--ok-600);color:var(--ok-700)}
+.watch-done.is-done .icon{color:var(--ok-600)}
+.watch-last{display:inline-flex;align-items:center;min-height:44px;padding:0 .4rem;color:var(--ink-3);font-weight:600}
+.watch-upnext{margin:0;font-size:.92rem;color:var(--ink-3)}
+.watch-upnext b{color:var(--ink-2)}
+.watch-all{margin:0;text-align:center}
+/* the row of lessons */
+.rail-box{display:grid;gap:10px;padding:14px 0 6px;border-top:1px solid var(--line)}
+.rail-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.rail-head h2{margin:0;font-size:1.15rem}
+.rail-count{margin:0;font-size:.86rem;color:var(--ink-3)}
+.rail-arrows{display:flex;gap:6px}
+.rail-arrow{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:1.5px solid var(--line-2);background:var(--card,var(--paper));color:var(--ink);cursor:pointer}
+.rail-arrow .icon{width:20px;height:20px;transform:rotate(-90deg)}
+.rail-arrow.is-back .icon{transform:rotate(90deg)}
+.rail-arrow:hover:not(:disabled){border-color:var(--o-500,var(--red-700))}
+.rail-arrow:disabled{opacity:.35;cursor:default}
+.rail{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:clamp(176px,44%,232px);gap:12px;list-style:none;margin:0;padding:4px 0 12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:thin}
+.rail-item{scroll-snap-align:start;min-width:0}
+.rail-card{display:grid;gap:8px;height:100%;padding:6px;border-radius:16px;border:1.5px solid transparent;color:var(--ink);text-decoration:none;transition:background-color .18s var(--ease-out),border-color .18s var(--ease-out)}
+a.rail-card:hover{background:var(--raised,var(--ivory-2))}
+.rail-thumb{position:relative;display:grid;place-items:center;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:var(--raised,var(--ivory-2));border:1px solid var(--line-2);color:var(--ink)}
+.rail-num{position:absolute;left:10px;top:6px;font-size:1.5rem;font-weight:800;line-height:1;opacity:.35}
+.rail-ico{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:var(--card,var(--paper));color:var(--o-500,var(--red-700))}
+.rail-ico .icon{width:20px;height:20px}
+.rail-dur,.rail-now{position:absolute;right:6px;bottom:6px;padding:.05rem .45rem;border-radius:6px;background:rgba(0,0,0,.78);color:#fff;font-size:.74rem;font-weight:700;line-height:1.5}
+.rail-now{left:6px;right:auto}
+.rail-text{display:grid;gap:2px;padding:0 2px 2px}
+.rail-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-weight:700;font-size:.95rem;line-height:1.4}
+.rail-meta{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem;color:var(--ink-3)}
+.rail-item.is-current .rail-card{border-color:var(--o-500,var(--red-700));background:var(--raised,var(--ivory-2))}
+.rail-item.is-current .rail-thumb{background:var(--o-500,var(--red-700));border-color:var(--o-500,var(--red-700));color:var(--on-accent,#fff)}
+.rail-item.is-current .rail-ico{background:rgba(0,0,0,.18);color:var(--on-accent,#fff)}
+.rail-item.is-done .rail-ico{background:var(--ok-600);color:#04130a}
+.rail-item.is-current.is-done .rail-ico{background:rgba(0,0,0,.18);color:var(--on-accent,#fff)}
+.rail-item.is-locked .rail-card{cursor:not-allowed;color:var(--ink-3)}
+.rail-item.is-locked .rail-thumb{opacity:.55}
+/* the lesson's words: folded to about four lines, like a video's description */
+.desc-box{display:grid;gap:8px;padding:14px 16px;border-radius:16px;background:var(--raised,var(--ivory-2));border:1px solid var(--line)}
+.desc-box h2{margin:0;font-size:1.05rem}
+.desc-body{max-width:none}
+.desc-box:not(.is-open) .desc-body{max-height:7.4em;overflow:hidden}
+.desc-box.is-long:not(.is-open) .desc-body{-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
+.desc-body>:first-child{margin-top:0}
+.desc-more{justify-self:start;display:inline-flex;align-items:center;gap:.35rem;min-height:44px;padding:0 .2rem;border:0;background:none;color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
+.desc-more .icon{width:1.1em;height:1.1em;transition:transform .2s}
+.desc-box.is-open .desc-more .icon{transform:rotate(180deg)}
+/* a phone: the video from edge to edge, as in a video app */
+@media (max-width:640px){
+  .watch>.video-frame,.watch>.video-frame.is-note{margin-inline:calc(-1 * clamp(16px,4vw,32px));border-radius:0}
+  /* the row runs to the screen's edges, so it is plain that it scrolls on */
+  .rail{margin-inline:calc(-1 * clamp(16px,4vw,32px));padding-inline:clamp(16px,4vw,32px);scroll-padding-inline:clamp(16px,4vw,32px)}
+  .watch-prev-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .watch-actions{display:grid;grid-template-columns:1fr}
+  .watch-nav{margin:0;display:grid;grid-template-columns:auto 1fr}
+  .watch-nav .watch-next:only-child{grid-column:1/-1}
+}
+@media (min-width:900px){
+  .rail{grid-auto-columns:220px}
+}
+:root[data-theme="light"] .rail-thumb{background:var(--ivory-2);border-color:var(--line-2)}
+:root[data-theme="light"] .rail-item.is-current .rail-thumb{background:var(--red-700);border-color:var(--red-700);color:#fff}
+:root[data-theme="light"] .rail-item.is-current .rail-ico{background:rgba(0,0,0,.2);color:#fff}
+:root[data-theme="light"] .rail-ico{background:var(--paper);color:var(--red-700)}
+:root[data-theme="light"] .watch-part{color:var(--red-700)}
+@media (prefers-reduced-motion:reduce){.rail-card,.desc-more .icon{transition:none}}

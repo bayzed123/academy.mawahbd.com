@@ -250,6 +250,7 @@ export function ShopPage({ ctx, data }: { ctx: PageCtx; data: ShopListData }) {
       canonicalPath={ctx.href(base) + (data.page > 1 ? `?page=${data.page}` : "")}
       jsonLd={[breadcrumbLd(ctx, crumbs.map((c) => ({ name: c.label, path: c.href ?? ctx.href(base) })))]}
       shop
+      list
       slider={banners.length > 0}
     >
       <section class="page-hero shop-hero">
@@ -391,7 +392,7 @@ export function ShopSoonPage({ ctx }: { ctx: PageCtx }) {
   const { t } = ctx;
   const wa = waNumber(ctx.settings.contact.whatsapp); // with its country code: WhatsApp's links need it
   return (
-    <Layout ctx={ctx} title={`${t("shop.title")} — ${t("brand.name")}`} description={t("shop.soon.text")} noindex>
+    <Layout ctx={ctx} list title={`${t("shop.title")} — ${t("brand.name")}`} description={t("shop.soon.text")} noindex>
       <section class="page-hero shop-soon">
         <div class="wrap">
           <Crumbs items={[{ label: t("nav.home"), href: ctx.href("/") }, { label: t("shop.title") }]} />
@@ -490,6 +491,7 @@ export function ProductPage({
       image={p.images[0]?.large}
       jsonLd={[productLd(ctx, p), breadcrumbLd(ctx, crumbs.map((c) => ({ name: c.label, path: c.href ?? ctx.href(`/shop/p/${p.slug}`) })))]}
       shop
+      list
     >
       <section class="section tight">
         <div class="wrap">

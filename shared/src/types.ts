@@ -77,6 +77,11 @@ export interface MyCourseDTO {
   enrolled_at: string;
   certificate_code: string | null;
   resume_lesson_id: number | null;
+  /**
+   * a free class (it costs nothing: price 0 on the website, or one of the Android app's free classes): My Learning shows it under "Free classes",
+   * apart from the paid ones. A paid class given for nothing (a 100 % coupon, staff) stays a paid class. Older servers do not send it.
+   */
+  free?: boolean;
 }
 
 export interface CurriculumLessonDTO {

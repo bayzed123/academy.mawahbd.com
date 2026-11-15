@@ -6,6 +6,8 @@ import { FlatList, useWindowDimensions, View } from "react-native";
 import { useResource } from "../../src/api";
 import { CourseArt, DemoCard, FreeCard, MyCourseCard, ProductCard } from "../../src/components/Cards";
 import { PushCard } from "../../src/components/PushCard";
+import { useInbox } from "../../src/inbox";
+import { badgeText } from "../../src/lib/inbox";
 import { whatsappLink } from "../../src/lib/links";
 import { contentWidth, gridColumns, tileWidth } from "../../src/lib/layout";
 import { openApp } from "../../src/open";
@@ -23,7 +25,10 @@ import { CardSkeleton, Skeleton } from "../../src/ui/Skeleton";
 import { Txt } from "../../src/ui/Txt";
 
 export default function Home() {
-  const { c, t, lang, setLookPref } = usePrefs();
+  const { c, t, lang, n, setLookPref } = usePrefs();
+  const inbox = useInbox();
+  // the newest notification not seen yet (lib/inbox.ts), for the bar under the greeting
+  const latest = inbox.unread ? (inbox.items.find((x) => x.id > inbox.seen) ?? null) : null;
   const { status, me } = useSession();
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -41,6 +46,8 @@ export default function Home() {
   // the class to carry on with: the newest one not finished yet (the list comes newest first)
   const current = courses.find((m) => m.progress.pct < 100) ?? courses[0];
   const cols = gridColumns(contentWidth(width));
+  // the top row (logo, Free classes, bell, night / day) has room for the button's words from about 350 points
+  const narrow = width < 350;
   // one or two full rows: 4 on a phone (2 × 2), 3 or 4 on a tablet
   const products = (shop.data?.items ?? []).slice(0, cols === 3 ? 3 : 4);
   const tile = tileWidth(contentWidth(width), cols);
@@ -52,6 +59,7 @@ export default function Home() {
 
   const refreshing = mine.refreshing || catalog.refreshing || shop.refreshing || free.refreshing;
   const refresh = () => {
+    void inbox.refresh();
     void mine.refresh();
     void free.refresh();
     void catalog.refresh();
@@ -61,9 +69,53 @@ export default function Home() {
 
   return (
     <Page onRefresh={refresh} refreshing={refreshing}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Image source={require("../../assets/logo-wide.png")} style={{ width: 86, height: 44, borderRadius: 8 }} contentFit="contain" accessibilityLabel="MAWAH Academy" />
-        <View style={{ flex: 1 }}>
+      <View style={{ gap: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Image source={require("../../assets/logo-wide.png")} style={{ width: 76, height: 44, borderRadius: 8 }} contentFit="contain" accessibilityLabel="MAWAH Academy" />
+          {/* every free class in one place, beside night / day (as on the website); a very narrow phone shows its gift only */}
+          <Press
+            onPress={() => router.push("/free")}
+            accessibilityRole="button"
+            accessibilityLabel={t("home.freeBtn")}
+            hitSlop={4}
+            style={{ marginLeft: "auto", flexShrink: 1, minWidth: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: 44, paddingHorizontal: narrow ? 0 : 13, borderRadius: 22, backgroundColor: c.accentSoft, borderWidth: 1, borderColor: c.accent }}
+          >
+            <Icon name="gift" size={18} color={c.accent} />
+            {narrow ? null : (
+              <Txt v="label" color={c.look === "night" ? c.link : c.accentPressed} numberOfLines={1} style={{ flexShrink: 1 }}>
+                {t("home.freeBtn")}
+              </Txt>
+            )}
+          </Press>
+          {/* the bell: the notifications sent lately, with how many are new */}
+          <Press
+            onPress={() => router.push("/notifications")}
+            accessibilityRole="button"
+            accessibilityLabel={inbox.unread ? t("home.bellNew", { n: n(inbox.unread) }) : t("home.bell")}
+            hitSlop={4}
+            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.raised, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" }}
+          >
+            <Icon name="bell" size={20} color={c.text} />
+            {inbox.unread ? (
+              <View style={{ position: "absolute", top: -3, right: -3, minWidth: 20, height: 20, paddingHorizontal: 5, borderRadius: 10, backgroundColor: c.accent, borderWidth: 2, borderColor: c.bg, alignItems: "center", justifyContent: "center" }}>
+                <Txt v="tiny" color={c.onAccent} style={{ fontSize: 10.5, lineHeight: 14 }}>
+                  {badgeText(inbox.unread, n)}
+                </Txt>
+              </View>
+            ) : null}
+          </Press>
+          {/* day or night in one tap (Profile → Look also offers "like my phone") */}
+          <Press
+            onPress={() => setLookPref(c.look === "night" ? "day" : "night")}
+            accessibilityRole="button"
+            accessibilityLabel={c.look === "night" ? t("home.toDay") : t("home.toNight")}
+            hitSlop={4}
+            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.raised, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" }}
+          >
+            <Icon name={c.look === "night" ? "sun" : "moon"} size={20} color={c.text} />
+          </Press>
+        </View>
+        <View>
           <Txt v="heading" numberOfLines={1}>
             {signedIn && me ? t("home.hello", { name: me.name.split(" ")[0] ?? me.name }) : t("home.welcome")}
           </Txt>
@@ -71,17 +123,31 @@ export default function Home() {
             {t("home.welcomeSub")}
           </Txt>
         </View>
-        {/* day or night in one tap (Profile → Look also offers "like my phone") */}
-        <Press
-          onPress={() => setLookPref(c.look === "night" ? "day" : "night")}
-          accessibilityRole="button"
-          accessibilityLabel={c.look === "night" ? t("home.toDay") : t("home.toNight")}
-          hitSlop={6}
-          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.raised, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" }}
-        >
-          <Icon name={c.look === "night" ? "sun" : "moon"} size={20} color={c.text} />
-        </Press>
       </View>
+
+      {/* the notification bar: the newest notification not seen yet; a tap opens the list */}
+      {latest ? (
+        <Press
+          onPress={() => router.push("/notifications")}
+          accessibilityRole="button"
+          accessibilityLabel={`${t("inbox.latest", { title: loc(latest, "title", lang) })}. ${loc(latest, "body", lang)}`}
+          scale={0.99}
+          style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.surface, borderRadius: RADIUS.m, borderWidth: 1, borderColor: c.accent, paddingHorizontal: 14, paddingVertical: 12 }}
+        >
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
+            <Icon name="bell" size={18} color={c.onAccent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Txt v="label" numberOfLines={1}>
+              {t("inbox.latest", { title: loc(latest, "title", lang) })}
+            </Txt>
+            <Txt v="small" color={c.text2} numberOfLines={2}>
+              {loc(latest, "body", lang)}
+            </Txt>
+          </View>
+          <Icon name="chevronRight" size={18} color={c.text3} />
+        </Press>
+      ) : null}
 
       {notice ? (
         <View accessibilityRole="summary" style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: c.accentSoft, borderRadius: RADIUS.m, paddingHorizontal: 14, paddingVertical: 12 }}>
