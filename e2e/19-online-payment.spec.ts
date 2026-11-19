@@ -24,8 +24,15 @@ async function checkout(browser: Browser, lang: "bn" | "en", patch?: (q: Quote) 
   await useLang(ctx, lang);
   const page = await ctx.newPage();
   await page.route("**/api/checkout/quote", async (route) => {
-    const res = await route.fetch();
-    const body = (await res.json()) as { quote: Quote };
+    // a price asked for just as the test closes the page has no one waiting for it: leave it be rather than fail the test
+    let res: Awaited<ReturnType<typeof route.fetch>>;
+    let body: { quote: Quote };
+    try {
+      res = await route.fetch();
+      body = (await res.json()) as { quote: Quote };
+    } catch {
+      return;
+    }
     body.quote.channels = ["manual", "sslcommerz"]; // the order the Worker lists them in: send-money first
     body.quote.manual = MANUAL;
     body.quote.ssl_limited = false;
