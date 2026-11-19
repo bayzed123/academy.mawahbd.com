@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { adminLogin, agree, TEST_ADDRESS, useLang } from "./helpers";
 
 /*
- * Online payment, as the buyer and as the owner see it. The buyer picks "bKash, Nagad, Rocket or card — Secure online payment": the card must
+ * Online payment, as the buyer and as the owner see it. The buyer picks "Auto pay — SSLCommerz": the card must
  * show the real marks (not a bare wallet icon), and if the gateway turns the purchase away they must be told plainly — not "Something went
  * wrong" — and be offered the other way of paying right there. The owner needs a place that says why: Settings → Payments → "Check the
  * connection". SSLCommerz cannot be reached from a test, and this copy of the site has no store keys, so the gateway's answer is stood in
@@ -12,7 +12,7 @@ import { adminLogin, agree, TEST_ADDRESS, useLang } from "./helpers";
  */
 test.describe.configure({ mode: "serial" });
 
-const MANUAL = { window_min: 20, numbers: { bkash: "01711111111", nagad: "", rocket: "" }, note_bn: "", note_en: "" };
+const MANUAL = { window_min: 20, numbers: { bkash: "01711111111", nagad: "", rocket: "" }, note_bn: "", note_en: "", qr: null };
 
 type Quote = { channels: string[]; manual: unknown; ssl_limited: boolean };
 /**
@@ -45,15 +45,15 @@ async function fillDetails(page: Page, lang: "bn" | "en") {
 
 /** Send-money is listed first and chosen; the buyer picks SSLCommerz's secure online payment, the second. */
 async function chooseOnline(page: Page, lang: "bn" | "en") {
-  await page.locator("label.pay-opt", { hasText: lang === "en" ? "Secure online payment" : "নিরাপদ অনলাইন পেমেন্ট" }).click();
+  await page.locator("label.pay-opt", { hasText: lang === "en" ? "Auto pay — SSLCommerz" : "অটো পে — SSLCommerz" }).click();
 }
 
 test("the online option shows the real marks, spoken as one list, and the send-money option shows the three wallets", async ({ browser }) => {
   const { ctx, page } = await checkout(browser, "en");
   // send-money first (and chosen), then SSLCommerz's secure online payment
-  await expect(page.locator("label.pay-opt b")).toHaveText(["Send money manually", "bKash, Nagad, Rocket or card"]);
+  await expect(page.locator("label.pay-opt b")).toHaveText(["Send money manually", "Auto pay — SSLCommerz"]);
   await expect(page.locator("label.pay-opt input:checked")).toHaveValue("manual");
-  const online = page.locator("label.pay-opt", { hasText: "Secure online payment" });
+  const online = page.locator("label.pay-opt", { hasText: "Auto pay — SSLCommerz" });
   await expect(online).toBeVisible();
   await expect(online.getByRole("img", { name: "bKash, Nagad, Rocket, Visa, Mastercard" })).toBeVisible();
   const marks = online.locator(".pay-mark img");
@@ -192,7 +192,7 @@ test("once the limit is known, the next buyer is told on the option itself and s
     q.ssl_limited = true;
   });
   await expect(page.locator("label.pay-opt input:checked")).toHaveValue("manual");
-  const online = page.locator("label.pay-opt", { hasText: "Secure online payment" });
+  const online = page.locator("label.pay-opt", { hasText: "Auto pay — SSLCommerz" });
   await expect(online.getByText("Not open for this amount yet — please pay by sending money")).toBeVisible();
   await expect(page.locator("#m-payer")).toBeVisible();
   // they may still choose it (SSLCommerz may have lifted the limit since)
@@ -212,7 +212,7 @@ test("the same, in Bangla — and with no send-money to offer, the online option
   await expect(one.page.getByText("এই পরিমাণের জন্য এখনো চালু হয়নি — অনুগ্রহ করে সেন্ড মানি করে পেমেন্ট করুন")).toBeVisible();
   await expect(one.page.locator("label.pay-opt input:checked")).toHaveValue("manual");
   await one.page.route("**/api/checkout/guest", (route) => route.fulfill({ status: 502, contentType: "application/json", json: { ok: false, error: { code: "gateway_amount_limit" } } }));
-  await one.page.locator("label.pay-opt", { hasText: "নিরাপদ অনলাইন পেমেন্ট" }).click();
+  await one.page.locator("label.pay-opt", { hasText: "অটো পে — SSLCommerz" }).click();
   await fillDetails(one.page, "bn");
   await agree(one.page);
   await one.page.getByRole("button", { name: /পেমেন্ট করুন$/ }).click();

@@ -22,11 +22,19 @@ export type PayLogoKey = (typeof PAY_LOGOS)[number]["key"];
  */
 export const SSL_BANNER = { src: "/pay/sslcommerz.png", width: 640, height: 75 } as const;
 
+/**
+ * The shop's own Bangla QR (MAWAH, Chattogram — a static QR: the payer types the amount), built in so the owner only has to switch Bangla QR
+ * to Active. Rebuilt module for module from the QR the owner sent (MAOWA-bangla-qr.pdf) as a sharp black-and-white PNG with its quiet zone,
+ * and checked to read back exactly the same payment code. A picture uploaded in Settings → Payments takes its place.
+ */
+export const BUILTIN_QR = { src: "/pay/bangla-qr.png", name: "MAWAH", width: 924, height: 924 } as const;
+
 /** Which marks go with each way of paying on the checkout page (the hosted page takes the wallets and cards; send-money is the three wallets). */
-export const CHANNEL_LOGOS: Record<"sslcommerz" | "bkash" | "manual" | "mock", readonly PayLogoKey[]> = {
+export const CHANNEL_LOGOS: Record<"sslcommerz" | "manual" | "bangla_qr" | "mock", readonly PayLogoKey[]> = {
   sslcommerz: ["bkash", "nagad", "rocket", "visa", "mastercard"],
-  bkash: ["bkash"],
   manual: ["bkash", "nagad", "rocket"],
+  // any banking or mobile-banking app that takes Bangla QR: the option shows its own QR mark, not the wallets'
+  bangla_qr: [],
   mock: [],
 };
 

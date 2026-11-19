@@ -21,29 +21,22 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => admin.context().close());
 
-test("the footer shows the five payment marks as real, sharp pictures with the developer credit under them — English and Bangla", async ({ browser }) => {
-  for (const [lang, path, names, accept, rights, developed] of [
-    ["en-US", "/en", ["bKash", "Nagad", "Rocket", "Visa", "Mastercard"], "We accept", "All rights reserved.", "Developed by"],
-    ["bn-BD", "/", ["বিকাশ", "নগদ", "রকেট", "ভিসা", "মাস্টারকার্ড"], "আমরা গ্রহণ করি", "সর্বস্বত্ব সংরক্ষিত", "ডেভেলপ করেছেন"],
+test("the footer always shows SSLCommerz's picture of the ways to pay, really loaded, with the developer credit under it — English and Bangla", async ({ browser }) => {
+  for (const [lang, path, alt, accept, rights, developed] of [
+    ["en-US", "/en", "Pay through SSLCommerz", "We accept", "All rights reserved.", "Developed by"],
+    ["bn-BD", "/", "SSLCommerz-এর মাধ্যমে পেমেন্ট", "আমরা গ্রহণ করি", "সর্বস্বত্ব সংরক্ষিত", "ডেভেলপ করেছেন"],
   ] as const) {
     const ctx = await browser.newContext({ locale: lang, viewport: { width: 1280, height: 900 } });
     const page = await ctx.newPage();
     await page.goto(path);
-    const row = page.getByRole("list", { name: accept });
-    await row.scrollIntoViewIfNeeded();
-    const imgs = row.locator("img");
-    await expect(imgs).toHaveCount(5);
-    for (let i = 0; i < 5; i++) {
-      const img = imgs.nth(i);
-      await expect(img).toHaveAttribute("alt", names[i]);
-      // loaded for real (the owner's pictures, not a broken link) …
-      await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
-      // … shown small (24px tall) from a file at least twice that tall, so it stays sharp on a phone
-      expect(await img.evaluate((el: HTMLImageElement) => Math.round(el.getBoundingClientRect().height))).toBe(24);
-      if (!(await img.getAttribute("src"))!.endsWith(".svg")) expect(await img.evaluate((el: HTMLImageElement) => el.naturalHeight)).toBeGreaterThanOrEqual(48);
-    }
-    // each mark sits on a white badge so the different colours read on the black footer
-    expect(await row.locator("li").first().evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(255, 255, 255)");
+    await expect(page.locator("#pay-h")).toHaveText(accept);
+    const img = page.locator(".site-footer .ssl-logo img");
+    await img.scrollIntoViewIfNeeded();
+    await expect(img).toHaveAttribute("alt", alt);
+    // loaded for real (the owner's copy of SSLCommerz's picture, not a broken link), on a white card that reads on the black footer
+    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+    expect(await img.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(255, 255, 255)");
+    await expect(page.locator(".site-footer .pay-logos"), "the small marks are gone").toHaveCount(0);
 
     const bottom = page.locator(".foot-bottom");
     await expect(bottom).toContainText(rights);
@@ -62,10 +55,20 @@ test("the footer fits a phone and passes the accessibility scan", async ({ brows
   await page.goto("/en");
   await page.locator(".site-footer").scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
-  for (const img of await page.locator(".pay-logos img").all()) {
-    await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
-    const box = await img.boundingBox();
-    expect(box!.x + box!.width, "inside the screen").toBeLessThanOrEqual(360);
+  // SSLCommerz's picture of the ways to pay is always there, inside the screen
+  const banner = page.locator(".site-footer .ssl-logo img");
+  await expect(banner).toHaveCount(1);
+  await banner.scrollIntoViewIfNeeded();
+  await expect.poll(() => banner.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
+  const box = await banner.boundingBox();
+  expect(box!.x + box!.width, "inside the screen").toBeLessThanOrEqual(360);
+  // at the very bottom, the round chat and "back to the top" buttons do not sit on the footer's last lines
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const floats = await page.locator(".floats").boundingBox();
+  for (const el of await page.locator(".foot-bottom > *").all()) {
+    const b = await el.boundingBox();
+    if (!b || !floats || b.y + b.height <= floats.y) continue; // above the buttons
+    expect(b.x + b.width, "the footer's last lines end left of the round buttons").toBeLessThanOrEqual(floats.x + 1);
   }
   // the sticky header covers the top of the screen; with the footer's top just under it, no footer link sits half under the
   // header, whatever the footer's height

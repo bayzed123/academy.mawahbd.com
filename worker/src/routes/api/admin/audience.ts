@@ -7,6 +7,7 @@ import { all, first, likeEscape, pageInfo, pageParams, run } from "../../../lib/
 import { intParam, notFound, ok, parseBody } from "../../../lib/http";
 import { requirePerm } from "../../../middleware/auth";
 import { notifyLaunch } from "../../../services/launch";
+import { NO_EMAIL_DOMAIN } from "@mawah/shared";
 
 /** Everyone who raised a hand: "notify me" sign-ups, newsletter subscribers, contact messages and chatbot hand-offs. */
 export const audience = new Hono<AppEnv>();
@@ -78,30 +79,77 @@ audience.post("/signups/notify/:courseId", requirePerm("signups:write"), async (
   return ok(c, { sent });
 });
 
-/* -------------------------------------------------------------------------------------------- subscribers */
+/* ---------------------------------------------------------------------- the marketing list: subscribers + students */
+/**
+ * Everyone the academy can e-mail about classes: the newsletter's subscribers and every student with a real e-mail (a student who signed
+ * up with a phone number only has none). Each row says plainly whether that person agreed to offers — a newsletter subscriber did, a
+ * student only if they ticked it — so the owner can send news to all and offers only to those who said yes. A student who is also a
+ * subscriber is listed once.
+ */
+const AUDIENCE_SQL = `SELECT * FROM (
+  SELECT 'subscriber' AS kind, x.id, x.email, NULL AS name, NULL AS phone, x.lang, x.source, x.created_at, x.unsubscribed_at,
+         CASE WHEN x.unsubscribed_at IS NULL THEN 1 ELSE 0 END AS consent
+    FROM subscribers x
+  UNION ALL
+  SELECT 'student' AS kind, s.id, s.email, s.name, s.phone, s.locale AS lang, 'student' AS source, s.created_at, NULL AS unsubscribed_at, s.marketing_opt_in AS consent
+    FROM students s
+   WHERE s.deleted_at IS NULL AND s.blocked = 0 AND s.email NOT LIKE '%@${NO_EMAIL_DOMAIN}'
+     AND NOT EXISTS (SELECT 1 FROM subscribers x WHERE x.email = s.email)
+) a`;
+
+function audienceFilters(q: Record<string, string>) {
+  const where: string[] = ["1=1"];
+  const params: (string | number)[] = [];
+  if (q.kind === "subscriber" || q.kind === "student") {
+    where.push("a.kind = ?");
+    params.push(q.kind);
+  }
+  if (q.consent === "1" || q.consent === "0") {
+    where.push("a.consent = ?");
+    params.push(Number(q.consent));
+  }
+  if (q.q?.trim()) {
+    const like = `%${likeEscape(q.q.trim().slice(0, 80))}%`;
+    where.push("(a.email LIKE ? ESCAPE '\\' OR a.name LIKE ? ESCAPE '\\' OR a.phone LIKE ? ESCAPE '\\')");
+    params.push(like, like, like);
+  }
+  return { where: where.join(" AND "), params };
+}
+
 audience.get("/subscribers", requirePerm("signups:read"), async (c) => {
   const q = c.req.query();
-  const where = q.q?.trim() ? "email LIKE ? ESCAPE '\\'" : "1=1";
-  const params = q.q?.trim() ? [`%${likeEscape(q.q.trim().slice(0, 80))}%`] : [];
+  const f = audienceFilters(q);
   const { page, per_page, offset } = pageParams(q);
-  const [rows, total] = await Promise.all([
-    all(c.env.DB, `SELECT id, email, lang, source, created_at, unsubscribed_at FROM subscribers WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`, ...params, per_page, offset),
-    first<{ n: number }>(c.env.DB, `SELECT COUNT(*) AS n FROM subscribers WHERE ${where}`, ...params),
+  const [rows, total, counts] = await Promise.all([
+    all(c.env.DB, `${AUDIENCE_SQL} WHERE ${f.where} ORDER BY a.created_at DESC LIMIT ? OFFSET ?`, ...f.params, per_page, offset),
+    first<{ n: number }>(c.env.DB, `SELECT COUNT(*) AS n FROM (${AUDIENCE_SQL} WHERE ${f.where})`, ...f.params),
+    first<{ subscribers: number; students: number; consent: number }>(
+      c.env.DB,
+      `SELECT SUM(kind = 'subscriber') AS subscribers, SUM(kind = 'student') AS students, SUM(consent) AS consent FROM (${AUDIENCE_SQL})`,
+    ),
   ]);
-  return ok(c, { items: rows, page: pageInfo(page, per_page, total?.n ?? 0) });
+  return ok(c, { items: rows, page: pageInfo(page, per_page, total?.n ?? 0), counts: { subscribers: counts?.subscribers ?? 0, students: counts?.students ?? 0, consent: counts?.consent ?? 0 } });
 });
 
 audience.get("/subscribers/export.csv", requirePerm("signups:read"), async (c) => {
-  const rows = await all<Record<string, unknown>>(c.env.DB, "SELECT email, lang, source, created_at, unsubscribed_at FROM subscribers ORDER BY created_at DESC LIMIT 20000");
+  const f = audienceFilters(c.req.query());
+  const rows = await all<Record<string, unknown>>(c.env.DB, `${AUDIENCE_SQL} WHERE ${f.where} ORDER BY a.created_at DESC LIMIT 50000`, ...f.params);
   return csvResponse(
-    "subscribers",
-    toCsv(rows, [
-      { key: "email", label: "Email" },
-      { key: "lang", label: "Language" },
-      { key: "source", label: "Source" },
-      { key: "created_at", label: "Subscribed (UTC)" },
-      { key: "unsubscribed_at", label: "Unsubscribed (UTC)" },
-    ]),
+    "marketing-list",
+    toCsv(
+      rows.map((r) => ({ ...r, consent: r.consent ? "yes" : "no" })),
+      [
+        { key: "email", label: "Email" },
+        { key: "name", label: "Name" },
+        { key: "phone", label: "Phone" },
+        { key: "kind", label: "Type" },
+        { key: "consent", label: "Agreed to offers" },
+        { key: "lang", label: "Language" },
+        { key: "source", label: "Source" },
+        { key: "created_at", label: "Joined (UTC)" },
+        { key: "unsubscribed_at", label: "Unsubscribed (UTC)" },
+      ],
+    ),
   );
 });
 
@@ -161,9 +209,10 @@ audience.get("/escalations", requirePerm("messages:read"), async (c) => {
   const [rows, total] = await Promise.all([
     all(
       c.env.DB,
-      `SELECT e.id, e.question, e.reason, e.lang, e.status, e.created_at, c.title_en AS course_title_en, c.title_bn AS course_title_bn, s.name AS student_name, s.email AS student_email
+      `SELECT e.id, e.question, e.reason, e.lang, e.status, e.created_at, e.asked, e.last_asked_at, (e.answer IS NOT NULL) AS answered,
+              c.title_en AS course_title_en, c.title_bn AS course_title_bn, s.name AS student_name, s.email AS student_email
        FROM chat_escalations e LEFT JOIN courses c ON c.id = e.course_id LEFT JOIN students s ON s.id = e.student_id
-       WHERE ${where} ORDER BY (e.status = 'open') DESC, e.created_at DESC LIMIT ? OFFSET ?`,
+       WHERE ${where} ORDER BY (e.status = 'open') DESC, e.asked DESC, e.created_at DESC LIMIT ? OFFSET ?`,
       ...params,
       per_page,
       offset,

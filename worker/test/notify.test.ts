@@ -117,7 +117,7 @@ describe("what tells the owner", () => {
 
   it("a payment that needs the owner's check: the TrxID, the number it came from, and the way to the order", async () => {
     const to = await ownerBox();
-    await setSetting(env, "payments", { sslcommerz: true, bkash_direct: false, manual: true, manual_numbers: { bkash: "01711111111", nagad: "", rocket: "" }, manual_note_bn: "", manual_note_en: "", manual_window_min: 20 }, null);
+    await setSetting(env, "payments", { sslcommerz: true, manual: true, manual_numbers: { bkash: "01711111111", nagad: "", rocket: "" }, manual_note_bn: "", manual_note_en: "", manual_window_min: 20 }, null);
     const course = await makeCourse(900);
     const { client } = await registerStudent(new Client(), { name: "Karim Hossain" });
     const started = await json(await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual", manual: { method: "bkash", payer_number: "01766554433" } }));

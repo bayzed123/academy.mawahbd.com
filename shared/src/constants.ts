@@ -99,6 +99,8 @@ export const PERMISSIONS = {
   "messages:write": SA_CM_SP,
   "chatbot:read": ["super_admin", "content_manager", "viewer"],
   "chatbot:write": SA,
+  // the private AI assistant: every staff member; it only tells each one the numbers their role may see
+  "assistant:use": ALL,
   "reports:learning": ALL,
   "reports:revenue": SA_VW,
   "analytics:read": ["super_admin", "content_manager", "viewer"],
@@ -124,6 +126,7 @@ export function can(role: Role | undefined | null, permission: Permission): bool
 /** Admin-facing sidebar order (matches the spec). */
 export const ADMIN_NAV = [
   { key: "dashboard", path: "", perm: "dashboard:read" },
+  { key: "assistant", path: "assistant", perm: "assistant:use" },
   { key: "courses", path: "courses", perm: "courses:read" },
   { key: "app", path: "app", perm: "courses:read" },
   { key: "foodcost", path: "foodcost", perm: "fc:read" },

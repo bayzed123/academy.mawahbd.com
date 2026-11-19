@@ -154,7 +154,6 @@ sql += setting("contact", { whatsapp: "", phone: "", email: "", facebook: "", yo
 sql += setting("announcement", { bn: "", en: "" });
 sql += setting("payments", {
   sslcommerz: true,
-  bkash_direct: false,
   manual: true,
   manual_numbers: { bkash: "", nagad: "", rocket: "" },
   manual_note_bn: "টাকা পাঠিয়ে ট্রানজেকশন আইডি (TrxID) এবং যে নম্বর থেকে পাঠিয়েছেন সেটি জমা দিন। যাচাই শেষে আপনার ক্লাস চালু হবে।",

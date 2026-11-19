@@ -3,13 +3,14 @@ import type { AppEnv } from "../env";
 import { HttpError } from "../lib/http";
 
 /**
- * Public images (class banners and pictures, instructor photos, blog covers) from the R2 bucket.
+ * Public images (class banners and pictures, instructor photos, blog covers, the shop's Bangla QR) from the R2 bucket.
  * Keys are content-hashed on upload, so responses are immutable and cacheable for a year.
  * Private lesson files are NOT served here — they only come out of the authorised student endpoint.
  */
 export const mediaRoutes = new Hono<AppEnv>();
 
-const PUBLIC_PREFIXES = ["banners/", "photos/", "blog/", "site/", "gallery/"];
+// payments/: the shop's Bangla QR, shown to a buyer at checkout (a picture meant to be scanned by anyone paying)
+const PUBLIC_PREFIXES = ["banners/", "photos/", "blog/", "site/", "gallery/", "payments/"];
 
 mediaRoutes.get("/*", async (c) => {
   const key = decodeURIComponent(new URL(c.req.url).pathname.replace(/^\/media\//, ""));

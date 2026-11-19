@@ -9,8 +9,8 @@ import { adminLogin, useLang } from "./helpers";
  * never fetched here (the address is a made-up file on SSLCommerz's server, and this machine cannot reach SSLCommerz): what is checked is that
  * the right address is on the page, where it should be, without breaking the layout on a phone. The Worker's side (what is accepted, the
  * price answer, the security policy) is in worker/test/ssl-logo.test.ts. With the box empty, the copy of SSLCommerz's picture the owner sent
- * (served by the website) stands in once the store's keys are set — this copy of the site has none, so its pages keep the small marks, while
- * the admin shows the owner that copy under the empty box. Runs after the admin spec (the owner exists); puts things back after.
+ * (served by the website) stands in — always, whether or not auto pay is switched on or the store's keys are set: the footer never goes
+ * without it. The admin shows the owner that copy under the empty box. Runs after the admin spec (the owner exists); puts things back after.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -93,7 +93,7 @@ test("at checkout the online choice shows SSLCommerz's picture instead of the sm
     await route.fulfill({ response: res, json: body });
   });
   await page.goto("/app/checkout?c=beginners-baking-class");
-  const online = page.locator("label.pay-opt", { hasText: "Secure online payment" });
+  const online = page.locator("label.pay-opt", { hasText: "Auto pay — SSLCommerz" });
   await expect(online.locator(".pay-ssl img")).toHaveAttribute("src", LOGO);
   await expect(online.locator(".pay-ssl img")).toHaveAttribute("alt", "Pay through SSLCommerz");
   await expect(online.locator(".pay-mark")).toHaveCount(0);
@@ -103,7 +103,7 @@ test("at checkout the online choice shows SSLCommerz's picture instead of the sm
   await ctx.close();
 });
 
-test("emptied again: the admin shows the copy the owner sent (really loaded), and without the store's keys the small marks come back", async ({ browser }) => {
+test("emptied again: the admin shows the copy the owner sent (really loaded), and every page keeps that copy in the footer", async ({ browser }) => {
   await admin.goto("/admin/settings?tab=payments");
   await box().fill("");
   const own = admin.locator(".ssl-preview img");
@@ -115,7 +115,9 @@ test("emptied again: the admin shows the copy the owner sent (really loaded), an
   await useLang(ctx, "en");
   const page = await ctx.newPage();
   await page.goto("/en");
-  await expect(page.locator("footer .ssl-logo")).toHaveCount(0);
-  await expect(page.locator("footer .pay-logos img")).toHaveCount(5);
+  const banner = page.locator("footer .ssl-logo img");
+  await expect(banner).toHaveAttribute("src", "/pay/sslcommerz.png");
+  await expect.poll(() => banner.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth)).toBe(640);
+  await expect(page.locator("footer .pay-logos")).toHaveCount(0);
   await ctx.close();
 });

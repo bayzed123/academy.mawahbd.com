@@ -1,12 +1,11 @@
 import { raw } from "hono/html";
 import { loc, readSslLogo, SSL_BANNER, THEME_ICON, waNumber } from "@mawah/shared";
-import { sslConfigured } from "../services/payments/sslcommerz";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
 import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, FONTS_CSS, GALLERY_JS, LANDING_CSS, LIST_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_FONTS_BN_CSS, SITE_FONTS_EN_CSS, SITE_JS, THEME_CSS, THEME_JS, VIDEO_CSS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
-import { DEVELOPER, PAY_LOGOS } from "./footer-data";
+import { DEVELOPER } from "./footer-data";
 import { messengerOf, TopBar, topBar } from "./topbar";
 import { Brand, Icon, jsonLd, shopOf } from "./ui";
 
@@ -169,10 +168,10 @@ export function Layout(props: LayoutProps) {
   const ig = httpUrl(settings.contact.instagram);
   // the registered address and trade licence number (SSLCommerz asks for them on every page)
   const regAddress = lang === "bn" ? settings.contact.address_bn || settings.contact.address_en : settings.contact.address_en || settings.contact.address_bn;
-  // SSLCommerz's picture of the ways to pay takes the place of the five small marks while SSLCommerz is switched on: the one the owner pasted
-  // (Settings → Payments), else — once the store's keys are set, so SSLCommerz really takes payments — the copy of it the owner sent
-  const pasted = settings.payments.sslcommerz ? readSslLogo(settings.payments.ssl_logo) : null;
-  const sslLogo = pasted ?? (settings.payments.sslcommerz && sslConfigured(env) ? { src: SSL_BANNER.src, href: null } : null);
+  // SSLCommerz's picture of the ways to pay stays in the footer at all times — SSLCommerz asks for it on every page of a store it serves, and
+  // it must not come and go with the auto-pay switch: the one the owner pasted (Settings → Payments), else the copy of it the owner sent
+  const pasted = readSslLogo(settings.payments.ssl_logo);
+  const sslLogo = pasted ?? { src: SSL_BANNER.src, href: null };
   const sslSize = pasted ? {} : { width: SSL_BANNER.width, height: SSL_BANNER.height };
   const shop = shopOf(ctx);
   // the owner's other shop leaves the site (a new tab, said for screen readers); the tools shop here is an ordinary link
@@ -509,26 +508,16 @@ export function Layout(props: LayoutProps) {
                   <p class="foot-h mt" id="pay-h">
                     {t("footer.payments")}
                   </p>
-                  {sslLogo ? (
-                    <p class="ssl-logo">
-                      {sslLogo.href ? (
-                        <a href={sslLogo.href} rel="noopener noreferrer" target="_blank">
-                          <img src={sslLogo.src} alt={t("footer.sslAlt")} loading="lazy" decoding="async" />
-                          <span class="vh"> ({t("shop.opens")})</span>
-                        </a>
-                      ) : (
-                        <img src={sslLogo.src} {...sslSize} alt={t("footer.sslAlt")} loading="lazy" decoding="async" />
-                      )}
-                    </p>
-                  ) : (
-                    <ul class="pay-logos" aria-labelledby="pay-h">
-                      {PAY_LOGOS.map((p) => (
-                        <li>
-                          <img src={p.src} width={p.width} height={p.height} alt={t(`method.${p.key}` as "method.bkash")} loading="lazy" decoding="async" />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <p class="ssl-logo">
+                    {sslLogo.href ? (
+                      <a href={sslLogo.href} rel="noopener noreferrer" target="_blank">
+                        <img src={sslLogo.src} alt={t("footer.sslAlt")} loading="lazy" decoding="async" />
+                        <span class="vh"> ({t("shop.opens")})</span>
+                      </a>
+                    ) : (
+                      <img src={sslLogo.src} {...sslSize} alt={t("footer.sslAlt")} loading="lazy" decoding="async" />
+                    )}
+                  </p>
                 </div>
               </div>
               <div class="wrap foot-bottom">

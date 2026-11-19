@@ -39,3 +39,18 @@ export async function resolveApiKey(env: Env, row: Pick<ProviderRow, "provider" 
 }
 
 export const maskKey = (key: string) => `••••${key.slice(-4)}`;
+
+/**
+ * A key as people paste it: with spaces or a line break in it, in quotes, or with its name in front ("GEMINI_API_KEY=…", "x-goog-api-key: …",
+ * "Bearer …"). Google's keys come in more than one shape (the older "AIza…" ones and newer ones with a dot in them), so the shape is checked
+ * loosely here and the real check is the connection test.
+ */
+export function cleanApiKey(raw: string): string {
+  let k = raw.trim().replace(/^["'`]+|["'`]+$/g, "");
+  k = k.replace(/^Bearer\s+/i, "");
+  k = k.replace(/^(?:export\s+)?(?:GEMINI_API_KEY|GOOGLE_API_KEY|API_KEY|x-goog-api-key|key)\s*[:=]\s*/i, "");
+  return k.replace(/\s+/g, "").replace(/^["'`]+|["'`]+$/g, "");
+}
+
+/** What a usable key looks like once cleaned: long enough, and only the characters keys are made of. */
+export const API_KEY_SHAPE = /^[A-Za-z0-9._~+/=-]{20,512}$/;

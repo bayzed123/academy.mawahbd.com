@@ -31,9 +31,10 @@ const materialIcon: Record<MaterialKind, string> = { video: "video", pdf: "file"
 const lessonIcon = { video: "play", external: "play", text: "book", resource: "download" } as const;
 
 /**
- * The demo class (Admin → Classes → Demo class): a few words, then the video as a picture with a play button. Pressed, the video site's own
- * player takes the picture's place and starts — on this page (marketing/site.js), never a link away; without JavaScript the picture opens
- * the video on its own site. Only YouTube and Vimeo: the public pages load no other player.
+ * The demo class (Admin → Classes → Demo class), laid out like a video site: the video first, as a picture with a play button, then its
+ * name, then the owner's few words — nothing to read before the video. It sits right under the class's pictures, before the class's own
+ * description. Pressed, the video site's own player takes the picture's place and starts — on this page (marketing/site.js), never a link
+ * away; without JavaScript the picture opens the video on its own site. Only YouTube and Vimeo: the public pages load no other player.
  */
 export function DemoClass({ ctx, course, title }: { ctx: PageCtx; course: CourseDetail; title: string }) {
   const { t, lang } = ctx;
@@ -48,7 +49,6 @@ export function DemoClass({ ctx, course, title }: { ctx: PageCtx; course: Course
       <h2 id="demo-h">
         <Highlight text={t("course.demo.title")} hl={t("course.demo.hl")} />
       </h2>
-      <p class="demo-text">{words}</p>
       <div class="vid" data-player={`${embed.src}${embed.src.includes("?") ? "&" : "?"}autoplay=1`} data-title={name}>
         <a class="vid-play" href={watch} target="_blank" rel="noopener noreferrer" aria-label={`${t("course.demo.play")}: ${name}`}>
           {thumb && <img src={thumb} alt="" loading="lazy" decoding="async" width={480} height={360} />}
@@ -61,6 +61,7 @@ export function DemoClass({ ctx, course, title }: { ctx: PageCtx; course: Course
         </a>
       </div>
       <p class="vid-title">{name}</p>
+      <p class="demo-text">{words}</p>
     </section>
   );
 }
@@ -237,6 +238,8 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
             )}
           </div>
 
+          <DemoClass ctx={ctx} course={course} title={title} />
+
           <section class="prose" aria-labelledby="about-h">
             <h2 id="about-h">{t("course.about")}</h2>
             {longMd ? raw(renderMarkdown(longMd)) : <p>{loc(course, "short", lang)}</p>}
@@ -249,8 +252,6 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
               </p>
             )}
           </section>
-
-          <DemoClass ctx={ctx} course={course} title={title} />
 
           <section aria-labelledby="inc-h">
             <h2 id="inc-h">{t("course.includes")}</h2>

@@ -6,7 +6,7 @@ import { adminLogin, apiPost, offerAnswered, useLang } from "./helpers";
  * A class's demo class, end to end (the owner's fifth round: "before enrolling, an option to watch a demo class on the class page"). The
  * owner opens it from the class's row in Admin → Classes ("Add demo" → the editor's own Demo class tab) and puts a YouTube address there —
  * a Facebook or Google Drive video is explained before saving and a Facebook link refused in plain words, and the editor confirms the video
- * plays on the class page — and a visitor sees "Free demo class" on the class's card, the demo under the class's description, and starts it
+ * plays on the class page — and a visitor sees "Free demo class" on the class's card, the demo before the class's description (the video first), and starts it
  * with one press of "Watch the demo class" in the price box, on the same page. The video site is stood in for: the test machine does not
  * reach the internet.
  */
@@ -98,7 +98,7 @@ test("the owner adds a demo from the class's row in Admin → Classes; Facebook 
   await expect(row.getByRole("link", { name: `Add demo — ${TITLE}` })).toHaveCount(0);
 });
 
-test("a visitor sees the demo under the class's description and starts it with one press, on the same page, in both languages", async ({ browser }) => {
+test("a visitor sees the demo before the class's description and starts it with one press, on the same page, in both languages", async ({ browser }) => {
   const ctx = await browser.newContext({ locale: "en-US" });
   await useLang(ctx, "en");
   await offerAnswered(ctx);
@@ -108,14 +108,14 @@ test("a visitor sees the demo under the class's description and starts it with o
   const demo = page.locator("#demo");
   await expect(demo.getByRole("heading", { level: 2, name: "Watch a demo class" })).toBeVisible();
   await expect(demo.getByText("Watch us make the base, step by step.")).toBeVisible();
-  // under the description, before what the class includes
+  // the video before the description (like a video site), and both before what the class includes
   const [about, at, includes] = await Promise.all([
     page.getByRole("heading", { level: 2, name: "About this class" }).boundingBox(),
     demo.boundingBox(),
     page.getByRole("heading", { level: 2, name: "This class includes" }).boundingBox(),
   ]);
-  expect(about!.y).toBeLessThan(at!.y);
-  expect(at!.y).toBeLessThan(includes!.y);
+  expect(at!.y).toBeLessThan(about!.y);
+  expect(about!.y).toBeLessThan(includes!.y);
   await demo.scrollIntoViewIfNeeded();
   const scan = await new AxeBuilder({ page }).include("#demo").include("aside.buy").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
   expect(scan.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id)).toEqual([]);

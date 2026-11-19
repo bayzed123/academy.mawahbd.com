@@ -10,7 +10,7 @@ import { ClassPictures } from "../components/ClassPictures";
 import { CurriculumBuilder } from "../components/Curriculum";
 import { FormFields, initialValues, toPayload, type FieldDef, type Values } from "../components/Form";
 import { CourseStateChip } from "../components/CourseState";
-import { Button, Chip, ErrorState, Icon, PageHeader, Panel, Spinner, Tabs, useConfirm, useFieldErrors, useToast } from "../components/ui";
+import { Button, Chip, ErrorState, Field, Icon, PageHeader, Panel, SlideOver, Spinner, Tabs, TextArea, useConfirm, useFieldErrors, useToast } from "../components/ui";
 import { VideoLinkHelp } from "../components/VideoLinkHelp";
 import { useCategoryOptions, useInstructorOptions } from "./Courses";
 
@@ -142,6 +142,36 @@ export function CourseEditor() {
     },
   });
 
+  // "Write with AI": a first draft of the class's words in both languages, from its title, price, level, lessons and the owner's notes.
+  // It only fills the form — nothing is saved until the owner reads it and presses Save.
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiNotes, setAiNotes] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const draft = async () => {
+    setAiBusy(true);
+    try {
+      const r = await adm<{ draft: Record<string, string> }>("/ai/draft/course", {
+        json: {
+          course_id: id ?? undefined,
+          title_bn: String(values.title_bn ?? ""),
+          title_en: String(values.title_en ?? ""),
+          price: Number(values.price) || 0,
+          level: values.level ? String(values.level) : null,
+          notes: aiNotes,
+        },
+      });
+      const keys = Object.keys(r.draft);
+      for (const k of keys) set(k, r.draft[k]);
+      setAiOpen(false);
+      toast(keys.length ? t("adm.aiDraft.done") : t("adm.aiDraft.empty"), !keys.length);
+    } catch (e) {
+      const code = e instanceof ApiError ? (e.fields?.title_bn ? "adm.aiDraft.needTitle" : e.code === "ai_not_configured" ? "adm.aiDraft.notReady" : `err.${e.code}`) : "err.generic";
+      toast(t(code as "err.generic"), true);
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
   const onSave = async () => {
     // publishing a class without lessons is allowed, but never by accident: students who pay would find it empty. Asked when it is being
     // published — not again at every later save of a class already on sale (a class taught live has no lessons in the app at all)
@@ -219,11 +249,42 @@ export function CourseEditor() {
       ) : (
         <Panel>
           {tab === "details" && <p className="hint status-hint">{statusHint}</p>}
+          {canWrite && (tab === "details" || tab === "seo") && (
+            <div className="ai-draft-row">
+              <Button className="btn-outline btn-sm" onClick={() => setAiOpen(true)}>
+                <Icon name="sparkle" /> {t("adm.aiDraft.button")}
+              </Button>
+              <span className="hint">{t("adm.aiDraft.hint")}</span>
+            </div>
+          )}
           {tab === "demo" && <p className="hint">{t("adm.f.demoIntro")}</p>}
           <FormFields fields={tab === "seo" ? seoFields : tab === "demo" ? demoFields : detailFields} values={values} errors={errors} onChange={set} idPrefix="c" />
           {tab === "seo" && <p className="hint">{t("adm.f.seoNote")}</p>}
         </Panel>
       )}
+      <SlideOver
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        title={t("adm.aiDraft.title")}
+        footer={
+          <Button className="btn-primary" busy={aiBusy} disabled={!String(values.title_bn ?? "").trim() && !String(values.title_en ?? "").trim()} onClick={draft}>
+            <Icon name="sparkle" /> {t("adm.aiDraft.write")}
+          </Button>
+        }
+      >
+        <div className="stack">
+          <p className="muted">{t("adm.aiDraft.intro")}</p>
+          <Field id="ai-notes" label={t("adm.aiDraft.notes")} hint={t("adm.aiDraft.notesHint")}>
+            <TextArea id="ai-notes" rows={6} maxLength={3000} value={aiNotes} onChange={(e) => setAiNotes(e.target.value)} />
+          </Field>
+          <div className="notice">
+            <Icon name="shield" />
+            <div>
+              <p>{t("adm.aiDraft.honest")}</p>
+            </div>
+          </div>
+        </div>
+      </SlideOver>
     </>
   );
 }

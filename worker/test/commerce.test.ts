@@ -209,7 +209,7 @@ describe("checkout & webhook-driven enrollment", () => {
     const course = await makeCourse();
     expect((await new Client().post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" })).status).toBe(401);
     const { client } = await registerStudent();
-    const bad = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "bkash" });
+    const bad = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "bangla_qr" });
     expect(bad.status).toBe(400);
     expect((await json(bad)).error.code).toBe("payment_unavailable");
   });
@@ -293,7 +293,6 @@ describe("coupons", () => {
 describe("manual send-money payments", () => {
   const payments = (numbers: { bkash: string; nagad: string; rocket: string }) => ({
     sslcommerz: true,
-    bkash_direct: false,
     manual: true,
     manual_numbers: numbers,
     manual_note_bn: "",

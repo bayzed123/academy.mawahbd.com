@@ -28,7 +28,7 @@ export const gemini: AiProvider = {
           ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
           contents,
           // thinking models spend part of the budget reasoning: leave head-room so the visible answer is not cut short
-          generationConfig: { temperature: settings.temperature, maxOutputTokens: settings.max_tokens + 800 },
+          generationConfig: { temperature: settings.temperature, maxOutputTokens: settings.max_tokens + 800, ...(settings.json ? { responseMimeType: "application/json" } : {}) },
         }),
       });
     } catch (err) {

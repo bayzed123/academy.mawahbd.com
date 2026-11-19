@@ -7,6 +7,7 @@ import { useI18n } from "../lib/i18n";
 import { DataTable } from "../components/DataTable";
 import { Button, Chip, Field, Icon, IconButton, PageHeader, Panel, Select, SlideOver, Spinner, StatusChip, Tabs, TextArea, useConfirm, useToast } from "../components/ui";
 import { useCourseOptions } from "./Courses";
+import { HandoffDrawer } from "../components/HandoffDrawer";
 
 const REVIEW_STATUSES = ["pending", "approved", "rejected"] as const;
 
@@ -476,17 +477,30 @@ export function Signups() {
           />
         </>
       ) : (
-        <DataTable<{ id: number; email: string; lang: string; source: string; created_at: string; unsubscribed_at: string | null }>
-          endpoint="/subscribers"
-          csv
-          columns={[
-            { key: "email", label: t("label.email"), render: (r) => <b>{r.email}</b> },
-            { key: "lang", label: t("adm.f.language"), desktopOnly: true, render: (r) => (r.lang === "bn" ? "বাংলা" : "English") },
-            { key: "source", label: t("adm.signups.source"), desktopOnly: true },
-            { key: "date", label: t("label.date"), render: (r) => date(r.created_at) },
-            { key: "status", label: t("label.status"), render: (r) => (r.unsubscribed_at ? <Chip tone="bad">{t("adm.signups.unsub")}</Chip> : <Chip tone="ok">{t("status.active")}</Chip>) },
-          ]}
-        />
+        <>
+          <p className="hint">{t("adm.signups.marketingHint")}</p>
+          <DataTable<{ id: number; kind: "subscriber" | "student"; email: string; name: string | null; phone: string | null; lang: string; source: string; created_at: string; unsubscribed_at: string | null; consent: number }>
+            endpoint="/subscribers"
+            csv
+            searchPlaceholder={t("adm.signups.searchAll")}
+            filters={[
+              { key: "kind", label: t("adm.signups.type"), options: [{ value: "student", label: t("adm.signups.kind.student") }, { value: "subscriber", label: t("adm.signups.kind.subscriber") }] },
+              { key: "consent", label: t("adm.signups.consent"), options: [{ value: "1", label: t("adm.yes") }, { value: "0", label: t("adm.no") }] },
+            ]}
+            columns={[
+              { key: "email", label: t("label.email"), render: (r) => (<span className="cell-title"><b>{r.email}</b>{r.name && <small>{r.name}</small>}</span>) },
+              { key: "phone", label: t("label.phone"), desktopOnly: true, render: (r) => r.phone ?? "—" },
+              { key: "kind", label: t("adm.signups.type"), render: (r) => <Chip tone={r.kind === "student" ? "info" : "neutral"}>{t(`adm.signups.kind.${r.kind}`)}</Chip> },
+              { key: "lang", label: t("adm.f.language"), desktopOnly: true, render: (r) => (r.lang === "bn" ? "বাংলা" : "English") },
+              { key: "date", label: t("label.date"), desktopOnly: true, render: (r) => date(r.created_at) },
+              {
+                key: "status",
+                label: t("adm.signups.consent"),
+                render: (r) => (r.unsubscribed_at ? <Chip tone="bad">{t("adm.signups.unsub")}</Chip> : r.consent ? <Chip tone="ok">{t("adm.signups.offersYes")}</Chip> : <Chip>{t("adm.signups.offersNo")}</Chip>),
+              },
+            ]}
+          />
+        </>
       )}
     </>
   );
@@ -509,6 +523,8 @@ interface Handoff {
   lang: string;
   status: string;
   created_at: string;
+  asked: number;
+  answered: number;
   course_title_en: string | null;
   course_title_bn: string | null;
   student_name: string | null;
@@ -522,6 +538,8 @@ export function Messages() {
   const tab = params.get("tab") === "handoffs" ? "handoffs" : "messages";
   const act = useAct(["/messages", "/escalations"]);
   const canWrite = can("messages:write");
+  // a hand-off opens in a drawer: the question, who asked, and where the team writes the answer (and teaches the chatbot)
+  const [openId, setOpenId] = useState<number | null>(null);
   return (
     <>
       <PageHeader title={t("adm.nav.messages")} sub={t("adm.messages.sub")} />
@@ -548,9 +566,12 @@ export function Messages() {
           )}
         />
       ) : (
+        <>
+        <p className="hint">{t("adm.handoff.listHint")}</p>
         <DataTable<Handoff>
           endpoint="/escalations"
           csv={false}
+          onRowClick={(r) => setOpenId(r.id)}
           filters={[{ key: "status", label: t("label.status"), options: [{ value: "open", label: t("status.open") }, { value: "handled", label: t("adm.messages.handled") }] }]}
           columns={[
             {
@@ -566,12 +587,20 @@ export function Messages() {
                 </span>
               ),
             },
-            { key: "reason", label: t("adm.messages.reason"), desktopOnly: true, render: (r) => t(`adm.escalation.${r.reason}` as "adm.escalation.low_confidence") },
+            { key: "asked", label: t("adm.handoff.askedCol"), render: (r) => (r.asked > 1 ? <Chip tone="warn">{t("adm.handoff.asked", { n: String(r.asked) })}</Chip> : "1") },
+            { key: "reason", label: t("adm.messages.reason"), desktopOnly: true, render: (r) => (r.answered ? <Chip tone="ok">{t("adm.handoff.answeredChip")}</Chip> : t(`adm.escalation.${r.reason}` as "adm.escalation.low_confidence")) },
             { key: "date", label: t("label.date"), desktopOnly: true, render: (r) => dateTime(r.created_at) },
             { key: "status", label: t("label.status"), render: (r) => <StatusChip status={r.status} /> },
           ]}
-          rowActions={canWrite ? (r) => <IconButton icon={r.status === "open" ? "check" : "refresh"} label={r.status === "open" ? t("adm.messages.markHandled") : t("adm.messages.reopen")} onClick={() => act(() => adm(`/escalations/${r.id}/status`, { json: { status: r.status === "open" ? "handled" : "open" } }))} /> : undefined}
+          rowActions={(r) => (
+            <div className="row nowrap">
+              <IconButton icon="edit" label={t("adm.handoff.open")} onClick={() => setOpenId(r.id)} />
+              {canWrite && <IconButton icon={r.status === "open" ? "check" : "refresh"} label={r.status === "open" ? t("adm.messages.markHandled") : t("adm.messages.reopen")} onClick={() => act(() => adm(`/escalations/${r.id}/status`, { json: { status: r.status === "open" ? "handled" : "open" } }))} />}
+            </div>
+          )}
         />
+        <HandoffDrawer id={openId} canWrite={canWrite} onClose={() => setOpenId(null)} />
+        </>
       )}
     </>
   );

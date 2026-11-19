@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "../../../env";
-import { getProvider, getProviderRow, maskKey, PROVIDER_IDS, resolveApiKey, type ProviderRow } from "../../../lib/ai-providers";
+import { API_KEY_SHAPE, cleanApiKey, getProvider, getProviderRow, maskKey, PROVIDER_IDS, resolveApiKey, type ProviderRow } from "../../../lib/ai-providers";
 import { audit } from "../../../lib/audit";
 import { encryptSecret } from "../../../lib/crypto";
 import { all, first, nowIso, run } from "../../../lib/db";
@@ -55,9 +55,9 @@ chatbot.get("/chatbot", requirePerm("chatbot:read"), async (c) => {
 
 const providerSchema = z.object({
   enabled: z.boolean(),
-  model: z.string().trim().min(2).max(120).regex(/^[\w@./:+-]+$/, "invalid_model"),
-  temperature: z.number().min(0).max(1.5),
-  max_tokens: z.number().int().min(50).max(2000),
+  model: z.string().trim().min(2, "invalid_model").max(120, "invalid_model").regex(/^[\w@./:+-]+$/, "invalid_model"),
+  temperature: z.number().min(0, "invalid_temperature").max(1.5, "invalid_temperature"),
+  max_tokens: z.number().int("tokens_range").min(50, "tokens_range").max(4000, "tokens_range"),
 });
 
 async function requireRow(id: string): Promise<never | void> {
@@ -85,7 +85,8 @@ chatbot.put("/chatbot/providers/:provider/key", requirePerm("chatbot:write"), as
   const id = c.req.param("provider");
   await requireRow(id);
   if (id === "workers_ai") throw new HttpError(400, "no_key_needed");
-  const body = await parseBody(c, z.object({ api_key: z.string().trim().min(20, "invalid_key").max(300, "invalid_key").regex(/^[\w-]+$/, "invalid_key") }));
+  // pasted keys arrive with spaces, quotes or their name in front: cleaned first, then only the shape is checked (the test call is the real check)
+  const body = await parseBody(c, z.object({ api_key: z.string().max(2000, "invalid_key").transform(cleanApiKey).pipe(z.string().regex(API_KEY_SHAPE, "invalid_key")) }));
   await run(
     c.env.DB,
     "UPDATE ai_provider_configs SET key_enc = ?, key_hint = ?, last_test_at = NULL, last_test_ok = NULL, last_test_detail = NULL, updated_at = ?, updated_by = ? WHERE provider = ?",

@@ -62,7 +62,7 @@ need(admin, "role descriptions", constants.ROLES.map((r) => `adm.role.desc.${r}`
 need(admin, "lesson types", constants.LESSON_TYPES.map((x) => `adm.lesson.type.${x}`));
 need(admin, "course status hints", constants.COURSE_STATUSES.map((s) => `adm.status.hint.${s}`));
 need(admin, "enrollment sources", ["purchase", "free", "admin", "bundle"].map((s) => `adm.source.${s}`));
-need(admin, "escalation reasons", ["low_confidence", "provider_error", "no_provider"].map((r) => `adm.escalation.${r}`));
+need(admin, "escalation reasons", ["low_confidence", "provider_error", "no_provider", "unverified_fact"].map((r) => `adm.escalation.${r}`));
 need(admin, "actors", ["staff", "student", "system"].map((a) => `adm.actor.${a}`));
 need(admin, "policies", ["refund", "terms", "privacy"].map((p) => `adm.policy.${p}`));
 need(admin, "levels", ["beginner", "intermediate", "advanced"].map((l) => `label.${l}`));
@@ -72,7 +72,7 @@ need(admin, "status words (admin)", statuses.map((s) => `status.${s}`));
 need(app, "status words (app)", constants.ORDER_STATUSES.map((s) => `status.${s}`));
 need(app, "app order statuses", constants.ORDER_STATUSES.flatMap((s) => [`app.orders.status.${s}.title`, `app.orders.status.${s}.body`]));
 need(app, "app review statuses", ["pending", "approved", "rejected"].map((s) => `app.course.review.status.${s}`));
-need(app, "app channels", ["sslcommerz", "bkash", "manual", "mock"].flatMap((c) => [`app.checkout.channel.${c}`, `app.checkout.channel.${c}.sub`]));
+need(app, "app channels", ["manual", "sslcommerz", "bangla_qr", "mock"].flatMap((c) => [`app.checkout.channel.${c}`, `app.checkout.channel.${c}.sub`]));
 
 // Admin → Analytics: every event the shop sends has a plain-words name, every setup problem is explained, every report section has a name
 const analytics = await load("shared/src/analytics.ts");
@@ -138,7 +138,7 @@ need(admin, "notification refusals", pushRefusals.filter((c) => c !== "required"
 
 // every error code the Worker can throw should have a translation in both UIs (generic is the safety net, but specific is kinder)
 const codes = new Set();
-for (const f of ["worker/src/routes/api/auth.ts", "worker/src/routes/api/checkout.ts", "worker/src/routes/api/student.tsx", "worker/src/services/orders.ts", "worker/src/services/learning.ts", "worker/src/services/payments/bkash.ts"]) {
+for (const f of ["worker/src/routes/api/auth.ts", "worker/src/routes/api/checkout.ts", "worker/src/routes/api/student.tsx", "worker/src/services/orders.ts", "worker/src/services/learning.ts"]) {
   for (const m of readFileSync(resolve(root, f), "utf8").matchAll(/(?:HttpError\(\d{3}, |forbidden\(|conflict\(|badRequest\(|unauthorized\(|notFound\()"([a-z_]+)"/g)) codes.add(m[1]);
 }
 const skip = new Set(["not_found", "unauthorized", "forbidden", "bad_request", "invalid_json", "validation", "unsupported_media_type", "payload_too_large", "invalid_token", "payment_unavailable", "gateway_init_failed"]);

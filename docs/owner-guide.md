@@ -90,31 +90,29 @@
 
 ## ৫. পেমেন্ট গ্রহণ
 
-*সেটিংস → পেমেন্ট*-এ তিনটি উপায়:
+*সেটিংস → পেমেন্ট*-এ ঠিক তিনটি উপায় — শিক্ষার্থীরা এর বাইরে কিছু দেখেন না:
 
 | উপায় | কী লাগবে | শিক্ষার্থী কী দেখবেন |
 |---|---|---|
-| **অনলাইন পেমেন্ট (SSLCommerz)** | SSLCommerz মার্চেন্ট অ্যাকাউন্ট ও তার Store ID/Password — **ডেভেলপার সিক্রেট হিসেবে বসাবেন** | বিকাশ, নগদ, রকেট বা কার্ড — পেমেন্ট শেষ হলে **নিজে নিজেই** ক্লাস খুলে যায় |
-| **সরাসরি বিকাশ** (ঐচ্ছিক) | বিকাশের টোকেনাইজড চেকআউট কী | বিকাশ পেজে পেমেন্ট |
-| **ম্যানুয়াল সেন্ড মানি** | শুধু আপনার বিকাশ/নগদ/রকেট নম্বর, এবং/অথবা আপনার SSLCommerz পেমেন্ট লিংক (**সেটিংস → পেমেন্ট**-এ বসান) — কোনো গেটওয়ে লাগে না | শিক্ষার্থী আগে **নিজের কোন নম্বর থেকে টাকা পাঠাবেন** সেটি লেখেন, তারপর আপনার নম্বর, টাকার অঙ্ক ও **২০ মিনিটের কাউন্টডাউন** দেখেন। টাকা পাঠিয়ে **TrxID এবং/অথবা স্ক্রিনশট** জমা দেন (চাইলে তৈরি করা **হোয়াটসঅ্যাপ মেসেজ** পাঠান)। **আপনি যাচাই করে অনুমোদন দিলে** ক্লাস খোলে এবং তাঁর খোলা পাতা নিজে থেকেই “সফল” দেখায় |
+| **ম্যানুয়াল সেন্ড মানি** | আপনার বিকাশ / নগদ / রকেট নম্বর (**সেটিংস → পেমেন্ট**) — কোনো গেটওয়ে লাগে না | শিক্ষার্থী সেবা বেছে **এগিয়ে যান** চাপেন (নিজের নম্বর ঐচ্ছিক), তারপর আপনার নম্বর, টাকার অঙ্ক আর সময় দেখেন; টাকা পাঠিয়ে **TrxID বা স্ক্রিনশট** দেন — যেকোনো একটিই যথেষ্ট |
+| **অটো পে — SSLCommerz** | SSLCommerz মার্চেন্ট অ্যাকাউন্ট ও তার Store ID/Password — **ডেভেলপার সিক্রেট হিসেবে বসাবেন** | বিকাশ, নগদ, রকেট বা কার্ডে SSLCommerz-এর নিরাপদ পেজে পেমেন্ট — পেমেন্ট হলেই ক্লাস **নিজে থেকে** খুলে যায় |
+| **বাংলা QR** | কিছুই না: আপনার **MAWAH বাংলা QR আগে থেকেই বসানো** — শুধু **চালু** বা **বন্ধ** করুন | বড়, স্পষ্ট QR, টাকার অঙ্ক আর অর্ডার কোড; যেকোনো ব্যাংক বা মোবাইল ব্যাংকিং অ্যাপে স্ক্যান করে টাকা পাঠিয়ে TrxID বা স্ক্রিনশট দেন |
 
-**চেকআউটে উপায়গুলো এই ক্রমে থাকে: আগে ম্যানুয়ালি সেন্ড মানি (পেজ খুললে এটিই বেছে রাখা থাকে), তারপর নিরাপদ অনলাইন পেমেন্ট — “বিকাশ, নগদ, রকেট বা কার্ড” (SSLCommerz)।** অনলাইন পেমেন্ট বেছে নিয়ে শিক্ষার্থী **পেমেন্ট করুন** চাপলে সরাসরি SSLCommerz-এর নিজস্ব সুরক্ষিত পেজ খোলে; সেখানে বিকাশ, নগদ, রকেট বা কার্ড বেছে নিয়ে পিন বা কার্ড নম্বর লেখেন — এই ওয়েবসাইটে কখনো নয়। **শর্তাবলি**, **গোপনীয়তা নীতি** ও **রিফান্ড ও বাতিল নীতি**-র লিংক থাকে পেমেন্টের আগে টিক দেওয়ার ঘরে।
+**চেকআউটে উপায়গুলো এই ক্রমে থাকে: আগে ম্যানুয়ালি সেন্ড মানি (পেজ খুললে এটিই বাছা থাকে), তারপর অটো পে — SSLCommerz, তারপর বাংলা QR।** পেমেন্টের কোনো কিছুর জন্য শিক্ষার্থী আটকে যান না: **এগিয়ে যান**-এর আগে শুধু পেমেন্টের উপায় আর টিক বক্স লাগে; কিছু বাকি থাকলে বোতামের পাশে লিখে জানানো হয়।
+
+**বাংলা QR — চালু / বন্ধ:**
+1. *সেটিংস → পেমেন্ট → বাংলা QR*: সুইচে **চালু** বা **বন্ধ** লেখা থাকে। চালু থাকলে চেকআউটে দেখায়, বন্ধ থাকলে দেখায় না। **সংরক্ষণ করুন** চাপুন।
+2. প্রিভিউতে শিক্ষার্থীরা যে QR দেখবেন সেটি — আপনার MAWAH QR (মার্চেন্ট PBLQR00655396, চট্টগ্রাম), আপনার পাঠানো PDF থেকে স্পষ্ট ছবি করে বানানো, আর স্ক্যান করে মিলিয়ে দেখা যে পেমেন্ট কোড হুবহু একই। নিজের ফোনে প্রিভিউটি স্ক্যান করে দেখে নিন।
+3. ব্যাংক নতুন QR দিলে **অন্য QR আপলোড করুন** চাপুন (PNG, JPG বা WebP — ছবি যেমন আছে তেমনই থাকে, ছোট করা হয় না)। **আগের বসানো QR-এ ফিরে যান** চাপলে MAWAH QR ফিরে আসে।
+4. **যে নামে টাকা যাবে** (MAWAH) QR-এর নিচে শিক্ষার্থীকে দেখানো হয়, যাতে অ্যাপে মিলিয়ে নিতে পারেন।
+5. QR-এর পেমেন্ট যাচাই সেন্ড মানির মতোই: *অর্ডার → যাচাইয়ের অপেক্ষায়*; অর্ডারে লেখা থাকে **বাংলা QR**। ব্যাংক বা ওয়ালেটের স্টেটমেন্টে পেমেন্টটি খুঁজুন (একই অঙ্ক; শিক্ষার্থী লিখে থাকলে অর্ডার কোড), তারপর **পেমেন্ট অনুমোদন**।
 
 **ম্যানুয়াল পেমেন্ট যাচাই (প্রতিদিনের কাজ):**
 1. বাঁ মেনু → **অর্ডার** (পাশে লাল সংখ্যা মানে কতগুলো অপেক্ষায়)। অবস্থা “যাচাইয়ের অপেক্ষায়” বেছে নিন।
 2. অর্ডার খুলুন → আপনার ফোনের বিকাশ/নগদ/রকেট মেসেজের সাথে **TrxID, কোন নম্বর থেকে এসেছে ও টাকার অঙ্ক** মেলান। স্ক্রিনশট পাঠালে অর্ডারেই দেখা যাবে (শুধু আপনারা যাঁরা পেমেন্ট যাচাই করতে পারেন তাঁরাই দেখেন)।
 3. মিললে **পেমেন্ট অনুমোদন** — ক্লাস সাথে সাথে খুলবে, ইনভয়েস নম্বর তৈরি হবে। না মিললে **প্রত্যাখ্যান** — শিক্ষার্থীকে ইমেইলে জানানো হবে, তিনি আবার চেষ্টা করতে পারবেন।
 
-> ম্যানুয়াল অপশন সেটিংসে **আপনার নম্বর বা SSLCommerz পেমেন্ট লিংক না বসানো পর্যন্ত শিক্ষার্থীদের কাছে আসে না**।
-
-**আপনার SSLCommerz পেমেন্ট লিংক** (ঐচ্ছিক) — SSLCommerz প্যানেলের পেমেন্ট লিংকটি (দেখতে `https://invoice.sslcommerz.com/invoice-form?refer=…`) আপনার স্টোরের জন্য SSLCommerz-এর নিজের পেমেন্ট পেজ খোলে, যেখানে কার্ড, বিকাশ, নগদ বা SSLCommerz-এর দেওয়া যেকোনো উপায়ে পেমেন্ট করা যায়। সেই পেমেন্টের খবর ওয়েবসাইট নিজে পায় না — তাই এটি সেন্ড মানির মতোই চলে: আপনি মিলিয়ে অনুমোদন দেন।
-1. *সেটিংস → পেমেন্ট*-এ **SSLCommerz পেমেন্ট লিংক (ঐচ্ছিক)** ঘরে লিংকটি বসিয়ে **সংরক্ষণ করুন**। শুধু `sslcommerz.com`-এর `https://` লিংক নেওয়া হয়; ভুল হলে সহজ ভাষায় কারণ দেখায়।
-2. চেকআউটে **ম্যানুয়ালি সেন্ড মানি**-র ভেতরে শিক্ষার্থী তখন **কার্ড বা মোবাইল ব্যাংকিং (SSLCommerz-এর পেমেন্ট পেজ)** বেছে নিতে পারেন। তিনি নিজের মোবাইল নম্বর লেখেন, তারপর টাকার অঙ্ক, অর্ডার কোড আর **পেমেন্ট পেজ খুলুন** বোতাম দেখেন (নতুন ট্যাবে খোলে)। আপনার লিংকের ফর্মে ঘরগুলো থাকলে SSLCommerz-এর পেজ খোলে **টাকার অঙ্ক, অর্ডার কোড (“Order Id” ঘরে) এবং শিক্ষার্থীর নাম ও মোবাইল নম্বর আগে থেকেই বসানো অবস্থায়**। সেখানে পেমেন্ট করে SSLCommerz-এর ট্রানজ্যাকশন আইডি আমাদের পেজে লেখেন (চাইলে রসিদের স্ক্রিনশটও)।
-3. যাচাই অন্য ম্যানুয়াল পেমেন্টের মতোই: *অর্ডার → যাচাইয়ের অপেক্ষায়*; অর্ডারে লেখা থাকে **SSLCommerz পেমেন্ট লিংক**। আপনার SSLCommerz প্যানেলে লেনদেনটি খুঁজুন (একই টাকা, শিক্ষার্থীর মোবাইল নম্বর, আর লিখে থাকলে অর্ডার কোড), তারপর **পেমেন্ট অনুমোদন**।
-* লিংকে নির্দিষ্ট টাকার অঙ্ক বাঁধা থাকলে সেটি শুধু সেই দামের ক্লাসেই চলে — SSLCommerz থেকে এমন লিংক নিন যেখানে শিক্ষার্থী নিজে টাকার অঙ্ক লেখেন।
-* **কোন লিংকটি সবচেয়ে ভালো:** SSLCommerz প্যানেলে (*Payment Option*) **Invoice** ধরনের লিংক, যার অ্যাকাউন্টের নাম **Order Id**। অর্ডার কোড সেই ঘরে বসে যায়, তাই পেমেন্টের সাথে কোডটি থাকে এবং প্যানেলে কোড দিয়েই খুঁজে পান।
-* কোনো নম্বর ছাড়া শুধু লিংক দিলেও চলে: তখন ম্যানুয়াল অপশনে শুধু এই উপায়টি থাকে। ঘর খালি করলে উপায়টি আর দেখায় না।
-* এটি সাময়িক ব্যবস্থা: SSLCommerz আপনার স্টোরের ওয়েবসাইট `https://mawahacademy.com` করে দিলে সাধারণ অনলাইন পেমেন্টেই ক্লাস নিজে নিজে খোলে — অনুমোদন লাগে না।
+> ম্যানুয়াল অপশন **অন্তত একটি নম্বর না বসানো পর্যন্ত** শিক্ষার্থীদের দেখানো হয় না।
 
 **SSLCommerz-এর লোগো** — SSLCommerz প্রতিটি দোকানকে ওয়েবসাইটে তাদের লোগো (একটি ছবিতে সব পেমেন্ট মাধ্যমের লোগো) দেখাতে বলে, আর সেই ছবির লিংক তারাই দেয় — ওয়েবসাইট নিজে থেকে কোনো লিংক বানায় না। আপনার পাঠানো ছবিটি (“Pay With … Verified by SSLCommerz”) ওয়েবসাইটে রাখা আছে: অনলাইন পেমেন্ট চালু আর স্টোরের কী বসানো থাকলে, ঘর খালি থাকলেও এটিই প্রতিটি পাতার নিচে আর চেকআউটে অনলাইন পেমেন্টের অপশনে দেখায়। SSLCommerz-এর নিজের লিংক বসালে সেটিই দেখায়।
 1. *সেটিংস → পেমেন্ট → “SSLCommerz-এর লোগো”* ঘরে SSLCommerz যে লিংক (বা পুরো কোড) দিয়েছে সেটি হুবহু বসান। ঠিক থাকলে ঘরের নিচেই ছবিটি দেখা যাবে; ভুল হলে সাথে সাথে লেখা আসবে কেন।
@@ -653,6 +651,18 @@
 * **ভর্তির পর আলাদা বাটন:** শিক্ষার্থীর **আমার ক্লাস** পাতায় দুটি বোতাম — **পেইড কোর্স** ও **ফ্রি ক্লাস** (সংখ্যাসহ)। অ্যাপে প্রথমটির নাম **আমার কোর্স** — গুগল প্লের নিয়মে অ্যাপে কেনা-বেচার কথা থাকে না। কুপন দিয়ে ৳০-তে পাওয়া পেইড ক্লাস পেইড কোর্সেই থাকে।
 * **লেসন পাতা (ইউটিউবের মতো):** ভিডিওর ঠিক নিচে লেসনের নাম, “পর্ব ৩ / ১২”, **সম্পন্ন** আর **পরের পর্ব** বোতাম; তার নিচে ক্লাসের সব লেসন এক সারিতে (ডানে-বাঁয়ে সরানো যায়, যেটি চলছে সেটি চিহ্নিত)। লেসনের লেখা নিচে একটি বাক্সে কয়েক লাইনে ভাঁজ করা থাকে — **আরও দেখুন** চাপলে পুরোটা। **পরের পর্ব** চাপলে লেসনটি সম্পন্নও হয়।
 
+
+## ৩৭. এআই — চ্যাটবট শেখে, আপনার নিজস্ব সহকারী, এআই দিয়ে ক্লাসের লেখা, আর মার্কেটিং তালিকা
+
+* **চ্যাটবট যা পারেনি, তা এক জায়গায়:** *বার্তা → চ্যাটবট হ্যান্ড-অফ*-এ সব প্রশ্ন থাকে, একই প্রশ্ন বারবার এলে একবারই থাকে আর পাশে লেখা থাকে কতবার জিজ্ঞেস করা হয়েছে। যেকোনো সারি চাপলে প্রশ্নটি খোলে — কে জিজ্ঞেস করেছেন, কোন ক্লাস নিয়ে, ইমেইল বা হোয়াটসঅ্যাপে উত্তর দেওয়ার বোতাম।
+* **চ্যাটবটকে শেখান:** খোলা প্রশ্নে সঠিক উত্তর লিখুন (অথবা **এআই দিয়ে উত্তরের খসড়া** চেপে শুরু করুন — এআই শুধু আপনার ওয়েবসাইটের তথ্য থেকে লেখে, তথ্য না থাকলে বানিয়ে লেখে না) আর **সংরক্ষণ করে চ্যাটবটকে শেখান** চাপুন। পরেরবার কেউ একই প্রশ্ন করলে চ্যাটবট এআই ছাড়াই হুবহু আপনার উত্তর দেবে।
+* **শেখানো উত্তরের তালিকা:** *এআই চ্যাটবট → চ্যাটবটকে শেখানো উত্তর*-এ সব উত্তর — বদলানো, বন্ধ করা, মোছা, বা নিজে নতুন যোগ করা যায়।
+* **ভুল তথ্য নয়:** চ্যাটবট ওয়েবসাইটের সব পাতা (সাইটম্যাপের মতো), “কীভাবে অর্ডার করবেন” আর গাইড পাতা পড়ে উত্তর দেয়। দাম বা ছাড়ের এমন কোনো অঙ্ক যা আপনার তথ্যে নেই, তা কখনো শিক্ষার্থীকে পাঠানো হয় না — প্রশ্নটি আপনার কাছে চলে আসে।
+* **এআই সহকারী (শুধু টিমের জন্য):** বাঁ মেনুতে **এআই সহকারী** — আজকের বিক্রি, যাচাই বাকি পেমেন্ট, উত্তর না পাওয়া প্রশ্ন জিজ্ঞেস করুন, বা ফেসবুক পোস্ট, নোটিশ, শিক্ষার্থীকে উত্তর লিখিয়ে নিন। প্রত্যেকে শুধু নিজের অনুমতির হিসাব দেখেন; কথোপকথন কোথাও সংরক্ষণ হয় না।
+* **এআই দিয়ে ক্লাসের লেখা:** ক্লাস এডিটে **এআই দিয়ে লিখুন** চাপলে ক্লাসের নাম, দাম, লেভেল আর লেসন থেকে ছোট ও পূর্ণ বিবরণ আর সার্চের লেখা দুই ভাষায় ফর্মে বসে যায় — পড়ে দেখে **সংরক্ষণ করুন**।
+* **Gemini কী:** *এআই চ্যাটবট → Google Gemini*-তে কী পেস্ট করে **সংরক্ষণ** চাপুন — যেভাবেই কপি করুন (স্পেস, উদ্ধৃতিচিহ্ন বা নামসহ) কাজ করবে, আর সাথে সাথে সংযোগ পরীক্ষা হয়। সহকারী আর খসড়া Gemini কী থাকলে সেটিই ব্যবহার করে। Cloudflare-এর Gemma 4 মডেলের “bad_response: empty” সমস্যাও ঠিক করা হয়েছে।
+* **মার্কেটিং তালিকা:** *সাইন-আপ → মার্কেটিং তালিকা*-য় নিউজলেটারের সাথে ইমেইল আছে এমন সব শিক্ষার্থীও থাকেন; “অফারে সম্মত” কলামে দেখা যায় কারা অফার পেতে রাজি। CSV ডাউনলোডেও সবাই থাকেন।
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -734,36 +744,34 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 
 ## 5. Getting paid
 
-*Settings → Payments* offers three ways:
+*Settings → Payments* offers exactly three ways — nothing else is shown to students:
 
 | Way | What it needs | What the student sees |
 |---|---|---|
-| **Online payment (SSLCommerz)** | An SSLCommerz merchant account and its Store ID/Password — **your developer sets them as secrets** | bKash, Nagad, Rocket or card — when payment completes the class opens **by itself** |
-| **Direct bKash** (optional) | bKash tokenized-checkout keys | Payment on bKash’s page |
-| **Manual send-money** | Just your bKash/Nagad/Rocket number, and/or your SSLCommerz payment link (**enter them in Settings → Payments**) — no gateway needed | The student first types **the number they will pay from**, then sees your number, the amount and a **20-minute countdown**. They send the money and submit the **TrxID and/or a screenshot** (and can send you a ready-written **WhatsApp message**). **The class opens when you approve**, and their open page turns to “successful” by itself |
+| **Manual send-money** | Your bKash / Nagad / Rocket number (**Settings → Payments**) — no gateway needed | The student picks the service, presses **Continue** (their own number is optional), then sees your number, the amount and a countdown; after paying they send the **TrxID or a screenshot** — either one is enough |
+| **Auto pay — SSLCommerz** | An SSLCommerz merchant account and its Store ID/Password — **your developer sets them as secrets** | bKash, Nagad, Rocket or a card on SSLCommerz’s secure page — when payment completes the class opens **by itself** |
+| **Bangla QR** | Nothing: your own **MAWAH Bangla QR is built in** — switch it **Active** or **Inactive** | The QR (large, sharp, scannable), the amount and the order code; they scan it in any bank or mobile-banking app, pay, then send the TrxID or a screenshot |
 
-**At checkout the ways are listed in this order: Send money manually first (it is the one chosen when the page opens), then the secure online payment — “bKash, Nagad, Rocket or card” (SSLCommerz).** A buyer who chooses the online payment presses **Pay** and goes straight to SSLCommerz’s own secure page, chooses bKash, Nagad, Rocket or a card there and types their PIN or card number on it — never on this website. The **Terms & Conditions**, **Privacy Policy** and **Refund & Cancellation Policy** are linked in the box the buyer ticks before paying.
+**At checkout the ways are listed in this order: Send money manually first (it is the one chosen when the page opens), then Auto pay — SSLCommerz, then Bangla QR.** Nothing about a payment stops a student from going on: the only things asked before **Continue** are the way to pay and the tick box; anything missing is said in words next to the button.
+
+**Bangla QR, Active / Inactive:**
+1. *Settings → Payments → Bangla QR*: the switch shows **Active** or **Inactive**. Active, it is offered at checkout; Inactive, it is not. Press **Save**.
+2. The preview shows the QR students see — your MAWAH QR (merchant PBLQR00655396, Chattogram), rebuilt from the PDF you sent as a sharp picture and checked to read back exactly the same payment code. Scan the preview with your phone to see for yourself.
+3. If your bank gives you a new QR, press **Upload a different QR** (PNG, JPG or WebP — it is kept exactly as it is, never shrunk). **Use the built-in QR again** goes back to the MAWAH QR.
+4. **The name the QR pays** (MAWAH) is shown to the student under the QR, so they can check it in their app before paying.
+5. A QR payment is checked like a send-money one: *Orders → Awaiting verification*; the order says **Bangla QR**. Find the payment in your bank’s or wallet’s statement (same amount; the order code if the student wrote it), then **Approve payment**.
 
 **Checking manual payments (a daily job):**
 1. Left menu → **Orders** (a red number shows how many are waiting). Filter status **Awaiting verification**.
 2. Open an order and compare the **TrxID, the number it came from and the amount** with the SMS on your phone. A screenshot, if the student sent one, is shown on the order (only people who may verify payments can see it).
 3. If they match, **Approve payment** — the class opens immediately and the invoice number is created. If not, **Reject** — the student is e-mailed and can try again.
 
-> The manual option is **not shown to students until you enter your number or the SSLCommerz payment link**.
-
-**Your SSLCommerz payment link** (optional) — the payment link from your SSLCommerz panel (it looks like `https://invoice.sslcommerz.com/invoice-form?refer=…`) opens SSLCommerz’s own payment page for your store, where a buyer can pay by card, bKash, Nagad or any other way SSLCommerz offers. The website is not told about that payment — so it works like send-money: you check it and approve it.
-1. In *Settings → Payments* paste the link in **SSLCommerz payment link (optional)** and press **Save**. Only an `https://` address on `sslcommerz.com` is taken; a wrong one is explained in plain words.
-2. At checkout, inside **Send money manually**, the buyer can then choose **Card or mobile banking (SSLCommerz’s payment page)**. They type their mobile number, then see the amount, their order code and an **Open the payment page** button (it opens in a new tab). SSLCommerz’s page opens with **the amount, the order code (in the “Order Id” box) and the buyer’s name and mobile number already filled in**, where your link’s form has those boxes. They pay there and type SSLCommerz’s transaction ID back on our page (and can add a screenshot of the receipt).
-3. You check it like any manual payment: *Orders → Awaiting verification*; the order says **SSLCommerz payment link**. Find the payment in your SSLCommerz panel (same amount, the buyer’s mobile number, and the order code if they wrote it), then **Approve payment**.
-* If your link has a fixed amount, it only suits a class at that price — ask SSLCommerz for a link where the buyer types the amount.
-* **Which link fits best:** in the SSLCommerz panel (*Payment Option*), an **Invoice**-type link whose account name is **Order Id**. The order code is filled into that box, so the payment carries it and you find it in the panel by the code.
-* The link works on its own, without any of your numbers: the manual option then offers just this way. Empty the box and it is no longer offered.
-* This is a stop-gap: once SSLCommerz changes your store’s website to `https://mawahacademy.com`, the normal online payment opens the class by itself — no approval needed.
+> The manual option is **not shown to students until you enter at least one number**.
 
 **SSLCommerz’s logo** — SSLCommerz asks every shop to show its logo on the website (one picture with the logos of every way to pay), and SSLCommerz itself gives the link to that picture — the website never makes one up. The picture you sent (“Pay With … Verified by SSLCommerz”) is kept on the website: while online payment is on and the store’s keys are set, it shows at the bottom of every page and on the online-payment choice at checkout even with the box empty. A link from SSLCommerz pasted in the box takes its place.
 1. In *Settings → Payments → “SSLCommerz logo”* paste exactly what SSLCommerz gave you (the link, or the whole code). If it is right, the picture shows under the box at once; if not, the box says why straight away.
 2. Press **Save**. The picture then shows at the bottom of every page (“We accept”) and on the online-payment choice at checkout — in place of the website’s own small logos. (The send-money choice keeps the bKash/Nagad/Rocket logos: that is your own number.)
-3. Only a link starting with `https://` on `sslcommerz.com` is taken — the picture comes from SSLCommerz’s own server. Empty the box and the picture you sent shows again; with online payment off (or no store keys) the small logos show.
+3. Only a link starting with `https://` on `sslcommerz.com` is taken — the picture comes from SSLCommerz’s own server. Empty the box and the picture you sent shows again. **The footer always keeps the SSLCommerz picture — even while Auto pay is switched off** — so it never comes and goes.
 4. Once the logo is up, ask SSLCommerz to look at the website again and switch the store on. They usually also check the refund policy, privacy policy, terms and contact details — make sure *Settings → Policies* and *Contact* are filled in.
 
 **What SSLCommerz checks on the website** — all of it is on the site already:
@@ -1333,3 +1341,14 @@ class that was taken down, is not listed.
 * **The lesson page, like YouTube:** right under the video, the lesson's title, "Part 3 of 12", **Mark as complete** and **Next part**; under
   them every lesson of the class in one row that slides sideways (the one playing is marked). The lesson's text sits below in a box folded to a
   few lines — **Show more** opens it. **Next part** also marks the lesson complete.
+
+## 37. AI — the chatbot learns, your private assistant, class words with AI, and the marketing list
+
+* **What the chatbot could not answer, in one place:** *Messages → Chatbot hand-offs* lists every such question once, with how many times it was asked. Click any row to open it: who asked, about which class, and buttons to reply by e-mail or WhatsApp.
+* **Teach the chatbot:** in an opened question write the right answer (or press **Suggest an answer with AI** — it writes only from your website's facts and says so when they do not hold the answer) and press **Save and teach the chatbot**. Next time anyone asks the same thing, the chatbot gives your answer word for word, without asking the AI.
+* **The taught answers:** *AI Chatbot → Answers the chatbot was taught* — change one, switch it off, delete it, or add one yourself.
+* **No wrong facts:** the chatbot reads every page of the website (as the sitemap lists them), the How-to-order and Guide pages. A price or discount that is not in your facts is never sent to a student — the question comes to you instead.
+* **AI Assistant (team only):** **AI Assistant** in the left menu — ask about today's sales, payments to verify, unanswered questions, or have it write a Facebook post, a notice or a reply. Each person sees only the numbers their role allows; nothing is stored.
+* **Class words with AI:** in a class's edit page, **Write with AI** fills the short line, the full description and the search words in both languages from the class's title, price, level and lessons — read them, then **Save**.
+* **Gemini key:** paste it in *AI Chatbot → Google Gemini* and press **Save** — however it was copied (spaces, quotes, its name in front), it works and is tested at once. The assistant and the drafts use Gemini whenever a key is saved. Cloudflare's Gemma 4 model no longer answers “bad_response: empty”.
+* **Marketing list:** *Sign-ups → Marketing list* now holds every student with an e-mail as well as the newsletter; the “Agreed to offers” column shows who said yes to offers. The CSV download has everyone.

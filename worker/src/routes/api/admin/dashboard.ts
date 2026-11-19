@@ -69,7 +69,7 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
   const flag = (s: HealthStatus) => {
     if (s === "error" || (s === "warn" && payStatus !== "error")) payStatus = s;
   };
-  if (!settings.payments.sslcommerz && !settings.payments.manual && !settings.payments.bkash_direct) {
+  if (!settings.payments.sslcommerz && !settings.payments.manual && !settings.payments.bangla_qr) {
     pay.push("no_payment_method");
     flag("error");
   }
@@ -79,10 +79,6 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
   } else if (settings.payments.sslcommerz && (await env.KV.get<SslLast>(SSL_LAST_KEY, "json"))?.ok === false) {
     // keys are set, but the last time the gateway was asked for a payment page (a student's, or the owner's check) it said no
     pay.push("sslcommerz_failing");
-    flag("warn");
-  }
-  if (settings.payments.bkash_direct && !(env.BKASH_APP_KEY && env.BKASH_APP_SECRET && env.BKASH_USERNAME && env.BKASH_PASSWORD)) {
-    pay.push("bkash_keys_missing");
     flag("warn");
   }
   if (settings.payments.manual && !manualReady(settings)) {
