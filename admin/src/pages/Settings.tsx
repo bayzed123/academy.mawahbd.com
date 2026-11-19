@@ -5,7 +5,7 @@ import { BUILTIN_QR, dhakaMinuteMs, formatDateTime, readSslLogo, SSL_BANNER, SSL
 import { adm, api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
-import { Button, Chip, ErrorState, Field, Icon, PageHeader, Panel, Spinner, Switch, Tabs, TextArea, TextInput, useFieldErrors, useToast } from "../components/ui";
+import { Button, Chip, ErrorState, Field, Icon, PageHeader, Panel, Spinner, Switch, Tabs, TextArea, TextInput, useConfirm, useFieldErrors, useToast } from "../components/ui";
 import { EmailPanel } from "./EmailPanel";
 import { PaymentCheck } from "./PaymentCheck";
 import { SmsPanel } from "./SmsPanel";
@@ -48,7 +48,7 @@ interface S {
     shop_returns_en: string;
   };
   about: { bn: string; en: string };
-  analytics: { ga4: string; clarity: string; meta_pixel: string };
+  analytics: { ga4: string; clarity: string; meta_pixel: string; meta_capi_test: string; meta_graph_version: string };
 }
 type Key = keyof Pick<S, "contact" | "announcement" | "shop" | "payments" | "policies" | "about" | "analytics">;
 type Tab = "contact" | "payments" | "email" | "sms" | "policies" | "about" | "analytics";
@@ -173,6 +173,132 @@ function QrUpload({ value, onChange, disabled, error }: { value: string; onChang
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+interface MetaStatus {
+  pixel: string | null;
+  token: { source: "admin" | "secret" | "none"; hint: string | null };
+  ready: boolean;
+  test_code: string | null;
+  last: { at: string; event: string; test: boolean; ok: boolean; detail: string; trace: string | null } | null;
+}
+
+/**
+ * Meta Conversions API: the purchase reported to Meta by the server as well as by the browser's Pixel (deduplicated by one event ID), so
+ * ad blockers and late approvals do not lose it. The access token is pasted here once (saved encrypted; only its last four characters are
+ * ever shown). "Send a test event" sends a Purchase marked with the test code — it shows in Events Manager → Test events within seconds —
+ * and Meta's own answer is shown here, as is the answer to the latest real purchase.
+ */
+function MetaCapi({ canWrite }: { canWrite: boolean }) {
+  const { t, err, dateTime } = useI18n();
+  const toast = useToast();
+  const confirm = useConfirm();
+  const q = useQuery({ queryKey: ["meta-capi"], queryFn: async () => (await adm<{ meta: MetaStatus }>("/analytics/meta")).meta });
+  const [token, setToken] = useState("");
+  const [tokenErr, setTokenErr] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState("");
+  const [result, setResult] = useState<{ ok: boolean; detail: string; trace?: string } | null>(null);
+  const m = q.data;
+  const act = async (name: string, fn: () => Promise<unknown>) => {
+    setBusy(name);
+    try {
+      await fn();
+    } catch (e) {
+      const f = e instanceof ApiError ? Object.values(e.fields ?? {})[0] : undefined;
+      if (name === "token" && f) setTokenErr(err(f));
+      toast(f ? err(f) : err(e instanceof ApiError ? e.code : "generic"), true);
+    } finally {
+      setBusy("");
+    }
+  };
+  const saveToken = () =>
+    act("token", async () => {
+      setTokenErr("");
+      await adm("/analytics/meta/token", { method: "PUT", json: { token } });
+      setToken("");
+      toast(t("adm.meta.tokenSaved"));
+      await q.refetch();
+    });
+  const removeToken = async () => {
+    const r = await confirm({ title: t("adm.meta.removeTitle"), body: t("adm.meta.removeBody"), danger: true, confirmLabel: t("btn.delete") });
+    if (r.ok) void act("rm", async () => {
+      await adm("/analytics/meta/token", { method: "DELETE" });
+      await q.refetch();
+    });
+  };
+  const test = () =>
+    act("test", async () => {
+      const r = await adm<{ result: { ok: boolean; detail: string; trace?: string } }>("/analytics/meta/test", { json: code.trim() ? { test_code: code.trim() } : {} });
+      setResult(r.result);
+      await q.refetch();
+    });
+  if (!m) return null;
+  return (
+    <div className="key-box meta-capi">
+      <div className="row">
+        <b>{t("adm.meta.title")}</b>
+        {m.ready ? <Chip tone="ok">{t("adm.meta.ready")}</Chip> : <Chip tone="warn">{t("adm.meta.notReady")}</Chip>}
+      </div>
+      <p className="hint">{t("adm.meta.sub")}</p>
+      {!m.pixel && <p className="err-text">{t("adm.meta.needPixel")}</p>}
+      <p className="hint">{m.token.source === "none" ? t("adm.meta.noToken") : t("adm.meta.tokenSet", { hint: m.token.hint ?? "" })}</p>
+      {canWrite && (
+        <div className="row nowrap">
+          <TextInput
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={t("adm.meta.tokenPlaceholder")}
+            aria-label={t("adm.meta.token")}
+            value={token}
+            error={tokenErr || undefined}
+            onChange={(e) => {
+              setToken(e.target.value);
+              setTokenErr("");
+            }}
+          />
+          <Button className="btn-outline" busy={busy === "token"} disabled={!token.trim()} onClick={() => void saveToken()}>
+            {t("adm.meta.saveToken")}
+          </Button>
+          {m.token.source === "admin" && (
+            <Button className="btn-ghost" busy={busy === "rm"} onClick={() => void removeToken()}>
+              {t("btn.delete")}
+            </Button>
+          )}
+        </div>
+      )}
+      {tokenErr && (
+        <p className="err-text" role="alert">
+          {tokenErr}
+        </p>
+      )}
+      {canWrite && m.ready && (
+        <div className="meta-test">
+          <Field id="meta-test-code" label={t("adm.meta.testCode")} hint={t("adm.meta.testCodeHint")}>
+            <div className="row nowrap">
+              <TextInput id="meta-test-code" placeholder={m.test_code ?? "TEST12345"} value={code} spellCheck={false} onChange={(e) => setCode(e.target.value)} />
+              <Button className="btn-dark" busy={busy === "test"} disabled={!code.trim() && !m.test_code} onClick={() => void test()}>
+                <Icon name="activity" /> {t("adm.meta.sendTest")}
+              </Button>
+            </div>
+          </Field>
+          {result && (
+            <p className={result.ok ? "ok-text" : "err-text"} role="status">
+              {result.ok ? t("adm.meta.testOk", { detail: result.detail }) : t("adm.meta.testFail", { detail: result.detail })}
+              {result.trace ? ` · fbtrace_id ${result.trace}` : ""}
+            </p>
+          )}
+        </div>
+      )}
+      {m.last && (
+        <p className="hint">
+          {t("adm.meta.last")}: <Chip tone={m.last.ok ? "ok" : "bad"}>{m.last.ok ? "✓" : "✗"}</Chip> {m.last.event} · {dateTime(m.last.at)} · {m.last.detail}
+        </p>
+      )}
+      {m.test_code && <p className="warn-text">{t("adm.meta.testOn", { code: m.test_code })}</p>}
     </div>
   );
 }
@@ -451,8 +577,15 @@ export function Settings() {
                   <Field id="an-px" label="Meta Pixel" hint={t("adm.analytics.pixelHint")} error={e.meta_pixel}>
                     <TextInput id="an-px" inputMode="numeric" value={v.meta_pixel} error={e.meta_pixel} disabled={!canWrite} onChange={(x) => set({ meta_pixel: x.target.value.trim() })} />
                   </Field>
+                  <Field id="an-graph" label={t("adm.meta.graphVersion")} hint={t("adm.meta.graphVersionHint")} error={e.meta_graph_version}>
+                    <TextInput id="an-graph" spellCheck={false} placeholder="v24.0" value={v.meta_graph_version} error={e.meta_graph_version} disabled={!canWrite} onChange={(x) => set({ meta_graph_version: x.target.value.trim() })} />
+                  </Field>
+                  <Field id="an-capi-test" label={t("adm.meta.testCodeSaved")} hint={t("adm.meta.testCodeSavedHint")} error={e.meta_capi_test}>
+                    <TextInput id="an-capi-test" spellCheck={false} placeholder="TEST12345" value={v.meta_capi_test} error={e.meta_capi_test} disabled={!canWrite} onChange={(x) => set({ meta_capi_test: x.target.value.trim() })} />
+                  </Field>
                 </div>
                 <p className="hint">{t("adm.analytics.privacy")}</p>
+                <MetaCapi canWrite={canWrite} />
                 {can("analytics:read") && (
                   <p>
                     <Link className="btn btn-outline btn-sm" to="/analytics">

@@ -6,6 +6,7 @@ import { retryPendingLaunches } from "./services/launch";
 import { purgeAbandonedGuests } from "./services/guests";
 import { cleanupOrphanUploads } from "./services/materials";
 import { expireShopOrders } from "./services/shop";
+import { retryPurchases } from "./services/metaCapi";
 
 /**
  * Housekeeping on the 6-hourly cron trigger. Every step is independent and idempotent, so a failed run is simply repeated.
@@ -29,6 +30,9 @@ export async function runScheduled(env: Env, _cron: string): Promise<void> {
     ["orphan_uploads", () => cleanupOrphanUploads(env)],
     ["abandoned_guests", () => purgeAbandonedGuests(env, now)],
     ["shop_unpaid", () => expireShopOrders(env, new Date(now.getTime() - 24 * 3600 * 1000))],
+    ["meta_capi_retry", () => retryPurchases(env)],
+    // what a buyer's browser said for Meta (kept only to report a purchase): forgotten when the order was never paid within 14 days
+    ["ad_track", () => run(env.DB, "UPDATE orders SET ad_track = NULL WHERE ad_track IS NOT NULL AND created_at < ?", nowIso(new Date(now.getTime() - 14 * 86400 * 1000)))],
   ];
   const failed: string[] = [];
   for (const [name, fn] of steps) {

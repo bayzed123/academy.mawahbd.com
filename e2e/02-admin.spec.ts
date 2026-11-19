@@ -73,7 +73,7 @@ test("settings validate on the server and apply immediately", async () => {
   // analytics IDs are injected into pages: junk is refused
   await page.getByRole("tab", { name: "Analytics" }).click();
   await page.getByLabel("Microsoft Clarity").fill('abc"onload=x');
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click(); // (the Conversions API box has its own "Save token")
   await expect(page.getByRole("alert").first()).toBeVisible();
   await page.getByLabel("Microsoft Clarity").fill("");
   // payments: manual send-money needs a receiving number before students can use it

@@ -95,7 +95,12 @@ describe("the delivery time", () => {
 describe("the policies", () => {
   it("say there are no third-party advertisements and no sharing beyond what the privacy policy lists; the refund page covers cancelling", () => {
     expect(PAGE_TEXTS.terms.en).toContain("We do not show any third-party advertisements on this website.");
-    expect(PAGE_TEXTS.privacy.en).toContain("We do not show third-party advertisements on this website, and no advertiser gets your information.");
+    expect(PAGE_TEXTS.privacy.en).toContain("We do not show third-party advertisements on this website.");
+    // what Meta gets to measure the shop's own ads is said plainly — and that nothing personal goes to it in plain text
+    expect(PAGE_TEXTS.privacy.en).toContain("apart from that, no advertiser gets your information.");
+    expect(PAGE_TEXTS.privacy.en).toContain("**Meta (Facebook and Instagram):**");
+    expect(PAGE_TEXTS.privacy.en).toContain("only in scrambled (hashed) form, never in plain text");
+    expect(PAGE_TEXTS.privacy.bn).toContain("**Meta (Facebook ও Instagram):**");
     expect(PAGE_TEXTS.terms.bn).toContain("আমরা এই ওয়েবসাইটে তৃতীয় কোনো পক্ষের বিজ্ঞাপন দেখাই না।");
     expect(PAGE_TEXTS.privacy.bn).toContain("এই ওয়েবসাইটে তৃতীয় কোনো পক্ষের বিজ্ঞাপন দেখানো হয় না");
     expect(PAGE_TEXTS.refund.en).toContain("## Cancelling an order");

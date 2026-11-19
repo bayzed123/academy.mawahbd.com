@@ -20,6 +20,7 @@ import { resolveGuestAccount } from "../../services/guests";
 import { tellStudent } from "../../services/studentMessages";
 import { notices, notifyOwner } from "../../services/notify";
 import { availableChannels, manualPayInfo } from "../../services/payments";
+import { rememberAdTrack } from "../../services/metaCapi";
 import { amountCap, clearCap, rememberCap, rememberSsl, sslInit, type SslCap } from "../../services/payments/sslcommerz";
 
 /**
@@ -146,6 +147,7 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
     // starting again replaces the student's own unpaid manual order for the same class(es)
     await cancelReplacedManualOrders(c.env, student.id, quote.items.map((i) => i.course_id));
     const order = await createOrder(c.env, student, quote, channel, proof, settings.payments.manual_window_min);
+    await rememberAdTrack(c, order.id); // for Meta, if this buyer may be counted (services/metaCapi.ts)
     const withProof = !!proof.trx_id;
     await audit(c, { action: withProof ? "checkout.manual_submitted" : "checkout.manual_started", entity: "order", entityId: order.id, meta: { method: proof.method } });
     if (withProof) {
@@ -158,6 +160,7 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
   }
 
   const order = await createOrder(c.env, student, quote, channel);
+  await rememberAdTrack(c, order.id); // for Meta, if this buyer may be counted (services/metaCapi.ts)
   const summary = quote.items.map((i) => i.title_en).join(", ");
   try {
     let redirectUrl: string;

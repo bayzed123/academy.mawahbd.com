@@ -10,6 +10,7 @@ import { orderReceiptMail } from "../lib/mailer";
 import { receiptSms, smsText } from "../lib/smsText";
 import { createPasswordResetLink } from "./auth";
 import { notices, notifyOwner } from "./notify";
+import { reportPurchase } from "./metaCapi";
 import { tellStudent, toldMeta } from "./studentMessages";
 
 /* =================================================================================================
@@ -405,7 +406,8 @@ export async function markOrderPaid(env: Env, orderId: number, p: PaidInput): Pr
   if (!won) return { won: false };
 
   await auditAs(env, { type: "system", id: null, name: "" }, { action: "order.paid", entity: "order", entityId: orderId, summary: p.gateway, meta: { txn: p.txn ?? null } });
-  const job = Promise.all([sendReceipt(env, orderId).catch((err) => console.error("receipt_failed", orderId, err)), notifyPaid(env, orderId)]).then(() => undefined);
+  // the receipt, the owner's note, and the purchase reported to Meta from the server (the Conversions API; nothing when not set up)
+  const job = Promise.all([sendReceipt(env, orderId).catch((err) => console.error("receipt_failed", orderId, err)), notifyPaid(env, orderId), reportPurchase(env, orderId)]).then(() => undefined);
   if (p.waitUntil) p.waitUntil(job);
   else await job;
   return { won: true };

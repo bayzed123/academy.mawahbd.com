@@ -156,62 +156,106 @@ function MaterialCard({ slug, m }: { slug: string; m: StudentMaterial }) {
         ? t("app.mat.when", { when: dateTime(m.starts_at) })
         : "";
 
-  return (
-    <article className={`mat-card mat-${m.kind}`}>
-      <div className="mat-head">
-        <span className="mat-ico" aria-hidden="true">
-          <Icon name={ICON[m.kind]} />
-        </span>
-        <div>
-          <p className="mat-kind">{t(`app.mat.kind.${m.kind}` as "app.mat.kind.pdf")}</p>
-          <h3 className="mat-title">{title}</h3>
-        </div>
-        {live && <span className={`mat-chip ${live}`}>{t(`app.mat.live.${live}` as "app.mat.live.live")}</span>}
+  // a material with a video shows it first, like YouTube: the video, then its name, then the words (folded until asked for)
+  const isVideo = m.delivery === "play" || m.delivery === "pending" || m.delivery === "embed";
+  const head = (
+    <div className="mat-head">
+      <span className="mat-ico" aria-hidden="true">
+        <Icon name={ICON[m.kind]} />
+      </span>
+      <div>
+        <p className="mat-kind">{t(`app.mat.kind.${m.kind}` as "app.mat.kind.pdf")}</p>
+        <h3 className="mat-title">{title}</h3>
       </div>
-      {note && <p className="mat-note">{note}</p>}
-      {meta && <p className="mat-meta">{meta}</p>}
+      {live && <span className={`mat-chip ${live}`}>{t(`app.mat.live.${live}` as "app.mat.live.live")}</span>}
+    </div>
+  );
+  // the words under it: folded behind "Details" under a video, and whenever they are long; a short note on a file or a link stays open
+  const words = note ? (
+    isVideo || note.length > 160 ? (
+      <details className="mat-more">
+        <summary>
+          {t("app.mat.details")}
+          <Icon name="chevron" />
+        </summary>
+        <p className="mat-note">{note}</p>
+      </details>
+    ) : (
+      <p className="mat-note">{note}</p>
+    )
+  ) : null;
 
-      {m.delivery === "play" && m.media_url ? (
-        <HostedVideo src={m.media_url} title={title} preload="none" onFirstPlay={() => played.mutate()} />
-      ) : m.delivery === "pending" ? (
-        // a Google Drive video the website cannot play yet: said plainly, with no link — a student is never sent to the owner's Drive
-        <div className="video-frame is-note">
-          <div className="video-note" role="status">
-            <Icon name="play" />
-            <p>{t("app.lesson.drivePending")}</p>
-          </div>
+  const video =
+    m.delivery === "play" && m.media_url ? (
+      <HostedVideo src={m.media_url} title={title} preload="none" onFirstPlay={() => played.mutate()} />
+    ) : m.delivery === "pending" ? (
+      // a Google Drive video the website cannot play yet: said plainly, with no link — a student is never sent to the owner's Drive
+      <div className="video-frame is-note">
+        <div className="video-note" role="status">
+          <Icon name="play" />
+          <p>{t("app.lesson.drivePending")}</p>
         </div>
-      ) : m.delivery === "embed" && embed ? (
-        <div className="video-frame">
-          <iframe src={embed} title={title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin" />
-        </div>
+      </div>
+    ) : m.delivery === "embed" && embed ? (
+      <div className="video-frame">
+        <iframe src={embed} title={title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin" />
+      </div>
+    ) : m.delivery === "embed" ? (
+      // a YouTube, Vimeo or Facebook video before it is started: the frame it will play in, with one big play button
+      <div className="video-frame mat-poster">
+        <button type="button" className="mat-play" disabled={watch.isPending} onClick={() => watch.mutate()} aria-label={`${t("app.mat.watch")}: ${title}`}>
+          <Icon name="play" />
+        </button>
+      </div>
+    ) : null;
+
+  const actions = (
+    <div className="mat-actions">
+      {m.delivery === "file" ? (
+        <a className="btn btn-primary" href={`/api/student/materials/${m.id}/download`} download onClick={() => track("material_download", { material_id: m.id, material_type: m.kind })}>
+          <Icon name="download" /> {t("app.mat.download")}
+          <span className="vh">: {title}</span>
+        </a>
+      ) : m.kind === "group" ? (
+        <GroupActions m={m} profile={profile} setProfile={setProfile} profileError={profileError} join={join} open={open} />
       ) : (
-        <div className="mat-actions">
-          {m.delivery === "embed" ? (
-            <Button className="btn-primary" busy={watch.isPending} onClick={() => watch.mutate()}>
-              <Icon name="play" /> {t("app.mat.watch")}
-              <span className="vh">: {title}</span>
-            </Button>
-          ) : m.delivery === "file" ? (
-            <a className="btn btn-primary" href={`/api/student/materials/${m.id}/download`} download onClick={() => track("material_download", { material_id: m.id, material_type: m.kind })}>
-              <Icon name="download" /> {t("app.mat.download")}
-              <span className="vh">: {title}</span>
-            </a>
-          ) : m.kind === "group" ? (
-            <GroupActions m={m} profile={profile} setProfile={setProfile} profileError={profileError} join={join} open={open} />
-          ) : (
-            <Button className="btn-primary" busy={open.isPending} onClick={() => open.mutate()}>
-              <Icon name={m.kind === "live" ? "play" : "external"} /> {m.kind === "live" ? t("app.mat.joinLive") : m.kind === "video" ? t("app.mat.watch") : t("app.mat.openLink")}
-              <span className="vh">: {title}</span>
-            </Button>
-          )}
-          {fallback && (
+        <Button className="btn-primary" busy={open.isPending} onClick={() => open.mutate()}>
+          <Icon name={m.kind === "live" ? "play" : "external"} /> {m.kind === "live" ? t("app.mat.joinLive") : m.kind === "video" ? t("app.mat.watch") : t("app.mat.openLink")}
+          <span className="vh">: {title}</span>
+        </Button>
+      )}
+      {fallback && (
+        <a className="btn btn-outline" href={fallback} target="_blank" rel="noopener noreferrer">
+          {t("app.mat.openHere")}
+        </a>
+      )}
+    </div>
+  );
+
+  if (isVideo) {
+    return (
+      <article className={`mat-card mat-${m.kind} mat-video-first`}>
+        {video}
+        {head}
+        {meta && <p className="mat-meta">{meta}</p>}
+        {words}
+        {fallback && (
+          <div className="mat-actions">
             <a className="btn btn-outline" href={fallback} target="_blank" rel="noopener noreferrer">
               {t("app.mat.openHere")}
             </a>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </article>
+    );
+  }
+
+  return (
+    <article className={`mat-card mat-${m.kind}`}>
+      {head}
+      {words}
+      {meta && <p className="mat-meta">{meta}</p>}
+      {actions}
     </article>
   );
 }

@@ -23,6 +23,10 @@
   /* ------------------------------------------------------------------------------------------ who is not counted */
   var automated = !!n.webdriver || /headlesschrome|chrome-lighthouse|ptst|gtmetrix|pingdom|uptimerobot|googlebot|bingbot|yandex|baiduspider|duckduckbot|slurp|facebookexternalhit|crawler|spider|\bbot\b/i.test(n.userAgent || "");
   var asked = n.doNotTrack === "1" || w.doNotTrack === "1" || n.msDoNotTrack === "1" || n.globalPrivacyControl === true; // the browser itself says "do not track me"
+  /* The visitor's choice, told to the server as well: a purchase is reported to Meta from the server too (the Conversions API, see
+     worker/src/services/metaCapi.ts), and only for a visitor who may be counted — "off" here means the server never reports them either. */
+  var measure = function (v) { try { d.cookie = "mawah_measure=" + v + "; path=/; max-age=31536000; samesite=lax" + (location.protocol === "https:" ? "; secure" : ""); } catch (e) { /* cookies blocked */ } };
+  if (asked) measure("off");
   if (automated || asked) return;
 
   var geo = /(?:^|;\s*)mawah_geo=(eu|row)(?:;|$)/.exec(d.cookie || ""); // set by the server from the visitor's country; see worker/src/middleware/geo.ts
@@ -63,14 +67,47 @@
   /* ------------------------------------------------------------------------------------------ sending */
   var live = false, waiting = true, queue = [], started = false;
   function gtag() { w.dataLayer.push(arguments); }
+
+  /* The same moments, as Meta's standard events, when the owner set a Meta Pixel. A purchase carries its own event ID — "purchase." and the
+     order's code — and the server reports the same purchase with the same ID (the Conversions API), so Meta counts it once even when it
+     hears it twice, and still hears it when this script is blocked or the buyer never comes back to the order page. */
+  var META_EVENTS = { view_item: "ViewContent", add_to_cart: "AddToCart", begin_checkout: "InitiateCheckout", add_payment_info: "AddPaymentInfo", purchase: "Purchase", sign_up: "CompleteRegistration", generate_lead: "Lead" };
+  function toMeta(name, p) {
+    var ev = META_EVENTS[name];
+    if (!ev || !w.fbq) return;
+    p = p || {};
+    var items = Array.isArray(p.items) ? p.items : [];
+    var data = {};
+    if (name === "generate_lead") data = { content_category: p.lead_type, content_name: p.course };
+    else if (name === "sign_up") data = { status: true, content_name: p.method };
+    else {
+      data.currency = p.currency || CURRENCY;
+      if (typeof p.value === "number") data.value = p.value;
+      if (items.length) {
+        data.content_type = "product";
+        data.content_ids = items.map(function (i) { return String(i.item_id || ""); }).filter(Boolean);
+        data.contents = items.map(function (i) { return { id: String(i.item_id || ""), quantity: i.quantity || 1, item_price: i.price || 0 }; });
+        data.num_items = items.length;
+        if (items.length === 1 && items[0].item_name) data.content_name = items[0].item_name;
+      }
+      if (name === "purchase" && p.transaction_id) data.order_id = p.transaction_id;
+    }
+    Object.keys(data).forEach(function (k) { if (data[k] === undefined || data[k] === "") delete data[k]; });
+    var opts = name === "purchase" && p.transaction_id ? { eventID: "purchase." + p.transaction_id } : {};
+    w.fbq("track", ev, data, opts);
+  }
+
   function emit(name, params) {
-    if (live && ga) gtag("event", name, params);
-    else if (waiting && queue.length < 60) queue.push([name, params]);
+    if (live) {
+      if (ga) gtag("event", name, params);
+      if (pixel) try { toMeta(name, params); } catch (e) { /* counting must never break a page */ }
+    } else if (waiting && queue.length < 60) queue.push([name, params]);
   }
   w.mawahTrack = function (name, params) { try { emit(String(name).slice(0, 40), scrub(params || {})); } catch (e) { /* counting must never break a page */ } };
 
   function begin() {
     if (off()) return; // said no between the page loading and this moment (the footer switch, another tab): nothing starts
+    measure("on");
     if (started) { live = true; waiting = false; if (ga) w["ga-disable-" + ga] = false; return; }
     started = true;
     if (ga) {
@@ -117,6 +154,7 @@
     live = false;
     waiting = false;
     queue = [];
+    measure("off");
     if (ga) w["ga-disable-" + ga] = true; // Google's own switch: nothing more is sent from this page
     try { if (w.clarity) w.clarity("stop"); } catch (e) { /* the tool may not have started */ }
     try { if (w.fbq) w.fbq("consent", "revoke"); } catch (e) { /* idem */ }
@@ -128,8 +166,8 @@
 
   /* ------------------------------------------------------------------------------------------ the question for Europe and the UK */
   var TEXT = {
-    bn: { label: "কুকি ও ভিজিট গোনা", text: "কোন ক্লাস বেশি দেখা হচ্ছে বুঝতে আমরা Google Analytics দিয়ে ভিজিট গুনি। নাম, ইমেইল বা ফোন নম্বর কখনো পাঠানো হয় না।", yes: "ঠিক আছে", no: "না, ধন্যবাদ", more: "গোপনীয়তা নীতি", href: "/policies/privacy" },
-    en: { label: "Cookies and visit counting", text: "We count visits with Google Analytics to see which classes people read. Names, e-mails and phone numbers are never sent.", yes: "Accept", no: "No thanks", more: "Privacy policy", href: "/en/policies/privacy" },
+    bn: { label: "কুকি ও ভিজিট গোনা", text: "কোন ক্লাস বেশি দেখা হচ্ছে বুঝতে আমরা " + (pixel ? "Google Analytics ও Meta (Facebook)" : "Google Analytics") + " দিয়ে ভিজিট গুনি।" + (pixel ? " নাম কখনো পাঠানো হয় না; কিছু কিনলে বিজ্ঞাপনের ফল মাপতে ইমেইল ও ফোন নম্বর Meta-কে শুধু এলোমেলো (hash) করে পাঠানো হয়।" : " নাম, ইমেইল বা ফোন নম্বর কখনো পাঠানো হয় না।"), yes: "ঠিক আছে", no: "না, ধন্যবাদ", more: "গোপনীয়তা নীতি", href: "/policies/privacy" },
+    en: { label: "Cookies and visit counting", text: "We count visits with " + (pixel ? "Google Analytics and Meta (Facebook)" : "Google Analytics") + " to see which classes people read." + (pixel ? " Names are never sent; when you buy, your e-mail and phone number go to Meta only scrambled (hashed), to measure our ads." : " Names, e-mails and phone numbers are never sent."), yes: "Accept", no: "No thanks", more: "Privacy policy", href: "/en/policies/privacy" },
   }[lang];
   function style(el, rules) { Object.keys(rules).forEach(function (k) { el.style[k] = rules[k]; }); }
   var banner = null;
@@ -325,7 +363,8 @@
   });
 
   /* ------------------------------------------------------------------------------------------ go */
-  if (off()) { /* waiting for the footer switch */ }
+  if (off()) measure("off"); // waiting for the footer switch; the server is told too
+
   else if (needsAnswer()) afterLoad(function () { if (needsAnswer()) ask(); });
   else afterLoad(begin);
 })();

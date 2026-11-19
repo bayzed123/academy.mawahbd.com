@@ -617,3 +617,17 @@ a.rail-card:hover{background:var(--raised,var(--ivory-2))}
   .pay-ico{width:38px;height:38px;border-radius:10px}
   .pay-ico .icon{width:20px;height:20px}
 }
+
+/* ---------- a material with a video: the video first, then its name, then its words folded (like YouTube) ---------- */
+.mat-video-first .video-frame{margin-top:0;order:0}
+.mat-poster{display:grid;place-items:center;background:#000}
+.mat-play{display:grid;place-items:center;width:72px;height:72px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;transition:transform .15s,background-color .15s}
+.mat-play .icon{width:34px;height:34px}
+.mat-play:hover,.mat-play:focus-visible{background:var(--o-500);transform:scale(1.05)}
+.mat-play[disabled]{opacity:.6;cursor:progress}
+.mat-more{border-top:1px solid var(--line);padding-top:8px}
+.mat-more summary{display:flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-weight:600;color:var(--ink-2);min-height:32px}
+.mat-more summary::-webkit-details-marker{display:none}
+.mat-more summary .icon{width:16px;height:16px;transition:transform .2s}
+.mat-more[open] summary .icon{transform:rotate(90deg)}
+.mat-more .mat-note{margin-top:6px;white-space:pre-line}

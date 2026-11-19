@@ -44,6 +44,8 @@ export interface Env {
   SMS_API_KEY?: string;
   SMS_API_URL?: string;
   GEMINI_API_KEY?: string;
+  /** Meta Conversions API access token (Events Manager → the dataset → Settings); the one pasted in Admin → Settings → Analytics wins */
+  META_CAPI_TOKEN?: string;
   TURNSTILE_SECRET?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;

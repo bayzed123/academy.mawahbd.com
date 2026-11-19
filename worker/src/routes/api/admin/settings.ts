@@ -109,6 +109,8 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     ga4: z.union([z.literal(""), z.string().regex(/^G-[A-Z0-9]{4,15}$/, "invalid_id")]),
     clarity: z.union([z.literal(""), z.string().regex(/^[a-z0-9]{6,16}$/, "invalid_id")]),
     meta_pixel: z.union([z.literal(""), z.string().regex(/^\d{5,20}$/, "invalid_id")]),
+    meta_capi_test: z.union([z.literal(""), z.string().trim().regex(/^[A-Za-z0-9_-]{4,40}$/, "invalid_id")]).default(""),
+    meta_graph_version: z.union([z.literal(""), z.string().trim().regex(/^v\d{2,3}\.0$/, "invalid_id")]).default(""),
   }),
   chatbot: z.object({ enabled: z.boolean(), greeting_bn: textSchema(300), greeting_en: textSchema(300), faq_bn: long(6000), faq_en: long(6000) }),
   shop: z.object({ enabled: z.boolean(), url: urlOrEmpty, label_bn: textSchema(24), label_en: textSchema(24) }),

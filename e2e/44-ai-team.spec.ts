@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { adminLogin, registerStudent, useLang } from "./helpers";
+import { adminLogin, offerAnswered, registerStudent, useLang } from "./helpers";
 
 /*
  * The team's side of the AI, in a real browser: a question the chatbot could not answer opens from Messages → Chatbot hand-offs (it used to
@@ -52,6 +52,32 @@ test("a chatbot hand-off opens, is answered and taught; the chatbot then answers
   await admin.goto("/admin/chatbot");
   await expect(admin.getByRole("heading", { name: "Answers the chatbot was taught" })).toBeVisible();
   await expect(admin.getByText(QUESTION)).toBeVisible();
+});
+
+test("an answer that names a page shows a button to it in the chat window — with the page's name, not its path", async ({ browser }) => {
+  const question = `Where do I find my certificate e2e-${Date.now().toString(36)}?`;
+  const taught = await admin.request.post("/api/admin/chatbot/knowledge", { data: { question, answer: "Open My certificates (/app/certificates) and download the PDF.", lang: "any" } });
+  expect(taught.status()).toBe(201);
+
+  const ctx = await browser.newContext({ locale: "en-US", viewport: { width: 360, height: 760 } });
+  await offerAnswered(ctx);
+  await useLang(ctx, "en");
+  const page = await ctx.newPage();
+  await page.goto("/en");
+  await page.locator(".floats summary.fab-help").click();
+  await page.getByRole("group", { name: "Talk to us" }).getByRole("button", { name: /^AI assistant/ }).click();
+  const dialog = page.getByRole("dialog", { name: "MAWAH Assistant" });
+  await dialog.locator(".mc-in").fill(question);
+  await dialog.getByRole("button", { name: "Send" }).click();
+  const answer = dialog.locator(".mc-assistant").last();
+  await expect(answer).toContainText("Open My certificates and download the PDF.");
+  await expect(answer).not.toContainText("/app/certificates");
+  const button = answer.getByRole("link", { name: /My certificates/ });
+  await expect(button).toHaveAttribute("href", "/app/certificates");
+  const box = await button.boundingBox();
+  expect(box!.height, "big enough to tap").toBeGreaterThanOrEqual(40);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+  await ctx.close();
 });
 
 test("the marketing list holds a new student's e-mail, saying whether they agreed to offers", async ({ browser }) => {

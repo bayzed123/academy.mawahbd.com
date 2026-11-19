@@ -168,7 +168,8 @@ test("a visitor sees the pictures under the main one, opens them large, moves wi
   // Escape closes it, the page scrolls again, and the picture that was opened has the focus
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
-  expect(await page.evaluate(() => document.documentElement.classList.contains("lb-open"))).toBe(false);
+  // (the page's own class goes a moment after the viewer: waited for, not read once)
+  await expect.poll(() => page.evaluate(() => document.documentElement.classList.contains("lb-open"))).toBe(false);
   await expect(items.nth(1)).toBeFocused();
 
   // the main picture opens the viewer too; the close button and the dark area around the picture close it
