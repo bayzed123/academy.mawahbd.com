@@ -75,7 +75,13 @@ export interface Settings {
     shop_returns_en: string;
   };
   about: { bn: string; en: string };
-  analytics: { ga4: string; clarity: string; meta_pixel: string };
+  /**
+   * ga4, clarity, meta_pixel: the IDs pages carry (public). meta_capi_test: Meta's "test event code" (Events Manager → Test events) — while
+   * set, everything the server reports to Meta is marked with it, so it shows in Test events; emptied once the owner has seen it work.
+   * meta_graph_version: Meta's Graph API version to send to ("v24.0"); "" = the one built in (services/metaCapi.ts DEFAULT_GRAPH_VERSION).
+   * The Conversions API's access token is NOT here (it is a secret): see services/metaCapi.ts.
+   */
+  analytics: { ga4: string; clarity: string; meta_pixel: string; meta_capi_test: string; meta_graph_version: string };
   chatbot: { enabled: boolean; greeting_bn: string; greeting_en: string; faq_bn: string; faq_en: string };
   /**
    * the Shop item of the menus, the footer, the class list and the student app (see menuShop): the Equipment Shop on this website, or —
@@ -173,7 +179,7 @@ export const SETTING_DEFAULTS: Settings = {
     shop_returns_en: PAGE_TEXTS.shop_returns.en,
   },
   about: { bn: ABOUT_TEXT.bn, en: ABOUT_TEXT.en },
-  analytics: { ga4: "", clarity: "", meta_pixel: "" },
+  analytics: { ga4: "", clarity: "", meta_pixel: "", meta_capi_test: "", meta_graph_version: "" },
   chatbot: { enabled: true, greeting_bn: "", greeting_en: "", faq_bn: "", faq_en: "" },
   shop: { enabled: true, url: "", label_bn: "দোকান", label_en: "Shop" },
   // Chattogram district (worker/src/data/bd-geo.ts), where the shop is; no charges are made up: the owner sets them before opening

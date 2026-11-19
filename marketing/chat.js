@@ -36,9 +36,22 @@
     });
   }
 
-  function add(role, text, escalate) {
+  /* the website's pages an answer names, as buttons under it (the server gives them with a name; only this site's own addresses) */
+  function buttons(target, links) {
+    if (!links || !links.length) return;
+    var row = el("div", "mc-links");
+    links.slice(0, 4).forEach(function (l) {
+      if (!l || typeof l.href !== "string" || !/^\/(?!\/)/.test(l.href)) return;
+      var a = el("a", "mc-link", l.label); a.href = l.href;
+      a.appendChild(el("span", "mc-link-arrow", "→")).setAttribute("aria-hidden", "true");
+      row.appendChild(a);
+    });
+    if (row.childNodes.length) target.appendChild(row);
+  }
+
+  function add(role, text, escalate, links) {
     var b = el("div", "mc-msg mc-" + role);
-    if (role === "assistant") rich(b, text); else b.textContent = text;
+    if (role === "assistant") { rich(b, text); buttons(b, links); } else b.textContent = text;
     if (escalate && whatsapp) {
       var a = el("a", "mc-wa", T.wa); a.href = "https://wa.me/" + whatsapp.replace(/\D/g, ""); a.target = "_blank"; a.rel = "noopener noreferrer"; b.appendChild(a);
     }
@@ -107,7 +120,7 @@
       }
     }).catch(function () {}).then(function () {
       add("assistant", greeting);
-      history.forEach(function (m) { add(m.role, m.content); });
+      history.forEach(function (m) { add(m.role, m.content, false, m.links); });
     });
   }
 
@@ -148,17 +161,17 @@
     fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ messages: history.slice(-8), lang: lang, course_id: ctx.courseId || undefined }),
+      body: JSON.stringify({ messages: history.slice(-8).map(function (m) { return { role: m.role, content: m.content }; }), lang: lang, course_id: ctx.courseId || undefined }),
     })
       .then(function (r) { return r.json().then(function (j) { return { status: r.status, body: j }; }); })
       .then(function (res) {
         typing.remove();
         if (res.status === 429) return add("assistant", T.limit);
         if (!res.body || !res.body.ok) return add("assistant", T.err);
-        history.push({ role: "assistant", content: res.body.reply });
+        history.push({ role: "assistant", content: res.body.reply, links: res.body.links || undefined });
         save();
         if (res.body.escalate && window.mawahTrack) window.mawahTrack("chatbot_handoff");
-        add("assistant", res.body.reply, res.body.escalate);
+        add("assistant", res.body.reply, res.body.escalate, res.body.links);
       })
       .catch(function () { typing.remove(); add("assistant", T.err); })
       .then(function () { sendBtn.disabled = false; input.focus(); });

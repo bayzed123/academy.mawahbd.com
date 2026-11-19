@@ -97,7 +97,7 @@ const stay = (page: Page) => page.evaluate(() => document.addEventListener("clic
 test("the owner types the measurement ID in Settings → Analytics, and the shop starts to carry the tag", async () => {
   await admin.goto("/admin/settings?tab=analytics");
   await admin.getByLabel("Google Analytics 4").fill(GA_ID);
-  await admin.getByRole("button", { name: /^Save/ }).click();
+  await admin.getByRole("button", { name: "Save", exact: true }).click(); // (the Conversions API box has its own "Save token")
   await expect(admin.getByText("Saved.")).toBeVisible();
   // the dashboard's strip says what is missing: the tag works, the Google key (set up for these tests) is there too
   await admin.goto("/admin/");

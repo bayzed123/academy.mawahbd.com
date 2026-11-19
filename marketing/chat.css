@@ -36,3 +36,8 @@ html.chat-open .floats{visibility:hidden;pointer-events:none}
 .mc-send:disabled{opacity:.55;cursor:default}
 @media (max-width:480px){.mc-panel{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}}
 @media (max-width:380px){.mc-support-choice{gap:4px;padding-inline:4px}.mc-support-icon{width:25px;height:25px}.mc-support-copy strong{font-size:.67rem}.mc-support-copy small{font-size:.58rem}}
+/* the website's pages an answer names: buttons under it, one under the other on a phone */
+.mc-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:.6rem}
+.mc-link{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:.35rem .85rem;border:1px solid #ff5722;border-radius:12px;background:#1c1c1c;color:#ff7b45!important;text-decoration:none;font-weight:600;font-size:.92rem;line-height:1.25}
+.mc-link:hover,.mc-link:focus-visible{background:#ff5722;color:#0a0a0a!important}
+.mc-link-arrow{font-weight:700}

@@ -131,7 +131,13 @@ describe("the chatbot learns from the team", () => {
     // asked again — even in other punctuation and case — the taught answer comes back word for word, with no AI involved
     const spy = mockGemini("should not be asked");
     const again = await json(await ask("সার্টিফিকেট কি প্রিন্ট করা যায় LEARN-CASE-1"));
-    expect(again).toMatchObject({ reply: answer, escalate: false, taught: true });
+    // the page the answer names is a button under it (services/chatLinks.ts), its path taken out of the words
+    expect(again).toMatchObject({
+      reply: "হ্যাঁ, সার্টিফিকেটের PDF ডাউনলোড করে প্রিন্ট করতে পারবেন: আমার সার্টিফিকেট",
+      escalate: false,
+      taught: true,
+      links: [{ label: "আমার সার্টিফিকেট", href: "/app/certificates" }],
+    });
     expect(spy).not.toHaveBeenCalled();
     expect((await env.DB.prepare("SELECT used FROM chat_knowledge WHERE escalation_id = ?").bind(rows[0].id).first<any>()).used).toBe(1);
   });

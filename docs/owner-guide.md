@@ -663,6 +663,27 @@
 * **Gemini কী:** *এআই চ্যাটবট → Google Gemini*-তে কী পেস্ট করে **সংরক্ষণ** চাপুন — যেভাবেই কপি করুন (স্পেস, উদ্ধৃতিচিহ্ন বা নামসহ) কাজ করবে, আর সাথে সাথে সংযোগ পরীক্ষা হয়। সহকারী আর খসড়া Gemini কী থাকলে সেটিই ব্যবহার করে। Cloudflare-এর Gemma 4 মডেলের “bad_response: empty” সমস্যাও ঠিক করা হয়েছে।
 * **মার্কেটিং তালিকা:** *সাইন-আপ → মার্কেটিং তালিকা*-য় নিউজলেটারের সাথে ইমেইল আছে এমন সব শিক্ষার্থীও থাকেন; “অফারে সম্মত” কলামে দেখা যায় কারা অফার পেতে রাজি। CSV ডাউনলোডেও সবাই থাকেন।
 
+## ৩৮. Meta Pixel ও কনভার্সন এপিআই — বিজ্ঞাপনের কেনা ঠিকমতো গোনা
+
+**আগে কী সমস্যা ছিল:** ওয়েবসাইট Meta-কে শুধু PageView পাঠাত — Purchase, InitiateCheckout, ViewContent কিছুই না; আর সার্ভার থেকে (Conversions API) কিছুই যেত না। তাই Events Manager-এ Purchase দেখাত না।
+
+**এখন:**
+* **ব্রাউজার (Pixel):** ক্লাস দেখা (ViewContent), এনরোল চাপা (AddToCart), চেকআউট শুরু (InitiateCheckout), পেমেন্টের উপায় বাছা (AddPaymentInfo), অ্যাকাউন্ট খোলা (CompleteRegistration), ফর্ম (Lead) আর **কেনা (Purchase)** — ক্লাসের নাম, দাম ও অর্ডার কোডসহ।
+* **সার্ভার (Conversions API):** অর্ডার পেইড হলেই (SSLCommerz, অথবা আপনি সেন্ড মানি / বাংলা QR অনুমোদন দিলে — যত পরেই হোক) সার্ভার নিজে Meta-কে Purchase জানায়। অ্যাড ব্লকার, বন্ধ ট্যাব বা পরে অনুমোদন — কোনোটাতেই কেনা হারায় না।
+* **ডুপ্লিকেট নয়:** দুটোতেই একই ইভেন্ট আইডি (`purchase.` + অর্ডার কোড), তাই Meta একবারই গোনে (deduplication)।
+* **সঠিক মিল (EMQ):** সার্ভার ইমেইল, ফোন, নাম শুধু এলোমেলো (SHA-256 hash) করে পাঠায়, সাথে Meta-র নিজের কুকি (_fbp, বিজ্ঞাপন থেকে এলে _fbc), ব্রাউজার ও আইপি। বিজ্ঞাপনে ক্লিক করে এলে _fbc কুকি ওয়েবসাইট নিজেই রেখে দেয়, Pixel ব্লক থাকলেও।
+* যাঁরা “Do Not Track” / “আমার ভিজিট গোনা বন্ধ করুন” বেছেছেন, তাঁদের কিছুই পাঠানো হয় না। গোপনীয়তা নীতিতেও এটা লেখা আছে — আপনি নিজের নীতি লিখে থাকলে *সেটিংস → পলিসি*-তে Meta-র অংশটি যোগ করে নিন।
+
+**সেটআপ (একবার):**
+1. *সেটিংস → অ্যানালিটিক্স*-এ **Meta Pixel**-এ আপনার ডেটাসেট আইডি (যেমন 1342541003780286) লিখে **সংরক্ষণ করুন**।
+2. Events Manager → ডেটাসেট → Settings → Conversions API থেকে **অ্যাক্সেস টোকেন** বানান, *সেটিংস → অ্যানালিটিক্স → Meta কনভার্সন এপিআই*-তে পেস্ট করে **টোকেন সংরক্ষণ** চাপুন। টোকেন এনক্রিপ্ট হয়ে থাকে, আর কখনো দেখানো হয় না। *(টোকেনটি কাউকে দেবেন না, চ্যাটেও না; ভুল করে কোথাও শেয়ার হয়ে গেলে Events Manager থেকে নতুন টোকেন বানিয়ে এখানে বসান।)*
+3. **পরীক্ষা:** Events Manager → Test events খোলা রাখুন, সেখান থেকে কোড (যেমন TEST22309) কপি করে **টেস্ট ইভেন্ট কোড** ঘরে বসিয়ে **টেস্ট ইভেন্ট পাঠান** চাপুন। কয়েক সেকেন্ডে Test events-এ একটি Purchase দেখাবে, আর এখানে Meta-র উত্তর (events_received: 1) দেখাবে।
+4. আসল কেনা দিয়েও পরীক্ষা করতে চাইলে **টেস্ট ইভেন্ট কোড (সব ইভেন্ট)** ঘরে কোডটি বসিয়ে সংরক্ষণ করুন, একটি অর্ডার করে দেখুন। **কাজ করছে দেখার পর ঘরটি খালি করে সংরক্ষণ করুন** — নইলে সব কেনা টেস্ট হিসেবে চিহ্নিত হবে।
+5. **Graph API ভার্সন:** খালি রাখলে v24.0। নতুন ভার্সন (যেমন v27.0) লিখতে পারেন; Meta না নিলে সার্ভার নিজে থেকেই v24.0-তে পাঠায়, কোনো কেনা হারায় না।
+* “Meta-র সর্বশেষ উত্তর” লাইনে দেখা যায় শেষ পাঠানো কেনাটি Meta নিয়েছে কি না।
+
+**আরও দুটি ছোট পরিবর্তন:** ক্লাসের ম্যাটেরিয়ালে ভিডিও আগে, তার নিচে নাম, আর বিবরণ “বিস্তারিত”-এর ভেতরে ভাঁজ করা (ইউটিউবের মতো)। চ্যাটবট উত্তরে কোনো পাতার কথা বললে (যেমন আমার ক্লাস) সেই পাতার **বোতাম** দেখায়, `/app/`-এর মতো লেখা আর থাকে না।
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -1352,3 +1373,24 @@ class that was taken down, is not listed.
 * **Class words with AI:** in a class's edit page, **Write with AI** fills the short line, the full description and the search words in both languages from the class's title, price, level and lessons — read them, then **Save**.
 * **Gemini key:** paste it in *AI Chatbot → Google Gemini* and press **Save** — however it was copied (spaces, quotes, its name in front), it works and is tested at once. The assistant and the drafts use Gemini whenever a key is saved. Cloudflare's Gemma 4 model no longer answers “bad_response: empty”.
 * **Marketing list:** *Sign-ups → Marketing list* now holds every student with an e-mail as well as the newsletter; the “Agreed to offers” column shows who said yes to offers. The CSV download has everyone.
+
+## 38. Meta Pixel and the Conversions API — counting ad purchases properly
+
+**What was wrong:** the website sent Meta only PageView — no Purchase, InitiateCheckout or ViewContent — and nothing at all from the server (Conversions API). So Events Manager showed no Purchase.
+
+**Now:**
+* **Browser (Pixel):** a class looked at (ViewContent), Enroll pressed (AddToCart), checkout started (InitiateCheckout), a way to pay chosen (AddPaymentInfo), an account made (CompleteRegistration), forms (Lead) and **the purchase (Purchase)** — with the class, the price and the order code.
+* **Server (Conversions API):** the moment an order is paid (SSLCommerz, or when you approve a send-money / Bangla QR payment — however late), the server itself tells Meta the Purchase. Ad blockers, closed tabs and late approvals no longer lose a sale.
+* **Never twice:** both carry the same event ID (`purchase.` + the order code), so Meta counts it once (deduplication).
+* **Good matching (EMQ):** the server sends the e-mail, phone and name only scrambled (SHA-256), with Meta's own cookies (_fbp, and _fbc after an ad click), the browser and the IP. A visitor who came from an ad keeps the click as the _fbc cookie set by the website itself, even when the Pixel is blocked.
+* Nobody who chose "Do Not Track" or "Stop counting my visits" is sent. The privacy policy says so too — if you wrote your own policy, add the Meta part in *Settings → Policies*.
+
+**Set-up (once):**
+1. *Settings → Analytics*: type your dataset ID (e.g. 1342541003780286) in **Meta Pixel** and press **Save**.
+2. In Events Manager → your dataset → Settings → Conversions API, generate an **access token**, paste it in *Settings → Analytics → Meta Conversions API* and press **Save token**. It is kept encrypted and never shown again. *(Do not share the token, not even in a chat; if it was shared somewhere by mistake, generate a new one in Events Manager and paste that here.)*
+3. **Test:** keep Events Manager → Test events open, copy its code (e.g. TEST22309) into **Test event code** and press **Send a test event**. A Purchase appears in Test events within seconds, and Meta's answer (events_received: 1) shows here.
+4. To test with a real purchase too, put the code in **Test event code (all events)** and press Save, then place an order. **Once you have seen it work, empty that box and press Save** — otherwise every purchase is marked as a test.
+5. **Graph API version:** leave it empty for v24.0. You may type a newer one (e.g. v27.0); if Meta refuses it, the server sends with v24.0 by itself, and no purchase is lost.
+* The "Meta's latest answer" line shows whether Meta took the last purchase sent.
+
+**Two smaller changes:** in a class's materials the video comes first, its name under it, and its words folded under "Details" (like YouTube). When the chatbot's answer names a page (e.g. My Learning), it shows a **button** to it instead of a path like `/app/`.

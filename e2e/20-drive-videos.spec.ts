@@ -313,8 +313,8 @@ test.describe("the owner's lesson editor", () => {
 
 test.describe("a Drive video in the class's materials", () => {
   let mats: { ok: number; privateOne: number };
-  const material = async (title_en: string, url: string) => {
-    const res = await apiPost(admin, "/admin/materials", { course_id: courseId, kind: "video", title_bn: "ভিডিও", title_en, note_bn: "", note_en: "", r2_key: null, url, platform: null, starts_at: null, duration_min: null, active: true, sort: 100 });
+  const material = async (title_en: string, url: string, note_en = "") => {
+    const res = await apiPost(admin, "/admin/materials", { course_id: courseId, kind: "video", title_bn: "ভিডিও", title_en, note_bn: "", note_en, r2_key: null, url, platform: null, starts_at: null, duration_min: null, active: true, sort: 100 });
     expect(res.status).toBe(201);
     return (res.body as { item: { id: number } }).item.id;
   };
@@ -372,7 +372,7 @@ test.describe("a Drive video in the class's materials", () => {
 
   test("a Vimeo, YouTube or Facebook video plays in its card too, in that site's own player — no new tab — after “Watch video”", async ({ browser }) => {
     const vimeo = await material("Biryani on Vimeo", "https://vimeo.com/123456789?share=copy");
-    const youtube = await material("Biryani on YouTube", "https://youtu.be/dQw4w9WgXcQ");
+    const youtube = await material("Biryani on YouTube", "https://youtu.be/dQw4w9WgXcQ", "Send a join request and wait; our admin adds you to the class once the payment is checked.");
     const facebook = await material("Biryani on Facebook", "https://www.facebook.com/mawahacademy/videos/1234567890123456/");
     const { ctx, page } = await student(browser);
     const tabs: string[] = [];
@@ -388,6 +388,15 @@ test.describe("a Drive video in the class's materials", () => {
     ] as const) {
       const card = section.locator(".mat-card", { hasText: title });
       await expect(card.locator("iframe")).toHaveCount(0); // nothing loads until it is pressed
+      // like YouTube: the video first, its name under it, and its words folded until asked for
+      const [frameBox, titleBox] = [await card.locator(".video-frame").boundingBox(), await card.locator(".mat-title").boundingBox()];
+      expect(frameBox!.y, "the video is above the name").toBeLessThan(titleBox!.y);
+      if (title === "Biryani on YouTube") {
+        const words = card.getByText("Send a join request and wait");
+        await expect(words).toBeHidden();
+        await card.getByText("Details").click();
+        await expect(words).toBeVisible();
+      }
       const opened = page.waitForResponse((r) => r.url().endsWith(`/api/student/materials/${id}/open`) && r.request().method() === "POST");
       await card.getByRole("button", { name: /Watch video/ }).click();
       expect((await opened).status()).toBe(200);
