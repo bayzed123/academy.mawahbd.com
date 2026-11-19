@@ -35,6 +35,7 @@ const Certificates = lazyPage(() => import("./pages/Engagement"), "Certificates"
 const Signups = lazyPage(() => import("./pages/Engagement"), "Signups");
 const Messages = lazyPage(() => import("./pages/Engagement"), "Messages");
 const Chatbot = lazyPage(() => import("./pages/Chatbot"), "Chatbot");
+const Assistant = lazyPage(() => import("./pages/Assistant"), "Assistant");
 const Reports = lazyPage(() => import("./pages/Reports"), "Reports");
 const Analytics = lazyPage(() => import("./pages/Analytics"), "Analytics");
 const Staff = lazyPage(() => import("./pages/Staff"), "Staff");
@@ -88,6 +89,7 @@ export default function App() {
           <Route path="signups" element={guard("signups:read", <Signups />)} />
           <Route path="messages" element={guard("messages:read", <Messages />)} />
           <Route path="chatbot" element={guard("chatbot:read", <Chatbot />)} />
+          <Route path="assistant" element={guard("assistant:use", <Assistant />)} />
           <Route path="reports" element={guard("reports:learning", <Reports />)} />
           <Route path="analytics" element={guard("analytics:read", <Analytics />)} />
           <Route path="staff" element={guard("staff:read", <Staff />)} />

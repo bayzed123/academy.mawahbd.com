@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { dhakaMinuteMs, formatDateTime, readSslLogo, SSL_BANNER, SSL_LOGO_MAX } from "@mawah/shared";
-import { adm, ApiError } from "../lib/api";
+import { BUILTIN_QR, dhakaMinuteMs, formatDateTime, readSslLogo, SSL_BANNER, SSL_LOGO_MAX } from "@mawah/shared";
+import { adm, api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { Button, Chip, ErrorState, Field, Icon, PageHeader, Panel, Spinner, Switch, Tabs, TextArea, TextInput, useFieldErrors, useToast } from "../components/ui";
@@ -14,7 +14,19 @@ interface S {
   contact: { whatsapp: string; phone: string; email: string; facebook: string; messenger: string; youtube: string; instagram: string; address_bn: string; address_en: string; trade_license: string };
   announcement: { enabled: boolean; bn: string; en: string; ends_at: string; button_bn: string; button_en: string; link: string };
   shop: { enabled: boolean; url: string; label_bn: string; label_en: string };
-  payments: { sslcommerz: boolean; bkash_direct: boolean; manual: boolean; manual_numbers: { bkash: string; nagad: string; rocket: string }; manual_note_bn: string; manual_note_en: string; manual_window_min: number; ssl_logo: string; manual_link: string };
+  payments: {
+    sslcommerz: boolean;
+    manual: boolean;
+    manual_numbers: { bkash: string; nagad: string; rocket: string };
+    manual_note_bn: string;
+    manual_note_en: string;
+    manual_window_min: number;
+    ssl_logo: string;
+    /** Bangla QR, Active / Inactive, its picture (an R2 key under payments/) and the name it pays */
+    bangla_qr: boolean;
+    qr_image: string;
+    qr_name: string;
+  };
   policies: {
     refund_bn: string;
     refund_en: string;
@@ -100,6 +112,69 @@ function BarState({ v }: { v: S["announcement"] }) {
   if (v.enabled && end !== null && end <= Date.now()) return <Chip tone="warn">{t("adm.settings.barEnded", { date: formatDateTime(new Date(end).toISOString(), lang) })}</Chip>;
   const shows = v.enabled && (!!(v.bn.trim() || v.en.trim()) || end !== null);
   return <Chip tone={shows ? "ok" : "neutral"}>{shows ? t("adm.settings.barActive") : t("adm.settings.barInactive")}</Chip>;
+}
+
+/**
+ * The shop's Bangla QR picture: the built-in MAWAH QR until a different one is uploaded — exactly as the bank or wallet gave it — never shrunk or re-encoded, so it stays sharp enough to scan —
+ * and shown large on white, so the owner can scan the preview with a phone before saving.
+ */
+function QrUpload({ value, onChange, disabled, error }: { value: string; onChange: (key: string) => void; disabled: boolean; error?: string }) {
+  const { t, err } = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState("");
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    setProblem("");
+    try {
+      const res = await api<{ key: string }>("/admin/media/image?folder=payments", { body: file, contentType: file.type || "image/png" });
+      onChange(res.key);
+    } catch (e) {
+      setProblem(err(e instanceof ApiError ? (e.code === "unsupported_file_type" ? "file_type" : e.code) : "generic"));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="field wide qr-field">
+      <span className="label" id="pn-qr-l">
+        {t("adm.pay.qrImage")}
+      </span>
+      <div className="qr-upload">
+        <figure className="qr-preview">
+          <img src={value ? `/media/${value}` : BUILTIN_QR.src} alt={t("adm.pay.qrImage")} />
+          {!value && <figcaption>{t("adm.pay.qrNone")}</figcaption>}
+        </figure>
+        <div className="stack">
+          <label className={`btn btn-outline${disabled ? " disabled" : ""}`}>
+            <input
+              id="pn-qr"
+              className="vh"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/avif"
+              aria-labelledby="pn-qr-l"
+              aria-invalid={error || problem ? true : undefined}
+              disabled={disabled || busy}
+              onChange={(e) => void pick(e.target.files?.[0])}
+            />
+            <Icon name="qr" /> {t(value ? "adm.pay.qrChange" : "adm.pay.qrPick")}
+          </label>
+          {busy && <span className="hint">{t("adm.pay.qrUploading")}</span>}
+          {value && !disabled && (
+            <Button className="btn-ghost btn-sm" onClick={() => onChange("")}>
+              {t("adm.pay.qrRemove")}
+            </Button>
+          )}
+          <p className="hint">{t("adm.pay.qrImageHint")}</p>
+          {(problem || error) && (
+            <p className="err-text" role="alert">
+              {problem || err(error ?? "invalid")}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /** One settings group: local edits, one Save button, server-side validation errors shown per field. */
@@ -289,10 +364,6 @@ export function Settings() {
                   </Field>
                   <SslLogoPreview value={v.ssl_logo} hasError={Boolean(e.ssl_logo)} />
                   <div className="field wide">
-                    <Switch checked={v.bkash_direct} disabled={!canWrite} onChange={(x) => set({ bkash_direct: x })} label={t("adm.pay.bkash")} />
-                    <p className="hint">{t("adm.pay.bkashHint")}</p>
-                  </div>
-                  <div className="field wide">
                     <Switch checked={v.manual} disabled={!canWrite} onChange={(x) => set({ manual: x })} label={t("adm.pay.manual")} />
                     <p className="hint">{t("adm.pay.manualHint")}</p>
                   </div>
@@ -304,14 +375,21 @@ export function Settings() {
                       <TextInput id={`pn-${m}`} inputMode="tel" value={v.manual_numbers[m]} error={e[`manual_numbers.${m}`]} disabled={!canWrite} onChange={(x) => set({ manual_numbers: { ...v.manual_numbers, [m]: x.target.value } })} />
                     </Field>
                   ))}
-                  <Field id="pn-link" label={t("adm.pay.link")} hint={t("adm.pay.linkHint")} error={e.manual_link} wide>
-                    <TextInput id="pn-link" type="url" inputMode="url" className="mono" spellCheck={false} placeholder="https://invoice.sslcommerz.com/invoice-form?refer=…" value={v.manual_link} error={e.manual_link} disabled={!canWrite} onChange={(x) => set({ manual_link: x.target.value })} />
-                  </Field>
                   <Field id="pn-note-bn" label={t("adm.pay.noteBn")} error={e.manual_note_bn}>
                     <TextArea id="pn-note-bn" rows={3} maxLength={500} value={v.manual_note_bn} disabled={!canWrite} onChange={(x) => set({ manual_note_bn: x.target.value })} />
                   </Field>
                   <Field id="pn-note-en" label={t("adm.pay.noteEn")} error={e.manual_note_en}>
                     <TextArea id="pn-note-en" rows={3} maxLength={500} value={v.manual_note_en} disabled={!canWrite} onChange={(x) => set({ manual_note_en: x.target.value })} />
+                  </Field>
+                  {/* the third way of paying: Bangla QR, Active / Inactive (the shop's own QR is built in) */}
+                  <div className="field wide pay-qr-head">
+                    <Switch checked={v.bangla_qr} disabled={!canWrite} onChange={(x) => set({ bangla_qr: x })} label={t("adm.pay.qr")} />
+                    <Chip tone={v.bangla_qr ? "ok" : "neutral"}>{t(v.bangla_qr ? "adm.pay.qrActive" : "adm.pay.qrInactive")}</Chip>
+                    <p className="hint">{t("adm.pay.qrHint")}</p>
+                  </div>
+                  <QrUpload value={v.qr_image} onChange={(key) => set({ qr_image: key })} disabled={!canWrite} error={e.qr_image} />
+                  <Field id="pn-qr-name" label={t("adm.pay.qrName")} hint={t("adm.pay.qrNameHint")} error={e.qr_name} wide>
+                    <TextInput id="pn-qr-name" maxLength={80} value={v.qr_name} error={e.qr_name} disabled={!canWrite} onChange={(x) => set({ qr_name: x.target.value })} />
                   </Field>
                   <div className="notice wide">
                     <Icon name="shield" />

@@ -1,47 +1,60 @@
-import type { Channel, ManualPayInfo } from "@mawah/shared";
+import { BUILTIN_QR, type BanglaQrInfo, type Channel, type ManualPayInfo } from "@mawah/shared";
 import { isProd, type Env } from "../../env";
 import { hmacHex, timingSafeEqual } from "../../lib/crypto";
 import type { Settings } from "../../lib/settings";
-import { bkashConfigured } from "./bkash";
 import { sslConfigured } from "./sslcommerz";
+
+/** An uploaded Bangla QR picture (Admin → Settings → Payments): the content-hash key the image upload gives, in its own folder. */
+export const QR_IMAGE_KEY = /^payments\/[a-f0-9]{32}\.(?:png|jpg|webp|avif)$/;
 
 /** The simulated gateway exists ONLY for local development and automated tests — never in production. */
 export function mockEnabled(env: Env): boolean {
   return !isProd(env) && env.ALLOW_MOCK_PAYMENTS === "true";
 }
 
-/** Channels the student can pick right now = enabled in Admin -> Settings AND actually connected (secrets present). */
+/**
+ * Channels the student can pick right now = switched on in Admin → Settings → Payments AND ready. The checkout lists them in this order (the
+ * first is the one chosen): send money to the shop's number, SSLCommerz's automatic online payment, the shop's Bangla QR. Nothing else.
+ */
 export function availableChannels(env: Env, settings: Settings): Channel[] {
   const out: Channel[] = [];
-  // the order the checkout lists them in (and the first is the one chosen): send-money first, then SSLCommerz's secure online payment.
-  // Manual payment is only offered once the owner has entered somewhere to pay: a number to send money to, or the SSLCommerz payment link
+  // send-money once the owner has given a number to send it to; SSLCommerz once its keys are set; Bangla QR whenever it is Active (its QR is built in)
   if (settings.payments.manual && manualReady(settings)) out.push("manual");
   if (settings.payments.sslcommerz && sslConfigured(env)) out.push("sslcommerz");
-  if (settings.payments.bkash_direct && bkashConfigured(env)) out.push("bkash");
+  if (settings.payments.bangla_qr) out.push("bangla_qr");
   if (mockEnabled(env)) out.push("mock");
   return out;
 }
 
-/** The owner has entered somewhere a manual payment can go: a number to send money to, or the shop's SSLCommerz payment link. */
+/** The owner has given a number to send money to (bKash, Nagad or Rocket). */
 export function manualReady(settings: Settings): boolean {
-  return Object.values(settings.payments.manual_numbers).some((n) => !!n) || !!settings.payments.manual_link;
+  return Object.values(settings.payments.manual_numbers).some((n) => !!n);
 }
 
-/** Where a manual (send-money) payment goes and how long the student has — shown in the quote and on the open order. */
+/** The picture of the shop's Bangla QR: the one uploaded in Settings → Payments, else the shop's own built-in QR. */
+export function qrImage(settings: Settings): string {
+  const key = settings.payments.qr_image;
+  return QR_IMAGE_KEY.test(key) ? `/media/${key}` : BUILTIN_QR.src;
+}
+
+/** The shop's Bangla QR while it is Active; null while Inactive. */
+export function qrInfo(settings: Settings): BanglaQrInfo | null {
+  const p = settings.payments;
+  return p.bangla_qr ? { image: qrImage(settings), name: p.qr_name } : null;
+}
+
+/** Where a manual payment goes (the numbers, or the Bangla QR) and how long the student has — shown in the quote and on the open order. */
 export function manualPayInfo(settings: Settings): ManualPayInfo {
   const p = settings.payments;
-  return { numbers: p.manual_numbers, link: p.manual_link, note_bn: p.manual_note_bn, note_en: p.manual_note_en, window_min: p.manual_window_min };
+  return { numbers: p.manual_numbers, note_bn: p.manual_note_bn, note_en: p.manual_note_en, window_min: p.manual_window_min, qr: qrInfo(settings) };
 }
 
 /** Plain-language connection status shown on the admin dashboard "Health check" strip. */
 export function paymentHealth(env: Env, settings: Settings) {
   return {
     sslcommerz: { connected: sslConfigured(env), enabled: settings.payments.sslcommerz },
-    bkash: { connected: bkashConfigured(env), enabled: settings.payments.bkash_direct },
-    manual: {
-      connected: manualReady(settings),
-      enabled: settings.payments.manual,
-    },
+    manual: { connected: manualReady(settings), enabled: settings.payments.manual },
+    bangla_qr: { connected: true, enabled: settings.payments.bangla_qr },
     mode: env.PAYMENT_MODE,
   };
 }

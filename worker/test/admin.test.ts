@@ -38,7 +38,7 @@ afterEach(() => vi.restoreAllMocks());
 
 // manual send-money checkout needs the owner's receiving numbers (set once per isolated test database)
 beforeAll(async () => {
-  await setSetting(env, "payments", { sslcommerz: true, bkash_direct: false, manual: true, manual_numbers: { bkash: "01711111111", nagad: "", rocket: "" }, manual_note_bn: "", manual_note_en: "" }, null);
+  await setSetting(env, "payments", { sslcommerz: true, manual: true, manual_numbers: { bkash: "01711111111", nagad: "", rocket: "" }, manual_note_bn: "", manual_note_en: "" }, null);
 });
 
 /* ------------------------------------------------------------------------------------------------ RBAC */
@@ -586,7 +586,6 @@ describe("settings", () => {
     const admin = (await loginStaff("super_admin")).client;
     const put = await admin.put("/api/admin/settings/payments", {
       sslcommerz: true,
-      bkash_direct: false,
       manual: true,
       manual_numbers: { bkash: "01711111111", nagad: "01822222222", rocket: "" },
       manual_note_bn: "",

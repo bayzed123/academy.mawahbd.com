@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mockSignature } from "../src/services/payments";
 import { GUEST_KEEP_DAYS, purgeAbandonedGuests } from "../src/services/guests";
-import { getSettings, setSetting } from "../src/lib/settings";
+import { getSettings, resetSettingsCache, setSetting } from "../src/lib/settings";
 import { Client, env, json, loginStaff, registerStudent, uniqueEmail } from "./helpers";
 
 /*
@@ -351,8 +351,13 @@ describe("what is asked for, and what is checked before an account is made", () 
     expect((await buy(new Client(), gone)).status).toBe(422);
     expect(await studentRow(gone.email as string)).toBeNull();
 
-    const noWay = guestBody(course, { channel: "bkash" }); // not set up on this copy of the site
+    const noWay = guestBody(course, { channel: "bangla_qr" }); // Bangla QR switched to Inactive
+    const payments = (await getSettings(env)).payments;
+    await setSetting(env, "payments", { ...payments, bangla_qr: false }, null);
+    resetSettingsCache();
     const res = await buy(new Client(), noWay);
+    await setSetting(env, "payments", payments, null);
+    resetSettingsCache();
     expect(res.status).toBe(400);
     expect((await json(res)).error.code).toBe("payment_unavailable");
     expect(await studentRow(noWay.email as string)).toBeNull();

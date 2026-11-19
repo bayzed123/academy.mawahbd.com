@@ -153,7 +153,7 @@ test("manual send-money: own number first, a countdown with our details, proof b
   // proof: nothing at all, then a TrxID that is not one, then the real one
   const send = page.getByRole("button", { name: "I have paid — send for checking" });
   await send.click();
-  await expect(page.getByText("Enter the transaction ID or add a screenshot.")).toBeVisible();
+  await expect(page.getByText("Enter the transaction ID or add a screenshot — either one is enough.")).toBeVisible();
   await page.getByLabel("Transaction ID (TrxID)").fill("x");
   await send.click();
   await expect(page.getByText("Please enter the transaction ID exactly as in the message.")).toBeVisible();

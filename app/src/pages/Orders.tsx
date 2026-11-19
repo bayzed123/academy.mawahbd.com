@@ -183,7 +183,7 @@ export function OrderDetail() {
           {o.method && (
             <div>
               <dt>{t("app.orders.method")}</dt>
-              <dd>{o.via_link ? t("app.manual.linkName") : t(`method.${o.method}` as "method.bkash")}</dd>
+              <dd>{o.via_qr ? t("app.manual.qrName") : o.via_link ? t("app.manual.linkName") : t(`method.${o.method}` as "method.bkash")}</dd>
             </div>
           )}
           {o.gateway_txn && (

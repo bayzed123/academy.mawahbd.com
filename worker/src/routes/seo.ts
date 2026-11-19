@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { getSettings } from "../lib/settings";
 import type { AppEnv } from "../env";
 import { VERIFICATION_FILES } from "../generated/verification";
 import { all } from "../lib/db";
@@ -35,12 +36,16 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 seoRoutes.get("/sitemap.xml", (c) =>
   cachedPage(c, { ttl: 3600 }, async () => {
     const site = c.env.SITE_URL.replace(/\/$/, "");
-    const [courses, posts, instructors, cats, landing] = await Promise.all([
+    // the Equipment Shop's pages, while the shop is open on this website
+    const shopOpen = (await getSettings(c.env)).store.enabled;
+    const [courses, posts, instructors, cats, landing, shopCats, products] = await Promise.all([
       all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM courses WHERE deleted_at IS NULL AND status IN ('published','coming_soon') AND channel = 'website' ORDER BY sort, id"),
       all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM blog_posts WHERE status = 'published' AND deleted_at IS NULL"),
       all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM instructors WHERE active = 1 AND deleted_at IS NULL"),
       all<{ slug: string }>(c.env.DB, "SELECT slug FROM categories WHERE active = 1 ORDER BY sort"),
       all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM landing_pages WHERE status = 'published' AND deleted_at IS NULL"),
+      shopOpen ? all<{ slug: string }>(c.env.DB, "SELECT slug FROM shop_categories WHERE active = 1 ORDER BY sort, id") : Promise.resolve([] as { slug: string }[]),
+      shopOpen ? all<{ slug: string; updated_at: string }>(c.env.DB, "SELECT slug, updated_at FROM shop_products WHERE status = 'published' ORDER BY sort, id LIMIT 2000") : Promise.resolve([] as { slug: string; updated_at: string }[]),
     ]);
 
     const entries: { path: string; lastmod?: string; priority: string }[] = [
@@ -64,6 +69,15 @@ seoRoutes.get("/sitemap.xml", (c) =>
       { path: "/how-to-order", priority: "0.5" },
       { path: "/guide", priority: "0.4" },
       { path: "/hotline", priority: "0.4" },
+      ...(shopOpen
+        ? [
+            { path: "/shop", priority: "0.7" },
+            ...shopCats.map((x) => ({ path: `/shop/category/${x.slug}`, priority: "0.6" })),
+            ...products.map((x) => ({ path: `/shop/p/${x.slug}`, lastmod: x.updated_at, priority: "0.6" })),
+            { path: "/policies/shop-terms", priority: "0.3" },
+            { path: "/policies/shop-returns", priority: "0.3" },
+          ]
+        : []),
     ];
 
     const xml = entries

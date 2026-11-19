@@ -39,10 +39,6 @@ export interface Env {
   SETUP_TOKEN?: string;
   SSLCOMMERZ_STORE_ID?: string;
   SSLCOMMERZ_STORE_PASSWORD?: string;
-  BKASH_APP_KEY?: string;
-  BKASH_APP_SECRET?: string;
-  BKASH_USERNAME?: string;
-  BKASH_PASSWORD?: string;
   RESEND_API_KEY?: string;
   /** the SMS company (msg.mram.com.bd): the key from its panel, and its address (the website's own address is enough) */
   SMS_API_KEY?: string;

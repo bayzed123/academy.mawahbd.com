@@ -7,8 +7,8 @@ import { Client, env, freshState } from "./helpers";
  * The footer's "We accept" row (the owner's bKash, Nagad and Rocket pictures plus Visa and Mastercard) and the developer credit.
  * What the owner cannot see by eye: that every picture is really there and the page reserves exactly the room it needs (a
  * regenerated or swapped file must not drift from the numbers in the markup), that each one has a spoken name in both
- * languages, and that the credit is a safe, visible link with the "all rights reserved" line next to it. While SSLCommerz takes payments,
- * its own picture stands in for the row (worker/test/ssl-logo.test.ts); the row is checked here with SSLCommerz switched off.
+ * languages, and that the credit is a safe, visible link with the "all rights reserved" line next to it. The footer itself always shows
+ * SSLCommerz's one picture instead (worker/test/ssl-logo.test.ts); the small pictures are still used on the checkout page.
  */
 const SITE = env.SITE_URL.replace(/\/$/, "");
 const html = async (path: string) => (await new Client().get(path)).text();
@@ -40,24 +40,13 @@ async function setPayments(over: Partial<typeof SETTING_DEFAULTS.payments>) {
 afterEach(async () => setPayments({}));
 
 describe("the payment logos in the footer", () => {
-  it("every public page shows the five marks in order, each with a spoken name in its own language", async () => {
+  it("every public page keeps SSLCommerz's picture of the ways to pay under a visible heading, in both languages — even with auto pay off", async () => {
     await setPayments({ sslcommerz: false });
-    const names = {
-      en: ["bKash", "Nagad", "Rocket", "Visa", "Mastercard"],
-      bn: ["বিকাশ", "নগদ", "রকেট", "ভিসা", "মাস্টারকার্ড"],
-    };
     for (const [lang, prefix] of [["en", "/en"], ["bn", ""]] as const) {
       for (const path of ["", "/faq", "/courses", "/contact"]) {
         const page = await html(`${prefix}${path}` || "/");
-        const imgs = payImages(page);
-        expect(imgs.map((i) => i.src), `${lang} ${path}`).toEqual(PAY_LOGOS.map((p) => p.src));
-        expect(imgs.map((i) => i.alt), `${lang} ${path}`).toEqual(names[lang]);
-        for (const img of imgs) {
-          expect(Number(img.width) > 0 && Number(img.height) > 0, "room is kept for the picture").toBe(true);
-          expect(img.loading, "below the fold: loaded when scrolled to").toBe("lazy");
-        }
-        // the row is a list with a visible heading (screen readers announce "We accept, list, 5 items")
-        expect(page).toMatch(/<p class="foot-h mt" id="pay-h">[^<]+<\/p>\s*<ul class="pay-logos" aria-labelledby="pay-h">/);
+        expect(page, `${lang} ${path}`).toMatch(/<p class="foot-h mt" id="pay-h">[^<]+<\/p>\s*<p class="ssl-logo">\s*<img src="[^"]+"/);
+        expect(payImages(page), "the five small marks are gone from the footer").toEqual([]);
         expect(page, "the old text-only chips are gone").not.toContain('class="pay-list"');
       }
     }

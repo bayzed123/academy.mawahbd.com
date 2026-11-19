@@ -14,7 +14,7 @@ The brief asks to **confirm two decisions with the requester before finalizing**
 
 ## 2. Local payments at launch (default) — or international cards from day one?
 
-**What was built:** **SSLCommerz** (bKash · Nagad · Rocket · cards on one hosted page), optional **direct bKash**, and **manual send-money** (the student says which number they pay from, has 20 minutes, then sends a TrxID and/or a screenshot, with an optional WhatsApp message; staff verify and approve in the admin). All prices are **BDT** whole-taka. **Stripe (international cards) is not built** — it is roadmap *Phase 3*.
+**What was built:** **SSLCommerz** auto pay (bKash · Nagad · Rocket · cards on one hosted page), **manual send-money** and the shop's **Bangla QR** (Active/Inactive) — the optional direct bKash and the SSLCommerz pay link were removed in November 2026 at the owner's request (the student says which number they pay from, has 20 minutes, then sends a TrxID and/or a screenshot, with an optional WhatsApp message; staff verify and approve in the admin). All prices are **BDT** whole-taka. **Stripe (international cards) is not built** — it is roadmap *Phase 3*.
 
 **Why:** the audience is Bangladesh-first; a second gateway, multi-currency prices, tax/VAT presentation and foreign-card dispute handling add real complexity and cost that is only worthwhile once learners abroad actually show up (the site’s analytics and the “notify me” list will tell you).
 

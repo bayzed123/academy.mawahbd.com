@@ -40,11 +40,12 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
 
   const o = q.data?.order;
   const approve = async () => {
-    // paid on the shop's SSLCommerz payment link: the payment is in the SSLCommerz panel, not a wallet statement
+    // where to look for the payment: the bank's or wallet's Bangla QR payments, the SSLCommerz panel (an older pay-link order), or a wallet statement
+    const qr = !!o?.via_qr;
     const link = !!o?.via_link;
     const body = o?.gateway_txn
-      ? t(link ? "adm.order.approveBodyLink" : "adm.order.approveBody", { trx: o.gateway_txn, amount: money(o.total) })
-      : t(link ? "adm.order.approveBodyNoTrxLink" : "adm.order.approveBodyNoTrx", { amount: money(o?.total ?? 0), num: o?.payer_number ?? "—" });
+      ? t(qr ? "adm.order.approveBodyQr" : link ? "adm.order.approveBodyLink" : "adm.order.approveBody", { trx: o.gateway_txn, amount: money(o.total) })
+      : t(qr ? "adm.order.approveBodyNoTrxQr" : link ? "adm.order.approveBodyNoTrxLink" : "adm.order.approveBodyNoTrx", { amount: money(o?.total ?? 0), num: o?.payer_number ?? "—" });
     const r = await confirm({ title: t("adm.order.approveTitle"), body, confirmLabel: t("adm.order.approve") });
     if (r.ok) act.mutate({ path: "approve" });
   };
@@ -94,7 +95,7 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
               <Icon name="clock" />
               <div>
                 <b>{t("adm.order.checkTitle")}</b>
-                <p>{t(o.via_link ? "adm.order.checkBodyLink" : "adm.order.checkBody", { trx: o.gateway_txn ?? "—", amount: money(o.total), num: o.payer_number ?? "—" })}</p>
+                <p>{t(o.via_qr ? "adm.order.checkBodyQr" : o.via_link ? "adm.order.checkBodyLink" : "adm.order.checkBody", { trx: o.gateway_txn ?? "—", amount: money(o.total), num: o.payer_number ?? "—" })}</p>
               </div>
             </div>
           )}
@@ -113,8 +114,8 @@ function OrderDrawer({ id, onClose }: { id: number; onClose: () => void }) {
               { label: t("adm.order.ref"), value: <code className="code">{o.public_id}</code> },
               { label: t("label.date"), value: dateTime(o.created_at) },
               { label: t("adm.order.paidAt"), value: o.paid_at ? dateTime(o.paid_at) : "—" },
-              // a manual payment marked "card" was paid on the shop's SSLCommerz payment link
-              { label: t("adm.order.method"), value: o.via_link ? t("adm.order.viaLink") : o.method ? t(`method.${o.method}` as "method.bkash") : o.gateway },
+              // a manual order marked as scanned from the shop's Bangla QR, or (an older one) paid on the SSLCommerz payment link
+              { label: t("adm.order.method"), value: o.via_qr ? t("adm.order.viaQr") : o.via_link ? t("adm.order.viaLink") : o.method ? t(`method.${o.method}` as "method.bkash") : o.gateway },
               { label: t("adm.order.gateway"), value: o.gateway },
               { label: t("adm.order.txn"), value: o.gateway_txn ? <code className="code">{o.gateway_txn}</code> : "—" },
               { label: t("adm.order.payer"), value: o.payer_number },

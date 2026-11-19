@@ -93,12 +93,12 @@ const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…`
 const fact = (en: string, bn: string, value: string | number | null | undefined) => ({ en, bn, value: clip(String(value ?? "").trim(), 300) });
 const METHODS: Record<string, string> = { bkash: "bKash", nagad: "Nagad", rocket: "Rocket", card: "Card", free: "Free", manual: "Send money", mock: "Test payment" };
 const methodName = (m: string | null | undefined) => (m ? (METHODS[m] ?? m) : "");
-/** How an order was paid, in words (`viaLink`: on the shop's SSLCommerz payment link). */
-const paidWith = (m: string | null | undefined, viaLink?: boolean) => (viaLink ? "SSLCommerz payment link" : methodName(m));
+/** How an order was paid, in words (`viaQr`: by the shop's Bangla QR; `viaLink`: on the SSLCommerz payment link, an older way no longer offered). */
+const paidWith = (m: string | null | undefined, viaLink?: boolean, viaQr?: boolean) => (viaQr ? "Bangla QR" : viaLink ? "SSLCommerz payment link" : methodName(m));
 
 /** What each kind of note says. Callers give plain facts; the wording (English and Bangla) is here. */
 export const notices = {
-  orderPaid(d: { student: string; email: string; phone: string | null; address?: string; items: string[]; total: number; method: string | null; viaLink?: boolean; invoiceNo: string; studentId?: string; newAccount?: boolean }): Notice {
+  orderPaid(d: { student: string; email: string; phone: string | null; address?: string; items: string[]; total: number; method: string | null; viaLink?: boolean; viaQr?: boolean; invoiceNo: string; studentId?: string; newAccount?: boolean }): Notice {
     return {
       kind: "order_paid",
       headline: `${d.total ? formatMoney(d.total, "en") : "Free"} · ${d.student}`,
@@ -109,16 +109,17 @@ export const notices = {
         fact("Address", "ঠিকানা", d.address),
         fact("Class", "ক্লাস", d.items.join("; ")),
         fact("Amount", "টাকা", d.total ? formatMoney(d.total, "en") : "Free · ফ্রি"),
-        fact("Paid by", "যেভাবে দিয়েছেন", paidWith(d.method, d.viaLink)),
+        fact("Paid by", "যেভাবে দিয়েছেন", paidWith(d.method, d.viaLink, d.viaQr)),
         fact("Invoice", "ইনভয়েস", d.invoiceNo),
         fact("Student ID", "স্টুডেন্ট আইডি", d.studentId),
         fact("Account", "অ্যাকাউন্ট", d.newAccount ? "New — made automatically at checkout · নতুন — চেকআউটে নিজে থেকে তৈরি" : ""),
       ],
     };
   },
-  paymentWaiting(d: { student: string; email: string; phone: string | null; address?: string; items: string[]; total: number; method: string | null; viaLink?: boolean; trx: string | null; payer: string | null; hasImage: boolean; publicId: string }): Notice {
+  paymentWaiting(d: { student: string; email: string; phone: string | null; address?: string; items: string[]; total: number; method: string | null; viaLink?: boolean; viaQr?: boolean; trx: string | null; payer: string | null; hasImage: boolean; publicId: string }): Notice {
     const link = !!d.viaLink;
-    const method = paidWith(d.method, link) || "mobile";
+    const qr = !!d.viaQr;
+    const method = paidWith(d.method, link, qr) || "mobile";
     return {
       kind: "payment_waiting",
       headline: `${formatMoney(d.total, "en")} · ${method} · ${d.student}`,
@@ -135,7 +136,9 @@ export const notices = {
         fact("Screenshot", "স্ক্রিনশট", d.hasImage ? "Yes · আছে" : "No · নেই"),
         fact("Order", "অর্ডার", orderCode(d.publicId)),
       ],
-      note: link
+      note: qr
+        ? "Open the order, find the payment in your bank's or wallet's Bangla QR statement (the same amount and transaction ID), then press “Approve payment”.\nঅর্ডারটি খুলে আপনার ব্যাংক বা ওয়ালেটের বাংলা QR লেনদেনের তালিকায় পেমেন্টটি খুঁজুন (একই টাকা ও ট্রানজ্যাকশন আইডি), তারপর “পেমেন্ট অনুমোদন” চাপুন।"
+        : link
         ? "Open the order, find the payment in your SSLCommerz panel (the same amount and TrxID), then press “Approve payment”.\nঅর্ডারটি খুলে আপনার SSLCommerz প্যানেলে পেমেন্টটি খুঁজুন (একই টাকা ও ট্রানজ্যাকশন আইডি), তারপর “পেমেন্ট অনুমোদন” চাপুন।"
         : `Open the order, compare the TrxID with your ${method} messages, then press “Approve payment”.\nঅর্ডারটি খুলে ট্রানজ্যাকশন আইডি আপনার ${method} মেসেজের সাথে মিলিয়ে “পেমেন্ট অনুমোদন” চাপুন।`,
     };

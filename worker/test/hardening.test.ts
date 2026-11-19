@@ -33,7 +33,8 @@ const label = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
 /** Admin endpoints that are deliberately reachable without a staff session (login screens). */
 const OPEN_ADMIN = new Set(["GET /api/admin/auth/setup-status", "GET /api/admin/auth/me", "POST /api/admin/auth/setup", "POST /api/admin/auth/login", "POST /api/admin/auth/logout"]);
 /** Admin endpoints any signed-in staff member may call, whatever their role. */
-const ANY_STAFF = new Set(["POST /api/admin/presence/ping", "POST /api/admin/auth/change-password", "POST /api/admin/auth/logout"]);
+// (the AI assistant is asked a question by POST, but changes nothing — and tells each role only what it may see)
+const ANY_STAFF = new Set(["POST /api/admin/presence/ping", "POST /api/admin/auth/change-password", "POST /api/admin/auth/logout", "POST /api/admin/assistant"]);
 
 describe("route guards (enumerated from the router)", () => {
   it("finds the API surface (so this test cannot silently check nothing)", () => {

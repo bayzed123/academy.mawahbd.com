@@ -28,7 +28,7 @@ const upload = (client: Client, publicId: string, bytes: Uint8Array | string, ty
 
 const numbers = { bkash: "01711111111", nagad: "01722222222", rocket: "" };
 const setPayments = (extra: Record<string, unknown> = {}) =>
-  setSetting(env, "payments", { sslcommerz: true, bkash_direct: false, manual: true, manual_numbers: numbers, manual_note_bn: "", manual_note_en: "", ...extra }, null);
+  setSetting(env, "payments", { sslcommerz: true, manual: true, manual_numbers: numbers, manual_note_bn: "", manual_note_en: "", ...extra }, null);
 
 /** a student who has started a manual order (nothing sent yet) */
 async function startOrder(opts: { price?: number; method?: string; payer?: string } = {}) {
@@ -70,7 +70,7 @@ describe("manual payment: starting", () => {
     expect((Date.parse(row.pay_by) - Date.now()) / 60_000).toBeGreaterThan(44);
 
     const owner = (await loginStaff("super_admin")).client;
-    const put = (min: number) => owner.put("/api/admin/settings/payments", { sslcommerz: true, bkash_direct: false, manual: true, manual_numbers: numbers, manual_note_bn: "", manual_note_en: "", manual_window_min: min });
+    const put = (min: number) => owner.put("/api/admin/settings/payments", { sslcommerz: true, manual: true, manual_numbers: numbers, manual_note_bn: "", manual_note_en: "", manual_window_min: min });
     expect((await put(3)).status).toBe(422);
     expect((await put(121)).status).toBe(422);
     expect((await put(30)).status).toBe(200);
@@ -88,9 +88,9 @@ describe("manual payment: starting", () => {
 
   it("starting again replaces the student's own unpaid order for the same class", async () => {
     const { course, client, publicId: first } = await startOrder();
-    const again = await json(await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual", manual: { method: "rocket", payer_number: "01812345678" } }));
+    const again = await json(await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "manual", manual: { method: "nagad", payer_number: "01812345678" } }));
     expect(await orderRow(first)).toMatchObject({ status: "cancelled", note: "replaced" });
-    expect(await orderRow(again.order.public_id)).toMatchObject({ status: "pending", method: "rocket" });
+    expect(await orderRow(again.order.public_id)).toMatchObject({ status: "pending", method: "nagad" });
   });
 });
 
@@ -242,12 +242,12 @@ describe("manual payment: staff", () => {
   });
 
   it("the order detail carries the proof facts staff compare with the wallet statement", async () => {
-    const { client, publicId } = await startOrder({ method: "rocket", payer: "01812345678" });
+    const { client, publicId } = await startOrder({ method: "nagad", payer: "01812345678" });
     await upload(client, publicId, PNG);
     await client.post(`/api/checkout/${publicId}/proof`, { trx_id: "DETAIL1234" });
     const id = (await orderRow(publicId)).id;
     const { order } = await json(await (await loginStaff("support")).client.get(`/api/admin/orders/${id}`));
-    expect(order).toMatchObject({ status: "awaiting_verification", method: "rocket", payer_number: "01812345678", gateway_txn: "DETAIL1234", has_proof_image: 1, total: 1200 });
+    expect(order).toMatchObject({ status: "awaiting_verification", method: "nagad", payer_number: "01812345678", gateway_txn: "DETAIL1234", has_proof_image: 1, total: 1200 });
     expect(order.pay_by).toBeTruthy();
     expect(order.proof_at).toBeTruthy();
   });

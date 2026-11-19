@@ -172,16 +172,21 @@ async function applyCoupon(env: Env, studentId: number | null, code: string, cou
  *  Orders
  * ============================================================================================== */
 /**
- * `gateway_ref` of a manual order paid on the shop's SSLCommerz payment link (method "card"). A sale staff record by hand can also be a
- * manual "card" order — paid by card somewhere else — so this mark, not the method, is what says "paid on the payment link".
+ * `gateway_ref` of a manual order paid on the shop's SSLCommerz payment link (method "card"). The link is no longer offered (the three ways of
+ * paying are send-money, SSLCommerz's automatic payment and Bangla QR); the mark stays so past orders still say how they were paid.
  */
 export const PAY_LINK_REF = "sslcommerz_link";
+/**
+ * `gateway_ref` of a manual order paid by scanning the shop's Bangla QR. Such an order is a manual one (gateway "manual", method "manual"):
+ * the same window to pay in, the same proof, the same check by staff — this mark is what says "by Bangla QR".
+ */
+export const QR_REF = "bangla_qr";
 
 export interface ManualProof {
-  /** "card" = paid on the shop's SSLCommerz payment link (card or mobile banking on SSLCommerz's own page) */
-  method: "bkash" | "nagad" | "rocket" | "card";
-  /** the number the student pays FROM — it lets staff match the payment in their statement */
-  payer_number: string;
+  /** the service a send-money payment goes by; "qr" = the shop's Bangla QR (stored as method "manual", marked by QR_REF) */
+  method: "bkash" | "nagad" | "rocket" | "qr";
+  /** the number the student pays FROM, when they gave it — it lets staff match the payment in their statement */
+  payer_number: string | null;
   /** absent when the student is only starting: they pay first and send the TrxID (and/or a screenshot) afterwards */
   trx_id?: string;
 }
@@ -197,9 +202,10 @@ export async function createOrder(
   const publicId = generatePublicOrderId();
   const created = new Date();
   const now = nowIso(created);
-  // A manual order starts "pending" with a payment window and moves on when the student sends proof — or at once when the
-  // TrxID comes with the order (the one-step form older clients use).
-  const isManual = channel === "manual";
+  // A manual order (send-money or Bangla QR) starts "pending" with a payment window and moves on when the student sends proof — or at once
+  // when the TrxID comes with the order (the one-step form older clients use).
+  const isQr = channel === "bangla_qr";
+  const isManual = channel === "manual" || isQr;
   const withProof = isManual && !!manual?.trx_id;
   const status: OrderStatus = withProof ? "awaiting_verification" : "pending";
   const payBy = isManual ? nowIso(new Date(created.getTime() + windowMin * 60_000)) : null;
@@ -217,9 +223,9 @@ export async function createOrder(
     quote.coupon?.id ?? null,
     quote.coupon?.code ?? null,
     quote.bundle_id,
-    manual?.method ?? null,
-    channel,
-    isManual && manual?.method === "card" ? PAY_LINK_REF : null,
+    isQr ? "manual" : (manual?.method ?? null),
+    isManual ? "manual" : channel,
+    isQr ? QR_REF : null,
     manual?.trx_id ?? null,
     manual?.payer_number ?? null,
     student.name,
@@ -414,6 +420,7 @@ async function orderForNotice(env: Env, orderId: number) {
       total: number;
       method: string | null;
       via_link: number;
+      via_qr: number;
       customer_name: string;
       customer_email: string;
       customer_phone: string;
@@ -425,7 +432,7 @@ async function orderForNotice(env: Env, orderId: number) {
       made_at_checkout: number;
     }>(
       env.DB,
-      `SELECT o.public_id, o.invoice_no, o.total, o.method, (o.gateway_ref IS '${PAY_LINK_REF}') AS via_link, o.customer_name, o.customer_email, o.customer_phone, o.customer_address, o.gateway_txn, o.payer_number,
+      `SELECT o.public_id, o.invoice_no, o.total, o.method, (o.gateway_ref IS '${PAY_LINK_REF}') AS via_link, (o.gateway_ref IS '${QR_REF}') AS via_qr, o.customer_name, o.customer_email, o.customer_phone, o.customer_address, o.gateway_txn, o.payer_number,
               (o.proof_key IS NOT NULL) AS has_image, o.student_id,
               (s.source = 'checkout' AND NOT EXISTS (SELECT 1 FROM orders p WHERE p.student_id = o.student_id AND p.status IN ('paid','refunded') AND p.id <> o.id)) AS made_at_checkout
        FROM orders o JOIN students s ON s.id = o.student_id WHERE o.id = ?`,
@@ -444,7 +451,7 @@ export async function notifyPaid(env: Env, orderId: number): Promise<void> {
     const o = d.order;
     await notifyOwner(
       env,
-      notices.orderPaid({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, address: o.customer_address, items: d.items, total: o.total, method: o.method, viaLink: !!o.via_link, invoiceNo: o.invoice_no ?? "", studentId: studentCode(o.student_id), newAccount: !!o.made_at_checkout }),
+      notices.orderPaid({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, address: o.customer_address, items: d.items, total: o.total, method: o.method, viaLink: !!o.via_link, viaQr: !!o.via_qr, invoiceNo: o.invoice_no ?? "", studentId: studentCode(o.student_id), newAccount: !!o.made_at_checkout }),
     );
   } catch (err) {
     console.error("notify_paid_failed", orderId, err instanceof Error ? err.message : err);
@@ -459,7 +466,7 @@ export async function notifyProof(env: Env, orderId: number): Promise<void> {
     const o = d.order;
     await notifyOwner(
       env,
-      notices.paymentWaiting({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, address: o.customer_address, items: d.items, total: o.total, method: o.method, viaLink: !!o.via_link, trx: o.gateway_txn, payer: o.payer_number, hasImage: !!o.has_image, publicId: o.public_id }),
+      notices.paymentWaiting({ student: o.customer_name, email: o.customer_email, phone: o.customer_phone || null, address: o.customer_address, items: d.items, total: o.total, method: o.method, viaLink: !!o.via_link, viaQr: !!o.via_qr, trx: o.gateway_txn, payer: o.payer_number, hasImage: !!o.has_image, publicId: o.public_id }),
     );
   } catch (err) {
     console.error("notify_proof_failed", orderId, err instanceof Error ? err.message : err);
@@ -562,10 +569,11 @@ interface OrderRow {
   proof_at: string | null;
   has_proof_image: number;
   via_link: number;
+  via_qr: number;
 }
 
 const ORDER_COLS = `id, public_id, invoice_no, status, subtotal, discount, total, coupon_code, method, gateway, gateway_txn, payer_number, created_at, paid_at, pay_by,
-  proof_at, (proof_key IS NOT NULL) AS has_proof_image, (gateway_ref IS '${PAY_LINK_REF}') AS via_link`;
+  proof_at, (proof_key IS NOT NULL) AS has_proof_image, (gateway_ref IS '${PAY_LINK_REF}') AS via_link, (gateway_ref IS '${QR_REF}') AS via_qr`;
 
 async function withItems(env: Env, rows: OrderRow[]): Promise<OrderDTO[]> {
   if (rows.length === 0) return [];
@@ -579,6 +587,7 @@ async function withItems(env: Env, rows: OrderRow[]): Promise<OrderDTO[]> {
     ...r,
     has_proof_image: !!r.has_proof_image,
     via_link: !!r.via_link,
+    via_qr: !!r.via_qr,
     items: items.filter((i) => i.order_id === r.id).map(({ order_id: _o, ...rest }) => rest),
   }));
 }

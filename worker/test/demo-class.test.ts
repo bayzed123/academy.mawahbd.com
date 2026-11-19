@@ -49,7 +49,7 @@ describe("a class's demo class", () => {
     expect((await support.patch(`/api/admin/courses/${c.id}`, { demo_url: "https://youtu.be/dQw4w9WgXcQ" })).status).toBe(403);
   });
 
-  it("shows under the class's description with its own words, as a picture with a play button that plays right there", async () => {
+  it("shows before the class's description — the video first, then its name and words — as a picture with a play button that plays right there", async () => {
     const c = await makeClass({
       url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=5s",
       title_en: "Demo: the sponge base",
@@ -58,13 +58,16 @@ describe("a class's demo class", () => {
       text_bn: "দেখুন ধাপে ধাপে বেস তৈরি।",
     });
     const en = await page(`/en/courses/${c.slug}`);
-    // the picture, then the description, then the demo — then what the class includes
+    // the picture, then the demo, then the description — then what the class includes (like a video site: nothing to read before the video)
     const about = en.indexOf('aria-labelledby="about-h"');
     const demoAt = en.indexOf('<section class="demo" id="demo"');
-    expect(about).toBeGreaterThan(0);
-    expect(demoAt).toBeGreaterThan(about);
-    expect(en.indexOf('aria-labelledby="inc-h"')).toBeGreaterThan(demoAt);
+    expect(demoAt).toBeGreaterThan(0);
+    expect(about).toBeGreaterThan(demoAt);
+    expect(en.indexOf('aria-labelledby="inc-h"')).toBeGreaterThan(about);
     const demo = demoOf(en)!;
+    // inside it: the video, its name, then the owner's words
+    expect(demo.indexOf('<div class="vid"')).toBeLessThan(demo.indexOf('<p class="vid-title">'));
+    expect(demo.indexOf('<p class="vid-title">')).toBeLessThan(demo.indexOf('<p class="demo-text">'));
     expect(demo).toContain('<h2 id="demo-h">Watch a <span class="hl">demo class</span></h2>');
     expect(demo).toContain('<p class="demo-text">Watch us make the base, step by step.</p>');
     // the player is rebuilt from the checked id (YouTube's privacy-enhanced site) and made only when the visitor presses play

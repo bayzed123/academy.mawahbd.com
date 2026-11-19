@@ -12,6 +12,8 @@ export interface ProviderSettings {
   model: string;
   temperature: number;
   max_tokens: number;
+  /** ask for a JSON object back (drafts the admin fills its form with) */
+  json?: boolean;
 }
 
 export class AiError extends Error {

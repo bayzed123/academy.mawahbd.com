@@ -136,7 +136,7 @@ describe("SSLCommerz's logo on the site", () => {
     }
   });
 
-  it("a bare link shows the picture with no link; online payment switched off keeps the five marks", async () => {
+  it("a bare link shows the picture with no link — and it stays when online payment is switched off", async () => {
     await setPayments({ ssl_logo: LOGO });
     const bare = logoBlock(await page("/en"));
     expect(bare).toContain(`src="${LOGO}"`);
@@ -144,11 +144,11 @@ describe("SSLCommerz's logo on the site", () => {
 
     await setPayments({ ssl_logo: LOGO, sslcommerz: false });
     const html = await page("/en");
-    expect(logoBlock(html), "no SSLCommerz logo while online payment is off").toBeNull();
-    expect(html).toContain('class="pay-logos"');
+    expect(logoBlock(html), "the banner does not come and go with the auto-pay switch").toContain(`src="${LOGO}"`);
+    expect(html).not.toContain('class="pay-logos"');
   });
 
-  it("nothing pasted: the copy the owner sent, with its size and no link, in both languages; the five marks while SSLCommerz is off or has no keys", async () => {
+  it("nothing pasted: the copy the owner sent, with its size and no link, in both languages — always, whether SSLCommerz is on, off or has no keys", async () => {
     await setPayments({ ssl_logo: "" });
     for (const [path, alt] of [
       ["/", "SSLCommerz-এর মাধ্যমে পেমেন্ট"],
@@ -161,15 +161,11 @@ describe("SSLCommerz's logo on the site", () => {
     }
 
     await withoutStoreKeys(async () => {
-      const html = await page("/en");
-      expect(logoBlock(html), "SSLCommerz cannot take payments without its keys: nothing of SSLCommerz's").toBeNull();
-      expect(html).toContain('class="pay-logos"');
+      expect(logoBlock(await page("/en")), "kept without the store's keys").toContain(`src="${SSL_BANNER.src}"`);
     });
 
     await setPayments({ ssl_logo: "", sslcommerz: false });
-    const html = await page("/en");
-    expect(logoBlock(html)).toBeNull();
-    expect(html).toContain('class="pay-logos"');
+    expect(logoBlock(await page("/en")), "kept with auto pay off").toContain(`src="${SSL_BANNER.src}"`);
   });
 
   it("the copy is served: a small PNG of exactly the size the page keeps room for", async () => {

@@ -9,9 +9,9 @@ import { useSite } from "../lib/hooks";
 import { useI18n } from "../lib/i18n";
 import { Button, Empty, ErrorState, Field, Icon, Spinner, TextInput, Turnstile, useFieldErrors, useToast } from "../components/ui";
 
-const CHANNEL_ICON: Record<Channel, string> = { sslcommerz: "wallet", bkash: "wallet", manual: "phone", mock: "sparkle" };
-/** a manual payment: one of the owner's numbers, or "card" = the shop's SSLCommerz payment link (card or mobile banking on SSLCommerz's page) */
-type Method = "bkash" | "nagad" | "rocket" | "card";
+const CHANNEL_ICON: Record<Channel, string> = { manual: "phone", sslcommerz: "wallet", bangla_qr: "qr", mock: "sparkle" };
+/** a send-money payment: the service it goes by (one the owner has a number for) */
+type Method = "bkash" | "nagad" | "rocket";
 type PayResult = { order: { public_id: string; status: string; total: number }; redirect_url?: string; student?: StudentMe };
 
 /**
@@ -118,6 +118,16 @@ function ExistingAccount({ who, passwordless, onSignedIn, onOther }: { who: stri
  */
 function PayMarks({ channel, sslLogo }: { channel: Channel; sslLogo: string | null }) {
   const { t } = useI18n();
+  // Bangla QR: no wallet's mark (any bank or wallet app that takes Bangla QR pays it) — a QR mark and those words
+  if (channel === "bangla_qr") {
+    return (
+      <span className="pay-marks">
+        <span className="pay-qr-mark">
+          <Icon name="qr" /> {t("app.checkout.qr.mark")}
+        </span>
+      </span>
+    );
+  }
   if (channel === "sslcommerz" && sslLogo) {
     return (
       <span className="pay-ssl">
@@ -212,8 +222,8 @@ export default function Checkout() {
 
   // pick a sensible default payment channel as soon as the quote tells us what is available
   const channels = quote.data?.channels ?? [];
-  // only the services the owner has a number for can be chosen for a manual payment, and the SSLCommerz payment link once the owner set it
-  const manualMethods: Method[] = [...(["bkash", "nagad", "rocket"] as const).filter((m) => quote.data?.manual?.numbers[m]), ...(quote.data?.manual?.link ? (["card"] as const) : [])];
+  // only the services the owner has a number for can be chosen for a send-money payment
+  const manualMethods: Method[] = (["bkash", "nagad", "rocket"] as const).filter((m) => quote.data?.manual?.numbers[m]);
   const chosenMethod: Method = manualMethods.includes(method) ? method : (manualMethods[0] ?? method);
   // the first way listed is the one chosen: send-money first, then SSLCommerz's online payment (the order is the server's)
   useEffect(() => {
@@ -258,7 +268,8 @@ export default function Checkout() {
           items: basket.items.map((i) => gaItem(i)),
         });
       }
-      const order = { ...cart, coupon, agree: true as const, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() } : undefined };
+      // send-money says the service, and the number it comes from only if the buyer gave it (it is never required)
+      const order = { ...cart, coupon, agree: true as const, channel: channel || undefined, manual: channel === "manual" ? { method: chosenMethod, payer_number: payer.trim() || undefined } : undefined };
       if (v.as === "student") {
         // a signed-in student whose profile lacks a mobile number or an address gives them here (the form shows only then)
         const details = v.gaps ? { ...(v.gaps.phone ? { phone: phone.trim() } : {}), ...(v.gaps.address ? { address: address.trim() } : {}) } : needsDetails ? { phone: phone.trim(), address: address.trim() } : {};
@@ -426,7 +437,7 @@ export default function Checkout() {
                     </span>
                     <span>
                       <b>{t(`app.checkout.channel.${c}` as "app.checkout.channel.manual")}</b>
-                      <small>{c === "manual" && q.manual?.link ? t("app.checkout.channel.manual.subLink") : t(`app.checkout.channel.${c}.sub` as "app.checkout.channel.manual.sub")}</small>
+                      <small>{t(`app.checkout.channel.${c}.sub` as "app.checkout.channel.manual.sub")}</small>
                       {c === "sslcommerz" && q.ssl_limited && <small className="pay-limited">{t(channels.includes("manual") ? "app.checkout.channel.sslcommerz.limited" : "app.checkout.channel.sslcommerz.limitedOnly")}</small>}
                       <PayMarks channel={c} sslLogo={q.ssl_logo ?? null} />
                     </span>
@@ -439,21 +450,31 @@ export default function Checkout() {
               <div className="manual-box">
                 <ol className="how-list">
                   <li>{t("app.checkout.manual.how1")}</li>
-                  <li>{t(chosenMethod === "card" ? "app.checkout.manual.how2Link" : "app.checkout.manual.how2", { min: lang === "bn" ? toBnDigits(q.manual.window_min) : q.manual.window_min })}</li>
+                  <li>{t("app.checkout.manual.how2", { min: lang === "bn" ? toBnDigits(q.manual.window_min) : q.manual.window_min })}</li>
                   <li>{t("app.checkout.manual.how3")}</li>
                 </ol>
                 <Field id="m-method" label={t("app.checkout.manual.method")}>
                   <select id="m-method" className="input" value={chosenMethod} onChange={(e) => setMethod(e.target.value as Method)}>
                     {manualMethods.map((m) => (
                       <option key={m} value={m}>
-                        {m === "card" ? t("app.checkout.manual.link") : t(`method.${m}` as "method.bkash")}
+                        {t(`method.${m}` as "method.bkash")}
                       </option>
                     ))}
                   </select>
                 </Field>
-                <Field id="m-payer" label={t(chosenMethod === "card" ? "app.checkout.manual.payerLink" : "app.checkout.manual.payer")} error={fields.payer_number} hint={t("app.checkout.manual.payerHint")}>
+                <Field id="m-payer" label={t("app.checkout.manual.payer")} error={fields.payer_number} hint={t("app.checkout.manual.payerHint")}>
                   <TextInput id="m-payer" type="tel" inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" value={payer} onChange={(e) => setPayer(e.target.value)} error={fields.payer_number} />
                 </Field>
+                <p className="hint">{t("app.checkout.manual.note")}</p>
+              </div>
+            )}
+            {channel === "bangla_qr" && !free && q.manual?.qr && (
+              <div className="manual-box">
+                <ol className="how-list">
+                  <li>{t("app.checkout.qr.how1", { min: lang === "bn" ? toBnDigits(q.manual.window_min) : q.manual.window_min })}</li>
+                  <li>{t("app.checkout.qr.how2")}</li>
+                  <li>{t("app.checkout.manual.how3")}</li>
+                </ol>
                 <p className="hint">{t("app.checkout.manual.note")}</p>
               </div>
             )}
@@ -564,8 +585,9 @@ export default function Checkout() {
             </div>
 
             <div className="mt">
-              <Button className="btn-primary btn-block btn-lg" type="submit" busy={pay.isPending} disabled={!free && (channels.length === 0 || (channel === "manual" && !payer.trim()))}>
-                {free ? t("app.checkout.enrollFree") : channel === "manual" ? t("app.checkout.continueManual") : t("app.checkout.place", { amount: money(q.total) })}
+              {/* never greyed out for something missing: pressing it says what is missing, next to it (a greyed-out button says nothing) */}
+              <Button className="btn-primary btn-block btn-lg" type="submit" busy={pay.isPending} disabled={!free && channels.length === 0}>
+                {free ? t("app.checkout.enrollFree") : channel === "manual" || channel === "bangla_qr" ? t("app.checkout.continueManual") : t("app.checkout.place", { amount: money(q.total) })}
               </Button>
             </div>
             <p className="hint tc">

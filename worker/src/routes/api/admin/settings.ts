@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { dhakaMinuteMs, MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS, readSslLogo, sslcommerzUrl, SSL_LOGO_MAX } from "@mawah/shared";
+import { dhakaMinuteMs, MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS, readSslLogo, SSL_LOGO_MAX } from "@mawah/shared";
 import { isDev, type AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { underHourlyCap } from "../../../lib/cap";
@@ -14,6 +14,7 @@ import { getSettings, SETTING_KEYS, setSetting, type SettingKey } from "../../..
 import { requirePerm } from "../../../middleware/auth";
 import { rateLimit } from "../../../middleware/ratelimit";
 import { notices, notificationRecipients, sendNotice } from "../../../services/notify";
+import { QR_IMAGE_KEY } from "../../../services/payments";
 import { SSL_LAST_KEY, amountCap, dearestPrice, sslCheck, sslConfigured, sslHost, sslMode, sslReturnUrls, type SslLast } from "../../../services/payments/sslcommerz";
 import { isDistrict } from "../../../services/geo";
 import { messengerUrl } from "../../../views/topbar";
@@ -60,9 +61,10 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
     .superRefine((v, ctx) => {
       if ((v.button_bn || v.button_en) && !v.link) ctx.addIssue({ code: "custom", path: ["link"], message: "required" });
     }),
-  payments: z.object({
+  // the three ways of paying (lib/settings.ts): send-money, SSLCommerz's automatic payment, Bangla QR
+  payments: z
+    .object({
     sslcommerz: z.boolean(),
-    bkash_direct: z.boolean(),
     manual: z.boolean(),
     manual_numbers: z.object({ bkash: bdNumber, nagad: bdNumber, rocket: bdNumber }),
     manual_note_bn: textSchema(500),
@@ -75,14 +77,11 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
       .max(SSL_LOGO_MAX, "too_long")
       .refine((v) => v === "" || readSslLogo(v) !== null, "ssl_logo_invalid")
       .default(""),
-    // the shop's payment link from the SSLCommerz panel: only an https address on sslcommerz.com, stored cleaned up
-    manual_link: z
-      .string()
-      .trim()
-      .max(500, "too_long")
-      .refine((v) => v === "" || sslcommerzUrl(v) !== null, "pay_link_invalid")
-      .transform((v) => (v ? sslcommerzUrl(v)! : ""))
-      .default(""),
+    // Bangla QR, Active / Inactive; a different picture may be uploaded here (/admin/media/image?folder=payments) — "" keeps the shop's own,
+    // built-in QR — and the name the QR pays
+    bangla_qr: z.boolean().default(true),
+    qr_image: z.union([z.literal(""), z.string().regex(QR_IMAGE_KEY, "invalid")]).default(""),
+    qr_name: textSchema(80).default(""),
   }),
   policies: z.object({
     refund_bn: long(20000),

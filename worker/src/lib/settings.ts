@@ -1,4 +1,4 @@
-import { MANUAL_WINDOW_DEFAULT_MIN, type NotifyKind } from "@mawah/shared";
+import { BUILTIN_QR, MANUAL_WINDOW_DEFAULT_MIN, type NotifyKind } from "@mawah/shared";
 import { ABOUT_TEXT, PAGE_TEXTS } from "../content/pageTexts";
 import type { Env } from "../env";
 import { all, nowIso, run, safeJson } from "./db";
@@ -27,23 +27,30 @@ export interface Settings {
    * everything else for next time; a setting stored before the switch existed has none, and so stays on.
    */
   announcement: { enabled: boolean; bn: string; en: string; ends_at: string; button_bn: string; button_en: string; link: string };
+  /**
+   * The three ways of paying, each switched on and off here: send money to the shop's numbers (manual), SSLCommerz's automatic online payment,
+   * and the shop's Bangla QR. Nothing else is offered.
+   */
   payments: {
     sslcommerz: boolean;
-    bkash_direct: boolean;
     manual: boolean;
     manual_numbers: { bkash: string; nagad: string; rocket: string };
     manual_note_bn: string;
     manual_note_en: string;
     /** minutes a student is asked to pay within after choosing manual payment */
     manual_window_min: number;
-    /** what SSLCommerz gave the shop to show its logo (a link, or its few lines of HTML) — read by readSslLogo; empty = not shown */
+    /** what SSLCommerz gave the shop to show its logo (a link, or its few lines of HTML) — read by readSslLogo; empty = SSLCommerz's own copy */
     ssl_logo: string;
     /**
-     * the shop's payment link from the SSLCommerz panel (its own payment page, e.g. https://invoice.sslcommerz.com/invoice-form?refer=…):
-     * one more way under manual payment — the student pays there and sends the transaction ID, staff check it in the SSLCommerz panel.
-     * Only an https address on sslcommerz.com is stored (sslcommerzUrl); empty = not offered.
+     * Bangla QR, Active / Inactive: the shop's QR (one picture any bank or mobile-banking app that takes Bangla QR can scan). The student scans
+     * it, pays, and sends the transaction ID or a screenshot; staff check it like a send-money payment. Active from the start, with the
+     * shop's own QR built in (BUILTIN_QR).
      */
-    manual_link: string;
+    bangla_qr: boolean;
+    /** a different QR picture uploaded in Admin → Settings → Payments (an R2 key under payments/); "" = the shop's own, built-in QR */
+    qr_image: string;
+    /** the account the QR pays, as the paying app shows it ("MAWAH"); "" = not shown */
+    qr_name: string;
   };
   /** the policy and help pages (Markdown); until the owner writes their own, the site's texts (content/pageTexts.ts) */
   policies: {
@@ -135,14 +142,15 @@ export const SETTING_DEFAULTS: Settings = {
   announcement: { enabled: true, bn: "", en: "", ends_at: "", button_bn: "", button_en: "", link: "" },
   payments: {
     sslcommerz: true,
-    bkash_direct: false,
     manual: true,
     manual_numbers: { bkash: "", nagad: "", rocket: "" },
     manual_note_bn: "",
     manual_note_en: "",
     manual_window_min: MANUAL_WINDOW_DEFAULT_MIN,
     ssl_logo: "",
-    manual_link: "",
+    bangla_qr: true,
+    qr_image: "",
+    qr_name: BUILTIN_QR.name,
   },
   policies: {
     refund_bn: PAGE_TEXTS.refund.bn,

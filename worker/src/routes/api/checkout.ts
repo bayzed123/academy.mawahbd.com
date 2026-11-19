@@ -20,7 +20,6 @@ import { resolveGuestAccount } from "../../services/guests";
 import { tellStudent } from "../../services/studentMessages";
 import { notices, notifyOwner } from "../../services/notify";
 import { availableChannels, manualPayInfo } from "../../services/payments";
-import { bkashCreate } from "../../services/payments/bkash";
 import { amountCap, clearCap, rememberCap, rememberSsl, sslInit, type SslCap } from "../../services/payments/sslcommerz";
 
 /**
@@ -38,24 +37,25 @@ const cartSchema = z
   })
   .refine((d) => !!d.bundle_id || !!d.courses?.length, { message: "required", path: ["courses"] });
 
-// bKash / Nagad / Rocket TrxIDs are 8–10 letters and digits; SSLCommerz's transaction IDs (the payment link) run longer and may hold - or _
+// bKash / Nagad / Rocket TrxIDs are 8–10 letters and digits; a bank app's reference for a Bangla QR payment runs longer and may hold - or _
 const TRX_ID = z.string().trim().toUpperCase().regex(/^[A-Z0-9][A-Z0-9_-]{4,38}[A-Z0-9]$/, "invalid_trx");
 
 const checkoutSchema = z.object({
   courses: z.array(z.string().trim().min(1).max(120)).max(12).optional(),
   bundle_id: z.coerce.number().int().positive().optional(),
   coupon: z.string().trim().max(40).optional(),
-  channel: z.enum(["sslcommerz", "bkash", "manual", "mock"]).optional(),
+  channel: z.enum(["manual", "sslcommerz", "bangla_qr", "mock"]).optional(),
   // the buyer ticked the box: they agree to the terms, the privacy policy and the refund & cancellation policy (SSLCommerz asks for it)
   agree: z.literal(true, { error: "required" }),
   // a signed-in student whose profile has no mobile number or address yet gives them here; they are kept on the profile
   details: z.object({ phone: requiredPhoneSchema.optional(), address: addressSchema.optional() }).optional(),
+  // send-money: the service the money goes by and — if the buyer gives it — the number it comes from (it helps staff match the payment, it is
+  // never required); Bangla QR sends none of it. The TrxID / screenshot come afterwards, to the open order
   manual: z
     .object({
-      // "card" = the shop's SSLCommerz payment link (card or mobile banking on SSLCommerz's own page), offered only when the owner set it
-      method: z.enum(["bkash", "nagad", "rocket", "card"], { error: "required" }),
-      payer_number: z.string().trim().regex(/^(?:\+?88)?01[3-9]\d{8}$/, "invalid_phone"),
-      // left out when the student is only starting: they pay first and send the TrxID / screenshot to the open order afterwards
+      method: z.enum(["bkash", "nagad", "rocket"], { error: "required" }),
+      payer_number: z.union([z.literal(""), z.string().trim().regex(/^(?:\+?88)?01[3-9]\d{8}$/, "invalid_phone")]).optional(),
+      // the one-step form older clients use: the TrxID with the order
       trx_id: TRX_ID.optional(),
     })
     .optional(),
@@ -84,7 +84,8 @@ function toQuoteDTO(q: Quote, channels: Channel[], settings: Awaited<ReturnType<
     coupon_code: q.coupon?.code ?? null,
     bundle_id: q.bundle_id,
     channels: q.total === 0 ? [] : channels,
-    manual: channels.includes("manual") ? manualPayInfo(settings) : null,
+    // where a send-money or a Bangla QR payment goes, and the window to pay in (the QR inside it while it is offered)
+    manual: channels.includes("manual") || channels.includes("bangla_qr") ? manualPayInfo(settings) : null,
     // SSLCommerz's picture for the online choice: the one the owner pasted, else the copy the owner sent (channels holds SSLCommerz only once its keys are set)
     ssl_logo: q.total > 0 && channels.includes("sslcommerz") ? (readSslLogo(settings.payments.ssl_logo)?.src ?? SSL_BANNER.src) : null,
     // SSLCommerz lately refused this much because of the store's limit per payment: the checkout says so instead of letting the buyer run into it
@@ -120,10 +121,8 @@ async function prepare(c: Ctx, body: Cart, studentId: number | null): Promise<Pr
   if (quote.total === 0) return { settings, quote, channel: "free" };
   const channel = body.channel;
   if (!channel || !availableChannels(c.env, settings).includes(channel)) throw new HttpError(400, "payment_unavailable");
-  // a send-money payment says which number it is paid from; the TrxID / screenshot come afterwards
-  if (channel === "manual" && !body.manual) throw new HttpError(422, "validation", "validation", { payer_number: "required" });
-  // the SSLCommerz payment link only while the owner has one in Settings → Payments
-  if (channel === "manual" && body.manual!.method === "card" && !settings.payments.manual_link) throw new HttpError(422, "validation", "validation", { "manual.method": "invalid" });
+  // a send-money payment says which service it goes by — one the owner has a number for; the TrxID / screenshot come afterwards
+  if (channel === "manual" && (!body.manual || !settings.payments.manual_numbers[body.manual.method])) throw new HttpError(422, "validation", "validation", { "manual.method": "required" });
   return { settings, quote, channel };
 }
 
@@ -139,13 +138,14 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
     return ok(c, { order: { public_id: order.public_id, status: "paid", total: 0 }, ...extra }, 201);
   }
 
-  // ---- manual send-money: the student states which number they pay from and gets a payment window; they then pay and send the TrxID
-  //      and/or a screenshot (POST /:publicId/proof); staff verify and enrollment follows ----
-  if (channel === "manual") {
-    const proof: ManualProof = { ...body.manual!, payer_number: body.manual!.payer_number.replace(/^\+?88/, "") };
+  // ---- send-money and Bangla QR: the student gets a payment window and where to pay (the shop's number, or its QR); they then pay and
+  //      send the TrxID and/or a screenshot (POST /:publicId/proof); staff verify and enrollment follows ----
+  if (channel === "manual" || channel === "bangla_qr") {
+    const payer = channel === "manual" ? (body.manual!.payer_number ?? "").replace(/^\+?88/, "") : "";
+    const proof: ManualProof = channel === "manual" ? { method: body.manual!.method, payer_number: payer || null, trx_id: body.manual!.trx_id } : { method: "qr", payer_number: null };
     // starting again replaces the student's own unpaid manual order for the same class(es)
     await cancelReplacedManualOrders(c.env, student.id, quote.items.map((i) => i.course_id));
-    const order = await createOrder(c.env, student, quote, "manual", proof, settings.payments.manual_window_min);
+    const order = await createOrder(c.env, student, quote, channel, proof, settings.payments.manual_window_min);
     const withProof = !!proof.trx_id;
     await audit(c, { action: withProof ? "checkout.manual_submitted" : "checkout.manual_started", entity: "order", entityId: order.id, meta: { method: proof.method } });
     if (withProof) {
@@ -183,10 +183,6 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
       // Nagad, Rocket, a card … there, on SSLCommerz's page, and SSLCommerz sends them back to the success / fail / cancel address
       redirectUrl = r.redirectUrl;
       await run(c.env.DB, "UPDATE orders SET gateway_ref = ? WHERE id = ?", r.sessionKey, order.id);
-    } else if (channel === "bkash") {
-      const r = await bkashCreate(c.env, { public_id: order.public_id, total: quote.total }, isNoEmail(student.email) ? (student.phone ?? "student") : student.email);
-      redirectUrl = r.redirectUrl;
-      await run(c.env.DB, "UPDATE orders SET gateway_ref = ? WHERE id = ?", r.paymentId, order.id);
     } else {
       redirectUrl = `/api/payments/mock/pay/${order.public_id}`;
     }
@@ -194,7 +190,6 @@ async function place(c: Ctx, student: StudentCtx, body: Cart, p: Prepared, extra
     return ok(c, { order: { public_id: order.public_id, status: "pending", total: quote.total }, redirect_url: redirectUrl, ...extra }, 201);
   } catch (err) {
     await closeOrder(c.env, order.public_id, "failed", "gateway_init_failed");
-    if (channel === "bkash" && err instanceof HttpError && err.code === "gateway_error") await audit(c, { action: "checkout.gateway_failed", entity: "order", entityId: order.id, summary: "bkash" });
     throw err;
   }
 }

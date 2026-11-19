@@ -162,26 +162,39 @@ export interface OrderDTO {
   pay_by: string | null;
   proof_at: string | null;
   has_proof_image: boolean;
-  /** paid (or to be paid) on the shop's SSLCommerz payment link — a manual order the student chose "card or mobile banking" for */
+  /** paid on the shop's SSLCommerz payment link — an older way of paying, no longer offered; kept so past orders still say how they were paid */
   via_link: boolean;
+  /** paid (or to be paid) by scanning the shop's Bangla QR — checked by staff like a send-money payment */
+  via_qr: boolean;
   /** only while a manual order is still open: where to send the money */
   manual?: ManualPayInfo | null;
   items: OrderItemDTO[];
 }
 
-/** Where a manual (send-money) payment goes, and how long the student has. */
+/** Where a manual payment goes (send-money to a number, or the shop's Bangla QR), and how long the student has. */
 export interface ManualPayInfo {
   numbers: { bkash: string; nagad: string; rocket: string };
-  /** the shop's SSLCommerz payment link (its own payment page): the student pays there and sends the transaction ID; "" = not offered */
-  link: string;
   note_bn: string;
   note_en: string;
   /** minutes the student is asked to pay within */
   window_min: number;
+  /** the shop's Bangla QR while it is switched on (Admin → Settings → Payments): the picture to scan and the name it pays; null = not offered */
+  qr: BanglaQrInfo | null;
 }
 
-/** How the student pays: SSLCommerz hosted page (bKash/Nagad/Rocket/cards), bKash direct, manual send-money, or the dev-only mock. */
-export type Channel = "sslcommerz" | "bkash" | "manual" | "mock";
+/** The shop's Bangla QR: one picture any bank or mobile-banking app that takes Bangla QR can scan, and the name the payment goes to. */
+export interface BanglaQrInfo {
+  /** the address of the uploaded picture (/media/payments/…) */
+  image: string;
+  /** the account the QR pays, as the paying app shows it (the owner types it); "" = not given */
+  name: string;
+}
+
+/**
+ * How the student pays: send money to the shop's number (manual), SSLCommerz's own page (automatic: bKash, Nagad, Rocket, cards …), the
+ * shop's Bangla QR (scanned in any banking app, checked by staff like send-money), or the dev-only mock.
+ */
+export type Channel = "manual" | "sslcommerz" | "bangla_qr" | "mock";
 
 export interface QuoteDTO {
   items: OrderItemDTO[];

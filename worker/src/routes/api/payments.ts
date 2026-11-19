@@ -6,7 +6,6 @@ import { first, nowIso, run } from "../../lib/db";
 import { HttpError } from "../../lib/http";
 import { closeOrder, markOrderPaid, orderByPublicId } from "../../services/orders";
 import { mockEnabled, mockSignature, mockVerify } from "../../services/payments";
-import { bkashAcceptable, bkashExecute, bkashQuery } from "../../services/payments/bkash";
 import { sslAcceptable, sslConfigured, sslMethod, sslValidate } from "../../services/payments/sslcommerz";
 import { notices, notifyOwner } from "../../services/notify";
 import { closeShopOrder, holdShopPayment, isShopOrderId, lateShopPayment, markShopPaid, shopOrderRow } from "../../services/shop";
@@ -164,39 +163,6 @@ paymentRoutes.on(["GET", "POST"], "/sslcommerz/cancel", async (c) => {
     if (order) await closeShopOrder(c.env, order.id, "cancelled");
   } else if (f.tran_id) await closeOrder(c.env, f.tran_id, "cancelled", "customer_cancelled");
   return c.redirect(await backTo(c, f.tran_id), 303);
-});
-
-/* --------------------------------------------------------- bKash ---------------------------------------------------------- */
-paymentRoutes.get("/bkash/callback", async (c) => {
-  const { paymentID, status } = c.req.query();
-  if (!paymentID) throw new HttpError(400, "bad_request");
-  const order = await first<{ id: number; public_id: string; total: number; status: string }>(
-    c.env.DB,
-    "SELECT id, public_id, total, status FROM orders WHERE gateway = 'bkash' AND gateway_ref = ?",
-    paymentID,
-  );
-  if (!order) throw new HttpError(404, "not_found");
-  if (order.status === "paid") return c.redirect(orderUrl(c, order.public_id), 303);
-
-  if (status === "success") {
-    let result = await bkashExecute(c.env, paymentID);
-    if (!result || result.statusCode !== "0000") result = (await bkashQuery(c.env, paymentID)) ?? result; // never miss a completed payment
-    await logEvent(c, order.id, "bkash", "execute", !!result, result ?? { error: "no_response" });
-    if (result && bkashAcceptable(result, order.public_id, order.total)) {
-      await markOrderPaid(c.env, order.id, {
-        gateway: "bkash",
-        method: "bkash",
-        txn: result.trxID ?? null,
-        payerNumber: result.customerMsisdn ?? null,
-        waitUntil: (p) => c.executionCtx.waitUntil(p),
-      });
-    } else {
-      await closeOrder(c.env, order.public_id, "failed", "validation_failed");
-    }
-  } else {
-    await closeOrder(c.env, order.public_id, status === "cancel" ? "cancelled" : "failed", `bkash_${status ?? "unknown"}`);
-  }
-  return c.redirect(orderUrl(c, order.public_id), 303);
 });
 
 /* ----------------------------------------- mock gateway (development & tests only) ----------------------------------------- */

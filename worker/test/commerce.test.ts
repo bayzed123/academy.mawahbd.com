@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Client, env, json, registerStudent } from "./helpers";
 import { mockSignature } from "../src/services/payments";
 import { refreshCourseRating } from "../src/services/catalog";
-import { setSetting } from "../src/lib/settings";
+import { getSettings, resetSettingsCache, setSetting } from "../src/lib/settings";
 
 /* ------------------------------------------------------------------------------------------------ helpers */
 let seq = 0;
@@ -209,7 +209,13 @@ describe("checkout & webhook-driven enrollment", () => {
     const course = await makeCourse();
     expect((await new Client().post("/api/checkout", { agree: true, courses: [course.slug], channel: "mock" })).status).toBe(401);
     const { client } = await registerStudent();
-    const bad = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "bkash" });
+    // a way of paying the owner switched off (Bangla QR set to Inactive) is refused
+    const payments = (await getSettings(env)).payments;
+    await setSetting(env, "payments", { ...payments, bangla_qr: false }, null);
+    resetSettingsCache();
+    const bad = await client.post("/api/checkout", { agree: true, courses: [course.slug], channel: "bangla_qr" });
+    await setSetting(env, "payments", payments, null);
+    resetSettingsCache();
     expect(bad.status).toBe(400);
     expect((await json(bad)).error.code).toBe("payment_unavailable");
   });
@@ -293,7 +299,6 @@ describe("coupons", () => {
 describe("manual send-money payments", () => {
   const payments = (numbers: { bkash: string; nagad: string; rocket: string }) => ({
     sslcommerz: true,
-    bkash_direct: false,
     manual: true,
     manual_numbers: numbers,
     manual_note_bn: "",
