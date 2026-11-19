@@ -117,6 +117,7 @@ test("emptied again: the admin shows the copy the owner sent (really loaded), an
   await page.goto("/en");
   const banner = page.locator("footer .ssl-logo img");
   await expect(banner).toHaveAttribute("src", "/pay/sslcommerz.png");
+  await banner.scrollIntoViewIfNeeded(); // it loads lazily, once the footer is reached
   await expect.poll(() => banner.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth)).toBe(640);
   await expect(page.locator("footer .pay-logos")).toHaveCount(0);
   await ctx.close();
