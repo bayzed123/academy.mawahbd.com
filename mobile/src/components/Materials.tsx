@@ -24,15 +24,16 @@ export function Materials({ items }: { items: StudentMaterial[] }) {
   const { c, t } = usePrefs();
   return (
     <View style={{ gap: 10 }}>
-      <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-start", backgroundColor: c.surface, borderRadius: RADIUS.m, padding: 12, borderWidth: 1, borderColor: c.line }}>
-        <Icon name="shield" size={18} color={c.accent} />
+      {items.map((m) => (
+        <MaterialRow key={m.id} m={m} />
+      ))}
+      {/* the materials first; the "for your own learning only" note sits quietly under them */}
+      <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-start", paddingTop: 10, borderTopWidth: 1, borderColor: c.line }}>
+        <Icon name="shield" size={14} color={c.text2} />
         <Txt v="small" color={c.text2} style={{ flex: 1 }}>
           {t("course.materials.notice")}
         </Txt>
       </View>
-      {items.map((m) => (
-        <MaterialRow key={m.id} m={m} />
-      ))}
     </View>
   );
 }

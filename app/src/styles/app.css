@@ -76,7 +76,12 @@ html[lang=bn] .brand-name{font-weight:400;letter-spacing:.02em;font-size:1.1rem;
 .notice.ok .icon{color:var(--ok-600)}
 .notice.bad{background:var(--bad-50);border-color:var(--bad-100)}
 /* class materials (files, links, live classes, groups) */
-.mat-notice{margin-top:.8rem}
+/* the note under the materials: quiet, small, never above the videos */
+.mat-foot{display:flex;gap:10px;align-items:flex-start;margin-top:16px;padding-top:12px;border-top:1px solid var(--line);color:var(--ink-3);font-size:.86rem;line-height:1.6}
+.mat-foot .icon{flex:none;width:16px;height:16px;margin-top:3px}
+.mat-foot p{margin:0}
+.mat-foot b{display:block;margin-top:4px;color:var(--ink-2);font-weight:600}
+.mat-foot-sub{color:var(--ink-3)}
 .mat-grid{list-style:none;margin:0;padding:0;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
 .mat-card{display:flex;flex-direction:column;gap:10px;height:100%;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
 .mat-head{display:flex;gap:12px;align-items:flex-start}

@@ -96,6 +96,28 @@ test("the class looked at, the checkout and the purchase reach Meta — the purc
   await v.ctx.close();
 });
 
+test("a free class is not a purchase: enrolling reaches Meta as FreeClassEnroll — no Purchase, no checkout, nothing an ad counts as a sale", async ({ browser }) => {
+  test.setTimeout(90_000);
+  const v = await visitor(browser);
+  await v.page.goto("/app/checkout?c=free-taster-class");
+  await expect(v.page.getByText("This class is free")).toBeVisible();
+  await expect.poll(() => v.calls.some((c) => c.args[0] === "init" && c.args[1] === PIXEL), { timeout: 10_000 }).toBe(true);
+  await v.page.getByLabel(/^Full name/).fill("Free Pixel Learner");
+  await v.page.getByLabel(/^Mobile number/).fill("01711000778");
+  await v.page.getByLabel(/^Address/).fill("House 12, Road 5, Dhanmondi, Dhaka");
+  await v.page.getByLabel(/^E-mail/).fill(uniqueEmail("pixelfree"));
+  await agree(v.page);
+  await v.page.getByRole("button", { name: "Enroll for free" }).click();
+  await expect(v.page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
+
+  await expect.poll(() => v.calls.filter((c) => c.args[0] === "trackCustom" && c.args[1] === "FreeClassEnroll").length, { timeout: 10_000 }).toBe(1);
+  const enrol = v.calls.find((c) => c.args[0] === "trackCustom")!;
+  expect(enrol.args[2]).toMatchObject({ content_ids: ["free-taster-class"], num_items: 1 });
+  expect(enrol.args[2], "no money in it").not.toHaveProperty("value");
+  for (const sale of ["Purchase", "InitiateCheckout", "AddPaymentInfo", "AddToCart"]) expect(tracked(v.calls, sale), sale).toHaveLength(0);
+  await v.ctx.close();
+});
+
 test("a visitor from a Facebook ad keeps the click as Meta's _fbc cookie, set by the page itself", async ({ browser }) => {
   const v = await visitor(browser);
   await v.page.goto("/en?fbclid=IwAR0E2EClick123abc");

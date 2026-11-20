@@ -72,11 +72,24 @@
      order's code — and the server reports the same purchase with the same ID (the Conversions API), so Meta counts it once even when it
      hears it twice, and still hears it when this script is blocked or the buyer never comes back to the order page. */
   var META_EVENTS = { view_item: "ViewContent", add_to_cart: "AddToCart", begin_checkout: "InitiateCheckout", add_payment_info: "AddPaymentInfo", purchase: "Purchase", sign_up: "CompleteRegistration", generate_lead: "Lead" };
+  /* A free class is not a sale. Meta's Purchase, checkout and payment events are for money only: a free enrolment (৳0 — a free class, or a
+     coupon that takes the whole price) used to reach Meta as a "Website purchase" and was counted in the ads' results. It goes to Meta as
+     its own event, FreeClassEnroll, which no sales campaign counts; its checkout steps do not go at all. */
+  var MONEY_EVENTS = { add_to_cart: 1, begin_checkout: 1, add_payment_info: 1, purchase: 1 };
   function toMeta(name, p) {
     var ev = META_EVENTS[name];
     if (!ev || !w.fbq) return;
     p = p || {};
     var items = Array.isArray(p.items) ? p.items : [];
+    if (MONEY_EVENTS[name] && !(typeof p.value === "number" && p.value > 0)) {
+      if (name === "purchase") {
+        var ids = items.map(function (i) { return String(i.item_id || ""); }).filter(Boolean);
+        var free = { content_type: "product", content_ids: ids, num_items: items.length };
+        if (items.length === 1 && items[0].item_name) free.content_name = items[0].item_name;
+        w.fbq("trackCustom", "FreeClassEnroll", free);
+      }
+      return;
+    }
     var data = {};
     if (name === "generate_lead") data = { content_category: p.lead_type, content_name: p.course };
     else if (name === "sign_up") data = { status: true, content_name: p.method };

@@ -669,6 +669,7 @@
 
 **এখন:**
 * **ব্রাউজার (Pixel):** ক্লাস দেখা (ViewContent), এনরোল চাপা (AddToCart), চেকআউট শুরু (InitiateCheckout), পেমেন্টের উপায় বাছা (AddPaymentInfo), অ্যাকাউন্ট খোলা (CompleteRegistration), ফর্ম (Lead) আর **কেনা (Purchase)** — ক্লাসের নাম, দাম ও অর্ডার কোডসহ।
+* **ফ্রি ক্লাস কেনা নয়:** ফ্রি ক্লাসে (বা পুরো দাম কাটা কুপনে, ৳০) ভর্তি Meta-তে Purchase হিসেবে যায় না, আলাদা ইভেন্ট **FreeClassEnroll** হিসেবে যায়। কোনো সেলস অ্যাড এটাকে "Website purchase" গোনে না। আগে ফ্রি ভর্তিও Purchase হিসেবে যেত, তাই অ্যাড ম্যানেজারে ভুয়া purchase দেখাত।
 * **সার্ভার (Conversions API):** অর্ডার পেইড হলেই (SSLCommerz, অথবা আপনি সেন্ড মানি / বাংলা QR অনুমোদন দিলে — যত পরেই হোক) সার্ভার নিজে Meta-কে Purchase জানায়। অ্যাড ব্লকার, বন্ধ ট্যাব বা পরে অনুমোদন — কোনোটাতেই কেনা হারায় না।
 * **ডুপ্লিকেট নয়:** দুটোতেই একই ইভেন্ট আইডি (`purchase.` + অর্ডার কোড), তাই Meta একবারই গোনে (deduplication)।
 * **সঠিক মিল (EMQ):** সার্ভার ইমেইল, ফোন, নাম শুধু এলোমেলো (SHA-256 hash) করে পাঠায়, সাথে Meta-র নিজের কুকি (_fbp, বিজ্ঞাপন থেকে এলে _fbc), ব্রাউজার ও আইপি। বিজ্ঞাপনে ক্লিক করে এলে _fbc কুকি ওয়েবসাইট নিজেই রেখে দেয়, Pixel ব্লক থাকলেও।
@@ -1380,6 +1381,7 @@ class that was taken down, is not listed.
 
 **Now:**
 * **Browser (Pixel):** a class looked at (ViewContent), Enroll pressed (AddToCart), checkout started (InitiateCheckout), a way to pay chosen (AddPaymentInfo), an account made (CompleteRegistration), forms (Lead) and **the purchase (Purchase)** — with the class, the price and the order code.
+* **A free class is not a purchase:** enrolling in a free class (or with a coupon that takes the whole price, ৳0) does not reach Meta as a Purchase but as its own event, **FreeClassEnroll**, which no sales ad counts as a "Website purchase". Before, a free enrolment went as a Purchase too, so Ads Manager showed purchases nobody paid for.
 * **Server (Conversions API):** the moment an order is paid (SSLCommerz, or when you approve a send-money / Bangla QR payment — however late), the server itself tells Meta the Purchase. Ad blockers, closed tabs and late approvals no longer lose a sale.
 * **Never twice:** both carry the same event ID (`purchase.` + the order code), so Meta counts it once (deduplication).
 * **Good matching (EMQ):** the server sends the e-mail, phone and name only scrambled (SHA-256), with Meta's own cookies (_fbp, and _fbc after an ad click), the browser and the IP. A visitor who came from an ad keeps the click as the _fbc cookie set by the website itself, even when the Pixel is blocked.
