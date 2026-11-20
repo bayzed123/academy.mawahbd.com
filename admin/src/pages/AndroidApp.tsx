@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PLAY_URL_EXAMPLE } from "@mawah/shared";
 import { Link } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adm, ApiError } from "../lib/api";
@@ -6,7 +7,7 @@ import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { AppNotifications, type PushOverview } from "../components/AppNotifications";
 import { CourseStateChip } from "../components/CourseState";
-import { Button, Empty, ErrorState, Field, Icon, KV, Kpi, PageHeader, Panel, Spinner, Switch, TextArea, useConfirm, useFieldErrors, useToast } from "../components/ui";
+import { Button, Empty, ErrorState, Field, Icon, KV, Kpi, PageHeader, Panel, Spinner, Switch, TextArea, TextInput, useConfirm, useFieldErrors, useToast } from "../components/ui";
 
 interface AppClass {
   id: number;
@@ -22,6 +23,7 @@ interface AppOverview {
   classes: AppClass[];
   numbers: { days: number; sign_ins: number; sign_ups: number; joins: number; learners: number };
   notice: { notice_on: boolean; notice_bn: string; notice_en: string };
+  play: { show: boolean; url: string };
   review_account: { id: number; code: string; blocked: boolean; last_login_at: string | null; password_set_at: string; classes: number } | null;
 }
 interface ReviewSecret {
@@ -93,6 +95,10 @@ export function AndroidApp() {
         )}
       </Panel>
 
+      <Panel title={t("adm.app.play")}>
+        <PlayForm play={d.play} />
+      </Panel>
+
       <AppNotifications push={d.push} />
 
       <div className="grid-2">
@@ -104,6 +110,76 @@ export function AndroidApp() {
         </Panel>
       </div>
     </>
+  );
+}
+
+/**
+ * "Get the app" on the website (the footer of every page and a section of the home page). Until the app is on Google Play it says "coming
+ * soon"; the owner pastes the app's Google Play address here once it is live and the same place becomes the link. Saved like any other
+ * setting (PUT /settings/play); the server takes only an app's own Google Play page and tidies it.
+ */
+function PlayForm({ play }: { play: AppOverview["play"] }) {
+  const { t } = useI18n();
+  const { can } = useAuth();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const fieldErrors = useFieldErrors();
+  const canWrite = can("settings:write");
+  const [show, setShow] = useState(play.show);
+  const [url, setUrl] = useState(play.url);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  useEffect(() => {
+    setShow(play.show);
+    setUrl(play.url);
+  }, [play]);
+
+  const save = useMutation({
+    mutationFn: () => adm("/settings/play", { method: "PUT", json: { show, url: url.trim() } }),
+    onSuccess: () => {
+      setErrors({});
+      toast(t("adm.saved"));
+      void qc.invalidateQueries({ queryKey: ["android-app"] });
+      void qc.invalidateQueries({ queryKey: ["settings"] });
+    },
+    onError: (e) => {
+      setErrors(fieldErrors(e));
+      toast(e instanceof ApiError && e.code === "validation" ? t("err.validation") : t("err.generic"), true);
+    },
+  });
+
+  const live = !!play.url;
+  return (
+    <form
+      className="play-form"
+      onSubmit={(ev) => {
+        ev.preventDefault();
+        save.mutate();
+      }}
+      noValidate
+    >
+      <p className="muted">{t("adm.app.playSub")}</p>
+      <p className={`notice ${!play.show ? "" : live ? "ok-note" : "warn-note"}`.trim()} role="status">
+        <Icon name={!play.show ? "x" : live ? "check" : "clock"} />
+        <span>{!play.show ? t("adm.app.playHidden") : live ? t("adm.app.playLive") : t("adm.app.playSoon")}</span>
+      </p>
+      <div className="stack">
+        <Switch id="app-play-show" checked={show} disabled={!canWrite} onChange={setShow} label={t("adm.app.playShow")} />
+      </div>
+      <Field id="app-play-url" label={t("adm.app.playUrl")} error={errors.url} hint={t("adm.app.playUrlHint", { example: PLAY_URL_EXAMPLE })}>
+        <TextInput id="app-play-url" type="url" inputMode="url" autoComplete="off" placeholder={PLAY_URL_EXAMPLE} value={url} error={errors.url} disabled={!canWrite} onChange={(e) => setUrl(e.target.value)} />
+      </Field>
+      <div className="row">
+        <Button className="btn-primary" type="submit" busy={save.isPending} disabled={!canWrite}>
+          {t("btn.save")}
+        </Button>
+        {live && (
+          <a className="btn btn-outline" href={play.url} target="_blank" rel="noopener noreferrer">
+            <Icon name="external" /> {t("adm.app.playOpen")}
+          </a>
+        )}
+        {!canWrite && <span className="hint">{t("adm.app.readonly")}</span>}
+      </div>
+    </form>
   );
 }
 

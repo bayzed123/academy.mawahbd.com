@@ -41,6 +41,7 @@ export const GA_EVENTS = [
   { name: "generate_lead", group: "contact" },
   { name: "contact_click", group: "contact" },
   { name: "shop_click", group: "contact" },
+  { name: "app_store_click", group: "contact" },
   { name: "chatbot_open", group: "contact" },
   { name: "chatbot_message", group: "contact" },
   { name: "chatbot_handoff", group: "contact" },

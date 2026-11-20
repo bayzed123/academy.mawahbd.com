@@ -5,6 +5,7 @@ import { isTracking, NO_TRACKING } from "../lib/tracking";
 import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, FONTS_CSS, GALLERY_JS, LANDING_CSS, LIST_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_FONTS_BN_CSS, SITE_FONTS_EN_CSS, SITE_JS, THEME_CSS, THEME_JS, VIDEO_CSS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
+import { FooterApp } from "./appPromo";
 import { DEVELOPER } from "./footer-data";
 import { messengerOf, TopBar, topBar } from "./topbar";
 import { Brand, Icon, jsonLd, shopOf } from "./ui";
@@ -389,6 +390,7 @@ export function Layout(props: LayoutProps) {
                       )}
                     </div>
                   )}
+                  <FooterApp ctx={ctx} />
                 </div>
                 <div>
                   <p class="foot-h">{t("footer.classes")}</p>

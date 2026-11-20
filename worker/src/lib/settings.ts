@@ -129,6 +129,12 @@ export interface Settings {
   /** the Android app (Admin → Android app): a short notice at the top of the app's Home (`notice_on` off hides it and keeps the words) */
   app: { notice_on: boolean; notice_bn: string; notice_en: string };
   /**
+   * "Get the app" on the website (the footer of every page, and a section on the home page; Admin → Android app → On the website): `url` is
+   * the app's Google Play address — until the owner adds it the website says the app is coming soon, then the same place becomes the link.
+   * `show` off takes it off the website.
+   */
+  play: { show: boolean; url: string };
+  /**
    * the Android app's notifications that go out by themselves (Admin → Android app → Notifications; services/push.ts): `new_class` — one of
    * the app's free classes goes live (to everyone with the app); `new_lessons` — a lesson is added to a live class (to its students)
    */
@@ -204,6 +210,7 @@ export const SETTING_DEFAULTS: Settings = {
   notifications: { emails: [], off: [] },
   sms: { enabled: true, sender_id: "", with_email: true, shop: true },
   app: { notice_on: false, notice_bn: "", notice_en: "" },
+  play: { show: true, url: "" },
   push: { new_class: true, new_lessons: true },
   onboarding: { dismissed: false },
 };

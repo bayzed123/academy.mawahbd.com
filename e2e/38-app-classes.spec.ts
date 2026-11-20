@@ -86,12 +86,14 @@ test("the app's notice is saved on the Android app page and reaches the app", as
   const admin = await ctx.newPage();
   await adminLogin(admin);
   await admin.goto("/admin/app");
+  // the notice's own form (the page has other forms with a Save button: "Get the app" on the website)
+  const form = admin.locator("form", { has: admin.getByLabel("Notice (Bangla)") });
   await admin.getByLabel("Notice (Bangla)").fill("নতুন ফ্রি ক্লাস এসেছে");
   await admin.getByLabel("Notice (English)").fill("A new free class is here");
   const on = admin.getByRole("switch", { name: "Show the notice" });
   await on.locator("xpath=ancestor::label").click();
   await expect(on).toBeChecked();
-  await admin.getByRole("button", { name: "Save" }).click();
+  await form.getByRole("button", { name: "Save" }).click();
   await expect(admin.getByText("Saved.")).toBeVisible();
   // (/api/site may be kept for 30 seconds by a browser or the app: asked fresh here, as a phone opening the app would)
   const notice = async () => ((await (await admin.request.get("/api/site")).json()) as { site: { app_notice: unknown } }).site.app_notice;
@@ -99,7 +101,7 @@ test("the app's notice is saved on the Android app page and reaches the app", as
   // off again: the words are kept, the app shows no notice
   await on.locator("xpath=ancestor::label").click();
   await expect(on).not.toBeChecked();
-  await admin.getByRole("button", { name: "Save" }).click();
+  await form.getByRole("button", { name: "Save" }).click();
   await expect(admin.getByText("Saved.").last()).toBeVisible();
   await expect.poll(notice).toBeNull();
   await ctx.close();

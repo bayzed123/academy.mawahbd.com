@@ -438,3 +438,21 @@ main>section:nth-of-type(n+3){content-visibility:auto;contain-intrinsic-size:aut
 .page-contact.big h2{font-size:1.25rem}
 .page-contact.big .btn{font-size:1.05rem;padding:14px 18px}
 
+
+/* ---------- "Get the app" (views/appPromo.tsx): the Google Play button (black in both looks, like a store badge; a dashed "coming soon"
+   until the owner adds the app's address), the footer's corner and the home page's section. Kept small: the home page has a size budget. */
+.play-badge{display:inline-flex;align-items:center;gap:10px;min-height:52px;margin:0;padding:7px 18px 7px 12px;border-radius:12px;background:#000;border:1.5px solid #a3a3a3;color:#fff;text-decoration:none;line-height:1.1}
+.play-badge .icon{width:28px;height:28px}
+.play-badge small{display:block;margin-bottom:3px;font-size:.68rem;font-weight:600;letter-spacing:.06em}
+.play-badge b{font-size:1.16rem}
+a.play-badge:hover{border-color:var(--o-500);color:#fff;text-decoration:none}
+.play-badge.is-soon{border-style:dashed;border-color:#5c5c5c}
+.is-soon .icon{color:#a3a3a3}
+.is-soon small{color:#ffb38f}
+.foot-app{margin-top:1.5rem}
+.foot-app .play-badge{line-height:1.1}
+.app-card{display:grid;gap:clamp(24px,5vw,56px);align-items:center;padding:clamp(22px,4.5vw,52px);border-radius:28px;background:#0d0d0d;border:1px solid rgba(255,255,255,.1)}
+@media (min-width:860px){.app-card{grid-template-columns:1.2fr .8fr}}
+.app-points{list-style:none;margin:0 0 1.6rem;padding:0;display:grid;gap:.8rem}
+.app-points li{display:flex;gap:.85rem;align-items:center;color:var(--ink)}
+.app-phone{width:min(300px,70vw);height:auto;margin-inline:auto}

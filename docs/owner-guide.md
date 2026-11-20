@@ -540,6 +540,7 @@
   প্রোডাকশনের আবেদন) আর *সেটিংস → পলিসি*-তে বসানোর নতুন রিফান্ড ও শর্তাবলির লেখা (ইকুইপমেন্ট শপ এখন চালু) — সব আছে [play-store.md](play-store.md)-এ।
 * **রাত বা দিন:** শিক্ষার্থী নিজে না বাছা পর্যন্ত অ্যাপ ফোনের সেটিং মেনে খোলে (ফোন লাইট মোডে থাকলে দিনের লুক); হোমের সূর্য/চাঁদ বোতাম আর
   *প্রোফাইল → লুক* দিয়ে বদলানো যায়।
+* **ওয়েবসাইটে "অ্যাপ ডাউনলোড":** হোম পেজের একটি অংশে আর বাকি সব পেজের ফুটারে অ্যাপটি দেখানো হয়। অ্যাপ গুগল প্লেতে আসার আগ পর্যন্ত সেখানে লেখা থাকে **"শিগগিরই আসছে Google Play-তে"** (চাপার কিছু নেই)। অ্যাপ লাইভ হলে *অ্যাডমিন → অ্যান্ড্রয়েড অ্যাপ → ওয়েবসাইটে "অ্যাপ ডাউনলোড"*-এ অ্যাপের গুগল প্লে ঠিকানা (যেমন `https://play.google.com/store/apps/details?id=com.mawahacademy.app`) বসিয়ে **সেভ** করুন — একই জায়গায় **"Google Play থেকে নিন"** বাটন চলে আসবে। "ওয়েবসাইটে দেখান" বন্ধ করলে পুরোটা সরে যায়।
 
 ## ৩২. শিক্ষার্থীর অ্যাকাউন্ট ডিলিট করা (গুগল প্লের নিয়ম)
 
@@ -1215,6 +1216,7 @@ The app reads the **same server** as the website: a class, lesson, material or p
   Policies* now that the Equipment Shop is open.
 * **Night or day:** the app opens in the look the phone is set to (light phone → day look) until the student chooses; the sun/moon
   button on Home and *Profile → Look* switch it.
+* **"Get the app" on the website:** a section of the home page and the footer of every other page show the app. Until it is on Google Play they say **"Coming soon on Google Play"** (nothing to press). When the app is live, paste its Google Play address (like `https://play.google.com/store/apps/details?id=com.mawahacademy.app`) in *Admin → Android app → "Get the app" on the website* and **Save** — the same places become the **"Get it on Google Play"** button. Switching off "Show it on the website" takes it all away.
 
 ## 32. Deleting a student's account (a Google Play rule)
 
