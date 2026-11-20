@@ -60,14 +60,7 @@ export function MaterialsSection({ slug, materials }: { slug: string; materials:
   return (
     <section className="panel" id="materials" aria-labelledby="mat-h">
       <h2 id="mat-h">{t("app.mat.title")}</h2>
-      <p className="muted">{t("app.mat.sub")}</p>
-      <div className="notice mat-notice">
-        <Icon name="lock" />
-        <div>
-          <b>{t("app.mat.notice.title")}</b>
-          <p>{t("app.mat.notice")}</p>
-        </div>
-      </div>
+      {/* the videos and files come first; what the section is and the "for your own learning only" note sit quietly under them */}
       <ul className="mat-grid">
         {materials.map((m) => (
           <li key={m.id} className={m.delivery === "play" || m.delivery === "pending" || m.delivery === "embed" ? "mat-wide" : undefined}>
@@ -75,6 +68,14 @@ export function MaterialsSection({ slug, materials }: { slug: string; materials:
           </li>
         ))}
       </ul>
+      <div className="mat-foot">
+        <Icon name="lock" />
+        <div>
+          <p className="mat-foot-sub">{t("app.mat.sub")}</p>
+          <b>{t("app.mat.notice.title")}</b>
+          <p>{t("app.mat.notice")}</p>
+        </div>
+      </div>
     </section>
   );
 }

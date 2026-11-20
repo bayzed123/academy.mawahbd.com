@@ -190,6 +190,10 @@ test("an enrolled student sees the materials with the notice, downloads the file
   await expect(section).toContainText("For your own learning only");
   await expect(section).toContainText("Please do not share, resell or re-upload them.");
   await expect(section.locator(".mat-card")).toHaveCount(4);
+  // the materials come first; the note sits quietly under the last of them
+  const lastCard = await section.locator(".mat-card").last().boundingBox();
+  const note = await section.locator(".mat-foot").boundingBox();
+  expect(note!.y, "the note is under the materials").toBeGreaterThan(lastCard!.y + lastCard!.height - 1);
 
   // download: the real file arrives under its own name
   const pdf = section.locator(".mat-card", { hasText: "Biryani masala guide" });
