@@ -17,7 +17,8 @@ import { DRIVE_SCOPE, endpoints, forgetPass, googleToken, parseServiceAccount, s
  *
  * What it is not: Drive hands over the file as it was uploaded (it does not convert it, as its own player does), so only formats a browser can
  * play work (MP4 with H.264 is the safe one); and Google limits how much one file may be downloaded in a day, so a very popular video can be
- * refused for a while. For many students at once, Cloudflare Stream is the right home for a video (see docs/owner-guide.md).
+ * refused for a while. For many students at once, Cloudflare Stream is the right home for a video: Admin → Video speed copies a lesson's Drive
+ * video there (services/videoMoves.ts, docs/owner-guide.md §39).
  *
  * Like lib/ga4.ts, nothing here ever puts the key — or any part of it — in an answer or a log line: what Google said is shown, with anything
  * shaped like a key cut out.
