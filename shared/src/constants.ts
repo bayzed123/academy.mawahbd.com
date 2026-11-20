@@ -128,6 +128,7 @@ export const ADMIN_NAV = [
   { key: "dashboard", path: "", perm: "dashboard:read" },
   { key: "assistant", path: "assistant", perm: "assistant:use" },
   { key: "courses", path: "courses", perm: "courses:read" },
+  { key: "videospeed", path: "video-speed", perm: "courses:read" },
   { key: "app", path: "app", perm: "courses:read" },
   { key: "foodcost", path: "foodcost", perm: "fc:read" },
   { key: "materials", path: "materials", perm: "materials:read" },
