@@ -15,7 +15,7 @@ import { pushOverview, sendPush } from "../../../services/push";
 
 /*
  * Admin → Android app: the app's free classes, how much the app is used, its notice (Admin → Settings key `app`, saved with the usual
- * PUT /settings/app), its notifications (sent from here; the automatic ones are switched with PUT /settings/push), and the test account
+ * PUT /settings/app), the "Get the app" place on the website (key `play`), its notifications (sent from here; the automatic ones are switched with PUT /settings/push), and the test account
  * Google Play's reviewers sign in with (Play Console → App content → App access).
  */
 export const appAdmin = new Hono<AppEnv>();
@@ -64,6 +64,8 @@ appAdmin.get("/app", requirePerm("courses:read"), async (c) => {
     classes,
     numbers: { days: DAYS, sign_ins: numbers?.sign_ins ?? 0, sign_ups: numbers?.sign_ups ?? 0, joins: numbers?.joins ?? 0, learners: numbers?.learners ?? 0 },
     notice: s.app,
+    // "Get the app" on the website: its Google Play address once the app is live (saved with PUT /settings/play)
+    play: s.play,
     // the password is never stored readable, so it is never shown here: only right after it is made (POST below)
     review_account: review
       ? { id: review.id, code: studentCode(review.id), blocked: !!review.blocked, last_login_at: review.last_login_at, password_set_at: review.updated_at, classes: review.classes }

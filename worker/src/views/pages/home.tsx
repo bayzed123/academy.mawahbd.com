@@ -10,6 +10,7 @@ import type { BannerDTO } from "../../services/banners";
 import type { FaqDTO } from "../../services/faqs";
 import { BannerSlider } from "../banners";
 import { HomeFaq } from "../faq";
+import { HomeApp } from "../appPromo";
 
 /** One of the owner's home-page videos (Admin → Home videos): a YouTube or Vimeo address and its title. */
 export interface HomeVideo {
@@ -245,6 +246,8 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
           </div>
         </section>
       )}
+
+      <HomeApp ctx={ctx} />
 
       {data.faqs.length > 0 && <HomeFaq ctx={ctx} items={data.faqs} />}
 

@@ -182,6 +182,8 @@ writeFileSync(
   Cache-Control: public, max-age=86400
 /logo-sm.webp
   Cache-Control: public, max-age=86400
+/app-phone.svg
+  Cache-Control: public, max-age=86400
 /icon-*
   Cache-Control: public, max-age=86400
 /apple-touch-icon.png

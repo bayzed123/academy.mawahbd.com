@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { dhakaMinuteMs, MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS, readSslLogo, SSL_LOGO_MAX } from "@mawah/shared";
+import { dhakaMinuteMs, MANUAL_WINDOW_RANGE_MIN, NOTIFY_KINDS, playStoreUrl, readSslLogo, SSL_LOGO_MAX } from "@mawah/shared";
 import { isDev, type AppEnv } from "../../../env";
 import { audit } from "../../../lib/audit";
 import { underHourlyCap } from "../../../lib/cap";
@@ -177,6 +177,16 @@ const SCHEMAS: Record<SettingKey, z.ZodType> = {
       if (v.notice_on && !v.notice_bn) ctx.addIssue({ code: "custom", path: ["notice_bn"], message: "required" });
       if (v.notice_on && !v.notice_en) ctx.addIssue({ code: "custom", path: ["notice_en"], message: "required" });
     }),
+  // "Get the app" on the website: the app's own Google Play page (tidied), or nothing yet — the website then says the app is coming soon
+  play: z.object({
+    show: z.boolean(),
+    url: z
+      .string()
+      .trim()
+      .max(400, "too_long")
+      .refine((v) => v === "" || playStoreUrl(v) !== null, "play_url")
+      .transform((v) => (v === "" ? "" : playStoreUrl(v)!)),
+  }),
   // the app's automatic notifications (a new free class; new lessons in a class): each can be switched off
   push: z.object({ new_class: z.boolean(), new_lessons: z.boolean() }),
   onboarding: z.object({ dismissed: z.boolean() }),

@@ -168,6 +168,7 @@ Names follow Google’s recommended events where one exists (`view_item`, `add_t
 | `generate_lead` | a form went through: contact, “notify me” on a coming-soon class, newsletter | `lead_type`, `course` (the class, for “notify me”), `placement` — never what was typed |
 | `contact_click` | WhatsApp, phone, e-mail, Facebook, Instagram or YouTube link pressed | `method`, `placement` |
 | `shop_click` | the Shop link | `placement` |
+| `app_store_click` | the "Get it on Google Play" button (footer, home page) — only once the app's address is set | `store`, `placement` |
 | `chatbot_open` | the chat assistant is opened | `placement` |
 | `chatbot_message` | the visitor asked it something | `turn` (how many questions so far) — not the text |
 | `chatbot_handoff` | the assistant passed the visitor on to a person | — |

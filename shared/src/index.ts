@@ -11,3 +11,4 @@ export * from "./shop";
 export * from "./landing";
 export * from "./videoEmbed";
 export * from "./themeIcons";
+export * from "./playStore";

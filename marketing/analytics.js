@@ -351,6 +351,7 @@
       var n2 = q("[data-ga-item]", closest(a, "[data-ga-list]") || d).indexOf(card);
       return emit("select_item", Object.assign({ items: [Object.assign({ index: n2 + 1 }, it, meta2)] }, meta2));
     }
+    if (url.hostname === "play.google.com") return emit("app_store_click", { store: "google_play", placement: placement(a) }); // "Get the app" (footer, home page)
     if (/(?:^|\.)(?:wa\.me|whatsapp\.com)$/.test(url.hostname)) return emit("contact_click", { method: "whatsapp", placement: placement(a) });
     if (url.protocol === "tel:") return emit("contact_click", { method: "phone", placement: placement(a) });
     if (url.protocol === "mailto:") return emit("contact_click", { method: "email", placement: placement(a) });

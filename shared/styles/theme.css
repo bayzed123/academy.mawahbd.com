@@ -131,6 +131,8 @@
 :root[data-theme="light"] .auth-card,
 :root[data-theme="light"] .mat-card { background: var(--card); color: var(--ink); border-color: var(--line); box-shadow: var(--sh-1); }
 :root[data-theme="light"] .tile { color: var(--ink); }
+/* "Get the app" on the home page (marketing/site.css); the Google Play button stays black, like a store badge */
+:root[data-theme="light"] .app-card { background: var(--card); border-color: var(--line); box-shadow: var(--sh-1); }
 :root[data-theme="light"] .tile-ico,
 :root[data-theme="light"] .mat-ico { background: var(--ivory-2); border-color: var(--line); color: var(--red-700); }
 :root[data-theme="light"] .card-foot,
