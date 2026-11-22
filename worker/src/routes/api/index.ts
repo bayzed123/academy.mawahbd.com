@@ -20,6 +20,7 @@ import { paymentRoutes } from "./payments";
 import { publicRoutes } from "./public";
 import { shopRoutes } from "./shop";
 import { studentRoutes } from "./student";
+import { sourceMedia } from "../../services/videoMoves";
 
 export const api = new Hono<AppEnv>();
 
@@ -39,7 +40,8 @@ api.use("*", (c, next) => (isUpload(c.req.method, new URL(c.req.url).pathname) ?
 // payment gateway callbacks and the couriers' webhooks come from those companies' servers, not a browser: exempt from the per-IP limiter.
 // So are the two video routes: one playing video asks many times (to start, to skip around) and a phone network shows many students as
 // one address — they have limits of their own
-const DOES_ITS_OWN_LIMIT = /^\/api\/(?:payments\/|courier\/|(?:student|preview)\/lessons\/\d+\/media$)/;
+// The one-time address Cloudflare Stream copies a Drive video from (Admin → Video speed) is asked many times by Stream alone: its token is its lock
+const DOES_ITS_OWN_LIMIT = /^\/api\/(?:payments\/|courier\/|(?:student|preview)\/lessons\/\d+\/media$|video-source\/)/;
 api.use("*", async (c, next) => {
   if (DOES_ITS_OWN_LIMIT.test(new URL(c.req.url).pathname)) return next();
   return rateLimit("RL_API")(c, next);
@@ -55,6 +57,8 @@ api.route("/auth", authRoutes);
 api.route("/app", appRoutes);
 // FoodCost Pro (docs/foodcost.md): versioned, because the Android app keeps calling the version it was built with
 api.route("/fc/v1", fcRoutes);
+// a lesson's Drive video, for Cloudflare Stream to copy (services/videoMoves.ts): only with the one-time token, only that one file
+api.get("/video-source/:token", (c) => sourceMedia(c.env, c.req.param("token"), c.req.header("range") ?? null));
 api.route("/admin/auth", adminAuthRoutes);
 api.route("/admin", adminApi);
 api.route("/student", studentRoutes);

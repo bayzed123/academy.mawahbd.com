@@ -686,6 +686,21 @@
 
 **আরও দুটি ছোট পরিবর্তন:** ক্লাসের ম্যাটেরিয়ালে ভিডিও আগে, তার নিচে নাম, আর বিবরণ “বিস্তারিত”-এর ভেতরে ভাঁজ করা (ইউটিউবের মতো)। চ্যাটবট উত্তরে কোনো পাতার কথা বললে (যেমন আমার ক্লাস) সেই পাতার **বোতাম** দেখায়, `/app/`-এর মতো লেখা আর থাকে না।
 
+## ৩৯. ভিডিও স্পিড — ভিডিও দেরিতে চালু হয় বা আটকে যায়
+
+**সমস্যা:** Google Drive-এর ভিডিও শিক্ষার্থীর কাছে ঠিক যেভাবে রেকর্ড হয়েছে সেভাবেই যায়। যেমন Brazilian Cloud Cake-এর ভিডিও ৮ মিনিটে ৪৯১ MB, মানে প্রায় **৮ Mbit/s**, অথচ ফোনের ইন্টারনেট সাধারণত ২–৫ Mbit/s দেয়। ফলে ভিডিও বারবার আটকে যায়। ফাইলের সূচি (index) একদম শেষে থাকায় শুরু হতেও দেরি হয়, আর প্রতিটি অংশে Google-এর জন্য প্রায় এক সেকেন্ড অপেক্ষা।
+
+**সমাধান — *অ্যাডমিন → ভিডিও স্পিড*:**
+
+* এখানে সব লেসন দেখায় যেগুলোর ভিডিও Google Drive-এ। **সব Stream-এ সরান** (বা প্রতিটির পাশে **Stream-এ সরান**) চাপুন।
+* Cloudflare নিজেই আপনার Drive থেকে ভিডিও কপি করে নেয়, একসাথে ৫টি করে। কিছু ডাউনলোড বা আবার আপলোড করতে হয় না।
+* কপি শেষ হলে লেসনটি নিজে থেকেই **Cloudflare Stream** থেকে চলে। Stream প্রতিটি ভিডিওর কয়েকটি কোয়ালিটি বানিয়ে রাখে, আর শিক্ষার্থীর ইন্টারনেট যেটা নিতে পারে সেটাই চালায়। ধীর ইন্টারনেটে ভিডিও না থেমে কোয়ালিটি একটু কমিয়ে চলতে থাকে। ওয়েবসাইট ও অ্যান্ড্রয়েড অ্যাপ দুটোতেই।
+* কপি চলার সময় লেসন Drive থেকেই চলে। পাতা বন্ধ করলেও কাজ নিজে থেকে এগোয়।
+* কোনো সমস্যা হলে কারণ লেখা থাকে (যেমন Drive ফাইল শেয়ার করা নেই)। **Drive-এ ফেরত নিন** চাপলে লেসন আবার Drive থেকে চলে; Drive লিংক সবসময় লেসনে থাকে।
+* **খরচ (Cloudflare-এর দাম):** প্রতি ১,০০০ মিনিট ভিডিও রাখতে মাসে **$৫**, আর শিক্ষার্থীরা প্রতি ১,০০০ মিনিট দেখলে **$১**। স্টোরেজ আগে কিনতে হয়: Cloudflare ড্যাশবোর্ড → **Stream**। স্টোরেজ না থাকলে পাতায় সেটা লেখা থাকে, আর কেনার পর অপেক্ষমাণ লেসনগুলো নিজে থেকেই সরে যায়।
+* **নতুন ভিডিও:** লেসন এডিটরে সরাসরি Stream-এ আপলোড করুন, অথবা Drive লিংক দিয়ে পরে এখান থেকে সরান। Drive-এ রাখলে HandBrake-এর "Fast 720p30" প্রিসেট আর "Web Optimized" টিক দিয়ে ছোট করে নিলে Drive থেকেও অনেক ভালো চলে।
+
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -1398,3 +1413,17 @@ class that was taken down, is not listed.
 * The "Meta's latest answer" line shows whether Meta took the last purchase sent.
 
 **Two smaller changes:** in a class's materials the video comes first, its name under it, and its words folded under "Details" (like YouTube). When the chatbot's answer names a page (e.g. My Learning), it shows a **button** to it instead of a path like `/app/`.
+
+## 39. Video speed — videos that start late or keep stopping
+
+**The problem:** a Google Drive video goes to the student exactly as it was recorded. The Brazilian Cloud Cake video, for example, is 491 MB for 8 minutes — about **8 Mbit/s** — while a phone's internet often gives 2–5. So it keeps stopping. Its index sits at the very end of the file, so it also starts late, and every part waits about a second for Google.
+
+**The fix — *Admin → Video speed*:**
+
+* Every lesson whose video is in Google Drive is listed. Press **Move all to Stream** (or **Move to Stream** beside one).
+* Cloudflare copies each video from your Drive itself, five at a time — nothing to download or upload again.
+* When a copy is ready the lesson plays from **Cloudflare Stream** by itself. Stream keeps several qualities of each video and plays the one the student's internet can take: on a slow connection it steps down instead of stopping. On the website and in the Android app.
+* While a copy runs the lesson keeps playing from Drive, and the work carries on even if you close the page.
+* If something goes wrong the reason is written beside the lesson (for example, the Drive file is not shared). **Switch back to Drive** plays it from Drive again; the Drive link always stays on the lesson.
+* **Cost (Cloudflare's price):** **$5** a month for each 1,000 minutes of video stored, and **$1** for each 1,000 minutes students watch. Storage is bought first: Cloudflare dashboard → **Stream**. Without storage the page says so, and once it is bought the waiting lessons move by themselves.
+* **New videos:** upload straight to Stream in the lesson editor, or give a Drive link and move it here later. If you keep a video in Drive, making it smaller with HandBrake's "Fast 720p30" preset and "Web Optimized" ticked helps a lot even from Drive.
