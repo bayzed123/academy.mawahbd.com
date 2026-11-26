@@ -171,3 +171,44 @@ test("Admin → Video speed moves a Google Drive lesson to our storage: read thr
   await plays(page, lessons.drive, { w: 96, h: 54 });
   await ctx.close();
 });
+
+test("a class material's video goes up in parts from Materials (no 95 MB limit), and enrolled students watch it in the class page", async ({ browser }) => {
+  test.setTimeout(240_000);
+  const original = await phoneVideo(browser);
+  await admin.goto("/admin/materials");
+  await admin.getByRole("button", { name: "+ Add" }).click();
+  const drawer = admin.getByRole("dialog");
+  await drawer.getByLabel("Which class is it for?").selectOption({ label: "Own Videos E2E" });
+  await drawer.getByRole("radio", { name: /^Video/ }).click();
+  await expect(drawer.getByText(/A video up to 4 GB/)).toBeVisible();
+  // it goes in parts (each a request of its own), never as one big request
+  const parts: string[] = [];
+  admin.on("request", (r) => {
+    if (/\/api\/admin\/material-uploads\/[^/]+\/parts\/\d+$/.test(new URL(r.url()).pathname)) parts.push(r.url());
+  });
+  await drawer.locator("#mat-file").setInputFiles({ name: "cloud-cake.mp4", mimeType: "video/mp4", buffer: original });
+  await expect(drawer.getByText(/Uploaded: cloud-cake\.mp4/)).toBeVisible({ timeout: 180_000 });
+  expect(parts.length).toBeGreaterThan(0);
+  await drawer.getByLabel("Title (English)").fill("Full class recording");
+  await drawer.getByRole("button", { name: "Save" }).click();
+  await expect(admin.getByText("Saved.")).toBeVisible();
+
+  const { ctx, page } = await student(browser);
+  await page.goto(`/app/learn/${slug}`);
+  const card = page.locator(".mat-card", { hasText: "Full class recording" });
+  const video = card.locator("video");
+  await video.scrollIntoViewIfNeeded();
+  await expect(video).toBeVisible();
+  expect(await video.getAttribute("src")).toMatch(/^\/api\/student\/materials\/\d+\/media\?v=[A-Za-z0-9_-]+$/);
+  // it plays (the same 720p the shrinking made)
+  await video.evaluate(async (v: HTMLVideoElement) => {
+    v.muted = true;
+    await v.play();
+  });
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.videoHeight), { timeout: 20_000 }).toBe(720);
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThan(0.2);
+  await expect(card.getByRole("link", { name: /Download/ })).toHaveCount(0);
+  if (shots) await card.screenshot({ path: `${shots}/own-video-material.png` });
+  await ctx.close();
+});
+

@@ -63,6 +63,10 @@ export async function prepareVideo(source: File | string, onStep: (s: VideoStep)
     const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
     const out = { width: even(width * scale), height: even(height * scale) };
     const remake = big || !webVideo;
+    // already right for the web and big: sent as it is (tidying it would hold all of it in memory, too much for a phone)
+    if (!remake && webAudio && typeof source !== "string" && source.size > 300 * 1024 * 1024 && /mp4|quicktime/.test(mime || source.type)) {
+      return { blob: source, duration, done: "tidied", width, height, before: source.size };
+    }
     const canRemake = remake && (await mb.canEncodeVideo("avc", { width: out.width, height: out.height, bitrate: LESSON_VIDEO_TARGET.bitrate }).catch(() => false));
     if (remake && !canRemake) {
       // this browser cannot make videos: the original goes up only when it is a file that plays on the web as it is
@@ -124,10 +128,10 @@ const online = (signal?: AbortSignal) =>
       });
 
 /** One part: PUT with its exact length; resolves with R2's tag for it. `onSent` reports the bytes gone so far. */
-function sendPart(uploadId: string, n: number, chunk: Blob, onSent: (bytes: number) => void, signal?: AbortSignal): Promise<string> {
+function sendPart(base: UploadBase, uploadId: string, n: number, chunk: Blob, onSent: (bytes: number) => void, signal?: AbortSignal): Promise<string> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("PUT", `/api/admin/video-uploads/${encodeURIComponent(uploadId)}/parts/${n}`);
+    xhr.open("PUT", `/api/admin/${base}/${encodeURIComponent(uploadId)}/parts/${n}`);
     xhr.withCredentials = true;
     xhr.responseType = "json";
     xhr.setRequestHeader("Accept", "application/json");
@@ -149,16 +153,25 @@ function sendPart(uploadId: string, n: number, chunk: Blob, onSent: (bytes: numb
 /** A failure worth trying again: the connection, a busy moment, the server's own trouble — not a refusal of the request itself. */
 const passing = (e: unknown) => e instanceof ApiError && (e.status === 0 || e.status === 429 || e.status >= 500);
 
+/** Where parts go: a lesson's video, or a class material's video (worker/src/services/lessonVideos.ts, materialUploads.ts). */
+type UploadBase = "video-uploads" | "material-uploads";
+
 /**
- * Sends a ready video to a lesson. Three parts travel at once; a part that fails is sent again (after the connection is back), up to 8
- * times, so the upload carries on from where it stopped. Cancelling drops what was sent.
+ * Sends a file in parts after `begin` started the upload. Three parts travel at once; a part that fails is sent again (after the connection
+ * is back), up to 8 times, so the upload carries on from where it stopped. `finish` joins them; cancelling or failing drops what was sent.
  */
-export async function uploadLessonVideo(lessonId: number, prepared: Prepared, onStep: (s: VideoStep) => void, signal?: AbortSignal): Promise<{ video_bytes: number; video_key: string }> {
-  const { blob } = prepared;
+async function sendInParts<T>(
+  base: UploadBase,
+  blob: Blob,
+  begin: () => Promise<{ upload_id: string; part_bytes: number; parts: number }>,
+  finish: (uploadId: string, parts: { n: number; etag: string }[]) => Promise<T>,
+  onStep: (s: VideoStep) => void,
+  signal?: AbortSignal,
+): Promise<T> {
   // one stop for every part in flight: the owner's Cancel, or a part that cannot go (then the others stop too)
   const ctl = new AbortController();
   signal?.addEventListener("abort", () => ctl.abort(), { once: true });
-  const start = await adm<{ upload_id: string; part_bytes: number; parts: number }>(`/lessons/${lessonId}/video-uploads`, { json: { size: blob.size } });
+  const start = await begin();
   const sent = new Array<number>(start.parts).fill(0);
   const report = () => onStep({ phase: "uploading", pct: Math.min(100, Math.floor((sent.reduce((s, x) => s + x, 0) / blob.size) * 100)) });
   const tags: { n: number; etag: string }[] = [];
@@ -169,7 +182,7 @@ export async function uploadLessonVideo(lessonId: number, prepared: Prepared, on
       const chunk = blob.slice((n - 1) * start.part_bytes, Math.min(blob.size, n * start.part_bytes));
       for (let attempt = 1; ; attempt++) {
         try {
-          const etag = await sendPart(start.upload_id, n, chunk, (b) => ((sent[n - 1] = b), report()), ctl.signal);
+          const etag = await sendPart(base, start.upload_id, n, chunk, (b) => ((sent[n - 1] = b), report()), ctl.signal);
           sent[n - 1] = chunk.size;
           report();
           tags.push({ n, etag });
@@ -187,13 +200,49 @@ export async function uploadLessonVideo(lessonId: number, prepared: Prepared, on
     onStep({ phase: "uploading", pct: 0 });
     await Promise.all([worker(), worker(), worker()]);
     onStep({ phase: "saving" });
-    return await adm<{ video_bytes: number; video_key: string }>(`/video-uploads/${encodeURIComponent(start.upload_id)}/complete`, {
-      json: { parts: tags.sort((a, b) => a.n - b.n), duration_sec: prepared.duration ? Math.round(prepared.duration) : null },
-    });
+    return await finish(start.upload_id, tags.sort((a, b) => a.n - b.n));
   } catch (e) {
     ctl.abort();
-    void adm(`/video-uploads/${encodeURIComponent(start.upload_id)}`, { method: "DELETE" }).catch(() => undefined);
+    void adm(`/${base}/${encodeURIComponent(start.upload_id)}`, { method: "DELETE" }).catch(() => undefined);
     throw signal?.aborted ? new DOMException("cancelled", "AbortError") : e;
+  }
+}
+
+/** Sends a ready video to a lesson (it plays it from then on). */
+export function uploadLessonVideo(lessonId: number, prepared: Prepared, onStep: (s: VideoStep) => void, signal?: AbortSignal): Promise<{ video_bytes: number; video_key: string }> {
+  return sendInParts(
+    "video-uploads",
+    prepared.blob,
+    () => adm(`/lessons/${lessonId}/video-uploads`, { json: { size: prepared.blob.size } }),
+    (id, parts) => adm(`/video-uploads/${encodeURIComponent(id)}/complete`, { json: { parts, duration_sec: prepared.duration ? Math.round(prepared.duration) : null } }),
+    onStep,
+    signal,
+  );
+}
+
+/** Sends a ready video for a class's materials; the answer is the file's details, kept until the owner saves the material. */
+export function uploadMaterialVideo(courseId: number, name: string, prepared: Prepared, onStep: (s: VideoStep) => void, signal?: AbortSignal): Promise<{ key: string; filename: string; mime: string; size_bytes: number }> {
+  return sendInParts(
+    "material-uploads",
+    prepared.blob,
+    () => adm("/materials/video-uploads", { json: { course_id: courseId, size: prepared.blob.size, name } }),
+    (id, parts) => adm(`/material-uploads/${encodeURIComponent(id)}/complete`, { json: { parts } }),
+    onStep,
+    signal,
+  );
+}
+
+/**
+ * prepareVideo, and when this browser cannot make the video (a phone's memory runs out, a kind it cannot read …), the file as it was —
+ * if it is a kind every player can start (MP4 or MOV). Only a file that is not a video at all is refused.
+ */
+export async function prepareOrOriginal(file: File, onStep: (s: VideoStep) => void, signal?: AbortSignal): Promise<Prepared> {
+  try {
+    return await prepareVideo(file, onStep, signal);
+  } catch (e) {
+    if ((e instanceof DOMException && e.name === "AbortError") || (e instanceof VideoError && e.message === "not_video")) throw e;
+    if (/^video\/(mp4|quicktime)$/.test(file.type) || /\.(mp4|mov|m4v)$/i.test(file.name)) return { blob: file, duration: null, done: "original", width: 0, height: 0, before: file.size };
+    throw e;
   }
 }
 

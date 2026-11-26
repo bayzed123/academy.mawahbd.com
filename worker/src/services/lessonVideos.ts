@@ -153,7 +153,7 @@ export const videoVersion = (key: string) => /\/([A-Za-z0-9_-]+)\.mp4$/.exec(key
  * already checked that this person may watch it. A copy is never changed in place (a new one gets a new key and a new ?v=), so the
  * phone may keep what it fetched.
  */
-export async function r2VideoMedia(env: Env, key: string, rangeHeader: string | null): Promise<Response> {
+export async function r2VideoMedia(env: Env, key: string, rangeHeader: string | null, contentType = "video/mp4"): Promise<Response> {
   const parsed = parseRange(rangeHeader);
   const refuse = (size: number | null) => new Response(null, { status: 416, headers: { "Content-Range": `bytes */${size ?? "*"}`, "Cache-Control": "private, no-store" } });
   if (!parsed.ok) return refuse(null);
@@ -176,7 +176,7 @@ export async function r2VideoMedia(env: Env, key: string, rangeHeader: string | 
   const obj = await env.R2.get(key, want ? { range: { offset: want.start, length: want.end - want.start + 1 } } : {});
   if (!obj || !("body" in obj)) throw new HttpError(404, "video_unavailable");
   const headers = new Headers({
-    "Content-Type": "video/mp4",
+    "Content-Type": contentType,
     "Accept-Ranges": "bytes",
     "Cache-Control": "private, max-age=86400",
     "Content-Disposition": "inline",

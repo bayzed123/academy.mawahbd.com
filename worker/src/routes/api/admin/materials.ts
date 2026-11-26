@@ -13,6 +13,7 @@ import { textSchema } from "../../../lib/schemas";
 import { requirePerm } from "../../../middleware/auth";
 import { rateLimit } from "../../../middleware/ratelimit";
 import { facebookUrl, uploadNoteKey, type UploadNote } from "../../../services/materials";
+import { abortMaterialUpload, finishMaterialUpload, putMaterialPart, startMaterialUpload } from "../../../services/materialUploads";
 
 /**
  * Admin → Materials: what a class gives its students beyond the lessons — files to download (video, PDF, ZIP, book), a live class
@@ -250,6 +251,37 @@ materials.post("/materials/upload", requirePerm("materials:write"), rateLimit("R
   await c.env.KV.put(uploadNoteKey(key), JSON.stringify(note), { expirationTtl: 3 * 86400 });
   await audit(c, { action: "materials.uploaded", entity: "materials", entityId: key, summary: note.filename, meta: { size: stored.size, mime: sniffed.mime, announced: size } });
   return ok(c, { key, filename: note.filename, mime: note.mime, size_bytes: note.size }, 201);
+});
+
+/*
+ * A video in parts (services/materialUploads.ts): a long class recording is not held to what one request carries. The admin's browser makes
+ * it ready for the web first (admin/src/lib/lessonVideo.ts), then: start → each part (exactly its length) → finish (or cancel). The finish
+ * answers like the one-piece upload above, so saving the material is the same.
+ */
+const uploadParam = (c: { req: { param: (k: "upload") => string } }) => {
+  const v = c.req.param("upload");
+  if (!/^[A-Za-z0-9._~+/=-]{8,1024}$/.test(v)) throw new HttpError(400, "bad_request");
+  return v;
+};
+const startSchema = z.object({ course_id: z.number().int().positive(), size: z.number().int().positive(), name: z.string().max(300).default("video") });
+const finishSchema = z.object({ parts: z.array(z.object({ n: z.number().int().min(1).max(10000), etag: z.string().min(1).max(200) })).min(1).max(10000) });
+
+materials.post("/materials/video-uploads", requirePerm("materials:write"), async (c) => {
+  const body = await parseBody(c, startSchema);
+  return ok(c, await startMaterialUpload(c.env, body.course_id, body.size, body.name, c.get("staff")!.id), 201);
+});
+materials.put("/material-uploads/:upload/parts/:n", requirePerm("materials:write"), async (c) =>
+  ok(c, await putMaterialPart(c.env, uploadParam(c), c.get("staff")!.id, Number(c.req.param("n")), c.req.raw.body, Number(c.req.header("content-length") ?? NaN))),
+);
+materials.post("/material-uploads/:upload/complete", requirePerm("materials:write"), async (c) => {
+  const body = await parseBody(c, finishSchema);
+  const done = await finishMaterialUpload(c.env, uploadParam(c), c.get("staff")!.id, body.parts);
+  await audit(c, { action: "materials.uploaded", entity: "materials", entityId: done.key, summary: done.filename, meta: { size: done.size_bytes, mime: done.mime, parts: body.parts.length } });
+  return ok(c, done, 201);
+});
+materials.delete("/material-uploads/:upload", requirePerm("materials:write"), async (c) => {
+  await abortMaterialUpload(c.env, uploadParam(c), c.get("staff")!.id);
+  return ok(c);
 });
 
 /** The owner can fetch a file to check it (the same headers as a student's download; not counted as a student's download). */
