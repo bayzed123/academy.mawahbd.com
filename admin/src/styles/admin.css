@@ -649,6 +649,16 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
 .vs-list{list-style:none;margin:0;padding:0;display:grid}
 .vs-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px 14px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
 .vs-row:first-child{border-top:0}
+/* our own video storage (components/OwnVideo.tsx): the lesson editor's box and the Video speed list */
+.own-video{display:grid;gap:10px;padding:14px;border:1.5px dashed var(--g-500);border-radius:14px;background:var(--g-100)}
+.own-video b{display:inline-flex;align-items:center;gap:6px}
+.own-pick{position:relative;justify-self:start;cursor:pointer}
+.own-pick:focus-within{outline:2px solid var(--red-600);outline-offset:2px}
+.own-player{width:100%;max-height:360px;border-radius:12px;background:#000}
+.own-step{display:grid;gap:4px;min-width:min(100%,220px)}
+.own-step .hint{margin:0}
+.vs-stream-h{margin:28px 0 10px;font-size:1.05rem}
+@media (max-width:640px){.vs-row{grid-template-columns:minmax(0,1fr)}}
 .vs-state{display:grid;justify-items:end;gap:4px;text-align:right}
 .vs-why{max-width:34ch;color:var(--bad-700);font-size:.84rem;line-height:1.4}
 .vs-detail{display:block;max-width:44ch;color:var(--ink-3);font-size:.78rem;line-height:1.4;overflow-wrap:anywhere}

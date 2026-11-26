@@ -64,10 +64,15 @@ export function HostedVideo({ src, title, preload = "metadata", onFirstPlay }: {
   );
 }
 
-/** The playable part of a lesson: Stream video (signed iframe), a Drive video the website plays itself, a YouTube/Vimeo embed, or a link-out card. */
+/**
+ * The playable part of a lesson: the website's own copy or a Drive video (both played here, from the lesson's media address), a Stream
+ * video (signed iframe), a YouTube/Vimeo embed, or a link-out card.
+ */
 export function LessonMedia({ lesson }: { lesson: LessonContentDTO }) {
   const { t, pick } = useI18n();
   const title = pick(lesson, "title");
+  // our own copy (Admin → a lesson → "Our video storage") plays whatever the lesson's kind
+  if (lesson.external?.media_url) return <HostedVideo src={lesson.external.media_url} title={title} />;
   if (lesson.type === "video") {
     return (
       <div className="video-frame">

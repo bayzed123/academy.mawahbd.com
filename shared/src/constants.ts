@@ -208,6 +208,16 @@ export const GROUP_PLATFORMS = ["facebook", "whatsapp", "telegram", "other"] as 
 /** Cloudflare accepts request bodies up to 100 MB on its Free and Pro plans: a file is sent in one piece, so stay under it. */
 export const MAX_UPLOAD_MATERIAL_BYTES = 95 * 1024 * 1024;
 
+/**
+ * A lesson's video in the website's own storage (Admin → a lesson → "Our video storage"): sent in parts of this size (R2 joins them),
+ * each well under Cloudflare's 100 MB request limit and small enough to send again quickly when a phone's internet drops.
+ */
+export const LESSON_VIDEO_PART_BYTES = 10 * 1024 * 1024;
+/** The largest video a lesson takes (a shrunk lesson is far smaller: about 15 MB a minute at 720p). */
+export const MAX_LESSON_VIDEO_BYTES = 4 * 1024 * 1024 * 1024;
+/** What the admin's browser makes a lesson video before uploading it: 720p (never larger than the original), H.264, about 2 Mbit/s. */
+export const LESSON_VIDEO_TARGET = { height: 720, bitrate: 2_000_000 } as const;
+
 /** Icons available for category tags and generated class banners (see marketing/public/sprite.svg). */
 export const CLASS_ICONS = ["cake", "snack", "glass", "bowl", "sweet", "snowflake", "cupcake", "brownie", "pastry", "pot", "crescent", "tiffin", "mango"] as const;
 export type ClassIcon = (typeof CLASS_ICONS)[number];

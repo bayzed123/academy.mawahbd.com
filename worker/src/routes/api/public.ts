@@ -3,7 +3,6 @@ import { waNumber } from "@mawah/shared";
 import { z } from "zod";
 import type { AppEnv } from "../../env";
 import { all, first, run } from "../../lib/db";
-import { driveMedia } from "../../lib/drive";
 import { HttpError, intParam, notFound, ok, parseBody, parseQuery } from "../../lib/http";
 import { contactAckMail, sendMail } from "../../lib/mailer";
 import { emailSchema, langSchema, nameSchema, phoneSchema, textSchema, turnstileField } from "../../lib/schemas";
@@ -14,7 +13,7 @@ import { loadStudent } from "../../middleware/auth";
 import { notices, notifyOwner } from "../../services/notify";
 import { rateLimit } from "../../middleware/ratelimit";
 import { approvedReviews, getCourseBySlug, getCurriculum, listCategories, listCourses, relatedCourses } from "../../services/catalog";
-import { certificateByCode, lessonContent, lessonDriveFile } from "../../services/learning";
+import { certificateByCode, lessonContent, lessonMedia } from "../../services/learning";
 import { SELL_PRICE } from "../../lib/price";
 
 export const publicRoutes = new Hono<AppEnv>();
@@ -107,7 +106,7 @@ publicRoutes.get("/preview/lessons/:id", loadStudent, rateLimit("RL_FORM"), asyn
 
 /** The same for a free preview: anyone may watch it, so it is limited by address (and, like the student route, apart from the rest of the API). */
 publicRoutes.get("/preview/lessons/:id/media", loadStudent, rateLimit("RL_API", () => "preview-media"), async (c) =>
-  driveMedia(c.env, await lessonDriveFile(c.env, intParam(c, "id"), c.get("student")?.id ?? null), c.req.header("range") ?? null),
+  lessonMedia(c.env, intParam(c, "id"), c.get("student")?.id ?? null, c.req.header("range") ?? null),
 );
 
 /* --------------------------------------------------- public forms ---------------------------------------------------

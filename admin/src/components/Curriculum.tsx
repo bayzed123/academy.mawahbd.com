@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { Button, Chip, Empty, ErrorState, Field, Icon, IconButton, Progress, Select, Spinner, Switch, TextArea, TextInput, useConfirm, SlideOver, useFieldErrors, useToast } from "./ui";
 import { DriveHelp } from "./DriveHelp";
+import { OwnVideo } from "./OwnVideo";
 import { VideoLinkHelp } from "./VideoLinkHelp";
 
 interface Resource {
@@ -28,6 +29,9 @@ interface Lesson {
   is_preview: number;
   has_body: number;
   sort: number;
+  /** in our own video storage (and its size) */
+  stored: number;
+  video_bytes: number;
   resources: Resource[];
 }
 interface Module {
@@ -45,6 +49,7 @@ interface Tree {
 interface LessonFull extends Lesson {
   body_bn: string;
   body_en: string;
+  video_key: string | null;
 }
 
 const TYPE_ICON: Record<LessonType, string> = { video: "video", external: "link", text: "text", resource: "file" };
@@ -257,6 +262,17 @@ function LessonDrawer({ courseId, modules, lessonId, moduleId, onClose, onSaved 
             </div>
           </Field>
 
+          {(v.type === "video" || v.type === "external") && (
+            <OwnVideo
+              lessonId={id}
+              bytes={loaded.data?.lesson.video_key ? loaded.data.lesson.video_bytes : null}
+              ensureLesson={async () => (id ? id : ((await save.mutateAsync(undefined).catch(() => null))?.lesson.id ?? null))}
+              onChanged={() => {
+                void loaded.refetch();
+                onSaved();
+              }}
+            />
+          )}
           {v.type === "video" && (
             <>
               <Field id="l-uid" label={t("adm.lesson.videoId")} hint={t("adm.lesson.videoIdHint")} error={errors.stream_uid} wide>
@@ -483,7 +499,8 @@ export function CurriculumBuilder({ courseId }: { courseId: number }) {
                 <button type="button" className="lesson-title" onClick={() => canWrite && setLessonEdit({ id: l.id, moduleId: m.id })}>
                   {pick(l, "title")}
                 </button>
-                {l.type === "video" && !l.stream_uid && <Chip tone="warn">{t("adm.lesson.noVideo")}</Chip>}
+                {l.type === "video" && !l.stream_uid && !l.stored && <Chip tone="warn">{t("adm.lesson.noVideo")}</Chip>}
+                {!!l.stored && <Chip tone="ok">{t("adm.own.chip")}</Chip>}
                 {l.type === "external" && !l.external_url && <Chip tone="warn">{t("adm.lesson.noUrl")}</Chip>}
                 {!!l.is_preview && <Chip tone="gold">{t("adm.lesson.previewTag")}</Chip>}
                 {l.resources.length > 0 && (
