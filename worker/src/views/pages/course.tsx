@@ -104,6 +104,8 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
   return (
     <Layout
       ctx={ctx}
+      // the class itself may be on offer, and so may the related classes loaded below it later
+      offer
       title={seoTitle}
       description={seoDesc}
       ogType="website"

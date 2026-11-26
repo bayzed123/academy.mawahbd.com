@@ -286,7 +286,7 @@ export function OfferLine({ ctx, item, where }: { ctx: PageCtx; item: { price: n
   const { t, lang } = ctx;
   const pct = lang === "bn" ? formatNumber(o.pct, "bn") : String(o.pct);
   return (
-    <p class={`offer-line offer-${where}`}>
+    <p class={`offer-line ol-${where}`}>
       <span class="vh">{t("offer.was")} </span>
       <del>{formatMoney(o.regular, lang)}</del>
       <span class="vh"> {t("offer.now")} </span>
@@ -301,6 +301,9 @@ export function OfferLine({ ctx, item, where }: { ctx: PageCtx; item: { price: n
     </p>
   );
 }
+
+/** Any of these classes shows an offer now — the page then sends the offer's CSS (views/layout.tsx `offer`). */
+export const anyOffer = (...lists: { price: number; regular_price?: number }[][]) => lists.some((l) => l.some((c) => offerView(c).on));
 
 /** The price as shown on buttons and the buy box: "৳১,৮৫০" (or "ফ্রি" for free classes). */
 export const priceLabel = (ctx: PageCtx, price: number) => (price === 0 ? ctx.t("label.free") : formatMoney(price, ctx.lang));

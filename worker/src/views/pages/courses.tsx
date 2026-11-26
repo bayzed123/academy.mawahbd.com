@@ -4,7 +4,7 @@ import type { PageCtx } from "../ctx";
 import { gaListAttr } from "../ga";
 import { Layout } from "../layout";
 import { breadcrumbLd } from "../seo";
-import { CourseCard, Crumbs, Icon, Pager, shopOf } from "../ui";
+import { CourseCard, Crumbs, Icon, Pager, shopOf, anyOffer } from "../ui";
 
 export interface ListData {
   courses: CourseCardDTO[];
@@ -37,6 +37,7 @@ export function CoursesPage({ ctx, data }: { ctx: PageCtx; data: ListData }) {
     <Layout
       ctx={ctx}
       list
+      offer={anyOffer(data.courses)}
       title={title}
       description={activeCat ? loc(activeCat, "blurb", lang) || t("meta.courses.desc") : t("meta.courses.desc")}
       noindex={!!data.q || data.page > 1 || data.sort !== "featured"}

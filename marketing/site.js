@@ -188,6 +188,14 @@ import { inView, stagger } from "framer-motion/dom";
     if (sticky && window.ResizeObserver) new ResizeObserver(function () { d.documentElement.style.setProperty("--top-h", sticky.offsetHeight + "px"); }).observe(sticky);
   }
 
+  /* 7a. the "Install the app" strip: closed by the visitor, it stays away for a week on this device (theme.js hides it before drawing) */
+  $$("[data-app-close]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      d.documentElement.classList.add("app-closed");
+      try { window.localStorage.setItem("mawah_app_closed", String(Date.now())); } catch (e) { /* private mode */ }
+    });
+  });
+
   /* 7b. a class on offer: the time left until its offer ends, every second (views/ui.tsx OfferLine); at zero it says the offer is over */
   var offers = $$("[data-offer-ends]");
   if (offers.length) {

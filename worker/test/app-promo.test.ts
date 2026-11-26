@@ -46,9 +46,12 @@ describe("Get the app on the website", () => {
     expect(home).not.toContain("play.google.com");
     // another page: the footer's corner
     const classes = await page("/en/courses");
-    expect(classes).toContain("Our Android app");
+    expect(classes).toContain("Download the app on your phone");
     expect(badges(classes)).toEqual(['class="play-badge is-soon"']);
     expect(classes).not.toContain('id="app-h"');
+    // no Install strip at the top, nor a menu entry, before the app is live (the home page's section and the footer say it is coming)
+    expect(classes).not.toContain("data-app-strip");
+    expect(classes).not.toContain('data-play="menu"');
     // in Bangla too
     expect(await page("/")).toContain("শিগগিরই আসছে");
   });
@@ -69,7 +72,13 @@ describe("Get the app on the website", () => {
     const home = await page("/en");
     expect(badges(home)).toEqual(['class="play-badge"']);
     expect(home).toContain(`href="${PLAY}" target="_blank" rel="noopener noreferrer" data-play="home"`);
-    expect(await page("/en/courses")).toContain(`href="${PLAY}" target="_blank" rel="noopener noreferrer" data-play="footer"`);
+    const live = await page("/en/courses");
+    expect(live).toContain(`href="${PLAY}" target="_blank" rel="noopener noreferrer" data-play="footer"`);
+    // the Install strip at the top of every page, and the menu's entry, now open Google Play
+    expect(live).toContain("data-app-strip");
+    expect(live).toContain(`href="${PLAY}" target="_blank" rel="noopener noreferrer" data-play="strip"`);
+    expect(live).toContain(`href="${PLAY}" target="_blank" rel="noopener noreferrer" data-play="menu"`);
+    expect(home).toContain("data-app-strip");
     expect(home).toContain("GET IT ON");
     expect(home).not.toContain("COMING SOON ON");
     expect(await page("/")).toContain("ডাউনলোড করুন");
@@ -78,7 +87,10 @@ describe("Get the app on the website", () => {
     expect((await client.put("/api/admin/settings/play", { show: false, url: PLAY })).status).toBe(200);
     const off = await page("/en");
     expect(badges(off)).toEqual([]);
-    expect(badges(await page("/en/courses"))).toEqual([]);
+    const hidden = await page("/en/courses");
+    expect(badges(hidden)).toEqual([]);
+    expect(hidden).not.toContain("data-app-strip");
+    expect(hidden).not.toContain('data-play="menu"');
     expect(off).not.toContain('id="app-h"');
     expect((await json(await client.get("/api/admin/app"))).play).toEqual({ show: false, url: PLAY });
 

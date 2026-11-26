@@ -9,7 +9,7 @@ import { Layout } from "../layout";
 import { CertificateArt, type CertArtData } from "../certificate";
 import { ReviewList } from "./course";
 import { articleLd, breadcrumbLd, personLd } from "../seo";
-import { CourseCard, Crumbs, Flash, Icon, InstructorBadges, LogoImg, SectionHead } from "../ui";
+import { CourseCard, Crumbs, Flash, Icon, InstructorBadges, LogoImg, SectionHead, anyOffer } from "../ui";
 
 /* ======================================================================================== blog */
 export interface PostRow {
@@ -125,6 +125,7 @@ export function InstructorPage({ ctx, instructor, courses, reviews }: { ctx: Pag
   return (
     <Layout
       ctx={ctx}
+      offer={anyOffer(courses)}
       title={`${name} — ${t("brand.name")}`}
       description={stripMarkdown(loc(instructor, "bio", lang), 155) || loc(instructor, "headline", lang)}
       jsonLd={[personLd(ctx, instructor)]}
