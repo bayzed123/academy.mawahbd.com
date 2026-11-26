@@ -1,5 +1,7 @@
 import { formatNumber, loc, type CategoryDTO, type CourseCardDTO } from "@mawah/shared";
+import type { BannerDTO } from "../../services/banners";
 import type { CourseSort } from "../../services/catalog";
+import { AdSlot } from "../ads";
 import type { PageCtx } from "../ctx";
 import { gaListAttr } from "../ga";
 import { Layout } from "../layout";
@@ -15,6 +17,8 @@ export interface ListData {
   q?: string;
   sort: CourseSort;
   level?: "beginner";
+  /** the academy's own ads for the classes' lists (Admin → Banners), shown under the list */
+  ads?: BannerDTO[];
 }
 
 export function CoursesPage({ ctx, data }: { ctx: PageCtx; data: ListData }) {
@@ -38,6 +42,7 @@ export function CoursesPage({ ctx, data }: { ctx: PageCtx; data: ListData }) {
       ctx={ctx}
       list
       offer={anyOffer(data.courses)}
+      ads={!!data.ads?.length && data.courses.length > 0}
       title={title}
       description={activeCat ? loc(activeCat, "blurb", lang) || t("meta.courses.desc") : t("meta.courses.desc")}
       noindex={!!data.q || data.page > 1 || data.sort !== "featured"}
@@ -124,6 +129,7 @@ export function CoursesPage({ ctx, data }: { ctx: PageCtx; data: ListData }) {
               ))}
             </div>
           )}
+          {data.courses.length > 0 && <AdSlot ctx={ctx} ads={data.ads ?? []} spot="courses" />}
 
           <Pager ctx={ctx} page={data.page} pages={pages} hrefFor={(p) => hrefFor({ page: String(p) })} />
         </div>

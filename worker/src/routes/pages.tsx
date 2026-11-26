@@ -23,7 +23,8 @@ import {
   shortName,
   type CourseSort,
 } from "../services/catalog";
-import { liveBanners } from "../services/banners";
+import { adsFor, liveBanners } from "../services/banners";
+import { adsForPage } from "../views/ads";
 import { faqsForClass, siteFaqs } from "../services/faqs";
 import { galleryFor } from "../services/gallery";
 import { includedIn } from "../services/materials";
@@ -123,8 +124,8 @@ export function pageRoutes(lang: Lang) {
     return cachedPage(c, { ttl: 120, keep: ["cat", "sort", "page", "level"], bypass: !!search }, async () => {
       const ctx = await pageCtxFor(c, lang, "/courses");
       const perPage = 12;
-      const { items, total } = await listCourses(c.env, { category: cat, q: search, sort, page, perPage, level });
-      return renderHtml(c, ctx, <CoursesPage ctx={ctx} data={{ courses: items, total, page, perPage, cat, q: search, sort, level }} />);
+      const [{ items, total }, ads] = await Promise.all([listCourses(c.env, { category: cat, q: search, sort, page, perPage, level }), adsFor(c.env, "courses")]);
+      return renderHtml(c, ctx, <CoursesPage ctx={ctx} data={{ courses: items, total, page, perPage, cat, q: search, sort, level, ads }} />);
     });
   });
 
@@ -132,9 +133,9 @@ export function pageRoutes(lang: Lang) {
   r.get("/free-classes", (c) =>
     cachedPage(c, { ttl: 120 }, async () => {
       const ctx = await pageCtxFor(c, lang, "/free-classes");
-      const [free, demos] = await Promise.all([listCourses(c.env, { free: true, perPage: 60 }), listCourses(c.env, { demo: true, perPage: 60 })]);
+      const [free, demos, ads] = await Promise.all([listCourses(c.env, { free: true, perPage: 60 }), listCourses(c.env, { demo: true, perPage: 60 }), adsFor(c.env, "courses")]);
       // the card's own rule decides which demos really play on the class page (a link the page cannot play is not offered)
-      return renderHtml(c, ctx, <FreeClassesPage ctx={ctx} data={{ free: free.items, demos: demos.items.filter((x) => x.has_demo) }} />);
+      return renderHtml(c, ctx, <FreeClassesPage ctx={ctx} data={{ free: free.items, demos: demos.items.filter((x) => x.has_demo), ads }} />);
     }),
   );
 
@@ -196,15 +197,16 @@ export function pageRoutes(lang: Lang) {
       const ctx = await pageCtxFor(c, lang, `/courses/${slug}`);
       const course = await getCourseBySlug(c.env, slug);
       if (!course) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
-      const [curriculum, reviews, summary, faqs, included, pictures] = await Promise.all([
+      const [curriculum, reviews, summary, faqs, included, pictures, ads] = await Promise.all([
         getCurriculum(c.env, course.id),
         approvedReviews(c.env, course.id),
         reviewSummary(c.env, course.id),
         faqsForClass(c.env, course.id),
         includedIn(c.env, course.id),
         galleryFor(c.env, course.id),
+        adsFor(c.env, "course"),
       ]);
-      return renderHtml(c, ctx, <CoursePage ctx={ctx} data={{ course, curriculum, reviews, summary, faqs, included, pictures, flash }} />);
+      return renderHtml(c, ctx, <CoursePage ctx={ctx} data={{ course, curriculum, reviews, summary, faqs, included, pictures, ads, flash }} />);
     });
   });
 
@@ -221,17 +223,23 @@ export function pageRoutes(lang: Lang) {
   r.get("/blog", async (c) =>
     cachedPage(c, { ttl: 300 }, async () => {
       const ctx = await pageCtxFor(c, lang, "/blog");
-      const posts = await all<PostRow>(c.env.DB, `SELECT ${POST_COLS} FROM blog_posts WHERE status = 'published' AND deleted_at IS NULL ORDER BY published_at DESC LIMIT 60`);
-      return renderHtml(c, ctx, <BlogListPage ctx={ctx} posts={posts} />);
+      const [posts, ads] = await Promise.all([
+        all<PostRow>(c.env.DB, `SELECT ${POST_COLS} FROM blog_posts WHERE status = 'published' AND deleted_at IS NULL ORDER BY published_at DESC LIMIT 60`),
+        adsFor(c.env, "blog_list"),
+      ]);
+      return renderHtml(c, ctx, <BlogListPage ctx={ctx} posts={posts} ads={ads} />);
     }),
   );
 
   r.get("/blog/:slug", async (c) =>
     cachedPage(c, { ttl: 300 }, async () => {
       const ctx = await pageCtxFor(c, lang, `/blog/${c.req.param("slug")}`);
-      const post = await first<PostRow>(c.env.DB, `SELECT ${POST_COLS} FROM blog_posts WHERE slug = ? AND status = 'published' AND deleted_at IS NULL`, c.req.param("slug"));
+      const [post, ads] = await Promise.all([
+        first<PostRow>(c.env.DB, `SELECT ${POST_COLS} FROM blog_posts WHERE slug = ? AND status = 'published' AND deleted_at IS NULL`, c.req.param("slug")),
+        adsFor(c.env, "blog"),
+      ]);
       if (!post) return renderHtml(c, ctx, <ErrorPage ctx={ctx} status={404} />, { status: 404 });
-      return renderHtml(c, ctx, <BlogPostPage ctx={ctx} post={post} />);
+      return renderHtml(c, ctx, <BlogPostPage ctx={ctx} post={post} ads={adsForPage(ctx, ads)} />);
     }),
   );
 

@@ -153,8 +153,8 @@ Names follow Google’s recommended events where one exists (`view_item`, `add_t
 |---|---|---|
 | `view_item_list` | a list of classes comes on screen (home “featured”, home “start here”, *All classes*, “related classes”) — once per list | `item_list_id`, `item_list_name`, the visible classes as items with their `index` |
 | `select_item` | a class is chosen from a list | the item with `index`, `item_list_id`, `item_list_name` |
-| `view_promotion` | a home slide is mostly on screen, or the offer pop-up opens | `promotion_id` (`hero-3`, `offer-7`), `promotion_name` (its headline), `creative_name`, `creative_slot`, `location_id` |
-| `select_promotion` | a slide or the offer’s button is clicked | the same |
+| `view_promotion` | a home slide is mostly on screen, the offer pop-up opens, or one of the academy’s ads (Admin → Banners → Ad) is mostly on screen | `promotion_id` (`hero-3`, `offer-7`, `ad-12`), `promotion_name` (its headline; an ad’s picture words), `creative_name`, `creative_slot`, `location_id` (`home_hero`, `offer_popup`, `ad_course`, `ad_blog`, `ad_blog_list`, `ad_courses`) |
+| `select_promotion` | a slide, the offer’s button or an ad is clicked | the same |
 | `popup_dismiss` | the offer pop-up is closed | `promotion_name`, `method` (`close` or `no_thanks`) |
 | `faq_expand` | a question is opened (*FAQ* page, home, a class) | `question` (the question’s own text), `placement` (`site`, `home`, `class`) |
 | `language_switch` | the language button | `from`, `to` |

@@ -19,6 +19,8 @@ export type FieldDef =
   | (Common & { type: "switch" })
   | (Common & { type: "image"; folder: "banners" | "photos" | "blog"; maxWidth: number; /** a wide preview, for banner pictures */ wide?: boolean })
   | (Common & { type: "courses" })
+  /** several of a few fixed choices, ticked (an ad's pages): a list of their values — kept by the server as a comma list, read back as either */
+  | (Common & { type: "checks"; options: { value: string; label: string }[] })
   | (Common & { type: "links" })
   | (Common & { type: "icon" })
   | (Common & { type: "variants" })
@@ -210,6 +212,20 @@ export function FormFields({ fields, values, onChange, errors = {}, idPrefix = "
           case "courses":
             control = <CourseCheckList value={(v as number[]) ?? []} onChange={(x) => onChange(f.key, x)} />;
             break;
+          case "checks": {
+            const on = checksOf(v);
+            control = (
+              <div className="check-list" id={id} role="group" aria-label={f.label} aria-invalid={err ? true : undefined}>
+                {f.options.map((o) => (
+                  <label key={o.value} className="check">
+                    <input type="checkbox" checked={on.includes(o.value)} onChange={(e) => onChange(f.key, e.target.checked ? f.options.map((x) => x.value).filter((x) => x === o.value || on.includes(x)) : on.filter((x) => x !== o.value))} />
+                    <span>{o.label}</span>
+                  </label>
+                ))}
+              </div>
+            );
+            break;
+          }
           case "links":
             control = <LinksField value={(v as { label: string; url: string }[]) ?? []} onChange={(x) => onChange(f.key, x)} />;
             break;
@@ -238,6 +254,12 @@ export function FormFields({ fields, values, onChange, errors = {}, idPrefix = "
   );
 }
 
+/** The ticked values of a "checks" field, whether the server sent a list or its comma list ("course,blog"). */
+export function checksOf(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map(String);
+  return typeof v === "string" && v ? v.split(",").filter(Boolean) : [];
+}
+
 /** Build the starting values of a form from field definitions + an existing row (or defaults for a new one). */
 const DHAKA_MS = 6 * 3600 * 1000;
 /** "2026-11-26T17:59:00Z" → "2026-11-26T23:59" (what a datetime-local box shows, in Bangladesh time) */
@@ -260,6 +282,7 @@ export function initialValues(fields: FieldDef[], row: Values | null, defaults: 
       const raw = row[f.key];
       out[f.key] = f.type === "switch" ? !!raw : f.type === "links" ? parseLinks(raw) : f.type === "variants" ? toDrafts(raw) : f.type === "datetime" ? (raw ?? null) : (raw ?? (f.type === "courses" ? [] : ""));
       if (f.type === "date" && typeof raw === "string") out[f.key] = raw.slice(0, 10);
+      if (f.type === "checks") out[f.key] = checksOf(raw);
       if (f.type === "select" && (f as { numeric?: boolean }).numeric && raw === null) out[f.key] = null;
     }
   }

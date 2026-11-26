@@ -301,13 +301,20 @@
   watchLists();
   d.addEventListener("mawah:fragment", watchLists); // the related classes arrive later (site.js)
 
-  /* banners: a slide counts as seen once it is mostly on screen; the offer pop-up once it opens */
+  /* banners: a slide counts as seen once it is mostly on screen; the offer pop-up once it opens; one of the academy's ads (views/ads.tsx)
+     once it is mostly on screen, by its id, its picture's words and its kind of page (location "ad_course", "ad_blog" …) */
   function promo(el, kind) {
-    var all = q(kind === "hero" ? ".bn-slide" : "[data-offer]");
-    var i = Math.max(0, all.indexOf(el));
-    var title = ((el.querySelector(".bn-title, .offer-title") || {}).textContent || "").trim();
-    var id = kind === "hero" ? "hero-" + (i + 1) : "offer-" + (el.getAttribute("data-id") || "1");
-    var p = { promotion_id: id, promotion_name: title || id, creative_name: kind === "hero" ? "slide-" + (i + 1) : "popup", creative_slot: String(i + 1), location_id: kind === "hero" ? "home_hero" : "offer_popup" };
+    var p;
+    if (kind === "ad") {
+      var aid = "ad-" + (el.getAttribute("data-ad") || "0"), img = el.querySelector("img"), slot = closest(el, "[data-ad-slot]");
+      p = { promotion_id: aid, promotion_name: ((img && img.getAttribute("alt")) || "").trim() || aid, creative_name: "ad", creative_slot: String((+(slot && slot.getAttribute("data-ad-slot")) || 0) + 1), location_id: "ad_" + (el.getAttribute("data-ad-spot") || "page") };
+    } else {
+      var all = q(kind === "hero" ? ".bn-slide" : "[data-offer]");
+      var i = Math.max(0, all.indexOf(el));
+      var title = ((el.querySelector(".bn-title, .offer-title") || {}).textContent || "").trim();
+      var id = kind === "hero" ? "hero-" + (i + 1) : "offer-" + (el.getAttribute("data-id") || "1");
+      p = { promotion_id: id, promotion_name: title || id, creative_name: kind === "hero" ? "slide-" + (i + 1) : "popup", creative_slot: String(i + 1), location_id: kind === "hero" ? "home_hero" : "offer_popup" };
+    }
     return Object.assign({ items: [{ item_id: id, item_name: p.promotion_name, promotion_id: id, promotion_name: p.promotion_name, creative_name: p.creative_name, creative_slot: p.creative_slot, location_id: p.location_id }] }, p);
   }
   var slides = q(".bn-slide");
@@ -316,6 +323,14 @@
       es.forEach(function (e) { if (e.isIntersecting) { sio.unobserve(e.target); emit("view_promotion", promo(e.target, "hero")); } });
     }, { threshold: 0.6 });
     slides.forEach(function (s) { sio.observe(s); });
+  }
+  var adEls = q("[data-ad]");
+  if (adEls.length && "IntersectionObserver" in w) {
+    // a hidden ad (another one is shown in its place) never comes on screen, so only the ad really shown counts
+    var aio = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { aio.unobserve(e.target); emit("view_promotion", promo(e.target, "ad")); } });
+    }, { threshold: 0.6 });
+    adEls.forEach(function (a) { aio.observe(a); });
   }
   var offer = d.querySelector("[data-offer]");
   if (offer && "MutationObserver" in w) {
@@ -338,6 +353,7 @@
     if (a.hasAttribute("data-shop")) return emit("shop_click", { placement: placement(a) });
     if (closest(a, ".bn-slide")) return emit("select_promotion", promo(closest(a, ".bn-slide"), "hero"));
     if (closest(a, "[data-offer]")) return emit("select_promotion", promo(closest(a, "[data-offer]"), "offer"));
+    if (a.hasAttribute("data-ad")) return emit("select_promotion", promo(a, "ad"));
     if (a.classList.contains("lang-toggle")) return emit("language_switch", { from: lang, to: lang === "bn" ? "en" : "bn" });
     if (url.origin === location.origin && url.pathname === "/app/checkout") {
       var slug = url.searchParams.get("c");

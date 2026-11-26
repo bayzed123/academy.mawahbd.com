@@ -29,7 +29,11 @@ export function bannerPreviewDoc(v: Record<string, unknown>, lang: Lang, stylesh
   const popup = v.placement === "popup";
   const button = hasButton ? `<a class="btn btn-primary btn-lg" href="#" tabindex="-1">${esc(label)}${icon("arrow")}</a>` : "";
   let inner: string;
-  if (popup) {
+  if (v.placement === "ad") {
+    // an ad: the picture alone, whole, at the width of a class page's reading column (views/ads.tsx, marketing/ad.css)
+    const main = key(v, "image_key");
+    inner = `<div class="pv-ad">${main ? picture(v, field("alt")).replace(' width="1600" height="600"', "") : `<p class="pv-ad-empty">${esc(lang === "bn" ? "ছবি দিন: ১২০০ × ৩০০ পিক্সেল" : "Add the picture: 1200 × 300 px")}</p>`}</div>`;
+  } else if (popup) {
     const design = bannerDesign(look, false);
     inner = `<div class="pv-offer"><div class="offer-card${design ? ` ${design}` : ""}">${look.image_key ? `<div class="offer-media">${picture(v, title)}</div>` : ""}${
       kicker || title || body || button

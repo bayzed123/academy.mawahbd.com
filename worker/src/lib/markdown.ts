@@ -10,6 +10,11 @@ import { escapeHtml, safeUrl } from "./html";
  * `code`, fenced code, - / 1. lists, > quotes, --- rules, [text](url), ![alt](url).
  */
 export function renderMarkdown(src: string, depth = 0): string {
+  return markdownBlocks(src, depth).join("\n");
+}
+
+/** The same, as its top-level blocks (a paragraph, a heading, a list …): a blog post's ad goes between two of them (views/ads.tsx). */
+export function markdownBlocks(src: string, depth = 0): string[] {
   const lines = src.replace(/\r\n?/g, "\n").split("\n");
   const out: string[] = [];
   const para: string[] = [];
@@ -77,7 +82,7 @@ export function renderMarkdown(src: string, depth = 0): string {
     i++;
   }
   flush();
-  return out.join("\n");
+  return out;
 }
 
 function inline(raw: string): string {

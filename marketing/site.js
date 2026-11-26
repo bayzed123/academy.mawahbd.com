@@ -217,6 +217,17 @@ import { inView, stagger } from "framer-motion/dom";
     if (tickOffers()) var offerTimer = setInterval(function () { if (!tickOffers()) clearInterval(offerTimer); }, 1000);
   }
 
+  /* 7c. the academy's own ads (views/ads.tsx): with several, each visit shows another, picked here; every place of a page holds the same
+     ads in the same order and shows the one `data-ad-slot` places after the pick, so two places never show the same ad */
+  var adSlots = $$("[data-ad-slot]");
+  if (adSlots.length) {
+    var adPick = Math.floor(Math.random() * 1000);
+    adSlots.forEach(function (s) {
+      var ads = $$("[data-ad]", s), at = (adPick + (+s.getAttribute("data-ad-slot") || 0)) % (ads.length || 1);
+      ads.forEach(function (a, i) { a.hidden = i !== at; });
+    });
+  }
+
   /* 8. sliders: the arrows, and dragging with a mouse (a finger scrolls them by itself); the click that ends a drag opens nothing */
   $$("[data-carousel]").forEach(function (car) {
     var track = $(".car-track", car), nav = $(".car-nav", car), prev = $("[data-car-prev]", car), next = $("[data-car-next]", car);
