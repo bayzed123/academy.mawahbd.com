@@ -188,6 +188,27 @@ import { inView, stagger } from "framer-motion/dom";
     if (sticky && window.ResizeObserver) new ResizeObserver(function () { d.documentElement.style.setProperty("--top-h", sticky.offsetHeight + "px"); }).observe(sticky);
   }
 
+  /* 7b. a class on offer: the time left until its offer ends, every second (views/ui.tsx OfferLine); at zero it says the offer is over */
+  var offers = $$("[data-offer-ends]");
+  if (offers.length) {
+    var bnO = d.documentElement.lang === "bn";
+    var dig = function (s) { return bnO ? String(s).replace(/\d/g, function (c) { return "০১২৩৪৫৬৭৮৯".charAt(+c); }) : String(s); };
+    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    var tickOffers = function () {
+      var live = 0;
+      offers.forEach(function (el) {
+        var out = $("[data-offer-text]", el), left = Math.floor((Date.parse(el.getAttribute("data-offer-ends")) - Date.now()) / 1000);
+        if (!out) return;
+        if (!(left > 0)) { out.textContent = el.getAttribute("data-over"); el.classList.add("is-over"); return; }
+        live++;
+        var days = Math.floor(left / 86400), clock = pad(Math.floor((left % 86400) / 3600)) + ":" + pad(Math.floor((left % 3600) / 60)) + ":" + pad(left % 60);
+        out.textContent = el.getAttribute("data-left") + " " + dig((days ? days + " " + el.getAttribute("data-day") + " " : "") + clock);
+      });
+      return live > 0;
+    };
+    if (tickOffers()) var offerTimer = setInterval(function () { if (!tickOffers()) clearInterval(offerTimer); }, 1000);
+  }
+
   /* 8. sliders: the arrows, and dragging with a mouse (a finger scrolls them by itself); the click that ends a drag opens nothing */
   $$("[data-carousel]").forEach(function (car) {
     var track = $(".car-track", car), nav = $(".car-nav", car), prev = $("[data-car-prev]", car), next = $("[data-car-next]", car);

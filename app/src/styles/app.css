@@ -636,3 +636,7 @@ a.rail-card:hover{background:var(--raised,var(--ivory-2))}
 .mat-more summary .icon{width:16px;height:16px;transition:transform .2s}
 .mat-more[open] summary .icon{transform:rotate(90deg)}
 .mat-more .mat-note{margin-top:6px;white-space:pre-line}
+
+/* ---------- a class on offer at checkout: the regular price crossed out, the price, the saving in % ---------- */
+.summary-price{display:inline-flex;flex-wrap:wrap;align-items:baseline;justify-content:flex-end;gap:4px 6px;text-align:right}
+.off-chip{padding:0 7px;border-radius:999px;background:var(--o-500);color:#000;font-size:.74rem;font-weight:700;line-height:1.6}

@@ -11,6 +11,8 @@ import { fromDrafts, toDrafts, VariantsEditor, type VariantDraft } from "./ShopV
 type Common = { key: string; label: string; half?: boolean; hint?: string; required?: boolean; /** show this field only while the form is in a state it applies to (e.g. pop-up settings) */ showIf?: (values: Values) => boolean };
 export type FieldDef =
   | (Common & { type: "text" | "url" | "date" | "password"; maxLength?: number; placeholder?: string; nullable?: boolean })
+  /** a moment, typed in Bangladesh time (UTC+6, no daylight saving) and kept as UTC ISO; empty = null */
+  | (Common & { type: "datetime" })
   | (Common & { type: "textarea" | "markdown"; rows?: number; maxLength?: number })
   | (Common & { type: "number"; min?: number; max?: number; nullable?: boolean; suffix?: string })
   | (Common & { type: "select"; options: { value: string; label: string }[]; nullable?: boolean; numeric?: boolean; /** what the empty choice of a nullable menu says (default "—") */ emptyLabel?: string })
@@ -153,6 +155,9 @@ export function FormFields({ fields, values, onChange, errors = {}, idPrefix = "
           case "date":
             control = <TextInput id={id} type="date" value={((v as string | null) ?? "").slice(0, 10)} error={err} onChange={(e) => onChange(f.key, e.target.value || null)} />;
             break;
+          case "datetime":
+            control = <TextInput id={id} type="datetime-local" value={toDhakaInput(v as string | null)} error={err} onChange={(e) => onChange(f.key, fromDhakaInput(e.target.value))} />;
+            break;
           case "textarea":
           case "markdown":
             control = <TextArea id={id} rows={f.rows ?? (f.type === "markdown" ? 8 : 3)} maxLength={f.maxLength} className={f.type === "markdown" ? "mono" : ""} value={(v as string) ?? ""} error={err} onChange={(e) => onChange(f.key, e.target.value)} />;
@@ -234,13 +239,26 @@ export function FormFields({ fields, values, onChange, errors = {}, idPrefix = "
 }
 
 /** Build the starting values of a form from field definitions + an existing row (or defaults for a new one). */
+const DHAKA_MS = 6 * 3600 * 1000;
+/** "2026-11-26T17:59:00Z" → "2026-11-26T23:59" (what a datetime-local box shows, in Bangladesh time) */
+export function toDhakaInput(iso: string | null | undefined): string {
+  const t = iso ? Date.parse(iso) : NaN;
+  return Number.isNaN(t) ? "" : new Date(t + DHAKA_MS).toISOString().slice(0, 16);
+}
+/** "2026-11-26T23:59" typed in Bangladesh time → "2026-11-26T17:59:00.000Z"; empty → null */
+export function fromDhakaInput(local: string): string | null {
+  if (!local) return null;
+  const t = Date.parse(`${local.length === 16 ? `${local}:00` : local}Z`);
+  return Number.isNaN(t) ? null : new Date(t - DHAKA_MS).toISOString();
+}
+
 export function initialValues(fields: FieldDef[], row: Values | null, defaults: Values): Values {
   const out: Values = { ...defaults };
   if (row) {
     for (const f of fields) {
       if (f.type === "section" || f.type === "custom") continue;
       const raw = row[f.key];
-      out[f.key] = f.type === "switch" ? !!raw : f.type === "links" ? parseLinks(raw) : f.type === "variants" ? toDrafts(raw) : (raw ?? (f.type === "courses" ? [] : ""));
+      out[f.key] = f.type === "switch" ? !!raw : f.type === "links" ? parseLinks(raw) : f.type === "variants" ? toDrafts(raw) : f.type === "datetime" ? (raw ?? null) : (raw ?? (f.type === "courses" ? [] : ""));
       if (f.type === "date" && typeof raw === "string") out[f.key] = raw.slice(0, 10);
       if (f.type === "select" && (f as { numeric?: boolean }).numeric && raw === null) out[f.key] = null;
     }
@@ -257,7 +275,7 @@ export function toPayload(fields: FieldDef[], values: Values): Values {
   for (const f of fields) {
     if (f.type === "section" || f.type === "custom") continue;
     const v = values[f.key];
-    const optional = f.type === "image" || f.type === "icon" || f.type === "date" || ("nullable" in f && !!f.nullable);
+    const optional = f.type === "image" || f.type === "icon" || f.type === "date" || f.type === "datetime" || ("nullable" in f && !!f.nullable);
     body[f.key] = f.type === "variants" ? fromDrafts((v as VariantDraft[]) ?? []) : optional && (v === "" || v === undefined) ? null : v;
   }
   return body;

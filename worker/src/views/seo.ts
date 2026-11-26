@@ -74,6 +74,8 @@ export function courseLd(ctx: PageCtx, course: CourseDetail, reviews: PublicRevi
       category: "Paid",
       price: course.price,
       priceCurrency: "BDT",
+      // an offer with an end: Google is told until when this price holds
+      ...(course.offer_ends_at && (course.regular_price ?? course.price) > course.price ? { priceValidUntil: course.offer_ends_at.slice(0, 10) } : {}),
       availability: "https://schema.org/InStock",
       url: ctx.abs(ctx.href(`/courses/${course.slug}`)),
     };

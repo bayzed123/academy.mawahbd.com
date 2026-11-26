@@ -15,6 +15,7 @@ import { notices, notifyOwner } from "../../services/notify";
 import { rateLimit } from "../../middleware/ratelimit";
 import { approvedReviews, getCourseBySlug, getCurriculum, listCategories, listCourses, relatedCourses } from "../../services/catalog";
 import { certificateByCode, lessonContent, lessonDriveFile } from "../../services/learning";
+import { SELL_PRICE } from "../../lib/price";
 
 export const publicRoutes = new Hono<AppEnv>();
 
@@ -84,7 +85,7 @@ publicRoutes.get("/bundles", async (c) => {
   const items = bundles.length
     ? await all<{ bundle_id: number; slug: string; title_bn: string; title_en: string; price: number }>(
         c.env.DB,
-        `SELECT bi.bundle_id, c.slug, c.title_bn, c.title_en, c.price FROM bundle_items bi JOIN courses c ON c.id = bi.course_id
+        `SELECT bi.bundle_id, c.slug, c.title_bn, c.title_en, ${SELL_PRICE()} AS price FROM bundle_items bi JOIN courses c ON c.id = bi.course_id
          WHERE c.deleted_at IS NULL AND c.status = 'published' AND c.channel = 'website'`,
       )
     : [];

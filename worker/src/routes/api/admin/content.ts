@@ -8,6 +8,7 @@ import { slugSchema, textSchema, optionalUrl } from "../../../lib/schemas";
 import { uniqueSlug } from "../../../lib/slug";
 import { notifyLaunch } from "../../../services/launch";
 import { announceNewClass } from "../../../services/push";
+import { offerEnd } from "../../../lib/price";
 
 /* ============================================================================================== shared bits */
 const imageKey = (folder: string) =>
@@ -271,6 +272,9 @@ const courseSchema = z.object({
   instructor_id: z.union([z.number().int().positive(), z.null()]),
   level: z.union([z.enum(["beginner", "intermediate", "advanced"]), z.null()]),
   price: money,
+  // an offer (migration 0032, lib/price.ts): a lower price while it runs, and when it ends (empty = until it is removed)
+  offer_price: z.union([z.number().int().min(1).max(10_000_000), z.null()]).optional(),
+  offer_ends_at: isoDate.optional(),
   status: z.enum(COURSE_STATUSES),
   // where the class is shown (migration 0023): "website" (the default: sold there, studied on the website and in the app) or "app" (free,
   // in the Android app only — never shown or sold on the website)
@@ -310,6 +314,21 @@ export const courses = crudRoutes({
     await ensureSlug(c, "courses", data, existing, String(data.title_en ?? ""));
     // an Android app class is free there and never sold: it has no price, and it is never part of a bundle (a bundle is sold on the website)
     const channel = (data.channel as string | undefined) ?? (existing?.channel as string | undefined) ?? "website";
+    // the offer: lower than the regular price (a free class has none), and its end kept in the one format the price SQL compares
+    {
+      const offer = data.offer_price !== undefined ? (data.offer_price as number | null) : ((existing?.offer_price as number | null | undefined) ?? null);
+      const regular = (data.price as number | undefined) ?? (existing?.price as number | undefined) ?? 0;
+      if (offer !== null && channel !== "app") {
+        if (regular <= 0) throw new HttpError(422, "validation", "validation", { offer_price: "offer_free_class" });
+        if (offer >= regular) throw new HttpError(422, "validation", "validation", { offer_price: "offer_not_lower" });
+      }
+      if (offer === null || channel === "app") {
+        if (data.offer_price !== undefined || channel === "app") {
+          data.offer_price = null;
+          data.offer_ends_at = null;
+        }
+      } else if (data.offer_ends_at !== undefined) data.offer_ends_at = offerEnd(data.offer_ends_at as string | null);
+    }
     if (channel === "app") {
       data.price = 0;
       if (existing && existing.channel !== "app") {

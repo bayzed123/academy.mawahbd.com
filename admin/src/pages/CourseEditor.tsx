@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { COURSE_CHANNELS, COURSE_STATUSES } from "@mawah/shared";
+import { COURSE_CHANNELS, COURSE_STATUSES, offerView } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import type { ClassPicture, CourseRow } from "../lib/types";
 import { ClassPictures } from "../components/ClassPictures";
 import { CurriculumBuilder } from "../components/Curriculum";
-import { FormFields, initialValues, toPayload, type FieldDef, type Values } from "../components/Form";
+import { FormFields, fromDhakaInput, initialValues, toPayload, type FieldDef, type Values } from "../components/Form";
 import { CourseStateChip } from "../components/CourseState";
 import { Button, Chip, ErrorState, Field, Icon, PageHeader, Panel, SlideOver, Spinner, Tabs, TextArea, useConfirm, useFieldErrors, useToast } from "../components/ui";
 import { VideoLinkHelp } from "../components/VideoLinkHelp";
@@ -16,10 +16,45 @@ import { useCategoryOptions, useInstructorOptions } from "./Courses";
 
 type Tab = "details" | "demo" | "curriculum" | "pictures" | "seo";
 
+/** the form has an offer price typed in (for a class that is sold) */
+const hasOffer = (v: Values) => v.channel !== "app" && Number(v.price) > 0 && v.offer_price !== null && v.offer_price !== "" && v.offer_price !== undefined;
+
+/** "today until midnight", "3 days", "7 days" or "no end", and a line showing how the website will show the offer. */
+function OfferHelp({ values, set }: { values: Values; set: (k: string, v: unknown) => void }) {
+  const { t, money, dateTime } = useI18n();
+  const price = Number(values.price) || 0;
+  const offer = values.offer_price === null || values.offer_price === "" ? null : Number(values.offer_price);
+  // the end of a day in Bangladesh (23:59), `days` from today
+  const endOfDay = (days: number) => fromDhakaInput(`${new Date(Date.now() + 6 * 3600 * 1000 + days * 86_400_000).toISOString().slice(0, 10)}T23:59`);
+  if (offer === null) return <p className="hint">{t("adm.f.offerNone")}</p>;
+  if (offer >= price) return <p className="err-text" role="alert">{t("err.offer_not_lower")}</p>;
+  const o = offerView({ price: offer, regular_price: price, offer_ends_at: (values.offer_ends_at as string | null) ?? null });
+  const ended = !!o.ends_at && Date.parse(o.ends_at) <= Date.now();
+  return (
+    <div className="offer-help">
+      <div className="row">
+        <span className="hint">{t("adm.f.offerQuick")}</span>
+        <button type="button" className="btn btn-outline btn-sm" onClick={() => set("offer_ends_at", endOfDay(0))}>{t("adm.f.offerToday")}</button>
+        <button type="button" className="btn btn-outline btn-sm" onClick={() => set("offer_ends_at", endOfDay(2))}>{t("adm.f.offer3")}</button>
+        <button type="button" className="btn btn-outline btn-sm" onClick={() => set("offer_ends_at", endOfDay(6))}>{t("adm.f.offer7")}</button>
+        <button type="button" className="btn btn-outline btn-sm" onClick={() => set("offer_ends_at", null)}>{t("adm.f.offerNoEnd")}</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => { set("offer_price", null); set("offer_ends_at", null); }}>{t("adm.f.offerRemove")}</button>
+      </div>
+      <p className={`notice ${ended ? "warn-note" : "ok-note"}`.trim()} role="status">
+        <Icon name={ended ? "clock" : "tag"} />
+        <span>
+          {ended ? t("adm.f.offerEnded", { when: dateTime(o.ends_at) }) : t("adm.f.offerPreview", { regular: money(o.regular), price: money(o.price), pct: o.pct })}{" "}
+          {!ended && (o.ends_at ? t("adm.f.offerUntil", { when: dateTime(o.ends_at) }) : t("adm.f.offerLifetime"))}
+        </span>
+      </p>
+    </div>
+  );
+}
+
 const DEFAULTS: Values = {
   title_bn: "", title_en: "", short_bn: "", short_en: "", long_bn: "", long_en: "", banner_key: null, icon: "cake", category_id: null, instructor_id: null,
   level: null, price: 0, status: "draft", channel: "website", details_url: "", featured: false, cert_enabled: true, cert_template: "classic",
-  seo_title_bn: "", seo_title_en: "", seo_desc_bn: "", seo_desc_en: "", sort: 100, launch_at: null,
+  seo_title_bn: "", seo_title_en: "", seo_desc_bn: "", seo_desc_en: "", sort: 100, launch_at: null, offer_price: null, offer_ends_at: null,
   demo_url: "", demo_title_bn: "", demo_title_en: "", demo_text_bn: "", demo_text_en: "",
 };
 
@@ -74,6 +109,10 @@ export function CourseEditor() {
     { type: "custom", key: "app_free", showIf: (v) => v.channel === "app", render: () => <p className="notice ok-note"><Icon name="phone" /> <span>{t("adm.f.appFree")}</span></p> },
     { type: "number", key: "price", label: t("adm.f.coursePrice"), half: true, min: 0, suffix: "৳", hint: t("adm.f.coursePriceHint"), showIf: (v) => v.channel !== "app" },
     { type: "select", key: "status", label: t(inApp ? "adm.course.visibilityApp" : "adm.course.visibility"), half: true, options: COURSE_STATUSES.map((s) => ({ value: s, label: t(`adm.course.${inApp ? "visApp" : "vis"}.${s}` as "adm.course.vis.draft") })), hint: inApp ? t("adm.course.stateText.app") : t(`adm.status.hint.${"draft"}` as "adm.status.hint.draft") },
+    // an offer: a lower price for a while (or until removed), shown on the website with the regular price crossed out and the saving in %
+    { type: "number", key: "offer_price", label: t("adm.f.offerPrice"), half: true, min: 1, nullable: true, suffix: "৳", hint: t("adm.f.offerPriceHint"), showIf: (v) => v.channel !== "app" && Number(v.price) > 0 },
+    { type: "datetime", key: "offer_ends_at", label: t("adm.f.offerEnds"), half: true, hint: t("adm.f.offerEndsHint"), showIf: hasOffer },
+    { type: "custom", key: "offer_help", showIf: (v) => v.channel !== "app" && Number(v.price) > 0, render: (v) => <OfferHelp values={v} set={set} /> },
     { type: "select", key: "category_id", label: t("adm.f.category"), half: true, options: categories, nullable: true, numeric: true },
     { type: "select", key: "instructor_id", label: t("adm.f.instructor"), half: true, options: instructors, nullable: true, numeric: true },
     { type: "select", key: "level", label: t("adm.f.level"), half: true, nullable: true, options: ["beginner", "intermediate", "advanced"].map((l) => ({ value: l, label: t(`label.${l}` as "label.beginner") })) },

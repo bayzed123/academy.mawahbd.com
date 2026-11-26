@@ -10,7 +10,7 @@ import { ClassFaq } from "../faq";
 import { gaItem, gaListAttr } from "../ga";
 import { Layout } from "../layout";
 import { breadcrumbLd, courseLd, faqLd, personLd } from "../seo";
-import { avgLabel, CourseCard, Crumbs, Flash, Highlight, Icon, InstructorBadges, NotifyForm, numLabel, priceLabel, reviewsLabel, Stars } from "../ui";
+import { avgLabel, CourseCard, Crumbs, Flash, Highlight, Icon, InstructorBadges, NotifyForm, numLabel, priceLabel, reviewsLabel, Stars, OfferLine } from "../ui";
 
 export interface CourseData {
   course: CourseDetail;
@@ -404,6 +404,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
                 {t("stock.inNote")}
               </p>
               <div class="buy-price">{priceLabel(ctx, course.price)}</div>
+              <OfferLine ctx={ctx} item={course} where="buy" />
               <a class="btn btn-primary btn-lg btn-block" href={checkout}>
                 {t("btn.enrollNow")}
                 <Icon name="arrow" />
@@ -468,7 +469,10 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
           </>
         ) : (
           <>
-            <b>{priceLabel(ctx, course.price)}</b>
+            <span class="bar-price">
+              <b>{priceLabel(ctx, course.price)}</b>
+              <OfferLine ctx={ctx} item={course} where="bar" />
+            </span>
             <a class="btn btn-primary" href={checkout}>
               {t("btn.enrollNow")}
             </a>

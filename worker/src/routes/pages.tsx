@@ -51,6 +51,7 @@ import {
   VerifyPage,
   type PostRow,
 } from "../views/pages/misc";
+import { SELL_PRICE } from "../lib/price";
 
 const SORTS: CourseSort[] = ["featured", "new", "price_asc", "price_desc"];
 const POST_COLS =
@@ -72,7 +73,7 @@ export function pageRoutes(lang: Lang) {
         listCourses(c.env, { level: "beginner", perPage: 4 }),
         listInstructors(c.env),
         publishedCounts(c.env),
-        first<{ p: number | null }>(c.env.DB, "SELECT MIN(price) AS p FROM courses WHERE deleted_at IS NULL AND status = 'published' AND price > 0 AND channel = 'website'"),
+        first<{ p: number | null }>(c.env.DB, `SELECT MIN(${SELL_PRICE()}) AS p FROM courses c WHERE c.deleted_at IS NULL AND c.status = 'published' AND c.price > 0 AND c.channel = 'website'`),
         all<{ id: number; rating: number; body: string; reply: string | null; created_at: string; name: string; course_slug: string; title_bn: string; title_en: string }>(
           c.env.DB,
           `SELECT r.id, r.rating, r.body, r.reply, r.created_at, s.name, c.slug AS course_slug, c.title_bn, c.title_en
