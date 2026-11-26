@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { FILE_MATERIAL_KINDS, GROUP_PLATFORMS, LIVE_PLATFORMS, MATERIAL_KINDS, MAX_UPLOAD_MATERIAL_BYTES, type MaterialKind } from "@mawah/shared";
+import { FILE_MATERIAL_KINDS, GROUP_PLATFORMS, LIVE_PLATFORMS, MATERIAL_KINDS, MAX_LESSON_VIDEO_BYTES, MAX_UPLOAD_MATERIAL_BYTES, type MaterialKind } from "@mawah/shared";
 import { adm, ApiError, upload } from "../lib/api";
+import { prepareOrOriginal, uploadMaterialVideo, VideoError, type VideoStep } from "../lib/lessonVideo";
 import { useI18n } from "../lib/i18n";
 import { DriveHelp } from "./DriveHelp";
 import { VideoLinkHelp } from "./VideoLinkHelp";
@@ -310,38 +311,76 @@ export function MaterialDrawer({ open, row, courseId, classes, onClose }: { open
 function FileBox({ kind, courseId, value, error, onChange }: { kind: MaterialKind; courseId: string; value: { key: string; filename: string; size: number } | null; error?: string; onChange: (f: { key: string; filename: string; size: number } | null) => void }) {
   const { t, err } = useI18n();
   const [pct, setPct] = useState<number | null>(null);
+  // a video: made ready for the web in this browser, then sent in parts (lib/lessonVideo.ts) — up to 4 GB, not one 95 MB request
+  const [step, setStep] = useState<VideoStep | null>(null);
   const [problem, setProblem] = useState("");
   const abort = useRef<AbortController | null>(null);
   const input = useRef<HTMLInputElement>(null);
+  const isVideo = kind === "video";
+  const limit = isVideo ? MAX_LESSON_VIDEO_BYTES : MAX_UPLOAD_MATERIAL_BYTES;
   const maxMb = Math.round(MAX_UPLOAD_MATERIAL_BYTES / (1024 * 1024));
+  const busy = pct !== null || step !== null;
+  // leaving the page would stop it: ask first
+  useEffect(() => {
+    if (!busy) return;
+    const stay = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", stay);
+    return () => window.removeEventListener("beforeunload", stay);
+  }, [busy]);
 
   const pick = async (file: File | undefined) => {
     if (!file) return;
     setProblem("");
     if (!courseId) return setProblem(t("adm.mat.pickClassFirst"));
-    if (file.size > MAX_UPLOAD_MATERIAL_BYTES) return setProblem(t("adm.mat.tooBig", { max: maxMb }));
+    if (file.size > limit) return setProblem(isVideo ? t("adm.mat.tooBigVideo") : t("adm.mat.tooBig", { max: maxMb }));
     const ctl = new AbortController();
     abort.current = ctl;
-    setPct(0);
     try {
-      const res = await upload<{ key: string; filename: string; size_bytes: number }>(`/admin/materials/upload?course_id=${courseId}&name=${encodeURIComponent(file.name)}`, file, { onProgress: setPct, signal: ctl.signal });
-      onChange({ key: res.key, filename: res.filename, size: res.size_bytes });
+      if (isVideo) {
+        setStep({ phase: "reading" });
+        const ready = await prepareOrOriginal(file, setStep, ctl.signal);
+        const res = await uploadMaterialVideo(Number(courseId), file.name, ready, setStep, ctl.signal);
+        onChange({ key: res.key, filename: res.filename, size: res.size_bytes });
+      } else {
+        setPct(0);
+        const res = await upload<{ key: string; filename: string; size_bytes: number }>(`/admin/materials/upload?course_id=${courseId}&name=${encodeURIComponent(file.name)}`, file, { onProgress: setPct, signal: ctl.signal });
+        onChange({ key: res.key, filename: res.filename, size: res.size_bytes });
+      }
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
-      setProblem(err(e instanceof ApiError ? (e.code === "unsupported_file_type" ? "file_type" : e.code) : "generic"));
+      setProblem(
+        e instanceof VideoError
+          ? t(`adm.own.err.${e.message}` as "adm.own.err.not_video")
+          : err(e instanceof ApiError ? (e.code === "unsupported_file_type" ? "file_type" : e.code) : "generic"),
+      );
     } finally {
       setPct(null);
+      setStep(null);
       abort.current = null;
       if (input.current) input.current.value = "";
     }
   };
+  const stepPct = step ? (step.phase === "shrinking" || step.phase === "uploading" ? step.pct : step.phase === "saving" ? 100 : 2) : (pct ?? 0);
+  const stepLabel = step
+    ? step.phase === "reading"
+      ? t("adm.own.reading")
+      : step.phase === "shrinking"
+        ? t("adm.own.shrinking", { n: step.pct })
+        : step.phase === "uploading"
+          ? t("adm.own.uploading", { n: step.pct })
+          : t("adm.own.saving")
+    : t("adm.mat.uploading", { pct: pct ?? 0 });
   const shown = problem || error;
   return (
     <div className={`file-box${shown ? " bad" : ""}`}>
-      {pct !== null ? (
+      {busy ? (
         <div className="stack">
-          <Progress pct={pct} label={t("adm.mat.uploading", { pct })} />
-          <p role="status">{t("adm.mat.uploading", { pct })}</p>
+          <Progress pct={stepPct} label={stepLabel} />
+          <p role="status">{stepLabel}</p>
+          {step && <p className="hint">{t("adm.own.keepOpen")}</p>}
           <Button className="btn-ghost" onClick={() => abort.current?.abort()}>
             {t("adm.mat.cancelUpload")}
           </Button>
@@ -370,7 +409,7 @@ function FileBox({ kind, courseId, value, error, onChange }: { kind: MaterialKin
           </label>
           <input id="mat-file" ref={input} className="vh" type="file" accept={ACCEPT[kind]} onChange={(e) => pick(e.target.files?.[0])} aria-describedby="mat-file-h" />
           <p id="mat-file-h" className="hint">
-            {t("adm.mat.fileHint", { max: maxMb })}
+            {isVideo ? t("adm.mat.fileHintVideo") : t("adm.mat.fileHint", { max: maxMb })}
           </p>
         </div>
       )}

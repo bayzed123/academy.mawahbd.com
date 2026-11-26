@@ -24,7 +24,8 @@ import {
   resourceForDownload,
   setLessonComplete,
 } from "../../services/learning";
-import { facebookUrl, materialDrive, materialsForStudent, recordUse, usableMaterial } from "../../services/materials";
+import { facebookUrl, hostedVideo, materialDrive, materialMediaUrl, materialsForStudent, recordUse, usableMaterial } from "../../services/materials";
+import { r2VideoMedia } from "../../services/lessonVideos";
 import { notices, notifyOwner } from "../../services/notify";
 import { orderForStudent, ordersForStudent } from "../../services/orders";
 import { manualPayInfo } from "../../services/payments";
@@ -162,6 +163,11 @@ studentRoutes.post("/materials/:id/open", async (c) => {
  */
 studentRoutes.post("/materials/:id/play", async (c) => {
   const { m, me } = await materialFor(c);
+  // a video the owner uploaded: from our storage
+  if (hostedVideo(m)) {
+    c.executionCtx.waitUntil(recordUse(c.env, m, me.id, "open"));
+    return ok(c, { media_url: materialMediaUrl(m.id, m.r2_key!) });
+  }
   const drive = materialDrive(m);
   if (drive?.kind !== "file") throw notFound();
   if (!(await driveReadable(c.env, drive.id))) throw new HttpError(409, "video_pending");
@@ -171,6 +177,7 @@ studentRoutes.post("/materials/:id/play", async (c) => {
 
 studentRoutes.get("/materials/:id/media", rateLimit("RL_API", (c) => `media:${c.get("student")?.id}`), async (c) => {
   const { m } = await materialFor(c);
+  if (hostedVideo(m)) return r2VideoMedia(c.env, m.r2_key!, c.req.header("range") ?? null, m.mime ?? "video/mp4");
   const drive = materialDrive(m);
   if (drive?.kind !== "file") throw notFound();
   return driveMedia(c.env, drive.id, c.req.header("range") ?? null);

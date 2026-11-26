@@ -75,6 +75,7 @@ interface Row {
   r2_key: string | null;
   url: string | null;
   filename: string | null;
+  mime: string | null;
   size_bytes: number | null;
   platform: string | null;
   starts_at: string | null;
@@ -94,11 +95,16 @@ export function materialDrive(m: { kind: MaterialKind; url: string | null; r2_ke
   return ref && ref.kind !== "other" ? ref : null;
 }
 
+/** A video file the owner uploaded (not a link): played in the class page from our storage. */
+export const hostedVideo = (m: { kind: MaterialKind; r2_key: string | null; mime: string | null }) => m.kind === "video" && !!m.r2_key && /^video\//.test(m.mime ?? "");
+/** Where its player reads it; ?v= is the file's own key, so a replaced file is never mixed with the old one. */
+export const materialMediaUrl = (id: number, key: string) => `/api/student/materials/${id}/media?v=${key.split("/").pop()}`;
+
 /** Everything that is switched on for a class, for a student who is enrolled in it (the caller checks that). */
 export async function materialsForStudent(env: Env, studentId: number, courseId: number): Promise<StudentMaterial[]> {
   const rows = await all<Row>(
     env.DB,
-    `SELECT m.id, m.kind, m.title_bn, m.title_en, m.note_bn, m.note_en, m.r2_key, m.url, m.filename, m.size_bytes, m.platform, m.starts_at,
+    `SELECT m.id, m.kind, m.title_bn, m.title_en, m.note_bn, m.note_en, m.r2_key, m.url, m.filename, m.mime, m.size_bytes, m.platform, m.starts_at,
             m.duration_min, m.ask_profile, g.status AS request_status
        FROM materials m
        LEFT JOIN group_requests g ON g.material_id = m.id AND g.student_id = ?
@@ -121,8 +127,9 @@ export async function materialsForStudent(env: Env, studentId: number, courseId:
     title_en: r.title_en,
     note_bn: r.note_bn,
     note_en: r.note_en,
-    delivery: r.r2_key ? "file" : playable[i] !== null ? (playable[i] ? "play" : "pending") : r.kind === "video" && r.url && externalEmbed(r.url) ? "embed" : "link",
-    media_url: playable[i] ? `/api/student/materials/${r.id}/media` : null,
+    // an uploaded video is watched in the class page (from our storage), not downloaded; other files are downloaded
+    delivery: hostedVideo(r) ? "play" : r.r2_key ? "file" : playable[i] !== null ? (playable[i] ? "play" : "pending") : r.kind === "video" && r.url && externalEmbed(r.url) ? "embed" : "link",
+    media_url: hostedVideo(r) ? materialMediaUrl(r.id, r.r2_key!) : playable[i] ? `/api/student/materials/${r.id}/media` : null,
     filename: r.r2_key ? r.filename : null,
     size_bytes: r.r2_key ? r.size_bytes : null,
     platform: r.platform,
