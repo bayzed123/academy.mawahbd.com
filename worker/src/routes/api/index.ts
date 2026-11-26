@@ -33,9 +33,11 @@ const jsonLimit = bodyLimit({
     throw new HttpError(413, "payload_too_large");
   },
 });
+// (a part of a lesson video, services/lessonVideos.ts, must be exactly its part's length, at most LESSON_VIDEO_PART_BYTES)
 const isUpload = (method: string, path: string) =>
-  method === "POST" &&
-  (path === "/api/admin/media/image" || /^\/api\/admin\/lessons\/\d+\/resources$/.test(path) || /^\/api\/checkout\/[a-z0-9]+\/proof-image$/.test(path));
+  (method === "POST" &&
+    (path === "/api/admin/media/image" || /^\/api\/admin\/lessons\/\d+\/resources$/.test(path) || /^\/api\/checkout\/[a-z0-9]+\/proof-image$/.test(path))) ||
+  (method === "PUT" && /^\/api\/admin\/video-uploads\/[^/]+\/parts\/\d+$/.test(path));
 api.use("*", (c, next) => (isUpload(c.req.method, new URL(c.req.url).pathname) ? next() : jsonLimit(c, next)));
 // payment gateway callbacks and the couriers' webhooks come from those companies' servers, not a browser: exempt from the per-IP limiter.
 // So are the two video routes: one playing video asks many times (to start, to skip around) and a phone network shows many students as

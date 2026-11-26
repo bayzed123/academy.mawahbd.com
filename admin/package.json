@@ -12,6 +12,7 @@
     "@mawah/shared": "*",
     "@tanstack/react-query": "^5.104.2",
     "chart.js": "^4.5.1",
+    "mediabunny": "1.65.2",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router": "^7.18.4"

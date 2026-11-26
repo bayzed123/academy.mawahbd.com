@@ -12,6 +12,7 @@ import { optionalUrl, textSchema } from "../../../lib/schemas";
 import { bumpContentVersion } from "../../../lib/settings";
 import { requirePerm } from "../../../middleware/auth";
 import { refreshCourseStats } from "../../../services/catalog";
+import { forgetLessonVideos } from "../../../services/lessonVideos";
 import { announceNewLesson } from "../../../services/push";
 
 /**
@@ -74,7 +75,7 @@ curriculum.get("/courses/:id/curriculum", requirePerm("courses:read"), async (c)
     all(c.env.DB, "SELECT id, title_bn, title_en, sort, drip_days FROM modules WHERE course_id = ? ORDER BY sort, id", course.id),
     all<Record<string, unknown>>(
       c.env.DB,
-      `SELECT id, module_id, title_bn, title_en, type, stream_uid, external_url, duration_sec, is_preview, sort,
+      `SELECT id, module_id, title_bn, title_en, type, stream_uid, external_url, duration_sec, is_preview, sort, video_bytes, (video_key IS NOT NULL) AS stored,
               (length(body_bn) > 0 OR length(body_en) > 0) AS has_body
        FROM lessons WHERE course_id = ? ORDER BY sort, id`,
       course.id,
@@ -224,13 +225,17 @@ curriculum.delete("/lessons/:id", requirePerm("courses:write"), async (c) => {
   const lesson = await first<{ id: number; course_id: number; title_en: string }>(c.env.DB, "SELECT id, course_id, title_en FROM lessons WHERE id = ?", id);
   if (!lesson) throw notFound();
   const files = await all<{ r2_key: string }>(c.env.DB, "SELECT r2_key FROM lesson_resources WHERE lesson_id = ?", id);
+  // its video in our storage (and any upload of one still open) goes with it
+  const videos = await forgetLessonVideos(c.env, id);
   await c.env.DB.batch([
     c.env.DB.prepare("DELETE FROM lesson_progress WHERE lesson_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM lesson_questions WHERE lesson_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM lesson_resources WHERE lesson_id = ?").bind(id),
+    c.env.DB.prepare("DELETE FROM video_uploads WHERE lesson_id = ?").bind(id),
     c.env.DB.prepare("DELETE FROM lessons WHERE id = ?").bind(id),
   ]);
-  if (files.length) c.executionCtx.waitUntil(c.env.R2.delete(files.map((f) => f.r2_key)));
+  const keys = [...files.map((f) => f.r2_key), ...videos];
+  if (keys.length) c.executionCtx.waitUntil(c.env.R2.delete(keys));
   await touched(c, lesson.course_id);
   await audit(c, { action: "lesson.deleted", entity: "lesson", entityId: id, summary: lesson.title_en });
   return ok(c);

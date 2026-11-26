@@ -4,6 +4,7 @@ import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
 import { Button, Chip, Empty, ErrorState, Icon, Kpi, PageHeader, Panel, Spinner, useConfirm, useToast } from "../components/ui";
+import { OwnStorageMover } from "../components/OwnVideo";
 
 type MoveState = "queued" | "copying" | "ready" | "failed" | "undone";
 interface DriveLesson {
@@ -83,6 +84,10 @@ export function VideoSpeed() {
   return (
     <>
       <PageHeader title={t("adm.nav.videospeed")} sub={t("adm.vs.sub")} />
+
+      {/* the free way first: the website's own storage, filled from this browser */}
+      <OwnStorageMover />
+      <h2 className="vs-stream-h">{t("adm.own.vs.streamTitle")}</h2>
 
       {!d.configured ? (
         <p className="notice warn-note" role="status">

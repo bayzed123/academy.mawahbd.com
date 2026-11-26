@@ -15,9 +15,10 @@ import { generateCertificateCode, normalizeCertificateCode } from "../lib/crypto
 import { addSeconds, all, first, nowIso, run } from "../lib/db";
 import { forbidden, HttpError, notFound, unauthorized } from "../lib/http";
 import { renderMarkdown } from "../lib/markdown";
-import { driveReadable, driveRef } from "../lib/drive";
+import { driveMedia, driveReadable, driveRef } from "../lib/drive";
 import { streamEmbedUrl } from "../lib/stream";
 import { getCurriculum, getCourseBySlug, toCard } from "./catalog";
+import { r2VideoMedia, videoVersion } from "./lessonVideos";
 
 export const CERT_PREFIX = "MWH";
 
@@ -131,6 +132,8 @@ interface LessonRow {
   type: LessonType;
   stream_uid: string | null;
   external_url: string | null;
+  /** our own copy of the video (Cloudflare R2), when the owner uploaded or moved one: it plays instead of the link */
+  video_key: string | null;
   body_bn: string;
   body_en: string;
   is_preview: number;
@@ -142,7 +145,7 @@ interface LessonRow {
 async function loadLesson(env: Env, lessonId: number): Promise<LessonRow> {
   const row = await first<LessonRow>(
     env.DB,
-    `SELECT l.id, l.course_id, l.module_id, l.title_bn, l.title_en, l.type, l.stream_uid, l.external_url, l.body_bn, l.body_en, l.is_preview,
+    `SELECT l.id, l.course_id, l.module_id, l.title_bn, l.title_en, l.type, l.stream_uid, l.external_url, l.video_key, l.body_bn, l.body_en, l.is_preview,
             m.drip_days, c.status AS course_status, c.deleted_at AS course_deleted
      FROM lessons l JOIN modules m ON m.id = l.module_id JOIN courses c ON c.id = l.course_id WHERE l.id = ?`,
     lessonId,
@@ -189,7 +192,11 @@ export async function lessonContent(env: Env, lessonId: number, studentId: numbe
 
   let video: LessonContentDTO["video"] = null;
   let external: LessonContentDTO["external"] = null;
-  if (lesson.type === "video" && lesson.stream_uid) {
+  if (lesson.video_key && (lesson.type === "video" || lesson.type === "external")) {
+    // our own copy (services/lessonVideos.ts): played by the website's and the app's own player, from the lesson's media address — the same
+    // one a Drive video uses, so the Android app plays it as it is; ?v= changes with each new copy, so a player never mixes two copies
+    external = { url: "", embed_url: null, media_url: `/api/${enrolled ? "student" : "preview"}/lessons/${lesson.id}/media?v=${videoVersion(lesson.video_key)}`, pending: false };
+  } else if (lesson.type === "video" && lesson.stream_uid) {
     const embed = await streamEmbedUrl(env, lesson.stream_uid);
     video = { embed_url: embed ?? "" };
   } else if (lesson.type === "external" && lesson.external_url) {
@@ -225,15 +232,22 @@ export async function lessonContent(env: Env, lessonId: number, studentId: numbe
 }
 
 /**
- * Which Drive file this lesson plays, for a person who may watch the lesson (enrolled and past any drip date, or a free preview). The file is the one
- * the owner put in the lesson's link — never anything the student sends. 404 when the lesson is not a Drive video.
+ * Where this lesson's video comes from, for a person who may watch the lesson (enrolled and past any drip date, or a free preview): our own
+ * copy in R2, else the Drive file the owner put in the lesson's link — never anything the student sends. 404 when the lesson has neither.
  */
-export async function lessonDriveFile(env: Env, lessonId: number, studentId: number | null): Promise<string> {
+export async function lessonMediaSource(env: Env, lessonId: number, studentId: number | null): Promise<{ r2: string } | { drive: string }> {
   const lesson = await loadLesson(env, lessonId);
   await authoriseLesson(env, lesson, studentId);
+  if (lesson.video_key && (lesson.type === "video" || lesson.type === "external")) return { r2: lesson.video_key };
   const ref = lesson.type === "external" && lesson.external_url ? driveRef(lesson.external_url) : null;
   if (ref?.kind !== "file") throw notFound();
-  return ref.id;
+  return { drive: ref.id };
+}
+
+/** The video itself, for the player: from our storage or handed on from Google Drive, the whole file or the part asked for. */
+export async function lessonMedia(env: Env, lessonId: number, studentId: number | null, range: string | null): Promise<Response> {
+  const src = await lessonMediaSource(env, lessonId, studentId);
+  return "r2" in src ? r2VideoMedia(env, src.r2, range) : driveMedia(env, src.drive, range);
 }
 
 /** Authorise + locate a downloadable lesson file. Enrolled students only. */

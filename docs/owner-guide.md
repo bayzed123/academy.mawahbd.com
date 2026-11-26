@@ -81,7 +81,7 @@
 **জেনে রাখুন (সৎ কথা):**
 * **ফরম্যাট:** ড্রাইভ ফাইলটি যেমন আপলোড হয়েছিল ঠিক তেমনই দেয় (নিজের প্লেয়ারের মতো রূপান্তর করে না)। **MP4 (H.264) সব ফোনে চলে**; MOV, MKV, AVI কিছু ফোনে নাও চলতে পারে — বক্স সেটি আগেই জানিয়ে দেয়।
 * **ডাউনলোড বন্ধ করা ভিডিও:** ভিডিওতে “Disable options to download, print, and copy for commenters and viewers” চালু থাকলে গুগল সেটি Viewer-কে দেয় না। অপশনটি বন্ধ করুন, বা ঠিকানাটিকে **Editor** দিন (তখন ওয়েবসাইট শুধু পড়ে — পরিবর্তন করে না)।
-* **গুগলের সীমা:** একটি ফাইল দিনে নির্দিষ্ট পরিমাণই ডাউনলোড হতে দেয়; বহু শিক্ষার্থী একই ভিডিও একসাথে দেখলে কিছুক্ষণ “চালানো যাচ্ছে না” আসতে পারে (নিজে থেকে ঠিক হয়)। ছোট একাডেমির জন্য ঠিক আছে; **একসাথে অনেক শিক্ষার্থী হলে ভিডিও Cloudflare Stream-এ রাখুন** (লেসনের ধরন “ভিডিও”)।
+* **গুগলের সীমা:** একটি ফাইল দিনে নির্দিষ্ট পরিমাণই ডাউনলোড হতে দেয়; বহু শিক্ষার্থী একই ভিডিও একসাথে দেখলে কিছুক্ষণ “চালানো যাচ্ছে না” আসতে পারে (নিজে থেকে ঠিক হয়)। ছোট একাডেমির জন্য ঠিক আছে; **একসাথে অনেক শিক্ষার্থী হলে ভিডিও আমাদের নিজের স্টোরেজে রাখুন** (অংশ ৪০ — ফ্রি, লেসন এডিটরে “ভিডিও আপলোড করুন”)।
 * **ডেটা:** ভিডিও ফোনের ইন্টারনেট দিয়েই আসে; বড় ফাইলে ডেটা বেশি লাগে। ছোট করে (720p, MP4) রাখলে ভালো।
 * **কপি ঠেকানো:** স্ক্রিন রেকর্ড বা বিশেষ টুলে ভিডিও নামানো যায় — অন্য সব ভিডিও প্ল্যাটফর্মের মতোই (ডিআরএম নেই)। কেনা ছাড়া কেউ ভিডিও পায় না — এটুকু নিশ্চিত।
 * শিক্ষার্থীকে কখনো ড্রাইভে পাঠানো হয় না (লেসন হোক বা ম্যাটেরিয়াল), ড্রাইভের ঠিকানাও তাঁর কাছে যায় না। ওয়েবসাইট ভিডিওটি পড়তে না পারলে শিক্ষার্থী দেখেন “ভিডিওটি প্রস্তুত করা হচ্ছে” — আর আপনি লেসনের বক্সে কারণ দেখেন (“শেষবার…”)। তাই শেয়ার করার পর **অবশ্যই “অ্যাক্সেস পরীক্ষা করুন”** চাপুন।
@@ -255,7 +255,7 @@
 
 **মেনুর “ইকুইপমেন্ট শপ”:** মেনু, মোবাইল মেনু, ফুটার, ক্লাসের তালিকা, হোম পাতা ও স্টুডেন্ট অ্যাপে **ইকুইপমেন্ট শপ** দেখা যায় — এটি এই ওয়েবসাইটেরই নিজের শপ (অধ্যায় ২৬), একই ট্যাবে খোলে। শপ খোলার আগে এতে একটি **“শীঘ্রই আসছে”** পাতা দেখায় (আপনার হোয়াটসঅ্যাপ বোতাম ও ক্লাসের লিংকসহ)। *সেটিংস → যোগাযোগ, ঘোষণা ও শপ → মেনুতে শপ* অংশে নাম (বাংলা ও English) বদলানো যায় ও এক ক্লিকে বন্ধ করা যায়। চাইলে **অন্য একটি শপের ঠিকানা** দিতে পারেন — তখন নিজের শপ না খোলা পর্যন্ত লিংকটি সেই শপ **নতুন ট্যাবে** খোলে; নিজের শপ খুললে সবসময় নিজের শপই দেখায়।
 
-## ১৭. ব্যানার — হোম পেজের স্লাইডার, শপের স্লাইডার ও অফার পপ-আপ
+## ১৭. ব্যানার — হোম পেজের স্লাইডার, শপের স্লাইডার, অফার পপ-আপ ও নিজেদের বিজ্ঞাপন
 
 বাঁ মেনুর **ব্যানার** খুলে **+ যোগ করুন** চাপুন। যা বদলাবেন সাথে সাথে ওয়েবসাইটে লাইভ হয়।
 
@@ -269,6 +269,10 @@
 * **সময়সূচি:** প্রথম ও শেষ দিন (বাংলাদেশ সময়; দুই দিনই ধরা হয়)। ফাঁকা রাখলে এখনই চালু এবং আপনি বন্ধ না করা পর্যন্ত চলবে।
 * **পপ-আপের সেটিং:** কত সেকেন্ড পরে আসবে (৫–১০ ভালো), কেউ বন্ধ করলে কত দিন পরে আবার জিজ্ঞেস করবে (০ = প্রতি ভিজিটে একবার), এবং কোথায় (শুধু হোম পেজে / সব পাবলিক পেজে)। কেউ বন্ধ করলে আর বিরক্ত করা হয় না; আপনি পপ-আপ বদলালে নতুনটি আবার সবাইকে দেখানো হয়।
 * **চালু / বন্ধ:** তালিকার সুইচে এক ক্লিকে। মুছলে **ট্র্যাশ**-এ যায় — সেখান থেকে ফিরিয়ে আনা যায়।
+* **ক্লাস পেজ ও ব্লগে নিজেদের বিজ্ঞাপন** (*কোথায় দেখাবে → ক্লাস পেজ ও ব্লগে বিজ্ঞাপন*): আপনার নিজের ছবির বিজ্ঞাপন — অন্য কোনো কোম্পানির নয় — ক্লিক করলে আপনার একটা পেজ খোলে (ক্লাস, অফার, ফ্রি ক্লাস, শপ)। কোথায় দেখাবে টিক দিন: **প্রতিটি ক্লাস পেজে** (“ক্লাস সম্পর্কে”-এর নিচে), **প্রতিটি ব্লগ পোস্টে** (বড় পোস্টের মাঝখানে, ছোট পোস্টের শেষে), **ব্লগের তালিকায়** আর **ক্লাসের তালিকায়** (সব ক্লাস, ফ্রি ক্লাস)। ব্যস — ওই ধরনের প্রতিটি পেজে নিজে থেকেই দেখাবে, পরে যোগ করা ক্লাস ও পোস্টেও; আলাদা করে কিছু যোগ করতে হবে না।
+  * **মাপ:** চওড়া ছবি **১২০০ × ৩০০ পিক্সেল** (৪:১, ওয়েব ব্যানারের মতো) কম্পিউটার ও ট্যাবের জন্য, আর — দিলে ভালো — ফোনের ছবি **৮০০ × ৪০০ পিক্সেল** (২:১) বড় লেখায়। দুটোই পুরোটা দেখায়, কাটা পড়ে না। লেখা, অফার আর “বোতাম” ছবির ভেতরেই দিন: পুরো ছবিটাই লিংক।
+  * **কয়েকটি বিজ্ঞাপন:** প্রতিটি অফারের জন্য একটা বানান; একই পেজের জন্য কয়েকটি চালু থাকলে প্রতিবার ভিজিটে আরেকটি দেখায়, আর বড় ব্লগ পোস্টে দুটো আলাদা (একটা মাঝখানে, একটা শেষে)। যে পেজ খোলে সেই পেজে বিজ্ঞাপনটি দেখায় না। সময়সূচি ও চালু/বন্ধ সুইচ অন্য ব্যানারের মতোই।
+  * **কেমন চলছে:** *অ্যাডমিন → অ্যানালিটিক্স → ব্যানার ও অফার*-এ প্রতিটি বিজ্ঞাপন কতবার দেখা ও ক্লিক হয়েছে, “ছবিতে কী আছে”-তে যা লিখেছেন সেই নামে (না লিখলে “ad-12”)।
 * **সবার জন্য ব্যবহারযোগ্য:** কিবোর্ড ও স্ক্রিন-রিডারে চলে; যাঁরা ফোনে “কম নড়াচড়া” চেয়েছেন তাঁদের স্লাইডার নিজে সরে না; থামানোর বোতাম আছে।
 
 ## ১৮. ক্লাস চালু/বন্ধ করা, এবং ক্লাসের “দেখার” ও “সম্পাদনার” পাতা
@@ -701,6 +705,19 @@
 * **নতুন ভিডিও:** লেসন এডিটরে সরাসরি Stream-এ আপলোড করুন, অথবা Drive লিংক দিয়ে পরে এখান থেকে সরান। Drive-এ রাখলে HandBrake-এর "Fast 720p30" প্রিসেট আর "Web Optimized" টিক দিয়ে ছোট করে নিলে Drive থেকেও অনেক ভালো চলে।
 
 
+## ৪০. আমাদের নিজের ভিডিও স্টোরেজ — ফ্রি, আর না আটকে চলে
+
+Google Drive একটা ফাইল দিনে নির্দিষ্ট পরিমাণের বেশি চালাতে দেয় না, আর ফোনের কাঁচা ভিডিও অনেক বড় (প্রায় ১ জিবি)। তাই এখন থেকে লেসনের ভিডিও ওয়েবসাইটের **নিজের স্টোরেজে (Cloudflare R2)** রাখুন:
+
+* **নতুন ভিডিও:** *ক্লাস → সম্পাদনা → কারিকুলাম → লেসন খুলুন* → **আমাদের ভিডিও স্টোরেজ → ভিডিও আপলোড করুন**। ব্রাউজার আগে ভিডিওটি **720p**-এ ছোট করে (মিনিটে প্রায় ১৫ এমবি — ১ জিবির রেকর্ডিং হয় প্রায় ১৫০ এমবি, দেখতে প্রায় একই), তারপর ছোট ছোট অংশে আপলোড করে। নেট কেটে গেলে নিজে থেকেই আবার চলে; শেষ না হওয়া পর্যন্ত পাতাটি খোলা রাখুন।
+* **পুরনো Drive লেসন:** *অ্যাডমিন → ভিডিও স্পিড* → **সব লেসন আমাদের স্টোরেজে সরান** (বা প্রতিটির পাশে **সরান**)। প্রতিটি ভিডিও ওয়েবসাইটের মাধ্যমে পড়ে, ছোট করে, রেখে দেয় — একটার পর একটা, পাতা খোলা থাকা পর্যন্ত। ১০ মিনিটের একটা লেসনে কয়েক মিনিট লাগে। থামালে বা কোনোটা না হলে আবার চাপলে বাকিগুলো থেকে শুরু করে।
+* **কম্পিউটারে Chrome বা Edge** ব্যবহার করুন — ভিডিও ছোট করার কাজটা কম্পিউটারের নিজের ভিডিও চিপ দিয়ে হয়। (ফোনের ব্রাউজারে ছোট করা না গেলে পাতায় সেটা লেখা থাকে।)
+* শিক্ষার্থীরা ওয়েবসাইট ও অ্যান্ড্রয়েড অ্যাপ দুটোতেই একই ঠিকানা থেকে ভিডিও পায় — অ্যাপ আপডেট করতে হয় না। শুধু ক্লাসের শিক্ষার্থীরাই দেখতে পারে; লিংক কপি করে শেয়ার করা যায় না।
+* লেসনের Drive/YouTube লিংক থেকে যায়: **সরিয়ে দিন** চাপলে লেসন আবার লিংক থেকে চলে। লেসন মুছলে তার ভিডিওও মুছে যায়।
+* **খরচ:** প্রথম **১০ জিবি ফ্রি**, তারপর প্রতি জিবি মাসে প্রায় **২ টাকা**; শিক্ষার্থীরা যত বেশিই দেখুক, দেখার কোনো খরচ নেই। (১০০টা লেসন ≈ ১৫ জিবি ≈ মাসে ১০ টাকা।)
+* **রেকর্ডের টিপস:** ফোনে 4K বা 60fps না, **1080p 30fps**-এ রেকর্ড করুন — শুরু থেকেই ফাইল ৩–৪ গুণ ছোট হয়।
+
+
 # English
 
 > Admin address: **https://mawahacademy.com/admin/** (the site itself is **https://mawahacademy.com** — opening it with `www.` brings you here too; if you were signed in on the old `workers.dev` address, sign in once more on the new one) — everything is reachable from the left-hand menu. The **বাংলা / English** button at the top right switches the language. It works on phones and tablets too.
@@ -773,7 +790,7 @@ Keep **the original video and recipe files** safe on your side (Google Drive or 
 **Good to know (the honest part):**
 * **Format:** Drive hands over the file exactly as uploaded (it does not convert it the way its own player does). **MP4 (H.264) plays on every phone**; MOV, MKV or AVI may not — the box warns you.
 * **Videos with downloading switched off:** if the video has “Disable options to download, print, and copy for commenters and viewers” on, Google will not give it to a Viewer. Switch that off, or share with the address as **Editor** (the website only reads, it never changes anything).
-* **Google’s limits:** Google allows only so much downloading of one file per day; if many students watch the same video at once you may see “could not be played right now” for a while (it clears by itself). Fine for a small academy; **for many students at once put the video on Cloudflare Stream** (lesson type “Video”).
+* **Google’s limits:** Google allows only so much downloading of one file per day; if many students watch the same video at once you may see “could not be played right now” for a while (it clears by itself). Fine for a small academy; **for many students at once keep the video in our own storage** (section 40 — free: “Upload video” in the lesson editor).
 * **Data:** the video travels over the student’s mobile data; big files use a lot. Smaller (720p, MP4) is kinder.
 * **Copying:** like every video site without DRM, a determined person can screen-record or save a video. What is certain: nobody gets the video without owning the class.
 * A student is never sent to Drive (from a lesson or from Materials), and your Drive address never reaches them. If the website cannot read the video, the student sees “This class video is being prepared” — and you see why in the lesson’s box (“Last time …”). So **always press “Check access”** after sharing.
@@ -1431,3 +1448,15 @@ class that was taken down, is not listed.
 * If something goes wrong the reason is written beside the lesson (for example, the Drive file is not shared). **Switch back to Drive** plays it from Drive again; the Drive link always stays on the lesson.
 * **Cost (Cloudflare's price):** **$5** a month for each 1,000 minutes of video stored, and **$1** for each 1,000 minutes students watch. Storage is bought first: Cloudflare dashboard → **Stream**. Without storage the page says so, and once it is bought the waiting lessons move by themselves.
 * **New videos:** upload straight to Stream in the lesson editor, or give a Drive link and move it here later. If you keep a video in Drive, making it smaller with HandBrake's "Fast 720p30" preset and "Web Optimized" ticked helps a lot even from Drive.
+
+## 40. Our own video storage — free, and plays without stopping
+
+Google Drive lets one file be played only so much a day, and a phone's raw video is big (about 1 GB). So keep lesson videos in the **website's own storage (Cloudflare R2)** from now on:
+
+* **New videos:** *Classes → Edit → Curriculum → open the lesson* → **Our video storage → Upload video**. The browser first makes the video **720p** (about 15 MB a minute — a 1 GB recording becomes about 150 MB and looks nearly the same), then uploads it in small parts. If the internet drops it carries on by itself; keep the page open until it finishes.
+* **Old Drive lessons:** *Admin → Video speed* → **Move all lessons to our storage** (or **Move** beside one). Each video is read through the website, made smaller and stored — one after another, while the page is open. A 10-minute lesson takes a few minutes. Stopped, or one failed? Press it again: it takes up the ones not moved yet.
+* Use **Chrome or Edge on a computer** — the shrinking is done by the computer's own video chip. (A browser that cannot do it says so.)
+* Students get the video from the same address on the website and in the Android app — no app update needed. Only students of the class can watch it; its link cannot be shared.
+* The lesson keeps its Drive/YouTube link: **Take it off** plays the link again. Deleting a lesson deletes its video.
+* **Cost:** the first **10 GB are free**, then about **2 taka a GB a month**; however much students watch, watching costs nothing. (100 lessons ≈ 15 GB ≈ 10 taka a month.)
+* **Recording tip:** record in **1080p at 30 fps**, not 4K or 60 fps — the file is 3–4 times smaller from the start.

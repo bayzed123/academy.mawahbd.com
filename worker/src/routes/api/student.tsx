@@ -19,7 +19,7 @@ import {
   certificatesFor,
   courseForStudent,
   lessonContent,
-  lessonDriveFile,
+  lessonMedia,
   myCourses,
   resourceForDownload,
   setLessonComplete,
@@ -45,7 +45,7 @@ studentRoutes.get("/lessons/:id", async (c) => ok(c, { lesson: await lessonConte
  * phone network shows many students as one address, so it does not share the 120-a-minute of the rest of the API.
  */
 studentRoutes.get("/lessons/:id/media", rateLimit("RL_API", (c) => `media:${c.get("student")?.id}`), async (c) =>
-  driveMedia(c.env, await lessonDriveFile(c.env, intParam(c, "id"), c.get("student")!.id), c.req.header("range") ?? null),
+  lessonMedia(c.env, intParam(c, "id"), c.get("student")!.id, c.req.header("range") ?? null),
 );
 
 studentRoutes.post("/lessons/:id/complete", async (c) => {
