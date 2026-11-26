@@ -32,9 +32,11 @@ export function BannerPreview({ values }: { values: Values }) {
 
   // The frame is drawn at the width of a real screen — a computer's, a phone's — and shrunk to fit the drawer, so the page's own rules for
   // each width apply (a drawer is narrower than a computer screen). A slide is 8:3 on a computer and 5:4 on a phone; the pop-up's card is as tall as its words.
+  // an ad is a picture in a class page's reading column: 4:1 there, 2:1 on a phone
   const popup = values.placement === "popup";
-  const frameW = popup ? 480 : device === "phone" ? 360 : 1100;
-  const frameH = popup ? 560 : device === "phone" ? Math.round((360 * 4) / 5) + 24 : Math.round((1100 * 3) / 8) + 24;
+  const ad = values.placement === "ad";
+  const frameW = popup ? 480 : ad ? (device === "phone" ? 360 : 800) : device === "phone" ? 360 : 1100;
+  const frameH = popup ? 560 : ad ? (device === "phone" ? 360 / 2 + 24 : 800 / 4 + 24) : device === "phone" ? Math.round((360 * 4) / 5) + 24 : Math.round((1100 * 3) / 8) + 24;
   const scale = Math.min(1, room / frameW);
 
   return (

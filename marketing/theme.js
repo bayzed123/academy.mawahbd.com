@@ -2,6 +2,8 @@
 (function () {
   "use strict";
   var KEY = "mawah_theme";
+  // the "Install the app" strip the visitor closed stays away for a week (views/appPromo.tsx AppStrip; site.js remembers the close)
+  try { if (Date.now() - Number(window.localStorage.getItem("mawah_app_closed") || 0) < 7 * 864e5) document.documentElement.classList.add("app-closed"); } catch (e) { /* private mode */ }
   var root = document.documentElement;
   function readStored() {
     try {

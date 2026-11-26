@@ -62,16 +62,20 @@ function fakeStream() {
     videos,
     /** the next upload is refused with this error name (QuotaReachedError …) */
     refuse: null as string | null,
+    /** …and these words */
+    refuseWith: "Stream said no",
+    /** answer an upload the REST way (`uid`, not `id`) */
+    restShape: false,
     uploads: () => [...videos.values()],
     async upload(url: string, params?: unknown) {
       if (s.refuse) {
-        const err = new Error("Stream said no");
+        const err = new Error(s.refuseWith);
         err.name = s.refuse;
         throw err;
       }
       const id = (++n).toString(16).padStart(32, "c");
       videos.set(id, { url, ready: false, state: "downloading", duration: 0, deleted: false, params });
-      return { id };
+      return s.restShape ? { uid: id } : { id };
     },
     video(id: string) {
       return {
@@ -226,6 +230,41 @@ describe("Video speed", () => {
       const later = await json<{ blocked: unknown; lessons: Row[] }>(await client.get("/api/admin/video-moves"));
       expect(later.blocked).toBeNull();
       expect(rowsOf(later, cls.ids).map((r) => r!.move!.state)).toEqual(["copying", "copying"]);
+    });
+  });
+
+  it("an account whose Stream was never bought pauses the queue with that reason, though Stream only says so in words; other refusals keep Cloudflare's own words", async () => {
+    const stream = fakeStream();
+    googleIsStoodIn();
+    await withStream(stream, async () => {
+      const cls = await makeClass([viewUrl(fileId("video_ok", 501)), viewUrl(fileId("video_ok", 502)), viewUrl(fileId("video_ok", 503))]);
+      const { client } = await loginStaff("super_admin");
+      // a plain error, no special name: the words say the account has no Stream plan
+      stream.refuse = "Error";
+      stream.refuseWith = "Stream is not available: this account does not have an active Stream subscription";
+      const paused = await json<{ blocked: { problem: string; detail: string } | null; lessons: Row[] }>(await client.post("/api/admin/video-moves", { lessons: [cls.ids[0]] }));
+      expect(paused.blocked).toMatchObject({ problem: "stream_quota" });
+      expect(paused.blocked!.detail).toContain("does not have an active Stream subscription");
+      expect(rowsOf(paused, [cls.ids[0]])[0]!.move!.state).toBe("queued");
+      await env.KV.delete("vmoves:blocked");
+
+      // anything else fails that lesson, with Cloudflare's words kept (anything key-like cut out)
+      stream.refuse = "InternalError";
+      stream.refuseWith = `Something broke while fetching (request ${"a1b2c3d4".repeat(6)})`;
+      const failed = rowsOf(await json(await client.post("/api/admin/video-moves", { lessons: [cls.ids[1]] })), [cls.ids[1]])[0] as Row & { move: { detail: string } };
+      expect(failed.move).toMatchObject({ state: "failed", problem: "stream_error" });
+      expect(failed.move.detail).toBe("InternalError: Something broke while fetching (request …)");
+
+      // Stream answering the REST way (`uid`) is understood too
+      stream.refuse = null;
+      stream.restShape = true;
+      await env.KV.delete("vmoves:blocked");
+      const started = rowsOf(await json(await client.post("/api/admin/video-moves", { lessons: [cls.ids[2]] })), [cls.ids[2]])[0]!;
+      expect(started.move!.state).toBe("copying");
+      const uid = [...stream.videos.keys()].at(-1)!;
+      stream.ready(uid, 60);
+      expect(rowsOf(await json(await client.get("/api/admin/video-moves")), [cls.ids[2]])[0]).toMatchObject({ on_stream: true });
+      expect((await lesson(cls.ids[2]))!.stream_uid).toBe(uid);
     });
   });
 

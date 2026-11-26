@@ -1,15 +1,17 @@
 import { raw } from "hono/html";
 import { formatDate, formatMoney, loc, waNumber, type CourseCardDTO, type OrderDTO } from "@mawah/shared";
-import { renderMarkdown, stripMarkdown } from "../../lib/markdown";
+import { markdownBlocks, renderMarkdown, stripMarkdown } from "../../lib/markdown";
+import type { BannerDTO } from "../../services/banners";
 import type { InstructorDTO, InstructorReview } from "../../services/catalog";
 import type { CertRow } from "../../services/learning";
 import { ACCOUNT_DELETION_TEXT, PRIVACY_APP_TEXT, type PageKind } from "../../content/pageTexts";
+import { AdSlot, adBreak } from "../ads";
 import type { PageCtx } from "../ctx";
 import { Layout } from "../layout";
 import { CertificateArt, type CertArtData } from "../certificate";
 import { ReviewList } from "./course";
 import { articleLd, breadcrumbLd, personLd } from "../seo";
-import { CourseCard, Crumbs, Flash, Icon, InstructorBadges, LogoImg, SectionHead } from "../ui";
+import { CourseCard, Crumbs, Flash, Icon, InstructorBadges, LogoImg, SectionHead, anyOffer } from "../ui";
 
 /* ======================================================================================== blog */
 export interface PostRow {
@@ -29,10 +31,10 @@ export interface PostRow {
   updated_at: string;
 }
 
-export function BlogListPage({ ctx, posts }: { ctx: PageCtx; posts: PostRow[] }) {
+export function BlogListPage({ ctx, posts, ads = [] }: { ctx: PageCtx; posts: PostRow[]; ads?: BannerDTO[] }) {
   const { t, lang } = ctx;
   return (
-    <Layout ctx={ctx} title={t("meta.blog.title")} description={t("meta.blog.desc")} noindex={posts.length === 0}>
+    <Layout ctx={ctx} title={t("meta.blog.title")} description={t("meta.blog.desc")} noindex={posts.length === 0} ads={ads.length > 0 && posts.length > 0}>
       <section class="page-hero">
         <div class="wrap">
           <Crumbs items={[{ label: t("nav.home"), href: ctx.href("/") }, { label: t("blog.title") }]} />
@@ -70,14 +72,20 @@ export function BlogListPage({ ctx, posts }: { ctx: PageCtx; posts: PostRow[] })
               ))}
             </div>
           )}
+          {posts.length > 0 && <AdSlot ctx={ctx} ads={ads} spot="blog_list" />}
         </div>
       </section>
     </Layout>
   );
 }
 
-export function BlogPostPage({ ctx, post }: { ctx: PageCtx; post: PostRow }) {
+export function BlogPostPage({ ctx, post, ads = [] }: { ctx: PageCtx; post: PostRow; ads?: BannerDTO[] }) {
   const { t, lang } = ctx;
+  // the academy's ads come into every post by themselves: one about a third of the way into a long post (and, when there is another
+  // ad, a second one at its end), or one at the end of a short post
+  const blocks = markdownBlocks(loc(post, "body", lang));
+  const at = ads.length > 0 ? adBreak(blocks) : -1;
+  const endSlot = at < 0 ? 0 : ads.length > 1 ? 1 : -1;
   const title = loc(post, "title", lang);
   const description = loc(post, "seo_desc", lang) || loc(post, "excerpt", lang) || stripMarkdown(loc(post, "body", lang), 155);
   return (
@@ -86,6 +94,7 @@ export function BlogPostPage({ ctx, post }: { ctx: PageCtx; post: PostRow }) {
       title={loc(post, "seo_title", lang) || `${title} — ${t("brand.name")}`}
       description={description}
       ogType="article"
+      ads={ads.length > 0}
       image={post.cover_key ? ctx.abs(`/media/${post.cover_key}`) : undefined}
       jsonLd={[
         articleLd(ctx, { title, description, slug: post.slug, published_at: post.published_at, updated_at: post.updated_at, image: post.cover_key ? `/media/${post.cover_key}` : undefined }),
@@ -106,7 +115,16 @@ export function BlogPostPage({ ctx, post }: { ctx: PageCtx; post: PostRow }) {
       <article class="section tight">
         <div class="wrap">
           {post.cover_key && <img class="detail-banner" src={`/media/${post.cover_key}`} alt="" width="1200" height="630" decoding="async" />}
-          <div class="prose">{raw(renderMarkdown(loc(post, "body", lang)))}</div>
+          {at < 0 ? (
+            <div class="prose">{raw(blocks.join("\n"))}</div>
+          ) : (
+            <>
+              <div class="prose">{raw(blocks.slice(0, at).join("\n"))}</div>
+              <AdSlot ctx={ctx} ads={ads} spot="blog" />
+              <div class="prose">{raw(blocks.slice(at).join("\n"))}</div>
+            </>
+          )}
+          {endSlot >= 0 && <AdSlot ctx={ctx} ads={ads} spot="blog" slot={endSlot} />}
           <p>
             <a class="btn btn-outline" href={ctx.href("/blog")}>
               {t("blog.back")}
@@ -125,6 +143,7 @@ export function InstructorPage({ ctx, instructor, courses, reviews }: { ctx: Pag
   return (
     <Layout
       ctx={ctx}
+      offer={anyOffer(courses)}
       title={`${name} — ${t("brand.name")}`}
       description={stripMarkdown(loc(instructor, "bio", lang), 155) || loc(instructor, "headline", lang)}
       jsonLd={[personLd(ctx, instructor)]}

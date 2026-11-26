@@ -42,7 +42,8 @@ describe("the night / day switch on the site", () => {
     expect(THEME_SRC).toContain("var initial = readStored() || systemTheme();");
     expect(THEME_SRC).toContain('window.matchMedia("(prefers-color-scheme: light)")');
     // reading and writing the choice never throws (private windows, blocked storage)
-    expect(THEME_SRC.match(/try \{/g)?.length).toBe(2);
+    // (a third guards reading the "Install the app" strip's closed flag, views/appPromo.tsx)
+    expect(THEME_SRC.match(/try \{/g)?.length).toBe(3);
     expect(THEME_SRC).toContain('root.setAttribute("data-theme", next);');
     expect(THEME_SRC).toContain('next === "light" ? "#fbf7ee" : "#000000"');
     expect(THEME_SRC).toContain('if (css && next === "light") css.media = "all";');

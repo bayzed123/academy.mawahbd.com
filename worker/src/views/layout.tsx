@@ -2,10 +2,10 @@ import { raw } from "hono/html";
 import { loc, readSslLogo, SSL_BANNER, THEME_ICON, waNumber } from "@mawah/shared";
 import { turnstileEnabled } from "../lib/turnstile";
 import { isTracking, NO_TRACKING } from "../lib/tracking";
-import { ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, FONTS_CSS, GALLERY_JS, LANDING_CSS, LIST_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_FONTS_BN_CSS, SITE_FONTS_EN_CSS, SITE_JS, THEME_CSS, THEME_JS, VIDEO_CSS } from "../generated/assets";
+import { AD_CSS, ANALYTICS_JS, BANNERS_JS, CERT_JS, COURSE_CSS, CSS, DOC_CSS, FONTS_CSS, GALLERY_JS, LANDING_CSS, LIST_CSS, OFFER_CSS, OG_IMAGE, SHOP_CSS, SHOP_JS, SITE_FONTS_BN_CSS, SITE_FONTS_EN_CSS, SITE_JS, THEME_CSS, THEME_JS, VIDEO_CSS } from "../generated/assets";
 import { OfferPopup } from "./banners";
 import { localizedPath, type PageCtx } from "./ctx";
-import { FooterApp } from "./appPromo";
+import { AppStrip, FooterApp, MenuApp } from "./appPromo";
 import { DEVELOPER } from "./footer-data";
 import { messengerOf, TopBar, topBar } from "./topbar";
 import { Brand, Icon, jsonLd, shopOf } from "./ui";
@@ -32,6 +32,10 @@ export interface LayoutProps {
   landing?: boolean;
   /** the class page: send its own CSS (marketing/course.css) */
   course?: boolean;
+  /** a page that shows a class on offer: send the offer's CSS (marketing/offer.css) */
+  offer?: boolean;
+  /** a page that shows one of the academy's own ads (views/ads.tsx): send their CSS (marketing/ad.css) */
+  ads?: boolean;
   /** a page with a list to search, filter and page through (the classes, the Free classes page, the shop's lists): marketing/list.css */
   list?: boolean;
   /** a video shown as a picture to play (the home page's videos, a class's demo): send its CSS (marketing/video.css) */
@@ -246,6 +250,8 @@ export function Layout(props: LayoutProps) {
         {props.videos && <style dangerouslySetInnerHTML={{ __html: VIDEO_CSS }} />}
         {props.course && <style dangerouslySetInnerHTML={{ __html: COURSE_CSS }} />}
         {props.list && <style dangerouslySetInnerHTML={{ __html: LIST_CSS }} />}
+        {props.offer && <style dangerouslySetInnerHTML={{ __html: OFFER_CSS }} />}
+        {props.ads && <style dangerouslySetInnerHTML={{ __html: AD_CSS }} />}
         {props.doc && <style dangerouslySetInnerHTML={{ __html: DOC_CSS }} />}
         {/* the visitor's night or day look, set before anything is drawn (marketing/theme.js); a certificate or an invoice keeps its own paper.
             The day look's rules (shared/styles/theme.css) are a cached file of their own rather than part of every page: they hold up the page
@@ -263,6 +269,7 @@ export function Layout(props: LayoutProps) {
               {t("nav.skip")}
             </a>
             {bar && !counting && <TopBar ctx={ctx} bar={bar} />}
+            {!bar && <AppStrip ctx={ctx} />}
             <div class="top">
               {bar && counting && <TopBar ctx={ctx} bar={bar} />}
               <header class="site-header">
@@ -345,6 +352,7 @@ export function Layout(props: LayoutProps) {
                           <Icon name="award" />
                           {t("nav.verify")}
                         </a>
+                        <MenuApp ctx={ctx} />
                         <a class="menu-login" data-guest href="/app/login">
                           <Icon name="user" />
                           {t("btn.login")}

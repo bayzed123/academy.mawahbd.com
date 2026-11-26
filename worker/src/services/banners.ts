@@ -1,4 +1,4 @@
-import { toDhaka, type BannerFocus, type BannerLayout, type BannerPlacement, type BannerTheme } from "@mawah/shared";
+import { toDhaka, type AdSpot, type BannerFocus, type BannerLayout, type BannerPlacement, type BannerTheme } from "@mawah/shared";
 import type { Env } from "../env";
 import { all } from "../lib/db";
 import { contentVersion } from "../lib/settings";
@@ -29,12 +29,14 @@ export interface BannerDTO {
   focus: BannerFocus | null;
   kicker_bn: string;
   kicker_en: string;
+  /** an ad's pages (a comma list of AdSpot: "course,blog"); empty for the other placements */
+  ad_spots: string;
   /** changes whenever the owner edits the banner: an edited pop-up is shown again to people who closed the old one */
   updated_at: string;
 }
 
 const COLS =
-  "id, placement, title_bn, title_en, text_bn, text_en, image_key, mobile_image_key, alt_bn, alt_en, button_bn, button_en, link_url, new_tab, popup_delay_sec, popup_repeat_days, popup_pages, layout, theme, icon, focus, kicker_bn, kicker_en, updated_at";
+  "id, placement, title_bn, title_en, text_bn, text_en, image_key, mobile_image_key, alt_bn, alt_en, button_bn, button_en, link_url, new_tab, popup_delay_sec, popup_repeat_days, popup_pages, layout, theme, icon, focus, kicker_bn, kicker_en, ad_spots, updated_at";
 
 /** Today in Bangladesh as "YYYY-MM-DD": the day banners start and end on. */
 export const dhakaToday = (now: Date = new Date()) => toDhaka(now).toISOString().slice(0, 10);
@@ -50,6 +52,26 @@ export async function liveBanners(env: Env, placement: BannerPlacement, limit: n
     placement,
     today,
     today,
+    limit,
+  );
+}
+
+/**
+ * The ads of one kind of page (Admin → Banners → "Ad on the pages people read"), in the owner's order: switched on, inside their dates,
+ * with a picture and a place to go, and ticked for this kind of page. The page shows one at a time (views/ads.tsx), a different one for
+ * each visit when there are several.
+ */
+export async function adsFor(env: Env, spot: AdSpot, limit = 6): Promise<BannerDTO[]> {
+  const today = dhakaToday();
+  return all<BannerDTO>(
+    env.DB,
+    `SELECT ${COLS} FROM banners
+     WHERE placement = 'ad' AND active = 1 AND deleted_at IS NULL AND (starts_at IS NULL OR starts_at <= ?) AND (ends_at IS NULL OR ends_at >= ?)
+       AND image_key IS NOT NULL AND link_url <> '' AND instr(',' || ad_spots || ',', ?) > 0
+     ORDER BY sort, id LIMIT ?`,
+    today,
+    today,
+    `,${spot},`,
     limit,
   );
 }

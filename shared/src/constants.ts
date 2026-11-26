@@ -157,9 +157,26 @@ export const ADMIN_NAV = [
   { key: "help", path: "help", perm: "dashboard:read" },
 ] as const satisfies readonly { key: string; path: string; perm: Permission }[];
 
-/** Where a banner is shown: the slider at the top of the home page, the offer pop-up, or the slider at the top of the shop's pages. */
-export const BANNER_PLACEMENTS = ["hero", "popup", "shop"] as const;
+/**
+ * Where a banner is shown: the slider at the top of the home page, the offer pop-up, the slider at the top of the shop's pages, or an
+ * ad of the academy's own (a picture that opens one of its pages) inside the pages people read — see AD_SPOTS.
+ */
+export const BANNER_PLACEMENTS = ["hero", "popup", "shop", "ad"] as const;
 export type BannerPlacement = (typeof BANNER_PLACEMENTS)[number];
+
+/**
+ * The pages an ad appears on, by itself, as soon as it is switched on (nothing to add to each page): every class page (under "About
+ * this class"), every blog post (in the middle of a long post, at the end of a short one), the blog's list, and the classes' lists
+ * (all classes, the free classes).
+ */
+export const AD_SPOTS = ["course", "blog", "blog_list", "courses"] as const;
+export type AdSpot = (typeof AD_SPOTS)[number];
+
+/**
+ * The sizes an ad's pictures are made at (pixels). The wide one is for computers and tablets (4:1, like a web banner); the phone one is
+ * taller (2:1) so its words stay readable on a 360 px screen. Shown whole on the page, never cropped: another shape still shows in full.
+ */
+export const AD_SIZES = { wide: { w: 1200, h: 300 }, phone: { w: 800, h: 400 } } as const;
 
 /** How a banner is laid out: the words on the left over the picture, in the middle, or in their own panel beside the picture. */
 export const BANNER_LAYOUTS = ["left", "center", "split"] as const;

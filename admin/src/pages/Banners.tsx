@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { BANNER_FOCUS, BANNER_LAYOUTS, BANNER_PLACEMENTS, BANNER_THEMES, type BannerPlacement } from "@mawah/shared";
+import { AD_SPOTS, BANNER_FOCUS, BANNER_LAYOUTS, BANNER_PLACEMENTS, BANNER_THEMES, type BannerPlacement } from "@mawah/shared";
 import { adm, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useI18n } from "../lib/i18n";
@@ -84,28 +84,35 @@ export function Banners() {
   const { can } = useAuth();
   const canWrite = can("banners:write");
   const isPopup = (v: Record<string, unknown>) => v.placement === "popup";
+  // an ad (AD_SPOTS) is only a picture that opens a page: no words over it, no button, no design of its own — and it says where it shows
+  const isAd = (v: Record<string, unknown>) => v.placement === "ad";
+  const notAd = (v: Record<string, unknown>) => !isAd(v);
   const fields: FieldDef[] = [
     { type: "select", key: "placement", label: t("adm.banners.placement"), hint: t("adm.banners.placementHint"), options: BANNER_PLACEMENTS.map((p) => ({ value: p, label: t(`adm.banners.p.${p}` as "adm.banners.p.hero") })) },
-    { type: "image", key: "image_key", label: t("adm.banners.image"), hint: t("adm.banners.imageHint"), folder: "banners", maxWidth: 1600, wide: true },
-    { type: "image", key: "mobile_image_key", label: t("adm.banners.mobileImage"), hint: t("adm.banners.mobileImageHint"), folder: "banners", maxWidth: 1000, wide: true },
-    { type: "text", key: "kicker_bn", label: t("adm.banners.kickerBn"), half: true, maxLength: 40 },
-    { type: "text", key: "kicker_en", label: t("adm.banners.kickerEn"), half: true, maxLength: 40, hint: t("adm.banners.kickerHint") },
-    { type: "text", key: "title_bn", label: t("adm.banners.titleBn"), half: true, maxLength: 90 },
-    { type: "text", key: "title_en", label: t("adm.banners.titleEn"), half: true, maxLength: 90 },
-    { type: "text", key: "text_bn", label: t("adm.banners.textBn"), half: true, maxLength: 180 },
-    { type: "text", key: "text_en", label: t("adm.banners.textEn"), half: true, maxLength: 180 },
+    { type: "checks", key: "ad_spots", label: t("adm.banners.adSpots"), required: true, hint: t("adm.banners.adSpotsHint"), options: AD_SPOTS.map((s) => ({ value: s, label: t(`adm.banners.spot.${s}` as "adm.banners.spot.course") })), showIf: isAd },
+    { type: "image", key: "image_key", label: t("adm.banners.image"), hint: t("adm.banners.imageHint"), folder: "banners", maxWidth: 1600, wide: true, showIf: notAd },
+    { type: "image", key: "image_key", label: t("adm.banners.image"), required: true, hint: t("adm.banners.adImageHint"), folder: "banners", maxWidth: 1600, wide: true, showIf: isAd },
+    { type: "image", key: "mobile_image_key", label: t("adm.banners.mobileImage"), hint: t("adm.banners.mobileImageHint"), folder: "banners", maxWidth: 1000, wide: true, showIf: notAd },
+    { type: "image", key: "mobile_image_key", label: t("adm.banners.mobileImage"), hint: t("adm.banners.adMobileImageHint"), folder: "banners", maxWidth: 1000, wide: true, showIf: isAd },
+    { type: "text", key: "kicker_bn", label: t("adm.banners.kickerBn"), half: true, maxLength: 40, showIf: notAd },
+    { type: "text", key: "kicker_en", label: t("adm.banners.kickerEn"), half: true, maxLength: 40, hint: t("adm.banners.kickerHint"), showIf: notAd },
+    { type: "text", key: "title_bn", label: t("adm.banners.titleBn"), half: true, maxLength: 90, showIf: notAd },
+    { type: "text", key: "title_en", label: t("adm.banners.titleEn"), half: true, maxLength: 90, showIf: notAd },
+    { type: "text", key: "text_bn", label: t("adm.banners.textBn"), half: true, maxLength: 180, showIf: notAd },
+    { type: "text", key: "text_en", label: t("adm.banners.textEn"), half: true, maxLength: 180, showIf: notAd },
     { type: "text", key: "alt_bn", label: t("adm.banners.altBn"), half: true, maxLength: 160 },
     { type: "text", key: "alt_en", label: t("adm.banners.altEn"), half: true, maxLength: 160, hint: t("adm.banners.altHint") },
-    { type: "text", key: "button_bn", label: t("adm.banners.buttonBn"), half: true, maxLength: 30 },
-    { type: "text", key: "button_en", label: t("adm.banners.buttonEn"), half: true, maxLength: 30, hint: t("adm.banners.buttonHint") },
-    { type: "url", key: "link_url", label: t("adm.banners.link"), hint: t("adm.banners.linkHint"), maxLength: 500, placeholder: "/courses/beginners-baking-class" },
+    { type: "text", key: "button_bn", label: t("adm.banners.buttonBn"), half: true, maxLength: 30, showIf: notAd },
+    { type: "text", key: "button_en", label: t("adm.banners.buttonEn"), half: true, maxLength: 30, hint: t("adm.banners.buttonHint"), showIf: notAd },
+    { type: "url", key: "link_url", label: t("adm.banners.link"), hint: t("adm.banners.linkHint"), maxLength: 500, placeholder: "/courses/beginners-baking-class", showIf: notAd },
+    { type: "url", key: "link_url", label: t("adm.banners.adLink"), required: true, hint: t("adm.banners.adLinkHint"), maxLength: 500, placeholder: "/courses/beginners-baking-class", showIf: isAd },
     { type: "switch", key: "new_tab", label: t("adm.banners.newTab"), half: true },
     { type: "switch", key: "active", label: t("adm.f.active"), half: true },
-    { type: "section", key: "design", label: t("adm.banners.design") },
-    { type: "select", key: "theme", label: t("adm.banners.theme"), half: true, nullable: true, emptyLabel: t("adm.banners.theme.auto"), options: BANNER_THEMES.map((v) => ({ value: v, label: t(`adm.banners.theme.${v}` as "adm.banners.theme.dark") })) },
-    { type: "select", key: "layout", label: t("adm.banners.layout"), half: true, nullable: true, emptyLabel: t("adm.banners.layout.auto"), hint: t("adm.banners.layoutHint"), options: BANNER_LAYOUTS.map((v) => ({ value: v, label: t(`adm.banners.layout.${v}` as "adm.banners.layout.left") })), showIf: (v) => !isPopup(v) },
-    { type: "select", key: "focus", label: t("adm.banners.focus"), half: true, nullable: true, emptyLabel: t("adm.banners.focus.auto"), hint: t("adm.banners.focusHint"), options: BANNER_FOCUS.filter((v) => v !== "center").map((v) => ({ value: v, label: t(`adm.banners.focus.${v}` as "adm.banners.focus.top") })) },
-    { type: "icon", key: "icon", label: t("adm.banners.icon"), hint: t("adm.banners.iconHint"), showIf: (v) => !isPopup(v) },
+    { type: "section", key: "design", label: t("adm.banners.design"), showIf: notAd },
+    { type: "select", key: "theme", label: t("adm.banners.theme"), half: true, nullable: true, showIf: notAd, emptyLabel: t("adm.banners.theme.auto"), options: BANNER_THEMES.map((v) => ({ value: v, label: t(`adm.banners.theme.${v}` as "adm.banners.theme.dark") })) },
+    { type: "select", key: "layout", label: t("adm.banners.layout"), half: true, nullable: true, emptyLabel: t("adm.banners.layout.auto"), hint: t("adm.banners.layoutHint"), options: BANNER_LAYOUTS.map((v) => ({ value: v, label: t(`adm.banners.layout.${v}` as "adm.banners.layout.left") })), showIf: (v) => !isPopup(v) && notAd(v) },
+    { type: "select", key: "focus", label: t("adm.banners.focus"), half: true, nullable: true, showIf: notAd, emptyLabel: t("adm.banners.focus.auto"), hint: t("adm.banners.focusHint"), options: BANNER_FOCUS.filter((v) => v !== "center").map((v) => ({ value: v, label: t(`adm.banners.focus.${v}` as "adm.banners.focus.top") })) },
+    { type: "icon", key: "icon", label: t("adm.banners.icon"), hint: t("adm.banners.iconHint"), showIf: (v) => !isPopup(v) && notAd(v) },
     { type: "section", key: "schedule", label: t("adm.banners.schedule") },
     { type: "date", key: "starts_at", label: t("adm.banners.startsAt"), half: true },
     { type: "date", key: "ends_at", label: t("adm.banners.endsAt"), half: true, hint: t("adm.banners.scheduleHint") },
@@ -126,7 +133,7 @@ export function Banners() {
       defaults={{
         placement: "hero", title_bn: "", title_en: "", text_bn: "", text_en: "", image_key: null, mobile_image_key: null, alt_bn: "", alt_en: "", button_bn: "", button_en: "",
         link_url: "", new_tab: false, active: true, starts_at: null, ends_at: null, sort: 100, popup_delay_sec: 6, popup_repeat_days: 1, popup_pages: "home",
-        layout: null, theme: null, icon: null, focus: null, kicker_bn: "", kicker_en: "",
+        layout: null, theme: null, icon: null, focus: null, kicker_bn: "", kicker_en: "", ad_spots: [...AD_SPOTS],
       }}
       preview={(values) => <BannerPreview values={values} />}
       rowLabel={(r) => r.title_en || r.title_bn || r.alt_en || `#${r.id}`}
@@ -161,7 +168,7 @@ export function Banners() {
             </span>
           ),
         },
-        { key: "placement", label: t("adm.banners.where"), sort: "placement", desktopOnly: true, render: (r) => <Chip tone={r.placement === "popup" ? "gold" : r.placement === "shop" ? "ok" : "info"}>{t(`adm.banners.p.${r.placement}` as "adm.banners.p.hero")}</Chip> },
+        { key: "placement", label: t("adm.banners.where"), sort: "placement", desktopOnly: true, render: (r) => <Chip tone={r.placement === "popup" ? "gold" : r.placement === "shop" || r.placement === "ad" ? "ok" : "info"}>{t(`adm.banners.p.${r.placement}` as "adm.banners.p.hero")}</Chip> },
         {
           key: "status",
           label: t("label.status"),

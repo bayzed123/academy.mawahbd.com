@@ -188,6 +188,46 @@ import { inView, stagger } from "framer-motion/dom";
     if (sticky && window.ResizeObserver) new ResizeObserver(function () { d.documentElement.style.setProperty("--top-h", sticky.offsetHeight + "px"); }).observe(sticky);
   }
 
+  /* 7a. the "Install the app" strip: closed by the visitor, it stays away for a week on this device (theme.js hides it before drawing) */
+  $$("[data-app-close]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      d.documentElement.classList.add("app-closed");
+      try { window.localStorage.setItem("mawah_app_closed", String(Date.now())); } catch (e) { /* private mode */ }
+    });
+  });
+
+  /* 7b. a class on offer: the time left until its offer ends, every second (views/ui.tsx OfferLine); at zero it says the offer is over */
+  var offers = $$("[data-offer-ends]");
+  if (offers.length) {
+    var bnO = d.documentElement.lang === "bn";
+    var dig = function (s) { return bnO ? String(s).replace(/\d/g, function (c) { return "০১২৩৪৫৬৭৮৯".charAt(+c); }) : String(s); };
+    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    var tickOffers = function () {
+      var live = 0;
+      offers.forEach(function (el) {
+        var out = $("[data-offer-text]", el), left = Math.floor((Date.parse(el.getAttribute("data-offer-ends")) - Date.now()) / 1000);
+        if (!out) return;
+        if (!(left > 0)) { out.textContent = el.getAttribute("data-over"); el.classList.add("is-over"); return; }
+        live++;
+        var days = Math.floor(left / 86400), clock = pad(Math.floor((left % 86400) / 3600)) + ":" + pad(Math.floor((left % 3600) / 60)) + ":" + pad(left % 60);
+        out.textContent = el.getAttribute("data-left") + " " + dig((days ? days + " " + el.getAttribute("data-day") + " " : "") + clock);
+      });
+      return live > 0;
+    };
+    if (tickOffers()) var offerTimer = setInterval(function () { if (!tickOffers()) clearInterval(offerTimer); }, 1000);
+  }
+
+  /* 7c. the academy's own ads (views/ads.tsx): with several, each visit shows another, picked here; every place of a page holds the same
+     ads in the same order and shows the one `data-ad-slot` places after the pick, so two places never show the same ad */
+  var adSlots = $$("[data-ad-slot]");
+  if (adSlots.length) {
+    var adPick = Math.floor(Math.random() * 1000);
+    adSlots.forEach(function (s) {
+      var ads = $$("[data-ad]", s), at = (adPick + (+s.getAttribute("data-ad-slot") || 0)) % (ads.length || 1);
+      ads.forEach(function (a, i) { a.hidden = i !== at; });
+    });
+  }
+
   /* 8. sliders: the arrows, and dragging with a mouse (a finger scrolls them by itself); the click that ends a drag opens nothing */
   $$("[data-carousel]").forEach(function (car) {
     var track = $(".car-track", car), nav = $(".car-nav", car), prev = $("[data-car-prev]", car), next = $("[data-car-next]", car);

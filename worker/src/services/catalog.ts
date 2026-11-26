@@ -10,6 +10,7 @@ import {
 } from "@mawah/shared";
 import type { Env } from "../env";
 import { all, first, likeEscape, qs, safeJson } from "./../lib/db";
+import { PRICE_COLUMNS, SELL_PRICE } from "../lib/price";
 
 /** SQL (table alias `c`): a class the website shows and sells — never one of the Android app's free classes. */
 export const ON_WEBSITE = "c.channel = 'website'";
@@ -20,7 +21,7 @@ export const ON_WEBSITE = "c.channel = 'website'";
  * ----------------------------------------------------------------------------------------------- */
 
 const CARD_COLUMNS = `
-  c.id, c.slug, c.title_bn, c.title_en, c.short_bn, c.short_en, c.banner_key, c.icon, c.price, c.status, c.level,
+  c.id, c.slug, c.title_bn, c.title_en, c.short_bn, c.short_en, c.banner_key, c.icon, ${PRICE_COLUMNS()}, c.status, c.level,
   c.rating_avg, c.rating_count, c.lesson_count, c.featured, c.demo_url AS card_demo,
   cat.slug AS cat_slug, cat.name_bn AS cat_name_bn, cat.name_en AS cat_name_en, cat.accent AS cat_accent, cat.icon AS cat_icon`;
 
@@ -34,6 +35,9 @@ interface CardRow {
   banner_key: string | null;
   icon: string | null;
   price: number;
+  /** the regular price (higher than `price` while an offer runs) and when the offer ends (lib/price.ts); absent on rows from other queries */
+  regular_price?: number;
+  offer_ends_at?: string | null;
   status: CourseStatus;
   level: CourseCardDTO["level"];
   rating_avg: number;
@@ -59,6 +63,8 @@ export function toCard(r: CardRow): CourseCardDTO {
     banner_key: r.banner_key,
     icon: r.icon,
     price: r.price,
+    regular_price: r.regular_price ?? r.price,
+    offer_ends_at: r.offer_ends_at ?? null,
     status: r.status,
     level: r.level,
     rating_avg: r.rating_avg,
@@ -77,8 +83,8 @@ export type CourseSort = "featured" | "new" | "price_asc" | "price_desc";
 const ORDER: Record<CourseSort, string> = {
   featured: "c.featured DESC, c.sort ASC, c.id ASC",
   new: "c.published_at DESC, c.id DESC",
-  price_asc: "c.price ASC, c.sort ASC, c.id ASC",
-  price_desc: "c.price DESC, c.sort ASC, c.id ASC",
+  price_asc: `${SELL_PRICE()} ASC, c.sort ASC, c.id ASC`,
+  price_desc: `${SELL_PRICE()} DESC, c.sort ASC, c.id ASC`,
 };
 
 export interface ListOptions {

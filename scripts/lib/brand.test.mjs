@@ -118,7 +118,7 @@ test("the dark look keeps WCAG AA contrast: text, buttons, form fields and the g
  * and no stylesheet of the dark look uses a brown (a dull warm colour — dark orange, tan, cream). Orange is a light there: buttons, icons,
  * lines and glows. (Problems stay red, and the owner's own banner designs and the paper certificates keep their colours: not checked.)
  */
-const DARK_SHEETS = ["shared/styles/dark.css", "shared/styles/help.css", "shared/styles/theme-toggle.css", "marketing/site.css", "marketing/video.css", "marketing/course.css", "marketing/shop.css", "marketing/landing.css", "marketing/chat.css", "app/src/styles/app.css"];
+const DARK_SHEETS = ["shared/styles/dark.css", "shared/styles/help.css", "shared/styles/theme-toggle.css", "marketing/site.css", "marketing/video.css", "marketing/course.css", "marketing/shop.css", "marketing/landing.css", "marketing/ad.css", "marketing/chat.css", "app/src/styles/app.css"];
 const brownish = (hex) => {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
   const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;

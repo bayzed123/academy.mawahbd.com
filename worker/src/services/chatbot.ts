@@ -1,4 +1,4 @@
-import { formatMoney, loc } from "@mawah/shared";
+import { formatMoney, loc, offerView, formatDateTime } from "@mawah/shared";
 import type { Env, Lang } from "../env";
 import { AiError, getProvider, getProviderRow, resolveApiKey, type ChatMessage, type ProviderRow } from "../lib/ai-providers";
 import { all, first, nowIso, run } from "../lib/db";
@@ -8,6 +8,7 @@ import { notices, notifyOwner } from "./notify";
 import { courseFaqs, siteFaqs, type FaqDTO } from "./faqs";
 import { countUse, DIRECT_MATCH, rankKnowledge, unsupportedFigures, type KnowledgeRow } from "./chatKnowledge";
 import { linkify, type ChatLink } from "./chatLinks";
+import { PRICE_COLUMNS } from "../lib/price";
 
 /**
  * Grounded support chatbot.
@@ -60,16 +61,28 @@ const clean = (s: string) => s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\
 /* ----------------------------------------------------------------------------------------------- knowledge */
 let catalogMemo: { key: string; at: number; text: string } | null = null;
 
+/** A class's price for the chatbot's facts: the price now, and while an offer runs the regular price and when the offer ends — so it never
+ *  quotes an old price, nor an offer that is over. */
+function priceFact(r: { price: number; regular_price: number; offer_ends_at: string | null }, lang: Lang): string {
+  if (r.price <= 0) return lang === "bn" ? "বিনামূল্যে" : "Free";
+  const o = offerView(r);
+  if (!o.on) return formatMoney(r.price, lang);
+  const until = o.ends_at ? (lang === "bn" ? `, অফার শেষ ${formatDateTime(o.ends_at, lang)}` : `, offer ends ${formatDateTime(o.ends_at, lang)}`) : "";
+  return lang === "bn"
+    ? `${formatMoney(o.price, lang)} (অফার মূল্য; নিয়মিত মূল্য ${formatMoney(o.regular, lang)}, ${o.pct}% ছাড়${until})`
+    : `${formatMoney(o.price, lang)} (offer price; regular ${formatMoney(o.regular, lang)}, ${o.pct}% off${until})`;
+}
+
 async function catalogFacts(env: Env, lang: Lang): Promise<string> {
   const key = `${await contentVersion(env)}:${lang}`;
   if (catalogMemo && catalogMemo.key === key && Date.now() - catalogMemo.at < 60_000) return catalogMemo.text;
-  const rows = await all<{ slug: string; title_bn: string; title_en: string; short_bn: string; short_en: string; price: number; status: string; lesson_count: number }>(
+  const rows = await all<{ slug: string; title_bn: string; title_en: string; short_bn: string; short_en: string; price: number; regular_price: number; offer_ends_at: string | null; status: string; lesson_count: number }>(
     env.DB,
-    "SELECT slug, title_bn, title_en, short_bn, short_en, price, status, lesson_count FROM courses WHERE deleted_at IS NULL AND status IN ('published','coming_soon') AND channel = 'website' ORDER BY sort, id",
+    `SELECT c.slug, c.title_bn, c.title_en, c.short_bn, c.short_en, ${PRICE_COLUMNS()}, c.status, c.lesson_count FROM courses c WHERE c.deleted_at IS NULL AND c.status IN ('published','coming_soon') AND c.channel = 'website' ORDER BY c.sort, c.id`,
   );
   const text = rows
     .map((r) => {
-      const price = r.price > 0 ? formatMoney(r.price, lang) : lang === "bn" ? "বিনামূল্যে" : "Free";
+      const price = priceFact(r, lang);
       const state = r.status === "coming_soon" ? (lang === "bn" ? "শীঘ্রই আসছে" : "coming soon") : lang === "bn" ? "ভর্তি চলছে" : "open for enrollment";
       return `- ${loc(r, "title", lang)} — ${price} — ${state}${r.lesson_count ? ` — ${r.lesson_count} lessons` : ""} — /courses/${r.slug}\n  ${clip(loc(r, "short", lang), 140)}`;
     })
@@ -79,15 +92,15 @@ async function catalogFacts(env: Env, lang: Lang): Promise<string> {
 }
 
 async function courseFacts(env: Env, courseId: number, lang: Lang): Promise<string> {
-  const c = await first<{ id: number; title_bn: string; title_en: string; short_bn: string; short_en: string; long_bn: string; long_en: string; price: number; status: string; level: string | null }>(
+  const c = await first<{ id: number; title_bn: string; title_en: string; short_bn: string; short_en: string; long_bn: string; long_en: string; price: number; regular_price: number; offer_ends_at: string | null; status: string; level: string | null }>(
     env.DB,
-    "SELECT id, title_bn, title_en, short_bn, short_en, long_bn, long_en, price, status, level FROM courses WHERE id = ? AND deleted_at IS NULL AND status IN ('published','coming_soon') AND channel = 'website'",
+    `SELECT c.id, c.title_bn, c.title_en, c.short_bn, c.short_en, c.long_bn, c.long_en, ${PRICE_COLUMNS()}, c.status, c.level FROM courses c WHERE c.id = ? AND c.deleted_at IS NULL AND c.status IN ('published','coming_soon') AND c.channel = 'website'`,
     courseId,
   );
   if (!c) return "";
   const lessons = await all<{ title_bn: string; title_en: string }>(env.DB, "SELECT l.title_bn, l.title_en FROM lessons l JOIN modules m ON m.id = l.module_id WHERE l.course_id = ? ORDER BY m.sort, m.id, l.sort, l.id LIMIT 40", courseId);
   return [
-    `The student is currently looking at this class: ${loc(c, "title", lang)} (${c.price > 0 ? formatMoney(c.price, lang) : "free"}, ${c.status}${c.level ? `, ${c.level}` : ""}).`,
+    `The student is currently looking at this class: ${loc(c, "title", lang)} (${priceFact(c, lang)}, ${c.status}${c.level ? `, ${c.level}` : ""}).`,
     clip(loc(c, "short", lang), 300),
     clip(loc(c, "long", lang), 1500),
     lessons.length ? `Lessons: ${lessons.map((l) => loc(l, "title", lang)).join("; ")}` : "",

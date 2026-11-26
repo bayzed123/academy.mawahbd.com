@@ -1,16 +1,18 @@
 import { raw } from "hono/html";
 import { formatDate, formatDuration, formatNumber, loc, MATERIAL_KINDS, playsOnPublicPages, videoEmbed, videoThumb, videoWatchUrl, waNumber, type CourseCardDTO, type CurriculumModuleDTO, type MaterialKind } from "@mawah/shared";
 import { renderMarkdown } from "../../lib/markdown";
+import type { BannerDTO } from "../../services/banners";
 import type { CourseDetail, PublicReview, ReviewSummary } from "../../services/catalog";
 import type { FaqDTO } from "../../services/faqs";
 import type { GalleryImageDTO } from "../../services/gallery";
 import type { Included } from "../../services/materials";
+import { AdSlot, adsForPage } from "../ads";
 import type { PageCtx } from "../ctx";
 import { ClassFaq } from "../faq";
 import { gaItem, gaListAttr } from "../ga";
 import { Layout } from "../layout";
 import { breadcrumbLd, courseLd, faqLd, personLd } from "../seo";
-import { avgLabel, CourseCard, Crumbs, Flash, Highlight, Icon, InstructorBadges, NotifyForm, numLabel, priceLabel, reviewsLabel, Stars } from "../ui";
+import { avgLabel, CourseCard, Crumbs, Flash, Highlight, Icon, InstructorBadges, NotifyForm, numLabel, priceLabel, reviewsLabel, Stars, OfferLine } from "../ui";
 
 export interface CourseData {
   course: CourseDetail;
@@ -23,6 +25,8 @@ export interface CourseData {
   included: Included;
   /** the pictures the owner added besides the main one (Admin → a class → Pictures), in the order they set */
   pictures: GalleryImageDTO[];
+  /** the academy's own ads for class pages (Admin → Banners), shown under "About this class" */
+  ads?: BannerDTO[];
   flash?: string;
 }
 
@@ -99,17 +103,21 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
   const pics = data.pictures;
   const mainCount = course.banner_key ? 1 : 0;
   const picTotal = pics.length + mainCount;
+  const ads = adsForPage(ctx, data.ads ?? []);
   const includes = [t("course.inc.lessons"), t("course.inc.progress"), t("course.inc.ask"), ...materialLines, ...(course.cert_enabled ? [t("course.inc.cert")] : [])];
 
   return (
     <Layout
       ctx={ctx}
+      // the class itself may be on offer, and so may the related classes loaded below it later
+      offer
       title={seoTitle}
       description={seoDesc}
       ogType="website"
       image={course.banner_key ? ctx.abs(`/media/${course.banner_key}`) : undefined}
       hasBuybar
       course
+      ads={ads.length > 0}
       videos={hasDemo}
       ga={{ item: gaItem(course) }}
       gallery={pics.length > 0}
@@ -252,6 +260,8 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
               </p>
             )}
           </section>
+
+          <AdSlot ctx={ctx} ads={ads} spot="course" />
 
           <section aria-labelledby="inc-h">
             <h2 id="inc-h">{t("course.includes")}</h2>
@@ -404,6 +414,7 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
                 {t("stock.inNote")}
               </p>
               <div class="buy-price">{priceLabel(ctx, course.price)}</div>
+              <OfferLine ctx={ctx} item={course} where="buy" />
               <a class="btn btn-primary btn-lg btn-block" href={checkout}>
                 {t("btn.enrollNow")}
                 <Icon name="arrow" />
@@ -468,7 +479,10 @@ export function CoursePage({ ctx, data }: { ctx: PageCtx; data: CourseData }) {
           </>
         ) : (
           <>
-            <b>{priceLabel(ctx, course.price)}</b>
+            <span class="bar-price">
+              <b>{priceLabel(ctx, course.price)}</b>
+              <OfferLine ctx={ctx} item={course} where="bar" />
+            </span>
             <a class="btn btn-primary" href={checkout}>
               {t("btn.enrollNow")}
             </a>

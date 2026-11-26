@@ -947,7 +947,7 @@ When someone leaves, **deactivate** their account — their access ends at once.
 
 **“Equipment Shop” in the menu:** the menu, the phone menu, the footer, the class list, the home page and the student app show **Equipment Shop** — this website's own shop (section 26), opening in the same tab. Until you open the shop it shows an **“Opening soon”** page (with your WhatsApp button and a link to the classes). In *Settings → Contact, announcement & shop → Shop in the menu* you can rename it (Bangla and English) and switch it off with one click. You may also give **another shop's address**: until your own shop is open, the link then opens that shop in a **new tab**; once your shop is open, the menu always shows your own shop.
 
-## 17. Banners — the home-page slider, the shop's slider and the offer pop-up
+## 17. Banners — the home-page slider, the shop's slider, the offer pop-up and your own ads
 
 Open **Banners** in the left menu and press **+ Add**. Whatever you change is live on the website at once.
 
@@ -961,6 +961,10 @@ Open **Banners** in the left menu and press **+ Add**. Whatever you change is li
 * **Schedule:** a first and a last day (Bangladesh time; both days count). Empty = live now and until you switch it off.
 * **Pop-up settings:** after how many seconds it appears (5–10 feels polite), how many days before it asks again after someone closes it (0 = once per visit), and where (home page only / all public pages). Someone who closed it is not bothered again — until you edit the pop-up, when everyone sees the new one.
 * **On / off:** the switch in the list, one click. Deleting moves a banner to **Trash**, where you can bring it back.
+* **Your own ads on the class pages and the blog** (*Where it shows → Ad on class pages & blog*): a picture ad of your own — no other company's ads — that opens one of your pages when clicked (a class, an offer, the free classes, the shop). Tick where it shows: **every class page** (under “About this class”), **every blog post** (about a third of the way into a long post, at the end of a short one), **the blog’s list** and **the lists of classes** (All classes, Free classes). That is all: every page of those kinds shows it by itself, including the classes and posts you add later — nothing to add to each one.
+  * **Sizes:** the wide picture **1200 × 300 px** (4:1, like a web banner) for computers and tablets, and — recommended — a phone picture **800 × 400 px** (2:1) with bigger words. Both are shown whole, never cut. Put your words, the offer and a “button” drawing inside the picture: the whole picture is the link.
+  * **Several ads:** make one per offer; when several are on for the same pages, each visit shows another one, and a long blog post shows two different ones (one in the middle, one at the end). An ad is never shown on the very page it opens. The schedule (first and last day) and the on/off switch work as for every banner.
+  * **How they do:** *Admin → Analytics → banners and offers* counts how often each ad was seen and clicked, listed by what you wrote in “What the picture shows” (or as “ad-12” without it).
 * **Usable by everyone:** works with a keyboard and a screen reader; for people who asked their phone for “reduced motion” the slider does not move by itself; there is a pause button.
 
 ## 18. Switching a class on or off, and the class’s “view” and “edit” pages

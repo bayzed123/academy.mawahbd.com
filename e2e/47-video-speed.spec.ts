@@ -15,7 +15,8 @@ test("Video speed is in the menu, says plainly that Stream is not connected here
   await admin.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Video speed" }).click();
   await expect(admin).toHaveURL(/\/admin\/video-speed$/);
   await expect(admin.getByRole("heading", { level: 1, name: "Video speed" })).toBeVisible();
-  await expect(admin.locator("p.notice[role=status]")).toContainText("Cloudflare Stream is not connected to the website yet");
+  // (in a full run an earlier spec has Google refuse a video, so a second notice — when Google last refused one — may stand beside it)
+  await expect(admin.getByRole("status").filter({ hasText: "Cloudflare Stream is not connected to the website yet" })).toBeVisible();
   await expect(admin.getByText("Why videos stop, and the fix")).toBeVisible();
   await expect(admin.getByText(/\$5 a month for each 1,000 minutes/)).toBeVisible();
   await expect(admin.getByRole("button", { name: /Move all to Stream/ })).toHaveCount(0);

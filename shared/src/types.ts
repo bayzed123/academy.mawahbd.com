@@ -28,7 +28,12 @@ export interface CourseCardDTO {
   short_en: string;
   banner_key: string | null;
   icon: string | null;
+  /** the price the class sells at now: its offer price while an offer runs (lib/price.ts), else its regular price */
   price: number;
+  /** the regular price: higher than `price` while an offer runs, and then shown crossed out (shared/src/offer.ts) */
+  regular_price: number;
+  /** when the running offer ends (UTC); null when there is none or it has no end */
+  offer_ends_at: string | null;
   status: CourseStatus;
   level: "beginner" | "intermediate" | "advanced" | null;
   rating_avg: number;
@@ -141,6 +146,8 @@ export interface OrderItemDTO {
   title_en: string;
   price: number;
   list_price: number;
+  /** at checkout only: the class's regular price, when it sells at an offer price now (shown crossed out); never stored */
+  regular_price?: number;
 }
 
 export interface OrderDTO {

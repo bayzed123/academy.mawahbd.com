@@ -552,6 +552,9 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
 .bn-frame-fit{position:relative;overflow:hidden}
 .bn-frame{position:absolute;top:0;left:0;display:block;border:0;background:#070304;transform-origin:0 0}
 .pv-body{margin:0;padding:12px;background:#070304}
+.pv-ad img{display:block;width:100%;height:auto;border-radius:16px}
+.pv-ad-empty{display:grid;place-items:center;margin:0;aspect-ratio:4/1;border:2px dashed #888;border-radius:16px;color:#ccc;font:600 15px/1.4 system-ui,sans-serif;text-align:center}
+@media (max-width:720px){.pv-ad-empty{aspect-ratio:2/1}}
 .pv-offer{display:grid;place-items:center;padding:6px 0}
 .pv-offer .offer-card{position:relative;display:grid;width:min(100%,420px);overflow:hidden;border-radius:20px;background:var(--paper);border:1.5px solid var(--g-500)}
 .bn-swatch{background:var(--bn-bg);color:var(--bn-a)}
@@ -648,4 +651,9 @@ input[type=file]::file-selector-button:hover{background:var(--k-900);color:#fff}
 .vs-row:first-child{border-top:0}
 .vs-state{display:grid;justify-items:end;gap:4px;text-align:right}
 .vs-why{max-width:34ch;color:var(--bad-700);font-size:.84rem;line-height:1.4}
+.vs-detail{display:block;max-width:44ch;color:var(--ink-3);font-size:.78rem;line-height:1.4;overflow-wrap:anywhere}
 @media (max-width:640px){.vs-row{grid-template-columns:minmax(0,1fr) auto}.vs-act{grid-column:1/-1}.vs-state{justify-items:start;text-align:left;grid-column:1/-1}}
+/* the class editor's offer: quick end buttons and how the website will show it */
+.offer-help{display:grid;gap:8px}
+.offer-help .row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.offer-help .notice{margin:0}

@@ -12,6 +12,7 @@ import { createPasswordResetLink } from "./auth";
 import { notices, notifyOwner } from "./notify";
 import { reportPurchase } from "./metaCapi";
 import { tellStudent, toldMeta } from "./studentMessages";
+import { SELL_PRICE } from "../lib/price";
 
 /* =================================================================================================
  *  Pricing  (server-side, always — the browser never tells us a price)
@@ -38,7 +39,9 @@ interface CourseLite {
   slug: string;
   title_bn: string;
   title_en: string;
+  /** the price the class sells at now (an offer's while it runs: lib/price.ts) */
   price: number;
+  regular_price?: number;
   status: string;
 }
 
@@ -69,7 +72,7 @@ async function resolveCourses(env: Env, input: QuoteInput): Promise<{ courses: C
     if (!bundle) throw new HttpError(422, "course_unavailable");
     const rows = await all<CourseLite & { channel: string }>(
       env.DB,
-      `SELECT c.id, c.slug, c.title_bn, c.title_en, c.price, c.status, c.channel FROM bundle_items bi
+      `SELECT c.id, c.slug, c.title_bn, c.title_en, ${SELL_PRICE()} AS price, c.status, c.channel FROM bundle_items bi
        JOIN courses c ON c.id = bi.course_id WHERE bi.bundle_id = ? AND c.deleted_at IS NULL ORDER BY c.id`,
       bundle.id,
     );
@@ -83,7 +86,7 @@ async function resolveCourses(env: Env, input: QuoteInput): Promise<{ courses: C
   const courses = await all<CourseLite>(
     env.DB,
     // only the website's classes are sold: an Android app class is free there and never bought
-    `SELECT id, slug, title_bn, title_en, price, status FROM courses WHERE slug IN (${qs(slugs.length)}) AND deleted_at IS NULL AND channel = 'website'`,
+    `SELECT c.id, c.slug, c.title_bn, c.title_en, ${SELL_PRICE()} AS price, c.price AS regular_price, c.status FROM courses c WHERE c.slug IN (${qs(slugs.length)}) AND c.deleted_at IS NULL AND c.channel = 'website'`,
     ...slugs,
   );
   if (courses.length !== slugs.length || courses.some((c) => c.status !== "published")) throw new HttpError(422, "course_unavailable");
@@ -138,6 +141,8 @@ export async function buildQuote(env: Env, input: QuoteInput): Promise<Quote> {
     title_en: c.title_en,
     list_price: c.price,
     price: net[i],
+    // a class on offer: its regular price, for the checkout to show crossed out (a bundle has its own price, so never there)
+    ...(bundlePrice === null && c.regular_price && c.regular_price > c.price ? { regular_price: c.regular_price } : {}),
   }));
   return { items, subtotal, discount, total: subtotal - discount, coupon, bundle_id: bundleId };
 }

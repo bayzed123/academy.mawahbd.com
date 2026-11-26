@@ -1,4 +1,6 @@
 import type { CourseCardDTO } from "@mawah/shared";
+import type { BannerDTO } from "../../services/banners";
+import { AdSlot } from "../ads";
 import type { PageCtx } from "../ctx";
 import { gaListAttr } from "../ga";
 import { Layout } from "../layout";
@@ -10,6 +12,8 @@ export interface FreeData {
   free: CourseCardDTO[];
   /** the paid classes with a demo anyone can watch on the class page, before enrolling */
   demos: CourseCardDTO[];
+  /** the academy's own ads for the classes' lists (Admin → Banners), shown before "All classes" */
+  ads?: BannerDTO[];
 }
 
 /**
@@ -23,6 +27,7 @@ export function FreeClassesPage({ ctx, data }: { ctx: PageCtx; data: FreeData })
     <Layout
       ctx={ctx}
       list
+      ads={!!data.ads?.length}
       title={t("meta.free.title")}
       description={t("meta.free.desc")}
       jsonLd={[breadcrumbLd(ctx, [{ name: t("nav.home"), path: ctx.href("/") }, { name: t("nav.free"), path: ctx.href("/free-classes") }])]}
@@ -68,6 +73,7 @@ export function FreeClassesPage({ ctx, data }: { ctx: PageCtx; data: FreeData })
 
       <section class="section tight">
         <div class="wrap">
+          <AdSlot ctx={ctx} ads={data.ads ?? []} spot="courses" />
           <div class="free-after">
             <p>
               <Icon name="book" />

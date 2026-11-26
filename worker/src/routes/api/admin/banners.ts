@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BANNER_FOCUS, BANNER_LAYOUTS, BANNER_PLACEMENTS, BANNER_THEMES, CLASS_ICONS } from "@mawah/shared";
+import { AD_SPOTS, BANNER_FOCUS, BANNER_LAYOUTS, BANNER_PLACEMENTS, BANNER_THEMES, CLASS_ICONS } from "@mawah/shared";
 import { audit } from "../../../lib/audit";
 import { crudRoutes, type ResourceDef } from "../../../lib/crud";
 import { HttpError, ok } from "../../../lib/http";
@@ -9,7 +9,8 @@ import { requirePerm } from "../../../middleware/auth";
 import { createStarterBanners } from "../../../services/bannerStarter";
 
 /**
- * Admin → Banners: the home-page slider and the offer pop-up. Everything here is shown to every visitor, so the owner's words
+ * Admin → Banners: the home-page slider, the offer pop-up, the shop's slider and the academy's own ads (shown by themselves on the pages
+ * ticked in ad_spots: every class page, every blog post …). Everything here is shown to every visitor, so the owner's words
  * are plain text (never HTML) and the button can only lead somewhere safe: a page of this site, an https address, a phone
  * number or an e-mail address — never javascript: or data: (see `link`).
  */
@@ -53,6 +54,8 @@ const bannerSchema = z.object({
   focus: z.enum(BANNER_FOCUS).nullable().optional(),
   kicker_bn: textSchema(40).optional(),
   kicker_en: textSchema(40).optional(),
+  // an ad's pages (AD_SPOTS), ticked in the form; kept as a comma list ("course,blog")
+  ad_spots: z.array(z.enum(AD_SPOTS)).max(AD_SPOTS.length).optional(),
 });
 
 export const banners = crudRoutes({
@@ -69,6 +72,16 @@ export const banners = crudRoutes({
   label: (r) => String(r.title_en || r.title_bn || r.alt_en || `#${r.id}`),
   beforeSave(_c, data, existing) {
     const get = (k: string) => (k in data ? data[k] : existing?.[k]);
+    // kept as a comma list (in AD_SPOTS' order); only an ad has any
+    if (Array.isArray(data.ad_spots)) data.ad_spots = get("placement") === "ad" ? AD_SPOTS.filter((s) => (data.ad_spots as string[]).includes(s)).join(",") : "";
+    // an ad is a picture that opens one of the academy's pages, on the pages ticked for it: all three are needed
+    if (get("placement") === "ad") {
+      const fields: Record<string, string> = {};
+      if (!get("image_key")) fields.image_key = "required";
+      if (!String(get("link_url") ?? "").trim()) fields.link_url = "required";
+      if (!String(get("ad_spots") ?? "").trim()) fields.ad_spots = "required";
+      if (Object.keys(fields).length) throw new HttpError(422, "validation", "validation", fields);
+    }
     // a banner needs something to show: a picture or a title
     if (!get("image_key") && !String(get("title_bn") ?? "").trim() && !String(get("title_en") ?? "").trim()) {
       throw new HttpError(422, "validation", "validation", { image_key: "required" });

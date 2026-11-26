@@ -4,7 +4,7 @@ import { stripMarkdown } from "../../lib/markdown";
 import type { PageCtx } from "../ctx";
 import { gaListAttr } from "../ga";
 import { Layout } from "../layout";
-import { Carousel, CourseCard, Flash, Highlight, Icon, InstructorBadges, SectionHead, Stars, shopOf } from "../ui";
+import { Carousel, CourseCard, Flash, Highlight, Icon, InstructorBadges, SectionHead, Stars, shopOf, anyOffer } from "../ui";
 import { organizationLd, websiteLd } from "../seo";
 import type { BannerDTO } from "../../services/banners";
 import type { FaqDTO } from "../../services/faqs";
@@ -51,6 +51,7 @@ export function HomePage({ ctx, data }: { ctx: PageCtx; data: HomeData }) {
   return (
     <Layout
       ctx={ctx}
+      offer={anyOffer(data.featured, data.beginners)}
       title={t("meta.home.title")}
       description={t("meta.home.desc")}
       jsonLd={[organizationLd(ctx), websiteLd(ctx)]}

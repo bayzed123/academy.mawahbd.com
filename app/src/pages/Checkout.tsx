@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CHANNEL_LOGOS, PAY_LOGOS, SSL_BANNER, toBnDigits, type Channel, type QuoteDTO, type StudentMe } from "@mawah/shared";
+import { CHANNEL_LOGOS, PAY_LOGOS, SSL_BANNER, toBnDigits, type Channel, type QuoteDTO, type StudentMe, offerView, formatNumber } from "@mawah/shared";
 import { CURRENCY, gaItem, track } from "../lib/analytics";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -531,15 +531,30 @@ export default function Checkout() {
         <aside className="sticky">
           <section className="panel">
             <h2>{t("app.checkout.summary")}</h2>
-            {q.items.map((it) => (
-              <div className="summary-item" key={it.course_id}>
-                <span>{pick(it, "title")}</span>
-                <span>
-                  {it.list_price !== it.price && <s className="muted small">{money(it.list_price)} </s>}
-                  <b>{it.price === 0 ? t("label.free") : money(it.price)}</b>
-                </span>
-              </div>
-            ))}
+            {q.items.map((it) => {
+              // a class on offer: its regular price crossed out and the saving in %; a coupon: the price before it crossed out
+              const was = Math.max(it.regular_price ?? 0, it.list_price);
+              const offer = it.regular_price && it.regular_price > it.list_price ? offerView({ price: it.list_price, regular_price: it.regular_price }) : null;
+              return (
+                <div className="summary-item" key={it.course_id}>
+                  <span>{pick(it, "title")}</span>
+                  <span className="summary-price">
+                    {was > it.price && <s className="muted small">{money(was)} </s>}
+                    <b>{it.price === 0 ? t("label.free") : money(it.price)}</b>
+                    {offer && <span className="off-chip">{t("app.checkout.off", { n: formatNumber(offer.pct, lang) })}</span>}
+                  </span>
+                </div>
+              );
+            })}
+            {(() => {
+              const saved = q.items.reduce((a, it) => a + Math.max(0, (it.regular_price ?? it.list_price) - it.list_price), 0);
+              return saved > 0 ? (
+                <div className="sum-row disc">
+                  <span>{t("app.checkout.offerSaved")}</span>
+                  <span>−{money(saved)}</span>
+                </div>
+              ) : null;
+            })()}
             <div className="sum-row">
               <span>{t("label.subtotal")}</span>
               <span>{money(q.subtotal)}</span>

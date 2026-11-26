@@ -1,6 +1,6 @@
 import { raw } from "hono/html";
 import type { Accent, CategoryDTO, CourseCardDTO } from "@mawah/shared";
-import { formatMoney, formatNumber, loc } from "@mawah/shared";
+import { formatDateTime, formatMoney, formatNumber, loc, offerView } from "@mawah/shared";
 import type { PageCtx } from "./ctx";
 import { gaCardAttr } from "./ga";
 import type { InstructorRating } from "../services/catalog";
@@ -276,6 +276,35 @@ export const Banner = ({ course, ctx, eager = false }: { course: CourseCardDTO; 
   );
 };
 
+/**
+ * A class on offer: the regular price crossed out, the price now, the saving in %, and — when the offer has an end — a countdown to it
+ * (marketing/site.js moves it every second; without JavaScript the end's date and time are shown). Nothing when there is no offer.
+ */
+export function OfferLine({ ctx, item, where }: { ctx: PageCtx; item: { price: number; regular_price?: number; offer_ends_at?: string | null }; where: "card" | "buy" | "bar" }) {
+  const o = offerView(item);
+  if (!o.on) return null;
+  const { t, lang } = ctx;
+  const pct = lang === "bn" ? formatNumber(o.pct, "bn") : String(o.pct);
+  return (
+    <p class={`offer-line ol-${where}`}>
+      <span class="vh">{t("offer.was")} </span>
+      <del>{formatMoney(o.regular, lang)}</del>
+      <span class="vh"> {t("offer.now")} </span>
+      <b>{formatMoney(o.price, lang)}</b>
+      <span class="off-pct">{t("offer.pct", { n: pct })}</span>
+      {o.ends_at && where !== "bar" && (
+        <span class="offer-ends" data-offer-ends={o.ends_at} data-left={t("offer.left")} data-day={t("offer.day")} data-over={t("offer.over")}>
+          <Icon name="clock" />
+          <span data-offer-text>{t("offer.endsAt", { when: formatDateTime(o.ends_at, lang) })}</span>
+        </span>
+      )}
+    </p>
+  );
+}
+
+/** Any of these classes shows an offer now — the page then sends the offer's CSS (views/layout.tsx `offer`). */
+export const anyOffer = (...lists: { price: number; regular_price?: number }[][]) => lists.some((l) => l.some((c) => offerView(c).on));
+
 /** The price as shown on buttons and the buy box: "৳১,৮৫০" (or "ফ্রি" for free classes). */
 export const priceLabel = (ctx: PageCtx, price: number) => (price === 0 ? ctx.t("label.free") : formatMoney(price, ctx.lang));
 
@@ -349,6 +378,7 @@ export const CourseCard = ({ course, ctx, eager = false, headingLevel = 3 }: { c
             </span>
           )}
         </div>
+        {!soon && <OfferLine ctx={ctx} item={course} where="card" />}
         <div class="card-foot">
           <a class="btn btn-outline btn-sm" href={detail}>
             {ctx.t("btn.readMore")}

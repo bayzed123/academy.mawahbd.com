@@ -450,6 +450,7 @@ a.play-badge:hover{border-color:var(--o-500);color:#fff;text-decoration:none}
 .is-soon .icon{color:#a3a3a3}
 .is-soon small{color:#ffb38f}
 .foot-app{margin-top:1.5rem}
+.app-closed .app-strip{display:none}
 .foot-app .play-badge{line-height:1.1}
 .app-card{display:grid;gap:clamp(24px,5vw,56px);align-items:center;padding:clamp(22px,4.5vw,52px);border-radius:28px;background:#0d0d0d;border:1px solid rgba(255,255,255,.1)}
 @media (min-width:860px){.app-card{grid-template-columns:1.2fr .8fr}}

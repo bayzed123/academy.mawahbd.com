@@ -7,6 +7,8 @@
  *   marketing/shop.css -> minified string inlined only into the tools shop's pages (SHOP_CSS)
  *   marketing/landing.css -> minified string inlined only into landing pages (LANDING_CSS)
  *   marketing/course.css -> minified string inlined only into the class page (COURSE_CSS)
+ *   marketing/offer.css -> minified string inlined only into the pages that show a class on offer (OFFER_CSS)
+ *   marketing/ad.css    -> minified string inlined only into the pages that show one of the academy's ads (AD_CSS)
  *   marketing/list.css -> minified string inlined only into the pages with a list to search and page through: the classes, the Free classes
  *                         page, the shop's lists (LIST_CSS)
  *   marketing/video.css -> minified string inlined only into pages that show a video: the home page's, a class's demo (VIDEO_CSS)
@@ -77,6 +79,10 @@ const videoCss = (await transform(read("marketing/video.css"), { loader: "css", 
 const courseCss = (await transform(read("marketing/course.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 const docCss = (await transform(read("marketing/doc.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 const listCss = (await transform(read("marketing/list.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+// a class on offer (the crossed-out price, the saving, the countdown): inlined only into pages that show an offer
+const offerCss = (await transform(read("marketing/offer.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
+// the academy's own ads (a class page, a blog post, the lists): inlined only into pages that show one
+const adCss = (await transform(read("marketing/ad.css"), { loader: "css", minify: true, target: ["chrome100", "safari15", "firefox100"] })).code.trim();
 // site.js is bundled with the parts of Framer Motion it imports (framer-motion, MIT: its notice is kept at the top of the file)
 const js = (
   await build({
@@ -152,6 +158,8 @@ writeFileSync(
     `export const VIDEO_CSS = ${JSON.stringify(videoCss)};\n` +
     `export const DOC_CSS = ${JSON.stringify(docCss)};\n` +
     `export const LIST_CSS = ${JSON.stringify(listCss)};\n` +
+    `export const OFFER_CSS = ${JSON.stringify(offerCss)};\n` +
+    `export const AD_CSS = ${JSON.stringify(adCss)};\n` +
     `export const SHOP_CSS = ${JSON.stringify(shopCss)};\n` +
     `export const SHOP_JS = ${JSON.stringify(`/assets/${shopJsName}`)};\n` +
     `export const THEME_JS = "/theme.js";\n` +

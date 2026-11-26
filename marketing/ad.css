@@ -1,0 +1,9 @@
+/* The academy's own ads (views/ads.tsx): the owner's picture, whole and uncropped, as a link to one of the academy's pages. Inlined only
+   into pages that show an ad (views/layout.tsx `ads`), so the other pages stay as small as they were. No colours of its own: the picture
+   is the ad, and the page's own lines and shadow frame it in the night and the day look alike. */
+.ad-slot{margin:28px 0}
+.ad-slot .ad{display:block;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh-1);transition:transform .25s ease,box-shadow .25s ease}
+.ad-slot .ad:hover{transform:translateY(-2px);box-shadow:var(--sh-2)}
+.ad-slot .ad:focus-visible{outline:3px solid var(--o-500);outline-offset:3px}
+.ad-slot img{display:block;width:100%;height:auto}
+@media (prefers-reduced-motion:reduce){.ad-slot .ad,.ad-slot .ad:hover{transition:none;transform:none}}

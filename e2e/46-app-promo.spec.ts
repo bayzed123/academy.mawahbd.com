@@ -54,7 +54,7 @@ test("before the app is live: the home page and the footer say it is coming soon
 
   await page.goto("/en/courses");
   const footer = page.locator(".site-footer .foot-app");
-  await expect(footer).toContainText("Our Android app");
+  await expect(footer).toContainText("Download the app on your phone");
   await expect(footer).toContainText("COMING SOON ONGoogle Play");
   await expect(footer.getByRole("link")).toHaveCount(0);
   const axeFoot = await new AxeBuilder({ page }).include(".foot-app").withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
@@ -114,6 +114,15 @@ test("the owner adds the app's Google Play address in Admin → Android app: the
   await shot(page, "app-desktop-live");
   await page.goto("/en/courses");
   await expect(page.locator(".site-footer .foot-app").getByRole("link", { name: /Google Play/ })).toHaveAttribute("href", PLAY);
+  // the Install strip at the top: opens Google Play; closed, it stays away (here, after a reload)
+  const strip = page.locator("[data-app-strip]");
+  await expect(strip).toContainText("The MAWAH Academy app is on Google Play");
+  await expect(strip.getByRole("link", { name: /Install/ })).toHaveAttribute("href", PLAY);
+  await shot(page, "app-strip", "[data-app-strip]");
+  await strip.getByRole("button", { name: "Close" }).click();
+  await expect(strip).toBeHidden();
+  await page.reload();
+  await expect(page.locator("[data-app-strip]")).toBeHidden();
   await shot(page, "app-footer-live", ".site-footer");
   await ctx.close();
 });

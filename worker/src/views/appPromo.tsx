@@ -38,6 +38,52 @@ export function PlayBadge({ ctx, url, where }: { ctx: PageCtx; url: string; wher
   );
 }
 
+/**
+ * The strip at the very top of every page once the app is on Google Play (Admin → Android app → its address): the app's name and an
+ * Install button. It wears the announcement bar's look (marketing/site.css .topbar), so it adds next to nothing to a page, and the
+ * pages that carry the announcement bar (landing pages) do not get it as well. The visitor can close it; it then stays away for a
+ * week on that device (marketing/theme.js sets html.app-closed before the page is drawn, marketing/site.js remembers the close).
+ */
+export function AppStrip({ ctx }: { ctx: PageCtx }) {
+  const url = playOf(ctx);
+  if (!url) return null;
+  const { t } = ctx;
+  return (
+    <div class="topbar app-strip" data-app-strip>
+      <div class="wrap topbar-in">
+        <p class="topbar-text">
+          <Icon name="phone" />
+          {t("app.strip.text")}
+        </p>
+        <div class="cd-row">
+          <a class="btn" href={url} target="_blank" rel="noopener noreferrer" data-play="strip">
+            <Icon name="gplay" />
+            {t("app.strip.btn")}
+            <span class="vh"> ({t("shop.opens")})</span>
+          </a>
+          <button type="button" class="btn" data-app-close aria-label={t("app.strip.close")} title={t("app.strip.close")}>
+            ×
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The menu's entry, once the app is on Google Play (before that the home page's section and the footer say it is coming). */
+export function MenuApp({ ctx }: { ctx: PageCtx }) {
+  const url = playOf(ctx);
+  if (!url) return null;
+  const { t } = ctx;
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" data-play="menu">
+      <Icon name="phone" />
+      {t("app.menu")}
+      <span class="vh"> ({t("shop.opens")})</span>
+    </a>
+  );
+}
+
 /** The footer's corner: the app's name and its button — on every page but the home page, whose own section says it all just above. */
 export function FooterApp({ ctx }: { ctx: PageCtx }) {
   const url = playOf(ctx);
