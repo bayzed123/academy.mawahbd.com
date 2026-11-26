@@ -54,6 +54,7 @@ interface MoveRow {
   source_token: string | null;
   state: MoveState;
   problem: string | null;
+  detail: string | null;
   minutes: number | null;
   created_at: string;
   updated_at: string;
@@ -77,25 +78,40 @@ const driveOf = (url: string | null): string | null => {
   return ref?.kind === "file" ? ref.id : null;
 };
 
-/** What Stream's errors mean (they come with a name: QuotaReachedError …). */
-function streamProblem(err: unknown): MoveProblem {
+/**
+ * What Stream's errors mean. They usually come with a name (QuotaReachedError …); an account without a Stream plan, or with Stream switched
+ * off, can answer with a plain error that only says so in words — read too, so the owner is told to buy storage instead of "try again".
+ */
+export function streamProblem(err: unknown): MoveProblem {
   const name = err instanceof Error ? err.name : "";
+  const said = err instanceof Error ? err.message : String(err ?? "");
   if (name === "QuotaReachedError") return "stream_quota";
   if (name === "ForbiddenError") return "stream_forbidden";
   if (name === "RateLimitedError") return "stream_rate_limited";
   if (name === "MaxFileSizeError") return "stream_too_big";
   if (name === "BadRequestError" || name === "InvalidURLError") return "stream_rejected";
+  if (/subscri|purchase|entitle|storage|capacity|quota|minutes? (?:limit|remaining)|no (?:stream )?plan/i.test(said)) return "stream_quota";
+  if (/not (?:been )?enabled|forbidden|not authori[sz]ed|permission|access denied|unauthori[sz]ed/i.test(said)) return "stream_forbidden";
+  if (/rate.?limit|too many requests/i.test(said)) return "stream_rate_limited";
   return "stream_error";
+}
+
+/** The service's own words, for the owner to read (and to send to whoever helps them): name and message, short, with nothing key-like. */
+export function errDetail(err: unknown): string {
+  const name = err instanceof Error ? err.name : "Error";
+  const said = err instanceof Error ? err.message : String(err ?? "");
+  return `${name}: ${said}`.replace(/[A-Za-z0-9_\-+/=]{32,}/g, "…").replace(/\s+/g, " ").trim().slice(0, 300);
 }
 /** the problems that stop the whole queue for a while, not the one lesson */
 const PAUSES: Partial<Record<MoveProblem, number>> = { stream_quota: 600, stream_forbidden: 600, stream_rate_limited: 120 };
 
-async function setState(env: Env, id: number, state: MoveState, extra: { problem?: string | null; stream_uid?: string | null; minutes?: number | null } = {}) {
+async function setState(env: Env, id: number, state: MoveState, extra: { problem?: string | null; stream_uid?: string | null; minutes?: number | null; detail?: string | null } = {}) {
   await run(
     env.DB,
-    `UPDATE video_moves SET state = ?, problem = ?, stream_uid = COALESCE(?, stream_uid), minutes = COALESCE(?, minutes), updated_at = ? WHERE id = ?`,
+    `UPDATE video_moves SET state = ?, problem = ?, detail = ?, stream_uid = COALESCE(?, stream_uid), minutes = COALESCE(?, minutes), updated_at = ? WHERE id = ?`,
     state,
     extra.problem ?? null,
+    extra.detail ?? null,
     extra.stream_uid ?? null,
     extra.minutes ?? null,
     nowIso(),
@@ -141,7 +157,7 @@ async function startOne(env: Env, m: MoveRow, origin: string): Promise<boolean> 
   const info = await driveInfo(env, m.drive_id);
   if (!info.ok) {
     const p: MoveProblem = info.problem === "no_access" || info.problem === "folder" ? "drive_no_access" : info.problem === "not_downloadable" ? "drive_not_downloadable" : info.problem === "not_video" ? "drive_not_video" : "drive_error";
-    await setState(env, m.id, "failed", { problem: p });
+    await setState(env, m.id, "failed", { problem: p, detail: `Google Drive: ${info.problem}${info.status ? ` (${info.status})` : ""}` });
     return true;
   }
   if (info.data.mime && !isMedia(info.data.mime) && info.data.mime !== "application/octet-stream") {
@@ -155,19 +171,27 @@ async function startOne(env: Env, m: MoveRow, origin: string): Promise<boolean> 
       requireSignedURLs: true,
       meta: { name: (lesson.title_en || lesson.title_bn).slice(0, 200), lesson: String(lesson.id), from: "google-drive" },
     });
-    await run(env.DB, "UPDATE video_moves SET state = 'copying', stream_uid = ?, source_token = ?, problem = NULL, updated_at = ? WHERE id = ?", video.id, token, nowIso(), m.id);
+    // the video's id (the binding says `id`; the REST shape says `uid` — either is taken, and a copy without one is not left waiting)
+    const uid = (video as { id?: string; uid?: string } | null)?.id ?? (video as { uid?: string } | null)?.uid ?? "";
+    if (!/^[a-f0-9]{32}$/i.test(uid)) {
+      await env.KV.delete(sourceKey(token));
+      await setState(env, m.id, "failed", { problem: "stream_error", detail: "Stream accepted the copy but gave no video id" });
+      return true;
+    }
+    await run(env.DB, "UPDATE video_moves SET state = 'copying', stream_uid = ?, source_token = ?, problem = NULL, detail = NULL, updated_at = ? WHERE id = ?", uid, token, nowIso(), m.id);
     return true;
   } catch (err) {
     await env.KV.delete(sourceKey(token));
     const problem = streamProblem(err);
-    console.warn("video_move_start_failed", m.lesson_id, problem);
+    const detail = errDetail(err);
+    console.warn("video_move_start_failed", m.lesson_id, problem, detail);
     const pause = PAUSES[problem];
     if (pause) {
       // the whole queue waits (storage to be bought, Stream to be switched on, a breather): the lesson stays queued
-      await env.KV.put(BLOCKED_KEY, JSON.stringify({ problem, at: nowIso() }), { expirationTtl: pause });
+      await env.KV.put(BLOCKED_KEY, JSON.stringify({ problem, detail, at: nowIso() }), { expirationTtl: pause });
       return false;
     }
-    await setState(env, m.id, "failed", { problem });
+    await setState(env, m.id, "failed", { problem, detail });
     return true;
   }
 }
@@ -208,7 +232,7 @@ export async function pumpMoves(env: Env, origin: string): Promise<void> {
       } else if (v.status.state === "error") {
         await closeSource(env, m);
         console.warn("video_move_failed", m.lesson_id, v.status.errorReasonCode);
-        await setState(env, m.id, "failed", { problem: "stream_rejected" });
+        await setState(env, m.id, "failed", { problem: "stream_rejected", detail: `Stream: ${v.status.errorReasonCode} ${v.status.errorReasonText}`.trim().slice(0, 300) });
         running--;
       } else if (Date.now() - Date.parse(m.updated_at) > STUCK_MS) {
         await closeSource(env, m);
@@ -219,9 +243,9 @@ export async function pumpMoves(env: Env, origin: string): Promise<void> {
       // Stream could not be asked this time (or no longer knows the video): tried again on the next look, failed once it is stuck
       if (err instanceof Error && err.name === "NotFoundError") {
         await closeSource(env, m);
-        await setState(env, m.id, "failed", { problem: "stream_error" });
+        await setState(env, m.id, "failed", { problem: "stream_error", detail: errDetail(err) });
         running--;
-      }
+      } else console.warn("video_move_check_failed", m.lesson_id, errDetail(err));
     }
   }
   if (await env.KV.get(BLOCKED_KEY)) return;
@@ -253,7 +277,7 @@ export interface DriveLesson {
   title_en: string;
   drive_id: string | null;
   on_stream: boolean;
-  move: { state: MoveState; problem: MoveProblem | null; minutes: number | null; updated_at: string } | null;
+  move: { state: MoveState; problem: MoveProblem | null; detail: string | null; minutes: number | null; updated_at: string } | null;
 }
 
 /** Every lesson whose video is a Drive file (or was one, before it moved to Stream), with how its move stands. */
@@ -286,13 +310,13 @@ export async function driveLessons(env: Env): Promise<DriveLesson[]> {
       title_en: l.title_en,
       drive_id: drive,
       on_stream: onStream,
-      move: m ? { state: m.state, problem: m.state === "failed" ? ((m.problem as MoveProblem) ?? "stream_error") : null, minutes: m.minutes, updated_at: m.updated_at } : null,
+      move: m ? { state: m.state, problem: m.state === "failed" ? ((m.problem as MoveProblem) ?? "stream_error") : null, detail: m.state === "failed" ? m.detail : null, minutes: m.minutes, updated_at: m.updated_at } : null,
     });
   }
   return out;
 }
 
 /** What is holding the queue back (Stream's storage, Stream switched off, a breather), if anything. */
-export async function movesBlocked(env: Env): Promise<{ problem: MoveProblem; at: string } | null> {
-  return env.KV.get<{ problem: MoveProblem; at: string }>(BLOCKED_KEY, "json");
+export async function movesBlocked(env: Env): Promise<{ problem: MoveProblem; detail?: string; at: string } | null> {
+  return env.KV.get<{ problem: MoveProblem; detail?: string; at: string }>(BLOCKED_KEY, "json");
 }

@@ -5,6 +5,7 @@ import { audit } from "../../../lib/audit";
 import { intParam, ok, parseBody } from "../../../lib/http";
 import { requirePerm } from "../../../middleware/auth";
 import { rateLimit } from "../../../middleware/ratelimit";
+import { DRIVE_LAST_KEY, type DriveLast } from "../../../lib/drive";
 import { driveLessons, MAX_AT_ONCE, movesBlocked, pumpMoves, queueMoves, undoMove } from "../../../services/videoMoves";
 
 /*
@@ -24,7 +25,9 @@ const origin = (env: AppEnv["Bindings"], reqUrl: string) => {
 };
 
 async function overview(c: { env: AppEnv["Bindings"] }) {
-  return { configured: !!c.env.STREAM, at_once: MAX_AT_ONCE, blocked: await movesBlocked(c.env), lessons: await driveLessons(c.env) };
+  // the last time Google refused a student's Drive video (too many views of one file in a day, …): why videos stop when visitors come
+  const driveLast = await c.env.KV.get<DriveLast>(DRIVE_LAST_KEY, "json");
+  return { configured: !!c.env.STREAM, at_once: MAX_AT_ONCE, blocked: await movesBlocked(c.env), drive_last: driveLast, lessons: await driveLessons(c.env) };
 }
 
 videoMovesAdmin.get("/video-moves", requirePerm("courses:read"), async (c) => {

@@ -14,12 +14,14 @@ interface DriveLesson {
   title_bn: string;
   title_en: string;
   on_stream: boolean;
-  move: { state: MoveState; problem: string | null; minutes: number | null; updated_at: string } | null;
+  move: { state: MoveState; problem: string | null; detail: string | null; minutes: number | null; updated_at: string } | null;
 }
 interface Overview {
   configured: boolean;
   at_once: number;
-  blocked: { problem: string; at: string } | null;
+  blocked: { problem: string; detail?: string; at: string } | null;
+  /** the last time Google refused a student's Drive video */
+  drive_last: { at: string; problem: string; status: number | null } | null;
   lessons: DriveLesson[];
 }
 
@@ -34,7 +36,7 @@ const stateOf = (l: DriveLesson): "drive" | "queued" | "copying" | "stream" | "f
  * lesson switches to Stream by itself once its copy is ready. "Switch back" returns a lesson to its Drive video.
  */
 export function VideoSpeed() {
-  const { t, pick, num } = useI18n();
+  const { t, pick, num, dateTime } = useI18n();
   const { can } = useAuth();
   const toast = useToast();
   const confirm = useConfirm();
@@ -90,9 +92,19 @@ export function VideoSpeed() {
       ) : d.blocked ? (
         <p className="notice warn-note" role="alert">
           <Icon name="clock" />
-          <span>{t(`adm.vs.blocked.${d.blocked.problem}` as "adm.vs.blocked.stream_quota")}</span>
+          <span>
+            {t(`adm.vs.blocked.${d.blocked.problem}` as "adm.vs.blocked.stream_quota")}
+            {d.blocked.detail && <small className="vs-detail">{t("adm.vs.said", { text: d.blocked.detail })}</small>}
+          </span>
         </p>
       ) : null}
+
+      {d.drive_last && count("drive") + count("failed") > 0 && (
+        <p className="notice bad" role="status">
+          <Icon name="x" />
+          <span>{t(d.drive_last.problem === "quota" ? "adm.vs.driveQuota" : "adm.vs.driveFailed", { when: dateTime(d.drive_last.at) })}</span>
+        </p>
+      )}
 
       <section className="kpis" aria-label={t("adm.nav.videospeed")}>
         <Kpi icon="video" label={t("adm.vs.onDrive")} value={num(count("drive"))} sub={t("adm.vs.onDriveSub")} tone={count("drive") > 0 ? "warn" : undefined} />
@@ -145,6 +157,7 @@ export function VideoSpeed() {
                       <Chip tone="warn">{t("adm.vs.s.drive")}</Chip>
                     )}
                     {s === "failed" && l.move?.problem && <small className="vs-why">{t(`adm.vs.p.${l.move.problem}` as "adm.vs.p.stream_error")}</small>}
+                    {s === "failed" && l.move?.detail && <small className="vs-detail">{t("adm.vs.said", { text: l.move.detail })}</small>}
                   </span>
                   {canWrite && d.configured && (
                     <span className="vs-act">
