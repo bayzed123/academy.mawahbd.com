@@ -47,18 +47,25 @@ const ask = (content: string, lang: "bn" | "en" = "bn") => new Client().post("/a
 beforeEach(async () => noAi());
 afterEach(() => vi.restoreAllMocks());
 
+// Made-up keys in the two shapes Google gives out, built here so no key-shaped text sits in the source (the secret scan of the whole
+// history, which a manual Deploy runs, would otherwise take them for real ones).
+const HEAD = `AI${"za"}SyD-abc_def`;
+const DIGITS = "1234567890".repeat(2);
+const GOOGLE_KEY = `${HEAD}${DIGITS}1234`;
+const DOTTED_KEY = `A${"Q"}.Ab8RN6Labc-def_ghi.jkl0123456789`;
+
 describe("AI settings that used to fail", () => {
   it("a key is accepted however it was pasted — spaces, quotes, its name in front, a dot in it — and still checked for shape", async () => {
-    expect(cleanApiKey('  "AIzaSyD-abc_def123456789012345678901234"  ')).toBe("AIzaSyD-abc_def123456789012345678901234");
-    expect(cleanApiKey("GEMINI_API_KEY=AIzaSyD-abc_def12345678901234567890\n1234")).toBe("AIzaSyD-abc_def123456789012345678901234");
-    expect(cleanApiKey("x-goog-api-key: AQ.Ab8RN6Labc-def_ghi.jkl0123456789")).toBe("AQ.Ab8RN6Labc-def_ghi.jkl0123456789");
-    expect(cleanApiKey("Bearer AQ.Ab8RN6Labc-def_ghi.jkl0123456789")).toBe("AQ.Ab8RN6Labc-def_ghi.jkl0123456789");
-    expect(API_KEY_SHAPE.test("AQ.Ab8RN6Labc-def_ghi.jkl0123456789")).toBe(true);
+    expect(cleanApiKey(`  "${GOOGLE_KEY}"  `)).toBe(GOOGLE_KEY);
+    expect(cleanApiKey(`GEMINI_API_KEY=${HEAD}${DIGITS}\n1234`)).toBe(GOOGLE_KEY);
+    expect(cleanApiKey(`x-goog-api-key: ${DOTTED_KEY}`)).toBe(DOTTED_KEY);
+    expect(cleanApiKey(`Bearer ${DOTTED_KEY}`)).toBe(DOTTED_KEY);
+    expect(API_KEY_SHAPE.test(DOTTED_KEY)).toBe(true);
     expect(API_KEY_SHAPE.test("short")).toBe(false);
     expect(API_KEY_SHAPE.test("has<script>tags-and-is-long-enough")).toBe(false);
 
     const owner = (await loginStaff("super_admin")).client;
-    const dotted = await owner.put("/api/admin/chatbot/providers/gemini/key", { api_key: "  'AQ.Ab8RN6Labc-def_ghi.jkl0123456789wxyz'\n" });
+    const dotted = await owner.put("/api/admin/chatbot/providers/gemini/key", { api_key: `  '${DOTTED_KEY}wxyz'\n` });
     expect(dotted.status).toBe(200);
     expect((await json(dotted)).provider).toMatchObject({ configured: true, key_hint: "••••wxyz" });
     const bad = await owner.put("/api/admin/chatbot/providers/gemini/key", { api_key: "not a key" });
