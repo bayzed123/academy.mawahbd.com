@@ -1,3 +1,9 @@
 # Two throwaway test passwords committed in 0b53cfd (replaced by per-run random passwords in the next commit).
 0b53cfd2514814e727b62abc40041c8a37acad48:e2e/helpers.ts:generic-api-key:3
 0b53cfd2514814e727b62abc40041c8a37acad48:e2e/02-admin.spec.ts:generic-api-key:25
+# Made-up Google-key-shaped values in a test (commit 74c7f00, worker/test/ai-learning.test.ts: "AIzaSyD-abc_def1234…", "AQ.Ab8RN6Labc-def_ghi…").
+# The test now builds them at run time; these lines only matter to the scan of the whole history that a manual Deploy runs.
+74c7f006651dad607a6d95fb36a372d8ae85d852:worker/test/ai-learning.test.ts:gcp-api-key:52
+74c7f006651dad607a6d95fb36a372d8ae85d852:worker/test/ai-learning.test.ts:gcp-api-key:53
+74c7f006651dad607a6d95fb36a372d8ae85d852:worker/test/ai-learning.test.ts:generic-api-key:54
+74c7f006651dad607a6d95fb36a372d8ae85d852:worker/test/ai-learning.test.ts:generic-api-key:61
