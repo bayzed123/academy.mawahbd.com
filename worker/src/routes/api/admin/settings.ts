@@ -6,7 +6,7 @@ import { audit } from "../../../lib/audit";
 import { underHourlyCap } from "../../../lib/cap";
 import { all } from "../../../lib/db";
 import { HttpError, ok, parseBody } from "../../../lib/http";
-import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_TEST_KEY, mailProblem, sendMail, testMail, type MailLastTest } from "../../../lib/mailer";
+import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_SENT_KEY, MAIL_LAST_TEST_KEY, mailProblem, sendMail, testMail, type MailLastTest } from "../../../lib/mailer";
 import { buttonLinkSchema, emailSchema, langSchema, requiredPhoneSchema, textSchema } from "../../../lib/schemas";
 import { isMaskingSender, MASKING_MAX, SMS_LAST_KEY, sendSms, smsBalance, smsConfigured, smsEndpoints, type SmsLast } from "../../../lib/sms";
 import { smsText, testSms, wordsFor } from "../../../lib/smsText";
@@ -223,7 +223,12 @@ settings.put("/settings/:key", requirePerm("settings:write"), async (c) => {
 const senderDomain = (from: string) => from.match(/@([^>\s]+)>?\s*$/)?.[1]?.toLowerCase() ?? "";
 
 settings.get("/settings/email", requirePerm("settings:read"), async (c) => {
-  const [last, refusedAt, s] = await Promise.all([c.env.KV.get<MailLastTest>(MAIL_LAST_TEST_KEY, "json"), c.env.KV.get(MAIL_DOMAIN_REFUSED_KEY), getSettings(c.env, { fresh: true })]);
+  const [last, refusedAt, s, lastSent] = await Promise.all([
+    c.env.KV.get<MailLastTest>(MAIL_LAST_TEST_KEY, "json"),
+    c.env.KV.get(MAIL_DOMAIN_REFUSED_KEY),
+    getSettings(c.env, { fresh: true }),
+    c.env.KV.get(MAIL_LAST_SENT_KEY),
+  ]);
   const who = notificationRecipients(c.env, s);
   return ok(c, {
     configured: !!c.env.RESEND_API_KEY,
@@ -235,6 +240,8 @@ settings.get("/settings/email", requirePerm("settings:read"), async (c) => {
     domain_refused_at: refusedAt,
     notify: { to: who.to, custom: who.custom, default_to: (c.env.NOTIFY_EMAIL ?? "").trim().toLowerCase(), off: s.notifications.off },
     last,
+    // when Resend last took a real message from the site's own address (kept to the hour): proof that e-mails go out
+    last_sent_at: lastSent,
   });
 });
 
@@ -258,6 +265,8 @@ settings.post("/settings/email/test", requirePerm("settings:write"), rateLimit("
   const last: MailLastTest = { at, sent: sent.ok, provider: sent.provider, problem, by: staff.name, ...(viaSandbox ? { viaSandbox: true } : {}) };
   await c.env.KV.put(MAIL_LAST_TEST_KEY, JSON.stringify(last));
   if (sent.ok && !viaSandbox) await c.env.KV.delete(MAIL_DOMAIN_REFUSED_KEY); // it went through the real domain: the warning is over
+  // it did not: the newest word is this failure, so "e-mails went out" counts again only from the next message that does
+  else await c.env.KV.delete(MAIL_LAST_SENT_KEY);
   await audit(c, { action: "email.tested", entity: "settings", entityId: "email", meta: { ok: sent.ok, problem, provider: sent.provider } });
   return ok(c, { ...last, to: staff.email, from: c.env.MAIL_FROM, domain: senderDomain(c.env.MAIL_FROM), status: sent.status ?? null, detail: sent.detail ?? null });
 });

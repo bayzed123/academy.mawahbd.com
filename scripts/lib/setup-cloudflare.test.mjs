@@ -44,6 +44,13 @@ if (a[0] === "r2" && s.r2Disabled) { process.stderr.write("Please enable R2 thro
 if (cmd === "r2 bucket" && a[2] === "list") { say(s.r2.map((n) => "name:           " + n + "\\n").join("")); done(); }
 if (cmd === "r2 bucket" && a[2] === "create") { s.r2.push(a[3]); say("Created\\n"); done(); }
 if (cmd === "secret list") { say(s.secrets.map((name) => ({ name, type: "secret_text" }))); done(); }
+if (cmd === "d1 execute") {
+  // the live database: how many staff accounts it has (the tests say; none given = the database cannot be asked)
+  if (s.staff === undefined) { process.stderr.write("no such table: staff\\n"); done(1); }
+  say([{ results: [{ n: s.staff }], success: true, meta: {} }]);
+  done();
+}
+if (cmd === "secret delete") { s.secrets = s.secrets.filter((n) => n !== a[2]); delete s.secretValues[a[2]]; say("Success\\n"); done(); }
 if (cmd === "secret put") { s.secretValues[a[2]] = stdin(); s.secrets.push(a[2]); say("Success\\n"); done(); }
 process.stderr.write("fake wrangler: unexpected command " + a.join(" ") + "\\n");
 done(2);
@@ -74,6 +81,8 @@ function sandbox(initial = {}) {
   };
 }
 
+/** the one database command the secrets step runs: read-only, whether the site has an admin yet */
+const ADMIN_QUERY = "d1 execute DB --remote --json --command SELECT COUNT(*) AS n FROM staff";
 const creates = (calls) => calls.filter((c) => /(^| )(create|put)( |$)/.test(c));
 
 test("a fresh account: creates the database, the KV namespace and the bucket, and fills the IDs in", () => {
@@ -137,7 +146,7 @@ test("secrets: APP_SECRET is random, SETUP_TOKEN comes from the environment, and
   assert.ok(s.secretValues.APP_SECRET.length >= 48, "a long random APP_SECRET");
   assert.equal(s.secretValues.SETUP_TOKEN, token, "the owner's token, trimmed");
   assert.ok(!r.out.includes(token) && !r.out.includes(s.secretValues.APP_SECRET), "no secret value in the output");
-  assert.deepEqual(s.calls.filter((c) => /^(d1|kv|r2) /.test(c)), [], "--no-resources leaves the database, KV and R2 alone");
+  assert.deepEqual(s.calls.filter((c) => /^(d1|kv|r2) /.test(c) && c !== ADMIN_QUERY), [], "--no-resources leaves the database, KV and R2 alone (it only asks whether there is an admin)");
   assert.equal(sb.toml(), readFileSync(join(root, "worker/wrangler.toml"), "utf8"), "and the file");
 });
 
@@ -146,6 +155,33 @@ test("secrets already on the Worker are left alone", () => {
   const r = sb.run(["--ci", "--no-resources", "--secrets"], { SETUP_TOKEN: "another-long-token-value" });
   assert.equal(r.code, 0, r.out);
   assert.deepEqual(creates(sb.state().calls), []);
+});
+
+test("once the site has an admin, SETUP_TOKEN is taken off the Worker and the GitHub secret never puts it back", () => {
+  // the owner's dashboard kept saying "delete SETUP_TOKEN": they did, and the next deploy set it again from the GitHub secret
+  const sb = sandbox({ staff: 1, secrets: ["APP_SECRET", "SETUP_TOKEN"], secretValues: { SETUP_TOKEN: "my-own-long-setup-token-42" } });
+  const r = sb.run(["--ci", "--no-resources", "--secrets"], { SETUP_TOKEN: "my-own-long-setup-token-42" });
+  assert.equal(r.code, 0, r.out);
+  assert.ok(!sb.state().secrets.includes("SETUP_TOKEN"), "removed");
+  assert.ok(sb.state().calls.includes(ADMIN_QUERY), "it asked the live database, read-only");
+  assert.match(r.out, /SETUP_TOKEN removed/);
+  assert.ok(!r.out.includes("my-own-long-setup-token-42"));
+
+  const again = sb.run(["--ci", "--no-resources", "--secrets"], { SETUP_TOKEN: "my-own-long-setup-token-42" });
+  assert.equal(again.code, 0, again.out);
+  assert.ok(!sb.state().secrets.includes("SETUP_TOKEN"), "and not put back on the next deploy");
+  assert.deepEqual(creates(sb.state().calls).filter((c) => c.includes("SETUP_TOKEN")), []);
+  assert.match(again.out, /not needed — the site already has an admin \(the GitHub secret SETUP_TOKEN is not used; you may delete it\)/);
+});
+
+test("before the first admin, or when the database cannot be asked, SETUP_TOKEN is set from the GitHub secret as before", () => {
+  for (const staff of [0, undefined]) {
+    const sb = sandbox({ staff });
+    const r = sb.run(["--ci", "--no-resources", "--secrets"], { SETUP_TOKEN: "my-own-long-setup-token-42" });
+    assert.equal(r.code, 0, r.out);
+    assert.equal(sb.state().secretValues.SETUP_TOKEN, "my-own-long-setup-token-42", `staff=${staff}`);
+    assert.ok(!sb.state().calls.some((c) => c.startsWith("secret delete")), "nothing removed");
+  }
 });
 
 test("no SETUP_TOKEN is ever invented in automation; a too-short one is refused", () => {

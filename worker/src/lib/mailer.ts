@@ -67,12 +67,16 @@ export async function sendMail(env: Env, msg: MailMessage): Promise<MailResult> 
   if (env.RESEND_API_KEY) {
     try {
       const res = await postEmail(env, env.MAIL_FROM, msg);
-      if (res.ok) return { ok: true, provider: "resend" };
+      if (res.ok) {
+        await noteSent(env);
+        return { ok: true, provider: "resend" };
+      }
       const body = (await res.json().catch(() => null)) as { name?: unknown; message?: unknown } | null;
       const code = typeof body?.name === "string" ? body.name.slice(0, 60) : undefined;
       const detail = typeof body?.message === "string" ? scrub(body.message) : undefined;
       if (refusedBecauseUnverified(res.status, `${code ?? ""} ${detail ?? ""}`)) {
         await env.KV.put(MAIL_DOMAIN_REFUSED_KEY, new Date().toISOString(), { expirationTtl: 3 * 86_400 }).catch(() => undefined);
+        await env.KV.delete(MAIL_LAST_SENT_KEY).catch(() => undefined); // the newest word is this refusal: "it works" counts again from the next success
         // The owner's own notifications must not wait for DNS: send them through Resend's test sender (it reaches the account's own inbox).
         if (msg.owner && sameAddress(msg.to, env.NOTIFY_EMAIL)) {
           const again = await postEmail(env, SANDBOX_FROM, msg).catch(() => null);
@@ -91,6 +95,22 @@ export async function sendMail(env: Env, msg: MailMessage): Promise<MailResult> 
   }
   console.warn("mail_not_configured", msg.subject);
   return { ok: false, provider: "none", error: "RESEND_API_KEY missing" };
+}
+
+/**
+ * When Resend last accepted a real message from the site's own address (a receipt, a password reset, a test): kept at most once an hour.
+ * The dashboard reads it so that one failed test long ago does not keep saying "e-mail does not work" while e-mails go out every day.
+ * A message Resend takes from the site's own address also proves the domain is verified, so an old "domain not verified" note goes.
+ */
+export const MAIL_LAST_SENT_KEY = "mail:last-sent";
+async function noteSent(env: Env): Promise<void> {
+  try {
+    const before = await env.KV.get(MAIL_LAST_SENT_KEY);
+    if (before && Date.now() - Date.parse(before) < 3_600_000) return;
+    await Promise.all([env.KV.put(MAIL_LAST_SENT_KEY, new Date().toISOString()), env.KV.delete(MAIL_DOMAIN_REFUSED_KEY)]);
+  } catch {
+    /* a note for the dashboard: never in the way of the message itself */
+  }
 }
 
 /** Where the result of the owner's last test message is kept (Admin → Settings → E-mail; the dashboard's health card reads it too). */

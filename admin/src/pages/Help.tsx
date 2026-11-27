@@ -64,7 +64,7 @@ const CONTENT: Record<"bn" | "en", { title: string; groups: { title: string; ite
         items: [
           { q: "Which role should I give?", a: ["Super Admin: everything. Content Manager: classes, blog, coupons. Support: orders, students, reviews, questions. Viewer: read-only, great for an accountant."] },
           { q: "How do I change my own password?", a: ["In the right-hand panel, under My account, press 'Change password'. Type your current password, then the new one (at least 8 characters, different from the old one). Every other phone and computer is signed out, and the old password stops working at once. Works for every team member, the owner too."] },
-          { q: "Keeping the site safe", a: ["Use a long, unique password. Deactivate people who leave (Team → Deactivate) — their sessions end instantly. Never share the Super Admin login. The Activity log records who changed what. After setup, delete the SETUP_TOKEN secret (the Dashboard reminds you)."] },
+          { q: "Keeping the site safe", a: ["Use a long, unique password. Deactivate people who leave (Team → Deactivate) — their sessions end instantly. Never share the Super Admin login. The Activity log records who changed what. The SETUP_TOKEN secret is needed only to create the first admin: the next site update removes it by itself (until then the Dashboard reminds you)."] },
           { q: "Where do e-mails go, and how do I get a copy of everything that happens?", a: ["Every event reaches your inbox: a paid order, a payment waiting to be checked, a contact message, a new student, a question on a class, a review waiting for approval, a chatbot hand-over, a private-group request, a 'notify me' sign-up and a newsletter sign-up. They go to mawahacademy@gmail.com. Settings → E-mail → Notifications to you adds more addresses, switches single kinds off and sends a test.", "The e-mails come from no-reply@mawahacademy.com; Gmail itself cannot be the sender with Resend. Pressing Reply answers to your Gmail inbox. If the domain is not verified at Resend yet, your own notifications still arrive through Resend's test sender, but students' receipts are not sent — Settings → E-mail → 'Send me a test e-mail' says what to do (the DNS records are in docs/email-dns-records.txt). To change the key, change the GitHub secret RESEND_API_KEY and run Deploy."] },
           { q: "How do text messages (SMS) work, and how do I know they are working?", a: ["Receipts, the link to choose a password, and 'we got your payment details' go to the student's mobile number by text message. A buyer who gave no e-mail is reached only this way. Two secrets make it work: SMS_API_KEY (the key from your SMS company's panel) and SMS_API_URL (the company's address, for example https://msg.mram.com.bd). Add them as GitHub secrets (then run Deploy) or directly in the Cloudflare Worker's settings. They are never shown on any screen.", "Settings → SMS tells you if both are set, shows 'Check my SMS credit' (the balance at the company) and 'Send test message' (type your own number). If something is wrong it says what in plain words — wrong key, no credit left, sender name not approved, your server's address not allowed at the company — and what to do. A small card on the Dashboard turns amber while the last real message was refused. The sender name (the 'sender ID' the company approved) goes in the same screen; leave it empty to use the company's default. You can also switch texts off, or send them only to students who gave no e-mail."] },
         ],
@@ -83,12 +83,12 @@ const CONTENT: Record<"bn" | "en", { title: string; groups: { title: string; ite
     ],
     secrets: [
       ["APP_SECRET", "Required. Long random text used to protect passwords. Never change it without a plan (see docs)."],
-      ["SETUP_TOKEN", "Used once to create the first admin. Delete it afterwards."],
+      ["SETUP_TOKEN", "Used once to create the first admin. Once an admin exists, the next update removes it from the site by itself."],
       ["SSLCOMMERZ_STORE_ID / SSLCOMMERZ_STORE_PASSWORD", "Online payments (bKash, Nagad, Rocket, cards)."],
       ["RESEND_API_KEY", "Sends emails (receipts, password reset, launch announcements)."],
       ["GOOGLE_SERVICE_ACCOUNT", "Optional — the Google service-account key file that lets the Analytics screen show your visitor numbers (never share it; see Analytics)."],
       ["GEMINI_API_KEY", "Optional — only if you choose Gemini for the chatbot (you can also save it in AI Chatbot)."],
-      ["TURNSTILE_SECRET + TURNSTILE_SITE_KEY", "Optional bot protection on sign-up and contact forms."],
+      ["TURNSTILE_SECRET + TURNSTILE_SITE_KEY", "Optional, and best left off: forms are already guarded by limits on tries, and with it on the Android app cannot sign anyone in (an app cannot show the check)."],
     ],
   },
   bn: {
@@ -147,7 +147,7 @@ const CONTENT: Record<"bn" | "en", { title: string; groups: { title: string; ite
         items: [
           { q: "কাকে কোন ভূমিকা দেব?", a: ["সুপার অ্যাডমিন: সবকিছু। কনটেন্ট ম্যানেজার: ক্লাস, ব্লগ, কুপন। সাপোর্ট: অর্ডার, শিক্ষার্থী, রিভিউ, প্রশ্ন। ভিউয়ার: শুধু দেখা — হিসাবরক্ষকের জন্য উপযুক্ত।"] },
           { q: "নিজের পাসওয়ার্ড কীভাবে বদলাব?", a: ["ডান পাশের প্যানেলে 'আমার অ্যাকাউন্ট'-এর নিচে 'পাসওয়ার্ড বদলান' চাপুন। আগে বর্তমান পাসওয়ার্ড, তারপর নতুনটি দিন (কমপক্ষে ৮ অক্ষর, আগেরটি থেকে আলাদা)। অন্য সব ফোন ও কম্পিউটার থেকে লগআউট হয়ে যাবে, আর পুরোনো পাসওয়ার্ড সাথে সাথে বন্ধ হবে। মালিকসহ টিমের সবাই এটি করতে পারেন।"] },
-          { q: "সাইট নিরাপদ রাখুন", a: ["লম্বা ও আলাদা পাসওয়ার্ড ব্যবহার করুন। কেউ চলে গেলে তাকে নিষ্ক্রিয় করুন (টিম → নিষ্ক্রিয়) — সাথে সাথে তার সেশন শেষ হয়ে যায়। সুপার অ্যাডমিনের লগইন কাউকে দেবেন না। কে কী বদলেছে তা কার্যকলাপ লগে থাকে। সেটআপ শেষে SETUP_TOKEN সিক্রেটটি মুছে দিন (ড্যাশবোর্ড মনে করিয়ে দেবে)।"] },
+          { q: "সাইট নিরাপদ রাখুন", a: ["লম্বা ও আলাদা পাসওয়ার্ড ব্যবহার করুন। কেউ চলে গেলে তাকে নিষ্ক্রিয় করুন (টিম → নিষ্ক্রিয়) — সাথে সাথে তার সেশন শেষ হয়ে যায়। সুপার অ্যাডমিনের লগইন কাউকে দেবেন না। কে কী বদলেছে তা কার্যকলাপ লগে থাকে। SETUP_TOKEN সিক্রেটটি শুধু প্রথম অ্যাডমিন তৈরির জন্য — পরের আপডেটেই সাইট নিজে এটি মুছে দেয় (ততক্ষণ ড্যাশবোর্ড মনে করিয়ে দেবে)।"] },
           { q: "ইমেইল কোথায় যায়, আর সব ঘটনার কপি কীভাবে পাব?", a: ["প্রতিটি ঘটনা আপনার ইনবক্সে আসে: নতুন পেমেন্ট, যাচাইয়ের অপেক্ষায় থাকা পেমেন্ট, যোগাযোগ বার্তা, নতুন শিক্ষার্থী, ক্লাসে প্রশ্ন, অনুমোদনের অপেক্ষায় রিভিউ, চ্যাটবট থেকে হস্তান্তর, প্রাইভেট গ্রুপে যোগ দেওয়ার অনুরোধ, 'জানাও' সাইন-আপ এবং নিউজলেটার সাইন-আপ। সব যায় mawahacademy@gmail.com-এ। সেটিংস → ইমেইল → আপনার কাছে নোটিফিকেশন থেকে আরও ঠিকানা যোগ, আলাদা ধরন বন্ধ এবং টেস্ট পাঠানো যায়।", "ইমেইলগুলো আসে no-reply@mawahacademy.com থেকে; Resend-এ জিমেইল নিজে প্রেরক হতে পারে না। রিপ্লাই চাপলে উত্তর আপনার জিমেইলে যায়। Resend-এ ডোমেইন যাচাই না হলে আপনার নিজের নোটিফিকেশন Resend-এর পরীক্ষামূলক প্রেরক দিয়ে আসে, কিন্তু শিক্ষার্থীদের রসিদ যায় না — সেটিংস → ইমেইল → 'আমাকে একটি পরীক্ষামূলক ইমেইল পাঠান' চাপলে কী করতে হবে বলে দেয় (DNS রেকর্ড আছে docs/email-dns-records.txt-এ)। কী বদলাতে GitHub-এর RESEND_API_KEY সিক্রেট বদলে Deploy চালান।"] },
           { q: "এসএমএস কীভাবে কাজ করে, আর ঠিকমতো চলছে কি না কীভাবে বুঝব?", a: ["রসিদ, পাসওয়ার্ড দেওয়ার লিংক এবং 'আপনার পেমেন্টের তথ্য পেয়েছি' — শিক্ষার্থীর মোবাইল নম্বরে এসএমএসে যায়। যিনি ইমেইল দেননি তাঁকে শুধু এভাবেই জানানো যায়। দুটি সিক্রেট থাকলে কাজ করে: SMS_API_KEY (আপনার এসএমএস কোম্পানির প্যানেলের কী) আর SMS_API_URL (কোম্পানির ঠিকানা, যেমন https://msg.mram.com.bd)। এগুলো GitHub সিক্রেটে দিন (তারপর Deploy চালান) অথবা সরাসরি Cloudflare Worker-এর সেটিংসে। কোনো স্ক্রিনে এগুলো দেখানো হয় না।", "সেটিংস → এসএমএস বলে দেয় দুটোই বসানো আছে কি না, আর আছে 'আমার এসএমএস ক্রেডিট দেখুন' (কোম্পানিতে কত বাকি) ও 'পরীক্ষামূলক বার্তা পাঠান' (নিজের নম্বর লিখুন)। কিছু ভুল থাকলে সহজ ভাষায় বলে দেয় কী ভুল — কী ঠিক নেই, ক্রেডিট শেষ, সেন্ডার নাম অনুমোদিত নয়, বা আপনার সার্ভারের ঠিকানা কোম্পানিতে অনুমোদিত নয় — আর কী করতে হবে। শেষ আসল বার্তাটি প্রত্যাখ্যান হলে ড্যাশবোর্ডের ছোট কার্ডটি হলুদ হয়ে যায়। সেন্ডার নাম (কোম্পানির অনুমোদিত 'সেন্ডার আইডি') একই স্ক্রিনে বসান; ফাঁকা রাখলে কোম্পানির ডিফল্ট ব্যবহার হয়। চাইলে এসএমএস বন্ধ রাখতে পারেন, বা শুধু ইমেইল-না-দেওয়া শিক্ষার্থীদের পাঠাতে পারেন।"] },
         ],
@@ -166,12 +166,12 @@ const CONTENT: Record<"bn" | "en", { title: string; groups: { title: string; ite
     ],
     secrets: [
       ["APP_SECRET", "আবশ্যক। পাসওয়ার্ড সুরক্ষার জন্য লম্বা এলোমেলো লেখা। পরিকল্পনা ছাড়া বদলাবেন না (ডকুমেন্ট দেখুন)।"],
-      ["SETUP_TOKEN", "প্রথম অ্যাডমিন তৈরির সময় একবার লাগে। এরপর মুছে দিন।"],
+      ["SETUP_TOKEN", "প্রথম অ্যাডমিন তৈরির সময় একবার লাগে। অ্যাডমিন তৈরি হয়ে গেলে পরের আপডেটে সাইট নিজেই এটি মুছে দেয়।"],
       ["SSLCOMMERZ_STORE_ID / SSLCOMMERZ_STORE_PASSWORD", "অনলাইন পেমেন্ট (বিকাশ, নগদ, রকেট, কার্ড)।"],
       ["RESEND_API_KEY", "ইমেইল পাঠানো (রসিদ, পাসওয়ার্ড রিসেট, ক্লাস চালুর ঘোষণা)।"],
       ["GOOGLE_SERVICE_ACCOUNT", "ঐচ্ছিক — Google সার্ভিস অ্যাকাউন্টের কী ফাইল, যা অ্যানালিটিক্স পাতায় ভিজিটরের সংখ্যা দেখায় (কাউকে দেখাবেন না; অ্যানালিটিক্স পাতা দেখুন)।"],
       ["GEMINI_API_KEY", "ঐচ্ছিক — চ্যাটবটে জেমিনি বেছে নিলে (এআই চ্যাটবট পেজ থেকেও সংরক্ষণ করা যায়)।"],
-      ["TURNSTILE_SECRET + TURNSTILE_SITE_KEY", "ঐচ্ছিক — সাইন-আপ ও যোগাযোগ ফর্মে বট প্রতিরোধ।"],
+      ["TURNSTILE_SECRET + TURNSTILE_SITE_KEY", "ঐচ্ছিক, বন্ধ রাখাই ভালো: ফর্মগুলো এমনিতেই বারবার চেষ্টার সীমা দিয়ে সুরক্ষিত, আর এটি চালু থাকলে অ্যান্ড্রয়েড অ্যাপ থেকে কেউ লগ ইন করতে পারে না (অ্যাপে এই যাচাই দেখানো যায় না)।"],
     ],
   },
 };

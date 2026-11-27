@@ -122,7 +122,8 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       # APP_SECRET is made here (random, never shown) if the Worker has none, and SETUP_TOKEN is taken from the repository secret of that
-      # name (optional) — an existing APP_SECRET or SETUP_TOKEN is never replaced. RESEND_API_KEY (the e-mail key) is the exception: when
+      # name (optional) — an existing APP_SECRET or SETUP_TOKEN is never replaced, and once the site has an admin SETUP_TOKEN is removed
+      # from the Worker and not set again (it only ever creates the first admin). RESEND_API_KEY (the e-mail key) is the exception: when
       # the repository secret of that name looks like a Resend key it is set on the Worker at every deploy, so changing or rotating the
       # key is one edit of the GitHub secret and one run of Deploy. With no such GitHub secret, a key set in Cloudflare is left alone.
       # The same goes for SMS_API_KEY / SMS_API_URL (the SMS company), SSLCOMMERZ_STORE_ID / SSLCOMMERZ_STORE_PASSWORD (online payments),
