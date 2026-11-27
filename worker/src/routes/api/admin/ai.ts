@@ -8,7 +8,7 @@ import { all, first, likeEscape, nowIso, pageInfo, pageParams, run } from "../..
 import { HttpError, intParam, notFound, ok, parseBody } from "../../../lib/http";
 import { requirePerm } from "../../../middleware/auth";
 import { adminAi, adminComplete, assistantFacts, assistantSystem, firstJson } from "../../../services/adminAi";
-import { chatFacts, ESCALATE_MARKER } from "../../../services/chatbot";
+import { draftAnswer } from "../../../services/chatDrafts";
 import { rankKnowledge, teach, unsupportedFigures } from "../../../services/chatKnowledge";
 
 /**
@@ -36,6 +36,9 @@ interface EscalationRow {
   last_asked_at: string | null;
   answer: string | null;
   answered_at: string | null;
+  /** the AI's answer waiting for approval (services/chatDrafts.ts), and how drafting went */
+  draft: string | null;
+  draft_state: string | null;
   course_id: number | null;
   course_title_en: string | null;
   course_title_bn: string | null;
@@ -49,7 +52,7 @@ interface EscalationRow {
 async function escalation(env: AppEnv["Bindings"], id: number) {
   const r = await first<EscalationRow>(
     env.DB,
-    `SELECT e.id, e.question, e.reason, e.lang, e.status, e.created_at, e.asked, e.last_asked_at, e.answer, e.answered_at, e.course_id,
+    `SELECT e.id, e.question, e.reason, e.lang, e.status, e.created_at, e.asked, e.last_asked_at, e.answer, e.answered_at, e.draft, e.draft_state, e.course_id,
             c.title_en AS course_title_en, c.title_bn AS course_title_bn, c.slug AS course_slug,
             e.student_id, s.name AS student_name, s.email AS student_email, s.phone AS student_phone
        FROM chat_escalations e LEFT JOIN courses c ON c.id = e.course_id LEFT JOIN students s ON s.id = e.student_id WHERE e.id = ?`,
@@ -70,10 +73,23 @@ async function escalation(env: AppEnv["Bindings"], id: number) {
 
 aiAdmin.get("/escalations/:id", requirePerm("messages:read"), async (c) => ok(c, { item: await escalation(c.env, intParam(c, "id")) }));
 
+/** Keeps the team's answer with the question, closes it, and (teach) teaches it to the chatbot. */
+async function answerEscalation(env: AppEnv["Bindings"], id: number, staffId: number, a: { answer: string; question?: string; lang?: "bn" | "en" | "any"; teach: boolean }) {
+  const row = await escalation(env, id);
+  await run(env.DB, "UPDATE chat_escalations SET answer = ?, answered_at = ?, answered_by = ?, status = 'handled' WHERE id = ?", a.answer, nowIso(), staffId, id);
+  if (!a.teach) return null;
+  const question = a.question ?? row.question;
+  const lang = a.lang ?? row.lang;
+  if (row.taught) {
+    await run(env.DB, "UPDATE chat_knowledge SET question = ?, answer = ?, lang = ?, active = 1, updated_at = ? WHERE id = ?", question, a.answer, lang, nowIso(), row.taught.id);
+    return row.taught.id;
+  }
+  return teach(env, { question, answer: a.answer, lang, escalationId: id, staffId });
+}
+
 /** The team's answer: kept with the question, the question closed, and — unless the team says not to — taught to the chatbot. */
 aiAdmin.post("/escalations/:id/answer", requirePerm("messages:write"), async (c) => {
   const id = intParam(c, "id");
-  const row = await escalation(c.env, id);
   const body = await parseBody(
     c,
     z.object({
@@ -84,19 +100,31 @@ aiAdmin.post("/escalations/:id/answer", requirePerm("messages:write"), async (c)
       teach: z.boolean().default(true),
     }),
   );
-  const staffId = c.get("staff")!.id;
-  await run(c.env.DB, "UPDATE chat_escalations SET answer = ?, answered_at = ?, answered_by = ?, status = 'handled' WHERE id = ?", body.answer, nowIso(), staffId, id);
-  let knowledgeId: number | null = null;
-  if (body.teach) {
-    const question = body.question ?? row.question;
-    const lang = body.lang ?? row.lang;
-    if (row.taught) {
-      await run(c.env.DB, "UPDATE chat_knowledge SET question = ?, answer = ?, lang = ?, active = 1, updated_at = ? WHERE id = ?", question, body.answer, lang, nowIso(), row.taught.id);
-      knowledgeId = row.taught.id;
-    } else knowledgeId = await teach(c.env, { question, answer: body.answer, lang, escalationId: id, staffId });
-  }
+  const knowledgeId = await answerEscalation(c.env, id, c.get("staff")!.id, body);
   await audit(c, { action: body.teach ? "escalation.taught" : "escalation.answered", entity: "escalation", entityId: id });
   return ok(c, { item: await escalation(c.env, id), knowledge_id: knowledgeId });
+});
+
+/** One click: the AI's answer, as it is, approved — kept, the question closed, and taught (given word for word from then on). */
+aiAdmin.post("/escalations/:id/approve-draft", requirePerm("messages:write"), async (c) => {
+  const id = intParam(c, "id");
+  const row = await escalation(c.env, id);
+  if (row.draft_state !== "ready" || !row.draft || row.answer) throw new HttpError(409, "no_draft");
+  const knowledgeId = await answerEscalation(c.env, id, c.get("staff")!.id, { answer: row.draft, teach: true });
+  await audit(c, { action: "escalation.draft_approved", entity: "escalation", entityId: id });
+  return ok(c, { item: await escalation(c.env, id), knowledge_id: knowledgeId });
+});
+
+/** "Approve all": every AI answer waiting for approval, approved the same way. */
+aiAdmin.post("/escalations/approve-drafts", requirePerm("messages:write"), async (c) => {
+  const rows = await all<{ id: number }>(c.env.DB, "SELECT id FROM chat_escalations WHERE status = 'open' AND answer IS NULL AND draft_state = 'ready' AND draft IS NOT NULL ORDER BY id LIMIT 200");
+  const staffId = c.get("staff")!.id;
+  for (const r of rows) {
+    const row = await escalation(c.env, r.id);
+    if (row.draft) await answerEscalation(c.env, r.id, staffId, { answer: row.draft, teach: true });
+  }
+  await audit(c, { action: "escalation.drafts_approved", entity: "escalation", entityId: "", meta: { n: rows.length } });
+  return ok(c, { approved: rows.length });
 });
 
 /**
@@ -105,25 +133,11 @@ aiAdmin.post("/escalations/:id/answer", requirePerm("messages:write"), async (c)
  */
 aiAdmin.post("/escalations/:id/suggest", requirePerm("messages:write"), async (c) => {
   const row = await escalation(c.env, intParam(c, "id"));
-  const lang = row.lang === "en" ? "en" : "bn";
-  const learned = (await rankKnowledge(c.env, row.question, lang)).filter((k) => k.score > 0).slice(0, 8);
-  const facts = await chatFacts(c.env, lang, row.course_id, learned);
-  const messages: ChatMessage[] = [
-    {
-      role: "system",
-      content: `${facts}\n\nYou are now drafting an answer for the academy's team to check before it is saved. Answer the student's question below from the facts only, in ${lang === "bn" ? "Bangla" : "English"}, in at most 5 short sentences. If the facts do not hold the answer, reply with exactly ${ESCALATE_MARKER} and nothing else.`,
-    },
-    { role: "user", content: row.question },
-  ];
-  let raw: string;
   try {
-    raw = await adminComplete(c.env, messages, { maxTokens: 500, temperature: 0.2 });
+    return ok(c, await draftAnswer(c.env, row));
   } catch (err) {
     return aiFailed(err);
   }
-  const answer = raw.replaceAll(ESCALATE_MARKER, "").trim();
-  const grounded = !!answer && !raw.includes(ESCALATE_MARKER) && unsupportedFigures(answer, facts).length === 0;
-  return ok(c, { answer: grounded ? answer : "", grounded });
 });
 
 /* ------------------------------------------------------------------------------------------ taught answers */

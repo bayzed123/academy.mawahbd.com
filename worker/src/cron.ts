@@ -8,6 +8,7 @@ import { cleanupOrphanUploads } from "./services/materials";
 import { expireShopOrders } from "./services/shop";
 import { retryPurchases } from "./services/metaCapi";
 import { pumpMoves } from "./services/videoMoves";
+import { draftPending } from "./services/chatDrafts";
 
 /**
  * Housekeeping on the 6-hourly cron trigger. Every step is independent and idempotent, so a failed run is simply repeated.
@@ -34,6 +35,8 @@ export async function runScheduled(env: Env, _cron: string): Promise<void> {
     ["meta_capi_retry", () => retryPurchases(env)],
     // lessons being copied from Google Drive into Cloudflare Stream (Admin → Video speed): finished ones switch, the next ones start
     ["video_moves", () => pumpMoves(env, new URL(env.SITE_URL).origin)],
+    // the chatbot's unanswered questions: the AI drafts their answers for the team to approve (services/chatDrafts.ts)
+    ["chat_drafts", () => draftPending(env)],
     // what a buyer's browser said for Meta (kept only to report a purchase): forgotten when the order was never paid within 14 days
     ["ad_track", () => run(env.DB, "UPDATE orders SET ad_track = NULL WHERE ad_track IS NOT NULL AND created_at < ?", nowIso(new Date(now.getTime() - 14 * 86400 * 1000)))],
   ];

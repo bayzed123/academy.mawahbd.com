@@ -525,6 +525,9 @@ interface Handoff {
   created_at: string;
   asked: number;
   answered: number;
+  /** the AI's answer waiting for approval (worker/src/services/chatDrafts.ts) */
+  draft: string | null;
+  draft_state: "ready" | "no_facts" | "failed" | "no_ai" | null;
   course_title_en: string | null;
   course_title_bn: string | null;
   student_name: string | null;
@@ -571,6 +574,18 @@ export function Messages() {
         <DataTable<Handoff>
           endpoint="/escalations"
           csv={false}
+          // the AI writes an answer to each question from the academy's facts; the team approves them here, one by one or all at once
+          summary={(d) =>
+            canWrite && Number(d.drafts_ready) > 0 ? (
+              <div className="notice ai-drafts" role="status">
+                <Icon name="sparkle" />
+                <span>{t("adm.handoff.draftsReady", { n: String(d.drafts_ready) })}</span>
+                <Button className="btn-primary btn-sm" onClick={() => void act(() => adm("/escalations/approve-drafts", { json: {} }), t("adm.handoff.draftsApproved"))}>
+                  {t("adm.handoff.approveAll", { n: String(d.drafts_ready) })}
+                </Button>
+              </div>
+            ) : null
+          }
           onRowClick={(r) => setOpenId(r.id)}
           filters={[{ key: "status", label: t("label.status"), options: [{ value: "open", label: t("status.open") }, { value: "handled", label: t("adm.messages.handled") }] }]}
           columns={[
@@ -584,16 +599,38 @@ export function Messages() {
                     {r.student_name ? `${r.student_name} · ` : ""}
                     {r.course_title_en ? pick({ a_bn: r.course_title_bn ?? "", a_en: r.course_title_en }, "a") : t("adm.messages.general")}
                   </small>
+                  {!r.answered && r.draft_state === "ready" && r.draft && (
+                    <small className="ai-draft">
+                      <Icon name="sparkle" /> {t("adm.handoff.aiAnswer")}: {r.draft}
+                    </small>
+                  )}
                 </span>
               ),
             },
             { key: "asked", label: t("adm.handoff.askedCol"), render: (r) => (r.asked > 1 ? <Chip tone="warn">{t("adm.handoff.asked", { n: String(r.asked) })}</Chip> : "1") },
-            { key: "reason", label: t("adm.messages.reason"), desktopOnly: true, render: (r) => (r.answered ? <Chip tone="ok">{t("adm.handoff.answeredChip")}</Chip> : t(`adm.escalation.${r.reason}` as "adm.escalation.low_confidence")) },
+            {
+              key: "reason",
+              label: t("adm.messages.reason"),
+              desktopOnly: true,
+              render: (r) =>
+                r.answered ? (
+                  <Chip tone="ok">{t("adm.handoff.answeredChip")}</Chip>
+                ) : r.draft_state === "ready" ? (
+                  <Chip tone="gold">{t("adm.handoff.draftChip")}</Chip>
+                ) : (
+                  t(`adm.escalation.${r.reason}` as "adm.escalation.low_confidence")
+                ),
+            },
             { key: "date", label: t("label.date"), desktopOnly: true, render: (r) => dateTime(r.created_at) },
             { key: "status", label: t("label.status"), render: (r) => <StatusChip status={r.status} /> },
           ]}
           rowActions={(r) => (
             <div className="row nowrap">
+              {canWrite && !r.answered && r.draft_state === "ready" && (
+                <Button className="btn-outline btn-sm" onClick={() => void act(() => adm(`/escalations/${r.id}/approve-draft`, { json: {} }), t("adm.handoff.taught"))}>
+                  <Icon name="check" /> {t("adm.handoff.approve")}
+                </Button>
+              )}
               <IconButton icon="edit" label={t("adm.handoff.open")} onClick={() => setOpenId(r.id)} />
               {canWrite && <IconButton icon={r.status === "open" ? "check" : "refresh"} label={r.status === "open" ? t("adm.messages.markHandled") : t("adm.messages.reopen")} onClick={() => act(() => adm(`/escalations/${r.id}/status`, { json: { status: r.status === "open" ? "handled" : "open" } }))} />}
             </div>

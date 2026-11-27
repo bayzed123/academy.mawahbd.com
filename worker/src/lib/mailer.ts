@@ -242,9 +242,9 @@ export function orderReceiptMail(
     invoiceUrl: string;
     /** the student's ID (STU-000123), shown so they can quote it */
     studentId?: string;
-    /** an account made at checkout has no password: the link that lets its owner choose one */
-    setPasswordUrl?: string;
-    setPasswordDays?: number;
+    /** an account made at checkout gets a password the website made: shown with the student ID and the sign-in page, ready to copy */
+    password?: string;
+    loginUrl?: string;
   },
 ): Omit<MailMessage, "to"> {
   const subject = lang === "bn" ? "ভর্তি নিশ্চিত হয়েছে" : "Your enrollment is confirmed";
@@ -265,21 +265,28 @@ export function orderReceiptMail(
       ? `<p style="color:#4a3d3e">আপনার স্টুডেন্ট আইডি: <b>${escapeHtml(d.studentId)}</b></p>`
       : `<p style="color:#4a3d3e">Your student ID: <b>${escapeHtml(d.studentId)}</b></p>`
     : "";
-  const keep = d.setPasswordUrl
-    ? lang === "bn"
-      ? `আপনার জন্য একটি স্টুডেন্ট অ্যাকাউন্ট তৈরি হয়েছে। যেকোনো ফোন বা কম্পিউটার থেকে ক্লাস খুলতে একটি পাসওয়ার্ড দিন (লিংকটি ${d.setPasswordDays ?? 3} দিন কাজ করবে):`
-      : `We made a student account for you. Choose a password to open your classes on any phone or computer (the link works for ${d.setPasswordDays ?? 3} days):`
-    : "";
-  const keepLabel = lang === "bn" ? "পাসওয়ার্ড দিন" : "Choose a password";
-  const keepHtml = d.setPasswordUrl ? `<p style="font-size:15px;line-height:1.6;margin-top:22px">${escapeHtml(keep)}</p>${button(d.setPasswordUrl, keepLabel)}` : "";
-  const idText = d.studentId ? `${lang === "bn" ? "স্টুডেন্ট আইডি" : "Student ID"}: ${d.studentId}\n` : "";
-  const keepText = d.setPasswordUrl ? `\n${keep}\n${d.setPasswordUrl}\n` : "";
+  // the sign-in details, for a buyer whose account the website made: open the classes in any browser (not only inside Facebook)
+  const bn = lang === "bn";
+  const keep = bn
+    ? "আপনার জন্য একটি স্টুডেন্ট অ্যাকাউন্ট তৈরি হয়েছে। যেকোনো ফোন বা ব্রাউজার থেকে ক্লাস খুলতে এই লগ ইন তথ্য ব্যবহার করুন:"
+    : "We made a student account for you. Use these sign-in details to open your classes in any phone or browser:";
+  const change = bn ? "চাইলে প্রোফাইল থেকে পাসওয়ার্ড বদলে নিতে পারবেন।" : "You can change the password in your profile.";
+  const keepLabel = bn ? "লগ ইন করুন" : "Log in";
+  const idLabel = bn ? "স্টুডেন্ট আইডি" : "Student ID";
+  const pwLabel = bn ? "পাসওয়ার্ড" : "Password";
+  const row = (k: string, v: string) => `<tr><td style="padding:6px 12px 6px 0;color:#4a3d3e">${escapeHtml(k)}</td><td style="padding:6px 0;font-size:18px;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.5px">${escapeHtml(v)}</td></tr>`;
+  const keepHtml =
+    d.password && d.loginUrl
+      ? `<div style="margin-top:22px;padding:16px;border:2px solid #ff6b00;border-radius:12px"><p style="font-size:15px;line-height:1.6;margin:0 0 8px">${escapeHtml(keep)}</p><table role="presentation" style="border-collapse:collapse">${row(idLabel, d.studentId ?? "")}${row(pwLabel, d.password)}</table>${button(d.loginUrl, keepLabel)}<p style="font-size:13px;color:#4a3d3e;margin:8px 0 0">${escapeHtml(d.loginUrl)}<br>${escapeHtml(change)}</p></div>`
+      : "";
+  const idText = d.studentId && !d.password ? `${idLabel}: ${d.studentId}\n` : "";
+  const keepText = d.password && d.loginUrl ? `\n${keep}\n${idLabel}: ${d.studentId}\n${pwLabel}: ${d.password}\n${keepLabel}: ${d.loginUrl}\n${change}\n` : "";
   return {
     subject: `${subject} — ${d.invoiceNo}`,
     html: layout(
       lang,
       subject,
-      `<p style="font-size:16px">${escapeHtml(hello)}</p><p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p><ul style="line-height:1.8">${list}</ul>${meta}${id}${button(d.learnUrl, cta)}<p><a href="${escapeHtml(d.invoiceUrl)}" style="color:#b50f12">${escapeHtml(inv)}</a></p>${keepHtml}`,
+      `<p style="font-size:16px">${escapeHtml(hello)}</p><p style="font-size:16px;line-height:1.6">${escapeHtml(intro)}</p><ul style="line-height:1.8">${list}</ul>${meta}${d.password ? "" : id}${button(d.learnUrl, cta)}<p><a href="${escapeHtml(d.invoiceUrl)}" style="color:#b50f12">${escapeHtml(inv)}</a></p>${keepHtml}`,
       brandName(lang),
     ),
     text: `${hello}\n${intro}\n\n${d.items.join("\n")}\n\n${d.invoiceNo} · ${d.total}\n${idText}${d.learnUrl}\n${d.invoiceUrl}${keepText}`,

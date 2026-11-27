@@ -209,7 +209,7 @@ audience.get("/escalations", requirePerm("messages:read"), async (c) => {
   const [rows, total] = await Promise.all([
     all(
       c.env.DB,
-      `SELECT e.id, e.question, e.reason, e.lang, e.status, e.created_at, e.asked, e.last_asked_at, (e.answer IS NOT NULL) AS answered,
+      `SELECT e.id, e.question, e.reason, e.lang, e.status, e.created_at, e.asked, e.last_asked_at, (e.answer IS NOT NULL) AS answered, e.draft_state, e.draft,
               c.title_en AS course_title_en, c.title_bn AS course_title_bn, s.name AS student_name, s.email AS student_email
        FROM chat_escalations e LEFT JOIN courses c ON c.id = e.course_id LEFT JOIN students s ON s.id = e.student_id
        WHERE ${where} ORDER BY (e.status = 'open') DESC, e.asked DESC, e.created_at DESC LIMIT ? OFFSET ?`,
@@ -219,7 +219,9 @@ audience.get("/escalations", requirePerm("messages:read"), async (c) => {
     ),
     first<{ n: number }>(c.env.DB, `SELECT COUNT(*) AS n FROM chat_escalations e WHERE ${where}`, ...params),
   ]);
-  return ok(c, { items: rows, page: pageInfo(page, per_page, total?.n ?? 0) });
+  // how many AI answers wait for approval (services/chatDrafts.ts): the page offers to approve them all
+  const ready = await first<{ n: number }>(c.env.DB, "SELECT COUNT(*) AS n FROM chat_escalations WHERE status = 'open' AND answer IS NULL AND draft_state = 'ready'");
+  return ok(c, { items: rows, page: pageInfo(page, per_page, total?.n ?? 0), drafts_ready: ready?.n ?? 0 });
 });
 
 audience.post("/escalations/:id/status", requirePerm("messages:write"), async (c) => {

@@ -15,6 +15,7 @@ interface StudentRow {
   blocked: number;
   sessions_valid_after: string | null;
   has_password: number;
+  password_sent: number;
 }
 
 interface StaffRow {
@@ -32,12 +33,12 @@ async function resolveStudent(c: Ctx): Promise<StudentCtx | null> {
   if (!session) return null;
   const row = await first<StudentRow>(
     c.env.DB,
-    "SELECT id, name, email, phone, address, locale, blocked, sessions_valid_after, (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password FROM students WHERE id = ?",
+    "SELECT id, name, email, phone, address, locale, blocked, sessions_valid_after, (password_hash IS NOT NULL OR google_sub IS NOT NULL) AS has_password, (password_sent_at IS NOT NULL) AS password_sent FROM students WHERE id = ?",
     session.id,
   );
   if (!row || row.blocked) return null;
   if (row.sessions_valid_after && session.created < Date.parse(row.sessions_valid_after)) return null;
-  return { id: row.id, name: row.name, email: row.email, phone: row.phone, address: row.address, locale: row.locale, has_password: !!row.has_password };
+  return { id: row.id, name: row.name, email: row.email, phone: row.phone, address: row.address, locale: row.locale, has_password: !!row.has_password, password_sent: !!row.password_sent };
 }
 
 async function resolveStaff(c: Ctx): Promise<StaffCtx | null> {

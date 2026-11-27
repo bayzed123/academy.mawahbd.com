@@ -276,7 +276,7 @@ authRoutes.post("/reset-code", rateLimit("RL_AUTH"), async (c) => {
   await createSession(c, "student", student.id);
   await audit(c, { action: "student.password_reset", entity: "student", entityId: student.id, meta: { by: "code" } });
   const me = await first<{ id: number; name: string; email: string; phone: string | null; address: string; locale: "bn" | "en" }>(c.env.DB, "SELECT id, name, email, phone, address, locale FROM students WHERE id = ?", student.id);
-  return ok(c, { student: me ? toMe({ ...me, has_password: true }) : null });
+  return ok(c, { student: me ? toMe({ ...me, has_password: true, password_sent: false }) : null });
 });
 
 const resetSchema = z.object({ token: z.string().min(20).max(100), password: passwordSchema });
@@ -303,7 +303,7 @@ authRoutes.post("/reset", rateLimit("RL_AUTH"), async (c) => {
     const me = await first<{ id: number; name: string; email: string; phone: string | null; address: string; locale: "bn" | "en" }>(c.env.DB, "SELECT id, name, email, phone, address, locale FROM students WHERE id = ?", row.subject_id);
     if (me) {
       await createSession(c, "student", me.id);
-      return ok(c, { student: toMe({ ...me, has_password: true }) });
+      return ok(c, { student: toMe({ ...me, has_password: true, password_sent: false }) });
     }
   }
   return ok(c);
@@ -341,7 +341,7 @@ authRoutes.post("/set-password", requireStudent, rateLimit("RL_AUTH"), async (c)
   const app = viaApp(c);
   const token = await createSession(c, "student", me.id, { app });
   await audit(c, { action: "student.password_set", entity: "student", entityId: me.id });
-  return ok(c, app ? { student: toMe({ ...me, has_password: true }), token } : { student: toMe({ ...me, has_password: true }) });
+  return ok(c, app ? { student: toMe({ ...me, has_password: true, password_sent: false }), token } : { student: toMe({ ...me, has_password: true, password_sent: false }) });
 });
 
 // `address` and `email` may be left out: the address stays as it is, and an e-mail can only be ADDED (by someone who gave none), never swapped here

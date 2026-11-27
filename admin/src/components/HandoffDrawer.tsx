@@ -16,6 +16,9 @@ interface Handoff {
   last_asked_at: string | null;
   answer: string | null;
   answered_at: string | null;
+  /** the AI's answer waiting for approval, written from the academy's facts */
+  draft: string | null;
+  draft_state: string | null;
   course_title_en: string | null;
   course_title_bn: string | null;
   course_slug: string | null;
@@ -45,10 +48,12 @@ export function HandoffDrawer({ id, onClose, canWrite }: { id: number | null; on
     const h = item.data;
     if (!h) return;
     setQuestion(h.taught?.question ?? h.question);
-    setAnswer(h.taught?.answer ?? h.answer ?? "");
+    // not answered yet, and the AI wrote one from the facts: it is there to check, change if needed, and save
+    const drafted = !h.taught && !h.answer && h.draft_state === "ready" && h.draft ? h.draft : null;
+    setAnswer(h.taught?.answer ?? h.answer ?? drafted ?? "");
     setLang((h.taught?.lang as "bn" | "en" | "any") ?? h.lang);
     setTeach(true);
-    setNote("");
+    setNote(drafted ? t("adm.handoff.drafted") : "");
     setFieldErr("");
   }, [item.data]);
 

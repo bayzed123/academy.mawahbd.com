@@ -36,6 +36,19 @@ studentRoutes.use("*", requireStudent);
 
 studentRoutes.get("/courses", async (c) => ok(c, { courses: await myCourses(c.env, c.get("student")!.id) }));
 
+/**
+ * Just the addresses of the classes this student has (active enrolments): the website's pages are cached for everyone, so their script asks
+ * this and turns "Enroll" into "Start the class" for a class the student already owns (marketing/site.js).
+ */
+studentRoutes.get("/owned", async (c) => {
+  const rows = await all<{ slug: string }>(
+    c.env.DB,
+    "SELECT c.slug FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.student_id = ? AND e.status = 'active' AND c.deleted_at IS NULL",
+    c.get("student")!.id,
+  );
+  return ok(c, { slugs: rows.map((r) => r.slug) });
+});
+
 studentRoutes.get("/courses/:slug", async (c) => ok(c, { ...(await courseForStudent(c.env, c.get("student")!.id, c.req.param("slug"))) }));
 
 studentRoutes.get("/lessons/:id", async (c) => ok(c, { lesson: await lessonContent(c.env, intParam(c, "id"), c.get("student")!.id) }));

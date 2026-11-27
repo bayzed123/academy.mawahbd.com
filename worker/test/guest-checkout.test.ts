@@ -10,7 +10,8 @@ import { Client, env, json, loginStaff, registerStudent, uniqueEmail } from "./h
  *  - nobody is ever signed in to an account that has anything in it (a password, a class, a payment, an account staff added) just because
  *    they typed its e-mail — the only way to such an account is its password or an e-mailed link;
  *  - a visitor who only started to buy is not counted as a student, and is removed after 30 days; anything paid or waiting for staff never is;
- *  - once paid, the receipt carries the student ID and a link to choose a password, and that first password also signs the phone in;
+ *  - once paid, the receipt carries the student ID, a password the website made and the sign-in page (by e-mail and by text), so the
+ *    buyer can sign in in any browser — not only inside Facebook; it can be changed later;
  *  - nothing is created for a basket that cannot be bought, and a flood of new accounts from one address stops.
  */
 
@@ -107,7 +108,7 @@ describe("a visitor buys", () => {
     expect(orders[0]).toMatchObject({ customer_name: "Rina Akter", customer_phone: "01711223344", status: "pending" });
   });
 
-  it("becomes a real student when the payment arrives: enrolled, listed and counted, with a receipt that has the student ID and a link to choose a password", async () => {
+  it("becomes a real student when the payment arrives: enrolled, listed and counted, with a receipt that has the student ID, a password and the sign-in page", async () => {
     const course = await makeCourse(1500);
     const admin = (await loginStaff()).client;
     const before = (await json(await admin.get("/api/admin/dashboard"))).kpis.students_total as number;
@@ -125,13 +126,22 @@ describe("a visitor buys", () => {
     expect(listed[0].enrollments).toBe(1);
 
     const receipt = await until(async () => (await mailsTo(body.email as string)).find((m) => /enrollment is confirmed/.test(m.subject)));
-    expect(receipt.text).toContain(out.student.code);
-    expect(receipt.text).toMatch(/\/app\/reset\/[A-Za-z0-9_-]{20,}/);
-    expect(receipt.html).toContain("Choose a password");
-    const link = await env.DB.prepare("SELECT expires_at FROM auth_tokens WHERE subject_type = 'student' AND subject_id = ? AND kind = 'password_reset'").bind(out.student.id).first<{ expires_at: string }>();
-    const days = (Date.parse(link!.expires_at) - Date.now()) / 86_400_000;
-    expect(days).toBeGreaterThan(2.9);
-    expect(days).toBeLessThanOrEqual(3);
+    expect(receipt.text).toContain(`Student ID: ${out.student.code}`);
+    const password = /Password: ([a-z]{4}[2-9]{4})\n/.exec(receipt.text)?.[1];
+    expect(password).toBeTruthy();
+    expect(receipt.text).toContain(`/app/login?id=${out.student.code}`);
+    expect(receipt.html).toContain(password);
+    expect(receipt.text).toContain("change the password in your profile");
+    expect(receipt.text).not.toMatch(/\/app\/reset\//); // no link to choose one: the password is there, ready to copy
+    // the same by text message (with texts on for people who gave an e-mail, as they are unless the owner switched that off)
+    const sms = await until(async () => (await json(await new Client().get(`/api/dev/outbox?to=${encodeURIComponent(DETAILS.phone)}`))).messages.find((m: { sms?: boolean; text: string }) => m.sms && m.text.includes(password!)));
+    expect(sms.text).toContain(out.student.code);
+    // it signs in anywhere, with the student ID
+    const elsewhere = await new Client().post("/api/auth/login", { identifier: out.student.code, password });
+    expect(elsewhere.status).toBe(200);
+    // the phone that bought is still signed in, and is told the details were sent
+    const me = (await json(await visitor.get("/api/auth/me"))).student;
+    expect(me).toMatchObject({ has_password: true, password_sent: true });
 
     // the owner's note says who, with the ID, and that the account is new
     const note = await until(async () => (await mailsTo("mawahacademy@gmail.com")).find((m) => /New payment received/.test(m.subject) && m.text.includes(body.email as string)));
@@ -139,25 +149,33 @@ describe("a visitor buys", () => {
     expect(note.text).toMatch(/Account[^\n]*New/);
   });
 
-  it("choosing the first password through the receipt link also signs that phone in; later a forgotten password still does not", async () => {
+  it("the password sent after payment signs in on another phone, and the student can change it (then it is theirs, no longer 'sent'); a forgotten password's reset still gives no session", async () => {
     const course = await makeCourse(900);
     const body = guestBody(course);
     const out = await json(await buy(new Client(), body));
     await pay(out.order.public_id);
     const receipt = await until(async () => (await mailsTo(body.email as string)).find((m) => /enrollment is confirmed/.test(m.subject)));
-    const token = receipt.text.match(/\/app\/reset\/([A-Za-z0-9_-]+)/)![1];
+    const sent = /Password: ([a-z]{4}[2-9]{4})\n/.exec(receipt.text)![1];
 
-    const elsewhere = new Client(); // another phone: no session yet
+    const elsewhere = new Client(); // another phone (or Chrome after Facebook's own browser)
     expect((await elsewhere.get("/api/student/courses")).status).toBe(401);
-    const reset = await elsewhere.post("/api/auth/reset", { token, password: "my-first-password-9" });
-    expect(reset.status).toBe(200);
-    const done = await json(reset);
-    expect(done.student).toMatchObject({ email: body.email, has_password: true });
+    expect((await elsewhere.post("/api/auth/login", { identifier: body.email, password: sent })).status).toBe(200);
     expect((await elsewhere.get("/api/student/courses")).status).toBe(200);
-    // the link works once
-    expect((await new Client().post("/api/auth/reset", { token, password: "another-password-9" })).status).toBe(400);
-    // and the password works for an ordinary log-in
-    expect((await new Client().post("/api/auth/login", { email: body.email, password: "my-first-password-9" })).status).toBe(200);
+    // changing it: the new one works, and the account no longer says a password was sent
+    expect((await elsewhere.post("/api/auth/change-password", { current: sent, next: "my-own-password-9" })).status).toBe(200);
+    expect((await new Client().post("/api/auth/login", { email: body.email, password: "my-own-password-9" })).status).toBe(200);
+    expect((await env.DB.prepare("SELECT password_sent_at FROM students WHERE id = ?").bind(out.student.id).first<{ password_sent_at: string | null }>())!.password_sent_at).toBeNull();
+    // a second payment never replaces a password the student has
+    const more = await makeCourse(400);
+    // (changing the password signed the other phones out, as always; this one stays in)
+    const placed = await elsewhere.post("/api/checkout", { agree: true, courses: [more.slug], channel: "mock" });
+    expect(placed.status, await placed.clone().text()).toBe(201);
+    const secondOrder = await json(placed);
+    await pay(secondOrder.order.public_id);
+    await until(async () => (await mailsTo(body.email as string)).filter((m) => /enrollment is confirmed/.test(m.subject)).length === 2);
+    const second = (await mailsTo(body.email as string)).filter((m) => /enrollment is confirmed/.test(m.subject)).at(-1)!;
+    expect(second.text).not.toMatch(/Password:/);
+    expect((await new Client().post("/api/auth/login", { email: body.email, password: "my-own-password-9" })).status).toBe(200);
 
     // a student who already had a password and forgot it gets no session from the reset (unchanged behaviour)
     const old = await registerStudent();
@@ -205,7 +223,7 @@ describe("a visitor buys", () => {
     const mine = await json(await visitor.get("/api/student/courses"));
     expect(slugs(mine)).toContain(course.slug);
     const receipt = await until(async () => (await mailsTo(body.email as string)).find((m) => /enrollment is confirmed/.test(m.subject)));
-    expect(receipt.text).toMatch(/\/app\/reset\//);
+    expect(receipt.text).toMatch(/Password: [a-z]{4}[2-9]{4}\n/); // the sign-in details, ready to copy
   });
 
   it("a send-money payment works from the same phone: the order is theirs, proof needs the log-in the visitor now has, staff approve, class opens", async () => {
@@ -235,7 +253,7 @@ describe("a visitor buys", () => {
       const mine = await json(await visitor.get("/api/student/courses"));
       expect(slugs(mine)).toContain(course.slug);
       const receipt = await until(async () => (await mailsTo(body.email as string)).find((m) => /enrollment is confirmed/.test(m.subject)));
-      expect(receipt.text).toMatch(/\/app\/reset\//);
+      expect(receipt.text).toMatch(/Password: [a-z]{4}[2-9]{4}\n/); // the sign-in details, ready to copy
     } finally {
       await setSetting(env, "payments", before, null);
     }

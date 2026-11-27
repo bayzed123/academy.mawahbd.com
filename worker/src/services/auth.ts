@@ -85,7 +85,8 @@ export async function setPassword(env: Env, table: AccountTable, id: number, new
   const hash = await hashPassword(newPassword, env.APP_SECRET);
   // millisecond precision on purpose: sessions carry ms timestamps, whole seconds would leave a gap
   const exact = new Date().toISOString();
-  const extra = table === "staff" ? ", must_change_password = 0" : "";
+  // a student who chooses a password no longer has the one the website made and sent (services/orders.ts sendReceipt)
+  const extra = table === "staff" ? ", must_change_password = 0" : ", password_sent_at = NULL";
   await run(
     env.DB,
     `UPDATE ${table} SET password_hash = ?, sessions_valid_after = ?, failed_logins = 0, locked_until = NULL, updated_at = ?${extra} WHERE id = ?`,

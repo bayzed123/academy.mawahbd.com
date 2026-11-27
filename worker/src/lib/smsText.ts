@@ -31,17 +31,19 @@ export function wordsFor(t: SmsText, sender: string | null | undefined): string 
 const tk = (lang: Lang, amount: number) => (lang === "bn" ? `৳${formatNumber(Math.round(amount), "bn")}` : `Tk ${Math.round(amount)}`);
 
 /**
- * The payment arrived (or the class was free) and the class is open. `setPasswordUrl`: an account made at checkout, so its owner can choose
- * a password and come back on any phone.
+ * Paid (or enrolled): the class is open. With `password` (an account made at checkout gets one the website made), the sign-in details to
+ * copy — student ID, password and the sign-in page — so the class opens in any browser, not only the one inside Facebook.
  */
-export function receiptSms(lang: Lang, d: { total: number; learnUrl: string; code: string; setPasswordUrl?: string }): string {
+export function receiptSms(lang: Lang, d: { total: number; learnUrl: string; code: string; password?: string; loginUrl?: string }): string {
   const paid = d.total > 0;
   if (lang === "bn") {
     const head = paid ? `পেমেন্ট পেয়েছি (${tk(lang, d.total)})।` : "আপনি ভর্তি হয়েছেন।";
-    return `${brand(lang)}: ${head} আপনার ক্লাস খোলা হয়েছে: ${d.learnUrl} স্টুডেন্ট আইডি: ${d.code}।${d.setPasswordUrl ? ` পাসওয়ার্ড দিন: ${d.setPasswordUrl}` : ""}`;
+    if (d.password) return `${brand(lang)}: ${head} লগ ইন: ${d.loginUrl ?? d.learnUrl} স্টুডেন্ট আইডি: ${d.code} পাসওয়ার্ড: ${d.password} (প্রোফাইল থেকে বদলাতে পারবেন)`;
+    return `${brand(lang)}: ${head} আপনার ক্লাস খোলা হয়েছে: ${d.learnUrl} স্টুডেন্ট আইডি: ${d.code}।`;
   }
   const head = paid ? `payment received (${tk(lang, d.total)}).` : "you are enrolled.";
-  return `${brand(lang)}: ${head} Your class is open: ${d.learnUrl} Student ID: ${d.code}.${d.setPasswordUrl ? ` Choose a password: ${d.setPasswordUrl}` : ""}`;
+  if (d.password) return `${brand(lang)}: ${head} Log in: ${d.loginUrl ?? d.learnUrl} Student ID: ${d.code} Password: ${d.password} (change it in your profile)`;
+  return `${brand(lang)}: ${head} Your class is open: ${d.learnUrl} Student ID: ${d.code}.`;
 }
 
 /** The student sent the TrxID or a screenshot; staff will check it. */
