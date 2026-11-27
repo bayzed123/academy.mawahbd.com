@@ -23,7 +23,9 @@
  *                        (scripts/ci-preflight.mjs has already looked at the token; Wrangler reports real errors itself)
  *   --no-resources       skip the D1 / KV / R2 steps and the wrangler.toml edit (the secrets-only run after a deploy)
  *
- * Safe to re-run: existing resources and secrets are detected and left alone. Nothing here deletes anything.
+ * Safe to re-run: existing resources and secrets are detected and left alone. The one thing it ever deletes is the one-time
+ * SETUP_TOKEN, and only once the site has an admin (the token can do nothing then; with --secrets it is not set again either —
+ * before, a GitHub secret SETUP_TOKEN put it back at every deploy, however often the owner deleted it).
  * Cloudflare Stream and Workers AI are switched on per account in the dashboard (see docs/deployment.md).
  */
 import { spawnSync } from "node:child_process";
@@ -138,6 +140,21 @@ function wrangler(args, { input, allowFail = false } = {}) {
   return { ok: r.status === 0, stdout: r.stdout ?? "", all: out };
 }
 
+/**
+ * Whether the site already has an admin (the live database's staff table). null when that cannot be told — the database is not
+ * there yet, or Wrangler could not ask it — and then SETUP_TOKEN is handled as before (set when missing, never removed).
+ */
+function adminExists() {
+  const r = wrangler(["d1", "execute", "DB", "--remote", "--json", "--command", "SELECT COUNT(*) AS n FROM staff"], { allowFail: true });
+  if (!r.ok) return null;
+  try {
+    const n = JSON.parse(r.stdout.slice(r.stdout.search(/[[{]/)))?.[0]?.results?.[0]?.n;
+    return typeof n === "number" ? n > 0 : null;
+  } catch {
+    return null;
+  }
+}
+
 function jsonOf(text, what) {
   const start = text.search(/[[{]/);
   if (start < 0) fail(`could not read the list of ${what} from Wrangler's output:\n${text}`);
@@ -238,8 +255,15 @@ if (has("--secrets")) {
     wrangler(["secret", "put", "APP_SECRET"], { input: randomBytes(48).toString("base64url") });
     info(green("APP_SECRET created") + " (random, not shown)");
   }
+  // the token creates the FIRST admin and nothing else: once there is one it has done its job, so it is taken off the Worker and not put back
+  const hasAdmin = DRY ? null : adminExists();
   if (DRY) {
     /* nothing */
+  } else if (hasAdmin === true) {
+    if (present.includes("SETUP_TOKEN")) {
+      const gone = wrangler(["secret", "delete", "SETUP_TOKEN"], { allowFail: true });
+      info(gone.ok ? green("SETUP_TOKEN removed") + " — the site has an admin, so the one-time token is not needed any more" : yellow("the site has an admin, but SETUP_TOKEN could not be removed — delete it in Cloudflare (Worker → Settings → Variables and Secrets)"));
+    } else info("SETUP_TOKEN not needed — the site already has an admin" + (CI && (process.env.SETUP_TOKEN ?? "").trim() ? " (the GitHub secret SETUP_TOKEN is not used; you may delete it)" : ""));
   } else if (present.includes("SETUP_TOKEN")) info("SETUP_TOKEN already set — left untouched");
   else if (CI) {
     // automation never invents a token: nobody could read it back. The owner chooses it as the GitHub secret SETUP_TOKEN.

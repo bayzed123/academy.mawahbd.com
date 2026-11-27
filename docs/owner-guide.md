@@ -358,7 +358,7 @@
 * **যিনি কেনা শুরু করে শেষ করেননি:** তাঁর নাম, ফোন, ঠিকানা (ও ইমেইল, দিয়ে থাকলে) **অর্ডার** তালিকায় থাকে (“অপেক্ষমান” বা পরে “বাতিল”) — আপনি ফোনে বা হোয়াটসঅ্যাপে যোগাযোগ করে বিক্রি ফিরিয়ে আনতে পারেন। তিনি **শিক্ষার্থী** তালিকায় আসেন না, শিক্ষার্থীর সংখ্যাতেও ধরা হয় না; ৩০ দিনেও না কিনলে তাঁর অস্থায়ী অ্যাকাউন্টটি মুছে যায়। যিনি কিনেছেন বা যাঁর পেমেন্ট আপনার অনুমোদনের অপেক্ষায়, তাঁকে কখনো মোছা হয় না।
 * **নিরাপত্তা:** কেউ আগে থেকে থাকা শিক্ষার্থীর ইমেইল লিখলে — বা ইমেইল না দিয়ে তাঁর মোবাইল নম্বর লিখলে — সেই অ্যাকাউন্ট কখনো খোলে না। তাঁকে সেখানেই পাসওয়ার্ড দিয়ে সাইন ইন করতে বলা হয় (পাসওয়ার্ড না থাকলে ইমেইলে বা এসএমএসে লিংক যায়)। পেমেন্ট এরপর স্বাভাবিকভাবে চলে। (একই নম্বর পরিবারের কয়েকজন ব্যবহার করলে প্রত্যেকে নিজের ইমেইল দিলে সমস্যা নেই।)
 * আপনার জিমেইলে “নতুন পেমেন্ট এসেছে” ইমেইলে লেখা থাকে ক্রেতার স্টুডেন্ট আইডি, ফোন, ঠিকানা (ইমেইল না দিলে “দেননি”), আর অ্যাকাউন্টটি চেকআউটে নতুন তৈরি হয়েছে কি না।
-* অচেনা কেউ যেন অজস্র অ্যাকাউন্ট না বানাতে পারে সেজন্য একই ঠিকানা থেকে দিনে ৩০টির বেশি নতুন অ্যাকাউন্ট হয় না। আরও নিরাপত্তা চাইলে Cloudflare Turnstile চালু করুন (docs/deployment.md)।
+* অচেনা কেউ যেন অজস্র অ্যাকাউন্ট না বানাতে পারে সেজন্য একই ঠিকানা থেকে দিনে ৩০টির বেশি নতুন অ্যাকাউন্ট হয় না। Cloudflare Turnstile ("আমি রোবট নই" যাচাই) ঐচ্ছিক, বন্ধ রাখাই ভালো: এটি চালু থাকলে অ্যান্ড্রয়েড অ্যাপ থেকে কেউ লগ ইন করতে পারে না (অ্যাপে যাচাইটি দেখানো যায় না)। তাই ড্যাশবোর্ড এটিকে আর "ঠিক করার বিষয়" হিসেবে দেখায় না।
 
 ## ২৩. আগের শিক্ষার্থীদের যোগ করা — হাতে একজন করে, বা তালিকা থেকে একসাথে
 
@@ -1068,7 +1068,7 @@ Whatever you give a class besides its lessons — a PDF of recipe cards, a ZIP, 
 * **Someone who started to buy and did not finish:** their name, phone and address (and e-mail, if given) are in **Orders** (“pending”, later “cancelled”) — call or WhatsApp them to win the sale back. They are **not** in the Students list or in the student counts; if they never buy, the temporary account is removed after 30 days. Someone who paid, or whose payment is waiting for you to approve, is never removed.
 * **Safety:** if someone types the e-mail of a student who already exists — or, with no e-mail, the mobile number of one — that account is never opened. They are asked to sign in right there with the password (or are e-mailed / texted a link when the account has none), and the payment then goes on as normal. (A family that shares one number is fine as long as each gives their own e-mail.)
 * The “New payment received” e-mail in your Gmail shows the buyer’s student ID, phone and address (“gave none” when there is no e-mail) and whether the account was made at checkout.
-* To stop one visitor making piles of accounts, one address can make at most 30 new accounts a day. For more protection switch on Cloudflare Turnstile (docs/deployment.md).
+* To stop one visitor making piles of accounts, one address can make at most 30 new accounts a day. Cloudflare Turnstile (the "I am not a robot" check) is optional and best left off: with it on, the Android app cannot sign anyone in (an app cannot show the check). So the Dashboard no longer lists it as a thing to fix.
 
 ## 23. Adding earlier students — one by hand, or a whole list
 

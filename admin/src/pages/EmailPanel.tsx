@@ -22,6 +22,7 @@ interface EmailStatus {
   domain: string;
   reply_to: string;
   domain_refused_at: string | null;
+  last_sent_at?: string | null;
   notify: { to: string[]; custom: boolean; default_to: string; off: NotifyKind[] };
   last: LastTest | null;
 }
@@ -79,6 +80,7 @@ export function EmailPanel() {
       <span>
         {t("adm.email.lastFail", { when: when(s.last.at) })}
         {s.last.problem ? ` · ${problemTitle(s.last.problem, s.domain)}` : ""}
+        {s.last_sent_at && s.last_sent_at > s.last.at && <span className="ok-text"> · {t("adm.email.workedSince")}</span>}
       </span>
     )
   ) : (
@@ -95,6 +97,7 @@ export function EmailPanel() {
           { label: t("adm.email.from"), value: <code>{s.from}</code> },
           ...(s.reply_to ? [{ label: t("adm.email.replyTo"), value: <code>{s.reply_to}</code> }] : []),
           { label: t("adm.email.last"), value: last },
+          ...(s.last_sent_at ? [{ label: t("adm.email.lastSent"), value: <span className="ok-text">{t("adm.email.lastSentValue", { when: when(s.last_sent_at) })}</span> }] : []),
         ]}
       />
       <div className="row" style={{ marginTop: 18 }}>

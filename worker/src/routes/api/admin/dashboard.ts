@@ -4,7 +4,7 @@ import { activeProvider } from "../../../services/chatbot";
 import { all, first } from "../../../lib/db";
 import { GA4_LAST_KEY } from "../../../lib/ga4";
 import { ok } from "../../../lib/http";
-import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_TEST_KEY } from "../../../lib/mailer";
+import { MAIL_DOMAIN_REFUSED_KEY, MAIL_LAST_SENT_KEY, MAIL_LAST_TEST_KEY } from "../../../lib/mailer";
 import { getSettings } from "../../../lib/settings";
 import { SMS_LAST_KEY, smsConfigured, type SmsLast } from "../../../lib/sms";
 import { requirePerm } from "../../../middleware/auth";
@@ -91,11 +91,14 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
   }
   checks.push({ key: "payments", status: payStatus, issues: pay });
 
-  // e-mail: a key is set — and if the owner's last test message failed, say so (a key alone proves nothing)
+  // e-mail: a key is set — and if the owner's last test message failed, say so (a key alone proves nothing) — unless e-mails have
+  // gone out from the site's own address since: then that old test is history, not a problem
   const mail: string[] = [];
-  const [lastMailTest, domainRefused] = env.RESEND_API_KEY ? await Promise.all([env.KV.get<{ sent: boolean }>(MAIL_LAST_TEST_KEY, "json"), env.KV.get(MAIL_DOMAIN_REFUSED_KEY)]) : [null, null];
+  const [lastMailTest, domainRefused, lastSent] = env.RESEND_API_KEY
+    ? await Promise.all([env.KV.get<{ sent: boolean; at: string }>(MAIL_LAST_TEST_KEY, "json"), env.KV.get(MAIL_DOMAIN_REFUSED_KEY), env.KV.get(MAIL_LAST_SENT_KEY)])
+    : [null, null, null];
   if (!env.RESEND_API_KEY) mail.push("email_not_configured");
-  else if (lastMailTest && !lastMailTest.sent) mail.push("email_test_failed");
+  else if (lastMailTest && !lastMailTest.sent && !(lastSent && lastSent > lastMailTest.at)) mail.push("email_test_failed");
   else if (domainRefused) mail.push("email_domain_unverified"); // Resend refused a message in the last days because the sending domain is not verified
   checks.push({ key: "email", status: mail.length ? "warn" : "ok", issues: mail });
   // text messages: the secrets are set — and if the last message the company was given did not go through, say so
@@ -147,8 +150,9 @@ export async function runHealthChecks(env: Env): Promise<HealthCheck[]> {
   const staffCount = await first<{ n: number }>(env.DB, "SELECT COUNT(*) AS n FROM staff");
   if (env.SETUP_TOKEN && (staffCount?.n ?? 0) > 0) sec.push("setup_token_still_set");
   if (env.ENVIRONMENT === "production" && env.ALLOW_MOCK_PAYMENTS === "true") sec.push("mock_payments_flag_set");
-  if (!env.TURNSTILE_SECRET) sec.push("turnstile_off");
-  checks.push({ key: "security", status: sec.some((s) => s !== "turnstile_off") ? "warn" : sec.length ? "info" : "ok", issues: sec });
+  // Turnstile (the "I am not a robot" check) is optional and is NOT a thing to fix while it is off: the forms are guarded by limits on
+  // tries (RL_AUTH, RL_CHECKOUT, RL_FORM), and with it on the Android app could not sign anyone in — an app cannot show the check
+  checks.push({ key: "security", status: sec.length ? "warn" : "ok", issues: sec });
   return checks;
 }
 

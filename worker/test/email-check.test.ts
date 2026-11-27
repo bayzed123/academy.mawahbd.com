@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mailProblem, type MailResult } from "../src/lib/mailer";
+import { mailProblem, sendMail, type MailResult } from "../src/lib/mailer";
 import { Client, env, json, loginStaff } from "./helpers";
 
 /*
@@ -35,6 +35,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
   await env.KV.delete("mail:last-test"); // the last test's result lives in KV: start every test with none
   await env.KV.delete("mail:domain-refused"); // so does "Resend turned a message away because the domain is not verified"
+  await env.KV.delete("mail:last-sent"); // and when a real message last went out
 });
 
 const owner = async () => (await loginStaff("super_admin")).client;
@@ -197,6 +198,31 @@ describe("the last test and the dashboard", () => {
     await client.post("/api/admin/settings/email/test", { lang: "en" });
     expect(await health()).toMatchObject({ status: "ok", issues: [] });
     expect((await json(await client.get("/api/admin/settings/email"))).last).toMatchObject({ sent: true, problem: null });
+  });
+
+  it("a failed test stops warning once real e-mails go out after it (the owner fixed it and never tested again)", async () => {
+    const { client } = await loginStaff("super_admin");
+    withKey();
+    const health = async () => (await json(await client.get("/api/admin/health"))).checks.find((h: any) => h.key === "email");
+    // an e-mail went out earlier the same hour…
+    resendSays(200, { id: "earlier" });
+    expect((await sendMail(env, { to: "student@example.com", subject: "Receipt", html: "<p>x</p>", text: "x" })).ok).toBe(true);
+    vi.restoreAllMocks();
+    // …then a test failed: that is the newest word, so the dashboard warns
+    resendSays(403, { statusCode: 403, name: "validation_error", message: "The mawahacademy.com domain is not verified." });
+    await client.post("/api/admin/settings/email/test", { lang: "en" });
+    expect(await health()).toMatchObject({ status: "warn", issues: ["email_test_failed"] });
+    expect((await json(await client.get("/api/admin/settings/email"))).last_sent_at).toBeNull();
+    vi.restoreAllMocks();
+
+    // the owner fixes it; the next receipt Resend takes is proof enough — no new test needed
+    await new Promise((r) => setTimeout(r, 5));
+    resendSays(200, { id: "receipt" });
+    expect((await sendMail(env, { to: "student@example.com", subject: "Receipt", html: "<p>x</p>", text: "x" })).ok).toBe(true);
+    expect(await health()).toMatchObject({ status: "ok", issues: [] });
+    const status = await json(await client.get("/api/admin/settings/email"));
+    expect(status.last).toMatchObject({ sent: false }); // the test itself is still told as it was
+    expect(status.last_sent_at > status.last.at).toBe(true);
   });
 });
 
