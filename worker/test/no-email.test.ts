@@ -69,6 +69,8 @@ async function until<T>(fn: () => Promise<T | null | false | undefined>, ms = 20
   }
 }
 const tokenIn = (text: string) => /\/app\/reset\/([A-Za-z0-9_-]{20,})/.exec(text)?.[1];
+/** the password the website made and sent after payment ("Password: kmtp4829", "পাসওয়ার্ড: kmtp4829") */
+const passwordIn = (text: string) => /(?:Password|পাসওয়ার্ড): ([a-z]{4}[2-9]{4})/.exec(text)?.[1];
 const row = (id: number) => env.DB.prepare("SELECT email, name, phone, address, source, password_hash FROM students WHERE id = ?").bind(id).first<{ email: string; name: string; phone: string; address: string; source: string; password_hash: string | null }>();
 
 /** a buyer with no e-mail who has paid */
@@ -108,7 +110,7 @@ describe("buying with a mobile number and no e-mail", () => {
     expect(found[0]).toMatchObject({ name: "Rina Akter", email: "", phone: body.phone, address: ADDRESS, enrollments: 1 });
     expect((await json(await admin.get(`/api/admin/students?q=${body.phone}`))).items).toHaveLength(1); // found by the number, too
     const detail = await json(await admin.get(`/api/admin/students/${out.student.id}`));
-    expect(detail.student).toMatchObject({ email: "", address: ADDRESS, has_password: 0 });
+    expect(detail.student).toMatchObject({ email: "", address: ADDRESS, has_password: 1 }); // the password made and sent with the receipt
 
     const orders = (await json(await admin.get(`/api/admin/orders?q=${body.phone}`))).items as Record<string, unknown>[];
     expect(orders[0]).toMatchObject({ customer_email: "", customer_phone: body.phone, customer_address: ADDRESS, status: "paid" });
@@ -122,7 +124,7 @@ describe("buying with a mobile number and no e-mail", () => {
     }
   });
 
-  it("is told by text message, not by e-mail: the receipt has the student ID, the link to the class and a link to choose a password", async () => {
+  it("is told by text message, not by e-mail: the receipt has the student ID, a password and the sign-in page", async () => {
     const { phone, code, out, publicId } = await paidBuyer();
     const receipt = await until(async () => (await smsTo(phone)).find((m) => /payment received/.test(m.text)));
     // the owner can see it went (Admin → Activity): by text, and no e-mail (there is none to use)
@@ -132,8 +134,9 @@ describe("buying with a mobile number and no e-mail", () => {
     expect(JSON.parse(sent.meta)).toEqual({ sms: "sent", email: "not_sent" });
     expect(receipt.text).toContain(code);
     expect(receipt.text).toContain("Tk 1500");
-    expect(receipt.text).toMatch(/https?:\/\/[^\s]+\/app\//);
-    expect(tokenIn(receipt.text)).toBeTruthy();
+    expect(receipt.text).toMatch(new RegExp(`https?://[^\\s]+/app/login\\?id=${code}`));
+    expect(passwordIn(receipt.text)).toBeTruthy();
+    expect(tokenIn(receipt.text)).toBeFalsy();
     expect(receipt.text.length).toBeLessThanOrEqual(480);
 
     // nothing is mailed to the made-up address
@@ -151,7 +154,8 @@ describe("buying with a mobile number and no e-mail", () => {
     const { phone } = await paidBuyer({ lang: "bn" });
     const receipt = await until(async () => (await smsTo(phone)).find((m) => /মাওয়াহ একাডেমি/.test(m.text)));
     expect(receipt.text).toContain("৳১,৫০০");
-    expect(tokenIn(receipt.text)).toBeTruthy();
+    expect(receipt.text).toContain("স্টুডেন্ট আইডি:");
+    expect(passwordIn(receipt.text)).toBeTruthy();
   });
 
   it("the owner can switch texts off, and can keep them for buyers with no e-mail only", async () => {
@@ -279,6 +283,10 @@ describe("what is asked for", () => {
 describe("a number that belongs to someone is never opened by typing it", () => {
   it("a buyer with no e-mail who typed the number of a student already there is told to sign in, or sent a text — and gets no session and no order", async () => {
     const first = await paidBuyer();
+    await until(async () => (await smsTo(first.phone)).find((m) => /payment received/.test(m.text))); // the receipt (and its password) went
+    // an account that has no password (one made before passwords were sent after payment, or one staff added)
+    const sentHash = (await row(first.id))!.password_hash;
+    await env.DB.prepare("UPDATE students SET password_hash = NULL, password_sent_at = NULL WHERE id = ?").bind(first.id).run();
     const course = await makeCourse();
     const stranger = new Client();
     const res = await buy(stranger, guestBody(course, { phone: first.phone, name: "Someone Else" }));
@@ -291,9 +299,8 @@ describe("a number that belongs to someone is never opened by typing it", () => 
     expect((await row(first.id))!.name).toBe("Rina Akter");
     expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM orders WHERE student_id = ?").bind(first.id).first<{ n: number }>())!.n).toBe(1);
 
-    // once that student has chosen a password, the answer is "sign in"
-    const link = tokenIn((await smsTo(first.phone)).find((m) => /payment received/.test(m.text))!.text)!;
-    expect((await new Client().post("/api/auth/reset", { token: link, password: "correct-horse-battery" })).status).toBe(200);
+    // once that student has a password, the answer is "sign in"
+    await env.DB.prepare("UPDATE students SET password_hash = ? WHERE id = ?").bind(sentHash, first.id).run();
     const again = await buy(new Client(), guestBody(course, { phone: first.phone }));
     expect(again.status).toBe(409);
     expect((await json(again)).error.fields).toEqual({ phone: "account_exists" });
@@ -366,17 +373,14 @@ describe("a signed-in student buys", () => {
 });
 
 describe("signing in with the mobile number or the student ID", () => {
-  it("a buyer with no e-mail chooses a password from the text message — which also signs this phone in — and then signs in with the number or the ID", async () => {
+  it("a buyer with no e-mail signs in with the student ID (or the number) and the password from the text message", async () => {
     const { phone, code } = await paidBuyer();
     const receipt = await until(async () => (await smsTo(phone)).find((m) => /payment received/.test(m.text)));
-    const phoneOnTheLink = new Client();
-    const set = await phoneOnTheLink.post("/api/auth/reset", { token: tokenIn(receipt.text), password: "correct-horse-battery" });
-    expect(set.status).toBe(200);
-    expect((await json(set)).student).toMatchObject({ email: "", phone, has_password: true });
-    expect((await json(await phoneOnTheLink.get("/api/auth/me"))).student).toMatchObject({ code });
+    const password = passwordIn(receipt.text)!;
+    expect(password).toBeTruthy();
 
     for (const identifier of [phone, `+88${phone}`, code, code.toLowerCase(), code.replace("-", "").toLowerCase(), ` ${phone} `]) {
-      const res = await new Client().post("/api/auth/login", { identifier, password: "correct-horse-battery" });
+      const res = await new Client().post("/api/auth/login", { identifier, password });
       expect(res.status, identifier).toBe(200);
       expect((await json(res)).student).toMatchObject({ email: "", phone, code });
     }
@@ -388,12 +392,11 @@ describe("signing in with the mobile number or the student ID", () => {
     }
   });
 
-  it("the link in a text works once", async () => {
-    const { phone } = await paidBuyer();
-    const receipt = await until(async () => (await smsTo(phone)).find((m) => /payment received/.test(m.text)));
-    const token = tokenIn(receipt.text);
-    expect((await new Client().post("/api/auth/reset", { token, password: "correct-horse-battery" })).status).toBe(200);
-    expect((await new Client().post("/api/auth/reset", { token, password: "another-password-1" })).status).toBe(400);
+  it("the password in the text is made for each buyer (never the same twice) and is easy to copy", async () => {
+    const a = passwordIn((await until(async () => (await smsTo((await paidBuyer()).phone)).find((m) => /payment received/.test(m.text)))).text)!;
+    const b = passwordIn((await until(async () => (await smsTo((await paidBuyer()).phone)).find((m) => /payment received/.test(m.text)))).text)!;
+    expect(a).toMatch(/^[a-hj-km-np-z]{4}[2-9]{4}$/); // no i, l, o, 0 or 1 — nothing to mistake when typing it
+    expect(a).not.toBe(b);
   });
 
   it("the e-mail still works as before (also under the old field name); a number shared by two accounts asks for the ID or the e-mail instead", async () => {

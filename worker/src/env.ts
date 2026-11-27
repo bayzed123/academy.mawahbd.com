@@ -101,6 +101,8 @@ export interface StudentCtx {
   locale: Lang;
   /** false for an account made at checkout that has no password yet (absent = unknown, treated as having one) */
   has_password?: boolean;
+  /** the website made this account's password and sent it (with the student ID) by text message and e-mail; false once the student chose one */
+  password_sent?: boolean;
 }
 
 export interface StaffCtx {

@@ -64,9 +64,10 @@ test("a visitor buys with a name, a number, an address and an e-mail — no log-
   await page.getByRole("button", { name: "Simulate successful payment" }).click();
   await expect(page.getByRole("heading", { name: "Payment confirmed" })).toBeVisible();
 
-  // signed in as the person they typed, with their own student ID and a prompt to keep the account
+  // signed in as the person they typed, with their own student ID — and told the sign-in details went by text message and e-mail
   await expect(page.locator(".user-menu summary")).toContainText("Nusrat");
-  await expect(page.getByText("Keep your account")).toBeVisible();
+  await expect(page.getByText("Your sign-in details were sent to you")).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator(".keep-account")).toContainText("by text message to 01712345678 and by e-mail to");
   const code = (await page.locator(".keep-account .student-code").textContent())!.trim();
   expect(code).toMatch(/^STU-\d{6,}$/);
   await page.getByRole("link", { name: "Start learning" }).click();
@@ -80,21 +81,22 @@ test("a visitor buys with a name, a number, an address and an e-mail — no log-
   expect(students).toHaveLength(1);
   expect(students[0].enrollments).toBe(1);
 
-  // the receipt: the student ID and a link to choose a password; opened on another phone it asks for one and signs that phone in
+  // the receipt: the student ID, a password the website made and the sign-in page — copied into another browser, it signs in
   await expect.poll(async () => (await orderBox(email)).some((m) => /enrollment is confirmed/.test(m.subject))).toBe(true);
   const receipt = (await orderBox(email)).find((m) => /enrollment is confirmed/.test(m.subject))!;
-  expect(receipt.text).toContain(code);
-  // …and the same news by text message to the number
-  await expect.poll(async () => (await orderBox("01712345678")).some((m) => m.text.includes(code))).toBe(true);
-  const link = receipt.text.match(/\/app\/reset\/[A-Za-z0-9_-]+/)![0];
+  expect(receipt.text).toContain(`Student ID: ${code}`);
+  const password = /Password: ([a-z]{4}[2-9]{4})\n/.exec(receipt.text)![1];
+  // …and the same by text message to the number
+  await expect.poll(async () => (await orderBox("01712345678")).some((m) => m.text.includes(code) && m.text.includes(password))).toBe(true);
+  const loginUrl = /Log in: (\S+)/.exec(receipt.text)![1];
   const other = await visitor(browser);
-  await other.page.goto(link);
-  await expect(other.page.getByRole("heading", { name: "Choose a new password" })).toBeVisible();
-  await other.page.getByLabel("New password").fill("my-first-password-9");
-  await other.page.getByRole("button", { name: "Save" }).click();
+  await other.page.goto(new URL(loginUrl).pathname + new URL(loginUrl).search);
+  await expect(other.page.getByLabel(/Mobile number, student ID or e-mail/)).toHaveValue(code); // filled in from the link
+  await other.page.getByLabel(/^Password/).fill(password);
+  await other.page.getByRole("button", { name: /^Log in$/ }).click();
   await expect(other.page.getByRole("heading", { name: "My Learning" })).toBeVisible();
   await expect(other.page.getByText("Beginners Baking Class")).toBeVisible();
-  await expect(other.page.getByText("Keep your account")).toHaveCount(0); // it has a password now
+  await expect(other.page.getByText("Keep your account")).toHaveCount(0); // it has a password
   await other.page.goto("/app/profile");
   await expect(other.page.getByLabel("Student ID")).toHaveValue(code);
   await other.ctx.close();
@@ -224,7 +226,7 @@ test("a send-money payment as a visitor: details first, then the open order with
   expect((await apiPost(admin, `/admin/orders/${waiting.id}/approve`, {})).status).toBe(200);
   await page.goto("/app/");
   await expect(page.getByText("Traditional Aurosh Biryani Online Class")).toBeVisible();
-  await expect(page.getByText("Keep your account")).toBeVisible();
+  await expect(page.getByText("Your sign-in details were sent to you")).toBeVisible({ timeout: 15_000 });
   await ctx.close();
 });
 
@@ -280,24 +282,19 @@ test("no e-mail at all: a visitor gives a name, a number and an address, is text
   await expect(admin.getByRole("dialog")).not.toContainText("no-email.invalid");
   await admin.keyboard.press("Escape");
 
-  // the receipt came by text message: the student ID, and a link to choose a password
+  // the receipt came by text message: the student ID, a password the website made, and the sign-in page
   await expect.poll(async () => (await orderBox(phone)).some((m) => /payment received/.test(m.text))).toBe(true);
   const sms = (await orderBox(phone)).find((m) => /payment received/.test(m.text))!;
-  expect(sms.text).toContain(code);
-  const link = sms.text.match(/\/app\/reset\/[A-Za-z0-9_-]+/)![0];
-  const other = await visitor(browser);
-  await other.page.goto(link);
-  await other.page.getByLabel("New password").fill("my-first-password-9");
-  await other.page.getByRole("button", { name: "Save" }).click();
-  await expect(other.page.getByRole("heading", { name: "My Learning" })).toBeVisible();
-  await other.ctx.close();
+  expect(sms.text).toContain(`Student ID: ${code}`);
+  expect(sms.text).toContain(`/app/login?id=${code}`);
+  const sent = /Password: ([a-z]{4}[2-9]{4})/.exec(sms.text)![1];
 
-  // later, on a fresh phone: the number, then the student ID, each with the password
+  // later, on a fresh phone: the number, then the student ID, each with the password from the text
   for (const who of [phone, code]) {
     const back = await visitor(browser);
     await back.page.goto("/app/login");
     await back.page.getByLabel("Mobile number, student ID or e-mail").fill(who);
-    await back.page.getByLabel("Password").fill("my-first-password-9");
+    await back.page.getByLabel("Password").fill(sent);
     await back.page.getByRole("button", { name: "Log in" }).last().click();
     await expect(back.page.getByRole("heading", { name: "My Learning" })).toBeVisible();
     await expect(back.page.getByText("Beginners Baking Class")).toBeVisible();

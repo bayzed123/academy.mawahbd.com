@@ -59,6 +59,8 @@ export interface StudentMe {
   code: string;
   /** false for an account made at checkout until its owner sets a password (the profile then offers to) */
   has_password: boolean;
+  /** the website made the password and sent it, with the student ID and the sign-in page, by text message and e-mail (until the student chooses their own) */
+  password_sent?: boolean;
 }
 
 export interface StaffMe {

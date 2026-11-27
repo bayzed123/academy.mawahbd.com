@@ -2,13 +2,12 @@ import type { Channel, OrderDTO, OrderItemDTO, OrderStatus, PaymentMethod } from
 import { dhakaDayStamp, formatMoney, loc, MANUAL_WINDOW_DEFAULT_MIN, MAX_PROOF_IMAGE_BYTES, shownEmail, studentCode } from "@mawah/shared";
 import type { Env, StudentCtx } from "../env";
 import { auditAs } from "../lib/audit";
-import { generatePublicOrderId, randomToken, sha256Hex } from "../lib/crypto";
+import { generatePublicOrderId, hashPassword, randomString, randomToken, sha256Hex } from "../lib/crypto";
 import { all, first, nowIso, qs, run } from "../lib/db";
 import { sniffImage } from "../lib/files";
 import { conflict, HttpError, notFound } from "../lib/http";
 import { orderReceiptMail } from "../lib/mailer";
 import { receiptSms, smsText } from "../lib/smsText";
-import { createPasswordResetLink } from "./auth";
 import { notices, notifyOwner } from "./notify";
 import { reportPurchase } from "./metaCapi";
 import { tellStudent, toldMeta } from "./studentMessages";
@@ -480,8 +479,14 @@ export async function notifyProof(env: Env, orderId: number): Promise<void> {
   }
 }
 
-/** How long the "choose your password" link in a receipt works — long enough to open the e-mail on another day. */
-const SET_PASSWORD_LINK_DAYS = 3;
+/**
+ * A password the website makes for a buyer whose account was made at checkout: four letters then four digits ("kmtp4829"), no letters
+ * that look like digits (i, l, o) and no 0 or 1 — easy to copy from a text message or to type on a phone, and with the sign-in lock
+ * (five wrong tries) too many to guess.
+ */
+export function easyPassword(): string {
+  return randomString(4, "abcdefghjkmnpqrstuvwxyz") + randomString(4, "23456789");
+}
 
 export async function sendReceipt(env: Env, orderId: number): Promise<void> {
   const order = await first<{ invoice_no: string; total: number; customer_name: string; customer_email: string; customer_phone: string; public_id: string; student_id: number }>(
@@ -495,8 +500,24 @@ export async function sendReceipt(env: Env, orderId: number): Promise<void> {
     all<{ title_bn: string; title_en: string }>(env.DB, "SELECT title_bn, title_en FROM order_items WHERE order_id = ?", orderId),
   ]);
   const lang = student?.locale ?? "bn";
-  // a student whose account was made at checkout has no password yet: the receipt carries the link to choose one (and so to open the classes on any phone)
-  const setPasswordUrl = student && !student.has_password ? await createPasswordResetLink(env, order.student_id, SET_PASSWORD_LINK_DAYS * 86_400) : undefined;
+  // A student whose account was made at checkout has no password: many buy inside Facebook or Messenger and could not sign in again in
+  // another browser. They get one now — in this message, ready to copy, with their student ID and the sign-in page — and can change it in
+  // their profile. Only an account that still has none: a password someone chose is never replaced (and the phone that bought stays signed in).
+  let password: string | undefined;
+  if (student && !student.has_password) {
+    const made = easyPassword();
+    const res = await run(
+      env.DB,
+      "UPDATE students SET password_hash = ?, password_sent_at = ?, updated_at = ? WHERE id = ? AND password_hash IS NULL AND google_sub IS NULL",
+      await hashPassword(made, env.APP_SECRET),
+      nowIso(),
+      nowIso(),
+      order.student_id,
+    );
+    if ((res.meta.changes ?? 0) === 1) password = made;
+  }
+  const code = studentCode(order.student_id);
+  const loginUrl = `${env.SITE_URL}/app/login?id=${code}`;
   const mail = orderReceiptMail(lang, {
     name: order.customer_name,
     invoiceNo: order.invoice_no,
@@ -504,15 +525,16 @@ export async function sendReceipt(env: Env, orderId: number): Promise<void> {
     items: items.map((i) => loc(i, "title", lang)),
     learnUrl: `${env.SITE_URL}/app/`,
     invoiceUrl: `${env.SITE_URL}/app/orders/${order.public_id}`,
-    studentId: studentCode(order.student_id),
-    setPasswordUrl,
-    setPasswordDays: SET_PASSWORD_LINK_DAYS,
+    studentId: code,
+    password,
+    loginUrl,
   });
-  // by e-mail when they gave one, and by text message to their mobile number (the only way for a buyer who gave no e-mail)
+  // by e-mail when they gave one, and by text message to their mobile number (the only way for a buyer who gave no e-mail; for one who
+  // gave an e-mail, as Admin → Settings → SMS says)
   const told = await tellStudent(
     env,
     { email: order.customer_email, phone: order.customer_phone || student?.phone },
-    { mail, sms: smsText(lang, (l) => receiptSms(l, { total: order.total, learnUrl: `${env.SITE_URL}/app/`, code: studentCode(order.student_id), setPasswordUrl })) },
+    { mail, sms: smsText(lang, (l) => receiptSms(l, { total: order.total, learnUrl: `${env.SITE_URL}/app/`, code, password, loginUrl })) },
   );
   // how it went, for the owner (Admin → Activity): a receipt that could not be sent is the usual reason "I paid and heard nothing"
   await auditAs(env, { type: "system", id: null, name: "" }, { action: "order.receipt_sent", entity: "order", entityId: orderId, summary: order.public_id, meta: toldMeta(told) });

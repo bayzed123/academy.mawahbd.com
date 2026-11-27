@@ -203,11 +203,17 @@ export async function recordEscalation(env: Env, e: { courseId?: number | null; 
     return;
   }
   const now = nowIso();
-  await run(env.DB, "INSERT INTO chat_escalations (course_id, student_id, lang, question, reason, created_at, last_asked_at) VALUES (?, ?, ?, ?, ?, ?, ?)", e.courseId ?? null, e.studentId ?? null, e.lang, q, e.reason, now, now);
+  const res = await run(env.DB, "INSERT INTO chat_escalations (course_id, student_id, lang, question, reason, created_at, last_asked_at) VALUES (?, ?, ?, ?, ?, ?, ?)", e.courseId ?? null, e.studentId ?? null, e.lang, q, e.reason, now, now);
   // the owner hears about it, but the visitor's answer does not wait for that
   const told = notifyOwner(env, notices.chatHandoff({ question: q, lang: e.lang, reason: e.reason, student: e.studentId ? `student #${e.studentId}` : null }));
   if (e.waitUntil) e.waitUntil(told);
   else await told;
+  // …and the AI drafts its answer from the academy's facts, for the team to approve (services/chatDrafts.ts; the scheduled job catches up
+  // on any it could not do now)
+  if (e.waitUntil) {
+    const id = Number(res.meta.last_row_id);
+    e.waitUntil(import("./chatDrafts").then((m) => m.draftEscalation(env, id)).catch(() => undefined));
+  }
 }
 
 export async function activeProvider(env: Env): Promise<{ row: ProviderRow; apiKey: string | null } | null> {
@@ -240,8 +246,16 @@ async function answerRaw(env: Env, input: ChatInput): Promise<ChatOutput> {
     return { reply, escalate: true };
   };
 
-  // an answer the team taught for this very question is given as it is — no AI in between, so nothing can be added to it
+  // an answer the team taught for this very question is given as it is — no AI in between, so nothing can be added to it — unless it names a
+  // price or a discount that is no longer true (a class's price changed since): then the chatbot answers from today's facts instead, and
+  // that old answer is not handed to the AI as a fact either
   const ranked = await rankKnowledge(env, last.content, input.lang);
+  const withFigures = ranked.filter((k) => k.score > 0 && /[0-9০-৯]/.test(k.answer));
+  if (withFigures.length) {
+    const today = await buildSystemPrompt(env, input.lang, input.courseId, []);
+    const stale = new Set(withFigures.filter((k) => unsupportedFigures(k.answer, today).length > 0).map((k) => k.id));
+    if (stale.size) ranked.splice(0, ranked.length, ...ranked.filter((k) => !stale.has(k.id)));
+  }
   const best = ranked[0];
   if (best && best.score >= DIRECT_MATCH) {
     const used = countUse(env, best.id);

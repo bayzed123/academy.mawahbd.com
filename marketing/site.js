@@ -15,9 +15,47 @@ import { inView, stagger } from "framer-motion/dom";
   try { localStorage.setItem("mawah_lang", (d.documentElement.lang || "bn").slice(0, 2)); } catch (e) { /* private mode */ }
 
   /* 1. cached HTML is anonymous; a non-secret cookie flag swaps "Log in" for "My Learning" */
-  if (/(?:^|;\s*)mawah_in=1/.test(d.cookie)) {
+  var signedIn = /(?:^|;\s*)mawah_in=1/.test(d.cookie);
+  if (signedIn) {
     $$("[data-guest]").forEach(function (e) { e.hidden = true; });
     $$("[data-user]").forEach(function (e) { e.hidden = false; });
+  }
+
+  /* 1b. a class the signed-in student already has: its "Enroll" buttons (cards, the class page, the bar at the bottom, landing pages) become
+     "Start the class", straight to the lessons. The pages are cached for everyone, so the list of their classes is asked for here (kept a
+     minute in this tab) and the buttons the page adds later (related classes) are changed too. */
+  var ownedLabel = d.documentElement.lang === "bn" ? "ক্লাস শুরু করুন" : "Start the class";
+  var ownedSlugs = null;
+  function markOwned(root) {
+    if (!ownedSlugs || !ownedSlugs.length) return;
+    $$('a[href*="/app/checkout?c="]', root).forEach(function (a) {
+      var slug;
+      try { slug = new URL(a.href, location.href).searchParams.get("c"); } catch (e) { return; }
+      if (!slug || ownedSlugs.indexOf(slug) < 0) return;
+      a.href = "/app/learn/" + encodeURIComponent(slug);
+      a.textContent = ownedLabel;
+      a.classList.add("is-owned");
+      a.setAttribute("data-owned", "");
+    });
+  }
+  if (signedIn) {
+    var ownedCache = null;
+    try { ownedCache = JSON.parse(sessionStorage.getItem("mawah_owned") || "null"); } catch (e) { /* private mode */ }
+    if (ownedCache && Date.now() - ownedCache.at < 60000) {
+      ownedSlugs = ownedCache.slugs;
+      markOwned(d);
+    } else {
+      fetch("/api/student/owned", { credentials: "same-origin", headers: { Accept: "application/json" } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (body) {
+          if (!body || !body.slugs) return;
+          ownedSlugs = body.slugs;
+          try { sessionStorage.setItem("mawah_owned", JSON.stringify({ at: Date.now(), slugs: ownedSlugs })); } catch (e) { /* private mode */ }
+          markOwned(d);
+        })
+        .catch(function () { /* the page simply keeps its buttons */ });
+    }
+    d.addEventListener("mawah:fragment", function (e) { markOwned(e.target); });
   }
 
   /* print / save-as-PDF buttons on certificates and invoices (inline handlers are blocked by CSP) */

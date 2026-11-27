@@ -52,7 +52,8 @@ export function Login() {
   const [params] = useSearchParams();
   const next = safeNext(params.get("next")) ?? "/";
   const site = useSite();
-  const [email, setEmail] = useState("");
+  // the sign-in link in the message sent after payment carries the student ID (?id=STU-000123): it is filled in, only the password to type
+  const [email, setEmail] = useState(() => (/^STU-\d{1,12}$/i.test(params.get("id") ?? "") ? (params.get("id") ?? "").toUpperCase() : ""));
   const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
   const [bump, setBump] = useState(0);
